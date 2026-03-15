@@ -1,0 +1,722 @@
+// ─────────────────────────────────────────────────
+// Supabase Edge Function: ai-intake
+// Handles all AI operations for the medical intake flow
+// ─────────────────────────────────────────────────
+
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// ── Defaults (env fallbacks) ────────────────────
+const ENV_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') || '';
+const DEFAULT_MODEL = 'gpt-4o-mini';
+const DEFAULT_TEMPERATURE = 0.3;
+const MAX_CONVERSATION_MESSAGES = 40; // Sliding window: keep last N messages
+const MAX_MESSAGE_LENGTH = 3000;      // Max chars per patient message
+
+// ── Sections that don't use [SECTION_COMPLETE] ──
+const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary'];
+
+// ── Behavioral suffix (appended to all interview section prompts) ──
+const BEHAVIOR_SUFFIX = `
+
+IMPORTANT behavioral rules:
+- EVERY message you send MUST contain a question. Never send a message that is only a thank-you, acknowledgment, confirmation, or summary without a follow-up question.
+- Do NOT say "Thank you for sharing", "Thank you for confirming", "Thank you for letting me know", or any gratitude/filler phrases. Go directly to your next question.
+- Do NOT use concluding or farewell language like "That concludes...", "I have everything I need", or "Your intake is complete". You are NOT the one who decides when the interview ends.
+- SINGLE QUESTION: Each message must contain exactly ONE question. Never ask multiple questions in one message — even if they seem related. Wait for the patient's answer before asking the next.
+- SECTION COMPLETION: When you have enough information, append [SECTION_COMPLETE] at the end of your last response. Do NOT post a closing summary or thank-you — just add the tag silently after the patient's last answer is addressed. The system will automatically transition.
+- PRIOR INFORMATION: If the patient context already contains information relevant to THIS section (e.g., allergies or medications mentioned earlier), do NOT skip this section. Instead, state precisely what you understood for THIS section only, then ask: "Would you like to confirm this, or is there anything you'd like to add?" Only emit [SECTION_COMPLETE] after the patient confirms or provides additional info.
+- If the patient answers "no", "none", or "nothing" to an opening question, accept it and emit [SECTION_COMPLETE]. Do NOT ask a follow-up confirmation.
+- Keep responses concise (1-2 sentences + your ONE question). Never repeat information the patient already provided.
+- Accept short answers like "no", "yes", "ok", numbers, and brief phrases as valid responses.
+- You MUST ask at least ONE question before emitting [SECTION_COMPLETE]. Never complete a section without asking anything.`;
+
+// ── Summary suffix (appended only to the summary section prompt) ──
+const SUMMARY_SUFFIX = `
+
+IMPORTANT summary rules:
+- Provide ONLY an exhaustive, comprehensive recap of what the patient said during the interview, organized by section (Chief Complaint, HPI, Past Medical History, Allergies, Medications, Family History, Social History, Review of Systems).
+- Do NOT include any treatment plan, recommendations, assessment, suggested workup, differential diagnosis, or follow-up suggestions.
+- Do NOT add any clinical interpretation or medical opinion.
+- Simply summarize the patient's own words and answers accurately and completely.
+- Use clear, organized formatting with section headers.`;
+
+// ── Soft Redirect Detection ──────────────────────
+const REDIRECT_PHRASES = [
+    "i'm here to help with your medical intake",
+    "i'm here to assist with your medical intake",
+    "let's focus on your health",
+    "let's continue with your health",
+    "let's continue focusing on your health",
+    "please let me know what health concern",
+    "please share the health concern",
+    "what health concern would you like to discuss",
+    "what health concern or reason for visit",
+    "what health issue would you like to discuss",
+    "could you please tell me what health concern",
+    "could you please share what health concern",
+    "let me know what health concern",
+    // Arabic redirect phrases
+    "\u0623\u0646\u0627 \u0647\u0646\u0627 \u0644\u0645\u0633\u0627\u0639\u062f\u062a\u0643 \u0641\u064a \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u0627\u0644\u0637\u0628\u064a\u0629",
+    "\u062f\u0639\u0646\u0627 \u0646\u0631\u0643\u0632 \u0639\u0644\u0649 \u0635\u062d\u062a\u0643",
+    "\u064a\u0631\u062c\u0649 \u0625\u062e\u0628\u0627\u0631\u064a \u0628\u0627\u0644\u0645\u0634\u0643\u0644\u0629 \u0627\u0644\u0635\u062d\u064a\u0629",
+    "\u0645\u0627 \u0627\u0644\u0645\u0634\u0643\u0644\u0629 \u0627\u0644\u0635\u062d\u064a\u0629 \u0627\u0644\u062a\u064a \u062a\u0648\u062f \u0645\u0646\u0627\u0642\u0634\u062a\u0647\u0627",
+    "\u0647\u0644 \u064a\u0645\u0643\u0646\u0643 \u0625\u062e\u0628\u0627\u0631\u064a \u0628\u0627\u0644\u0633\u0628\u0628 \u0627\u0644\u0630\u064a \u0623\u062a\u0649 \u0628\u0643",
+    "\u0645\u0627 \u0627\u0644\u0630\u064a \u062a\u0648\u062f \u0645\u0646\u0627\u0642\u0634\u062a\u0647 \u0627\u0644\u064a\u0648\u0645",
+    "\u0623\u0646\u0627 \u0647\u0646\u0627 \u0644\u0644\u0645\u0633\u0627\u0639\u062f\u0629 \u0641\u064a \u0627\u0644\u0627\u0633\u062a\u0634\u0627\u0631\u0629 \u0627\u0644\u0637\u0628\u064a\u0629",
+    "\u062f\u0639\u0646\u0627 \u0646\u0648\u0627\u0635\u0644 \u0627\u0644\u062a\u0631\u0643\u064a\u0632 \u0639\u0644\u0649 \u0635\u062d\u062a\u0643",
+];
+
+function detectSoftRedirect(aiResponse: string): string | null {
+    const lower = aiResponse.toLowerCase();
+    const isRedirect = REDIRECT_PHRASES.some(phrase => lower.includes(phrase));
+    return isRedirect ? 'off_topic' : null;
+}
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-key',
+};
+
+// ── Singleton Supabase admin client ─────────────
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+// ── Auth Verification ───────────────────────────
+// Supports both user JWT tokens and admin service-role key
+async function verifyAuth(req: Request): Promise<{ userId: string; isAdmin?: boolean } | null> {
+    // Admin bypass via service-role key header
+    const adminKey = req.headers.get('x-admin-key');
+    if (adminKey && adminKey === supabaseServiceKey) {
+        return { userId: 'admin', isAdmin: true };
+    }
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) return null;
+
+    try {
+        const token = authHeader.replace('Bearer ', '');
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+            global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data: { user }, error } = await userClient.auth.getUser();
+        if (error || !user) return null;
+        return { userId: user.id };
+    } catch {
+        return null;
+    }
+}
+
+// ── Config (reads from platform_settings) ───────
+async function getConfig(): Promise<{ apiKey: string; model: string; temperature: number }> {
+    try {
+        const { data: rows } = await supabaseAdmin
+            .from('platform_settings')
+            .select('key, value')
+            .in('key', ['openai_api_key', 'openai_model', 'openai_temperature']);
+
+        const settings: Record<string, string> = {};
+        for (const row of rows || []) {
+            settings[row.key] = row.value;
+        }
+
+        return {
+            apiKey: settings['openai_api_key'] || ENV_OPENAI_KEY,
+            model: settings['openai_model'] || DEFAULT_MODEL,
+            temperature: settings['openai_temperature']
+                ? parseFloat(settings['openai_temperature'])
+                : DEFAULT_TEMPERATURE,
+        };
+    } catch {
+        return { apiKey: ENV_OPENAI_KEY, model: DEFAULT_MODEL, temperature: DEFAULT_TEMPERATURE };
+    }
+}
+
+// ── Get global guard prompt (auto-prepended to all sections) ──
+const _guardCache: Record<string, { content: string | null; ts: number }> = {};
+async function getGlobalGuard(mode: 'draft' | 'active' = 'active'): Promise<string | null> {
+    const cacheKey = mode;
+    const cached = _guardCache[cacheKey];
+    // Cache for 60s to avoid repeated DB queries
+    if (cached && Date.now() - cached.ts < 60_000) return cached.content;
+    try {
+        const { data } = await supabaseAdmin
+            .from('ai_prompts')
+            .select('content')
+            .eq('prompt_type', 'global_guard')
+            .eq('is_active', true)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+
+        const content = data?.[0]?.content ?? null;
+        _guardCache[cacheKey] = { content, ts: Date.now() };
+        return content;
+    } catch {
+        return null;
+    }
+}
+
+// ── Get prompt content by ID (respecting mode) ──
+async function getPromptById(promptId: string, mode: 'draft' | 'active' = 'active'): Promise<{ content: string; version: number } | null> {
+    try {
+        const { data } = await supabaseAdmin
+            .from('ai_prompts')
+            .select('content, version')
+            .eq('id', promptId)
+            .single();
+        if (!data) return null;
+        return { content: data.content, version: data.version };
+    } catch {
+        return null;
+    }
+}
+
+// ── Get chatbot version from platform_settings ──
+async function getChatbotVersion(): Promise<string> {
+    try {
+        const { data } = await supabaseAdmin
+            .from('platform_settings')
+            .select('value')
+            .eq('key', 'chatbot_version')
+            .single();
+        return data?.value ?? '0';
+    } catch {
+        return '0';
+    }
+}
+
+// ── Allowed system prompt prefixes (prevent prompt injection) ──
+const ALLOWED_PROMPT_PREFIXES = [
+    'You are a medical intake AI',
+    'You are a clinical',
+    'You are a warm',
+    'You are a friendly',
+    'Continue the medical',
+];
+
+function sanitizeSystemPrompt(prompt: string): string {
+    // If it starts with a known safe prefix, allow it
+    const startsWithAllowed = ALLOWED_PROMPT_PREFIXES.some(p =>
+        prompt.trim().toLowerCase().startsWith(p.toLowerCase())
+    );
+    if (startsWithAllowed) return prompt;
+
+    // Otherwise, prepend a safety wrapper
+    return `You are a medical intake AI assistant. Follow these additional instructions:\n${prompt}`;
+}
+
+// ── Safe JSON parse helper ──────────────────────
+function safeJsonParse<T>(text: string, fallback: T): T {
+    try {
+        return JSON.parse(text) as T;
+    } catch (err) {
+        console.error('JSON parse error:', err, 'Raw text:', text.slice(0, 200));
+        return fallback;
+    }
+}
+
+// ── Truncate conversation history ───────────────
+function truncateHistory(
+    history: { role: string; content: string }[],
+    maxMessages = MAX_CONVERSATION_MESSAGES,
+): { role: string; content: string }[] {
+    if (history.length <= maxMessages) return history;
+    // Keep the first message (usually context) + last N-1 messages
+    return [history[0], ...history.slice(-(maxMessages - 1))];
+}
+
+// ── OpenAI call helper (structured JSON responses) ────
+async function callOpenAI(
+    systemPrompt: string,
+    userPrompt: string,
+    maxTokens = 1000,
+): Promise<string> {
+    const config = await getConfig();
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: config.model,
+            temperature: config.temperature,
+            max_tokens: maxTokens,
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+            ],
+        }),
+    });
+
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`OpenAI error: ${res.status} ${err}`);
+    }
+
+    const data = await res.json();
+    return data.choices[0].message.content;
+}
+
+// ── Chat with full conversation (sequence-driven) ──
+async function chatWithConversation(
+    systemPrompt: string,
+    conversationHistory: { role: string; content: string }[],
+    maxTokens = 1000,
+): Promise<string> {
+    const config = await getConfig();
+
+    // Auto-prepend global guard
+    const guard = await getGlobalGuard();
+    const finalPrompt = guard
+        ? `${guard}\n\n---\n\n${systemPrompt}`
+        : systemPrompt;
+
+    // Truncate history to prevent token overflow
+    const trimmedHistory = truncateHistory(conversationHistory);
+
+    const messages = [
+        { role: 'system', content: finalPrompt },
+        ...trimmedHistory.map((m) => ({
+            role: m.role === 'patient' ? 'user' : m.role === 'ai' ? 'assistant' : m.role,
+            content: m.content,
+        })),
+    ];
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: config.model,
+            temperature: config.temperature,
+            max_tokens: maxTokens,
+            messages,
+        }),
+    });
+
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`OpenAI error: ${res.status} ${err}`);
+    }
+
+    const data = await res.json();
+    return data.choices[0].message.content;
+}
+
+// ── Action Handlers ─────────────────────────────
+
+async function analyzeConcern(concern: string, language: string) {
+    const system = `You are a medical triage AI for cliniq.one. Analyze the patient's concern and determine:
+1. Which specialty to route to (dermatology or family_medicine)
+2. The urgency level (routine, urgent, or emergency)
+3. Key medical keywords extracted
+
+Routing rules:
+- Skin/hair/nail/rash/acne/eczema/psoriasis/cosmetic concerns → dermatology
+- General illness/fever/pain/chronic disease/multi-system → family_medicine
+- Life-threatening symptoms → emergency (specialty = null)
+
+Respond in JSON: { "specialty": string|null, "category": string, "urgency": "routine"|"urgent"|"emergency", "keywords": string[], "confidence": number, "reasoning": string }
+
+Language: ${language}`;
+
+    const result = await callOpenAI(system, `Patient concern: ${concern}`, 500);
+    return safeJsonParse(result, {
+        specialty: 'family_medicine',
+        category: 'general',
+        urgency: 'routine',
+        keywords: [],
+        confidence: 0,
+        reasoning: 'Failed to parse AI response',
+    });
+}
+
+async function generateQuestion(
+    concern: string,
+    previousAnswers: { question: string; answer: string }[],
+    section: string,
+    language: string,
+) {
+    const sectionDescriptions: Record<string, string> = {
+        hpi: 'History of Present Illness - onset, duration, course, location, character, aggravating/relieving factors, associated symptoms',
+        pmh: 'Past Medical History - chronic conditions, surgeries, previous issues, hospitalizations',
+        medications: 'Current Medications - prescription, OTC, vitamins, supplements, herbal remedies',
+        allergies: 'Allergies - drug allergies, food allergies, environmental allergies',
+        family_history: 'Family History - similar conditions in family, genetic conditions',
+        social_history: 'Social History - occupation, hobbies, exposures, smoking/alcohol',
+        review_of_systems: 'Review of Systems - constitutional symptoms, system-by-system check',
+        physical_exam: 'Physical Examination - self-reported observations, photo description for dermatology',
+    };
+
+    const prevContext = previousAnswers.length > 0
+        ? `Previous Q&A:\n${previousAnswers.map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join('\n\n')}`
+        : 'No previous questions yet.';
+
+    const system = `You are a medical intake AI for cliniq.one. Generate ONE clear follow-up question for the patient.
+
+Current section: ${section} — ${sectionDescriptions[section] || section}
+
+Rules:
+- Ask one clear question at a time
+- Use patient-friendly language (no medical jargon)
+- Consider all previous answers to avoid repetition
+- Adapt to the concern (dermatology → skin characteristics; family medicine → systemic)
+- If the question can be answered with options, provide them
+- Language: ${language === 'ar' ? 'Arabic' : 'English'}
+
+Respond in JSON: { "question": string, "options": string[]|null, "type": "multiple_choice"|"free_text"|"yes_no", "required": true, "helperText": string|null }`;
+
+    const result = await callOpenAI(system, `Chief complaint: ${concern}\n\n${prevContext}`, 500);
+    return safeJsonParse(result, {
+        question: 'Could you provide more details about your symptoms?',
+        options: null,
+        type: 'free_text',
+        required: true,
+        helperText: null,
+    });
+}
+
+async function checkSection(
+    section: string,
+    answersInSection: { question: string; answer: string }[],
+    concern: string,
+    language: string,
+) {
+    const sections = ['hpi', 'pmh', 'medications', 'allergies', 'family_history', 'social_history', 'review_of_systems', 'physical_exam'];
+    const currentIdx = sections.indexOf(section);
+    const nextSection = currentIdx < sections.length - 1 ? sections[currentIdx + 1] : 'done';
+
+    const system = `You are a medical intake AI. Determine if enough questions have been asked for the "${section}" section.
+
+Rules:
+- Each section needs 2-4 meaningful questions minimum
+- Move on if the patient has provided sufficient information
+- Don't over-question — be efficient
+- If answers are vague, you may continue the section with 1 more question
+
+Respond in JSON: { "complete": boolean, "nextSection": "${nextSection}"|"${section}" }`;
+
+    const prevContext = answersInSection.map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join('\n\n');
+
+    const result = await callOpenAI(system, `Concern: ${concern}\n\nSection "${section}" Q&A so far:\n${prevContext}\n\nTotal answers in section: ${answersInSection.length}`, 200);
+    return safeJsonParse(result, { complete: true, nextSection });
+}
+
+async function analyzeQA(
+    qaHistory: { question: string; answer: string }[],
+    patientInfo: Record<string, unknown>,
+    language: string,
+) {
+    const system = `You are a clinical documentation AI for cliniq.one. Generate a comprehensive clinical summary from the patient interview.
+
+Output JSON with these fields:
+{
+    "summary": "2-3 sentence overview",
+    "keyFindings": ["bullet-pointed clinical observations"],
+    "redFlags": ["concerning symptoms, empty if none"],
+    "hpi": "narrative of present illness",
+    "pmh": "past medical history summary",
+    "medications": ["list of medications mentioned"],
+    "allergies": ["list of allergies mentioned"],
+    "socialHistory": "social history summary",
+    "familyHistory": "family history summary",
+    "assessment": "clinical interpretation",
+    "recommendedSpecialty": "dermatology|family_medicine",
+    "priorityLevel": "routine|urgent|emergency",
+    "suggestedWorkup": ["suggested tests/workup"],
+    "preliminaryDiagnosis": [{"diagnosis": string, "likelihood": "high|moderate|low", "reasoning": string}],
+    "recommendedTreatment": ["treatment suggestions"],
+    "patientEducation": ["patient education points"],
+    "followUp": "follow-up recommendation"
+}
+
+Language: ${language === 'ar' ? 'Arabic' : 'English'}`;
+
+    const qaText = qaHistory.map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).join('\n\n');
+    const result = await callOpenAI(system, `Patient info: ${JSON.stringify(patientInfo)}\n\nInterview:\n${qaText}`, 2000);
+    return safeJsonParse(result, {
+        summary: 'Unable to generate summary.',
+        keyFindings: [],
+        redFlags: [],
+        hpi: '',
+        pmh: '',
+        medications: [],
+        allergies: [],
+        socialHistory: '',
+        familyHistory: '',
+        assessment: '',
+        recommendedSpecialty: 'family_medicine',
+        priorityLevel: 'routine',
+        suggestedWorkup: [],
+        preliminaryDiagnosis: [],
+        recommendedTreatment: [],
+        patientEducation: [],
+        followUp: '',
+    });
+}
+
+async function detectMedication(text: string) {
+    const system = `You are a medication extraction AI. Extract all medications from the text.
+
+Include: prescriptions, OTC, vitamins, supplements, herbal remedies.
+Map brand names to generic names when possible (Tylenol → Acetaminophen).
+
+Respond in JSON: [{ "name": string, "genericName": string|null, "dose": string|null, "unit": string|null, "frequency": string|null, "route": string|null, "indication": string|null, "confidence": number }]`;
+
+    const result = await callOpenAI(system, text, 500);
+    return safeJsonParse(result, []);
+}
+
+// ── Main Handler ────────────────────────────────
+serve(async (req: Request) => {
+    // CORS preflight
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
+    try {
+        // ── Auth Check ──────────────────────────────
+        const auth = await verifyAuth(req);
+        if (!auth) {
+            return new Response(
+                JSON.stringify({ error: 'Unauthorized. Valid authentication required.' }),
+                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            );
+        }
+
+        const body = await req.json();
+        const { action, ...params } = body;
+
+        // ── Input validation ────────────────────────
+        if (params.conversationHistory) {
+            // Truncate overly long messages in history
+            params.conversationHistory = params.conversationHistory.map(
+                (m: { role: string; content: string }) => ({
+                    role: m.role,
+                    content: typeof m.content === 'string'
+                        ? m.content.slice(0, MAX_MESSAGE_LENGTH)
+                        : '',
+                })
+            );
+        }
+
+        let result: unknown;
+
+        switch (action) {
+            case 'analyze-concern':
+                result = await analyzeConcern(
+                    (params.concern || '').slice(0, MAX_MESSAGE_LENGTH),
+                    params.language || 'en',
+                );
+                break;
+            case 'generate-question':
+                result = await generateQuestion(
+                    params.concern,
+                    params.previousAnswers || [],
+                    params.section || 'hpi',
+                    params.language || 'en',
+                );
+                break;
+            case 'check-section':
+                result = await checkSection(
+                    params.section,
+                    params.answersInSection || [],
+                    params.concern,
+                    params.language || 'en',
+                );
+                break;
+            case 'analyze-qa':
+                result = await analyzeQA(
+                    params.qaHistory || [],
+                    params.patientInfo || {},
+                    params.language || 'en',
+                );
+                break;
+            case 'detect-medication':
+                result = await detectMedication(
+                    (params.text || '').slice(0, MAX_MESSAGE_LENGTH),
+                );
+                break;
+            case 'chat':
+                // Legacy: client sends admin-configured prompt + conversation
+                result = {
+                    response: await chatWithConversation(
+                        sanitizeSystemPrompt(params.systemPrompt || 'You are a medical intake AI assistant.'),
+                        params.conversationHistory || [],
+                        params.maxTokens || 1000,
+                    ),
+                };
+                break;
+            case 'chat-section': {
+                // Unified chat action: server resolves prompt, appends rules, post-processes
+                const section = params.section || 'greeting';
+                const mode: 'draft' | 'active' = params.mode === 'draft' ? 'draft' : 'active';
+                const language = params.language || 'en';
+                const promptId = params.promptId;
+                const maxTokens = params.maxTokens || 1000;
+                const history = params.conversationHistory || [];
+                const patientContext = params.patientContext || '';
+
+                // 1. Resolve prompt
+                let systemPrompt = '';
+                let promptVersion = 0;
+
+                if (promptId) {
+                    const promptData = await getPromptById(promptId, mode);
+                    if (promptData) {
+                        systemPrompt = promptData.content;
+                        promptVersion = promptData.version;
+                    }
+                }
+
+                // Fallback if no prompt found
+                if (!systemPrompt) {
+                    if (section === 'greeting') {
+                        systemPrompt = 'You are a friendly, professional medical intake AI assistant for cliniq.one. Greet the patient warmly and ask what brings them in today. Keep your greeting concise (2-3 sentences max).';
+                    } else if (section === 'summary') {
+                        systemPrompt = 'You are a clinical documentation AI for cliniq.one. Based on the entire conversation, generate a comprehensive clinical summary.';
+                    } else {
+                        systemPrompt = `You are a medical intake AI assistant for cliniq.one conducting a virtual medical interview. Current section: ${section}. Ask relevant follow-up questions. When done, end with: [SECTION_COMPLETE]`;
+                    }
+                }
+
+                // 2. Append [SECTION_COMPLETE] suffix for interview sections
+                if (!NO_COMPLETE_SECTIONS.includes(section)) {
+                    systemPrompt += '\n\nWhen you feel you have enough information for this section, end your message with exactly: [SECTION_COMPLETE]';
+                }
+
+                // 2b. Section isolation — prevent AI from skipping sections based on prior conversation
+                if (!NO_COMPLETE_SECTIONS.includes(section)) {
+                    systemPrompt += `\n\nCRITICAL — NEW SECTION STARTING: This is the "${section.replace(/_/g, ' ').toUpperCase()}" section. This is a completely new, independent section of the intake interview. You MUST NOT skip this section or emit [SECTION_COMPLETE] without engaging the patient. If the patient already mentioned information relevant to this section earlier in the conversation, you should acknowledge/confirm that information and then ask if there is anything else to add. For example: "Earlier you mentioned [X]. Is that correct? Do you have any other [topic]?" If no prior info was mentioned, ask your standard opening question. Either way, you must have at least one exchange with the patient before completing this section.`;
+                }
+
+                // 3. Append behavioral rules (except greeting/summary)
+                if (!NO_COMPLETE_SECTIONS.includes(section) || section === 'pathway') {
+                    systemPrompt += BEHAVIOR_SUFFIX;
+                }
+
+                // 3b. Append summary-specific rules
+                if (section === 'summary') {
+                    systemPrompt += SUMMARY_SUFFIX;
+                }
+
+                // 3c. Inject patient context (brief background, not full history)
+                if (patientContext && section !== 'greeting') {
+                    systemPrompt += `\n\nPATIENT CONTEXT (for reference only — do NOT skip your questions based on this):\n${patientContext}`;
+                }
+
+                // 4. Append language instruction
+                if (language === 'ar') {
+                    systemPrompt += '\n\nIMPORTANT: Respond entirely in Arabic (العربية). Use formal Arabic (فصحى) with a warm, patient-friendly tone. Transliterate any medical terms the patient may not understand.';
+                } else {
+                    systemPrompt += `\n\nIMPORTANT: Respond in English.`;
+                }
+
+                // 5. Sanitize
+                systemPrompt = sanitizeSystemPrompt(systemPrompt);
+
+                // 6. Prepend global guard
+                const guard = await getGlobalGuard(mode);
+                const finalPrompt = guard
+                    ? `${guard}\n\n---\n\n${systemPrompt}`
+                    : systemPrompt;
+
+                // 7. Truncate history
+                const trimmedHistory = truncateHistory(history);
+
+                // 8. Build OpenAI messages
+                const config = await getConfig();
+                const openaiMessages = [
+                    { role: 'system', content: finalPrompt },
+                    ...trimmedHistory.map((m: { role: string; content: string }) => ({
+                        role: m.role === 'patient' ? 'user' : m.role === 'ai' ? 'assistant' : m.role,
+                        content: m.content,
+                    })),
+                ];
+
+                // 9. Call OpenAI
+                const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: config.model,
+                        temperature: config.temperature,
+                        max_tokens: maxTokens,
+                        messages: openaiMessages,
+                    }),
+                });
+
+                if (!aiRes.ok) {
+                    const errText = await aiRes.text();
+                    throw new Error(`OpenAI error: ${aiRes.status} ${errText}`);
+                }
+
+                const aiData = await aiRes.json();
+                const rawContent = aiData.choices?.[0]?.message?.content || '';
+
+                // 10. Post-process response
+                let sectionComplete = rawContent.includes('[SECTION_COMPLETE]');
+
+                // ── FIRST-TURN GUARD ──────────────────────────
+                // If the conversation history was empty (first AI turn in this section)
+                // and the AI tried to immediately complete, strip the flag.
+                // The AI MUST ask at least one question before completing.
+                const isFirstTurn = history.length === 0;
+                if (sectionComplete && isFirstTurn && !NO_COMPLETE_SECTIONS.includes(section)) {
+                    console.log(`[chat-section] First-turn guard: stripping [SECTION_COMPLETE] from ${section}`);
+                    sectionComplete = false;
+                }
+
+                const violationMatch = rawContent.match(/\[VIOLATION:([^\]]+)\]/);
+                let violation: string | null = violationMatch ? violationMatch[1] : null;
+                const cleanContent = rawContent
+                    .replace(/\[SECTION_COMPLETE\]/g, '')
+                    .replace(/\[VIOLATION:[^\]]+\]/g, '')
+                    .trim();
+
+                // Soft-redirect detection if no explicit violation
+                if (!violation) {
+                    violation = detectSoftRedirect(cleanContent);
+                }
+
+                // 11. Get chatbot version
+                const chatbotVersion = await getChatbotVersion();
+
+                result = {
+                    response: cleanContent,
+                    sectionComplete,
+                    violation,
+                    promptVersion,
+                    chatbotVersion,
+                };
+                break;
+            }
+            default:
+                return new Response(
+                    JSON.stringify({ error: `Unknown action: ${action}` }),
+                    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                );
+        }
+
+        return new Response(
+            JSON.stringify(result),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+    } catch (err) {
+        console.error('Edge function error:', err);
+        return new Response(
+            JSON.stringify({ error: err.message || 'Internal error' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+    }
+});

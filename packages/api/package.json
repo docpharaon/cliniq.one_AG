@@ -1,0 +1,27 @@
+{
+    "name": "@cliniqone/api",
+    "version": "0.1.0",
+    "private": true,
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.49.0",
+        "@cliniqone/config": "*",
+        "@cliniqone/types": "*"
+    },
+    "peerDependencies": {
+        "@react-native-async-storage/async-storage": "*"
+    },
+    "peerDependenciesMeta": {
+        "@react-native-async-storage/async-storage": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "typescript": "^5.7.0"
+    }
+}

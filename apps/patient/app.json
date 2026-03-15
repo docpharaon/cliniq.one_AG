@@ -1,0 +1,52 @@
+{
+    "expo": {
+        "name": "cliniq.one",
+        "slug": "cliniqone-patient",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/logo.png",
+        "scheme": "cliniq",
+        "userInterfaceStyle": "dark",
+        "newArchEnabled": true,
+        "splash": {
+            "image": "./assets/logo.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#0A0E1A"
+        },
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.cliniqone.patient",
+            "infoPlist": {
+                "NSCameraUsageDescription": "cliniq.one needs camera access to capture photos of skin conditions for doctor review.",
+                "NSPhotoLibraryUsageDescription": "cliniq.one needs photo library access to upload images of skin conditions."
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/logo.png",
+                "backgroundColor": "#0A0E1A"
+            },
+            "package": "com.cliniqone.patient"
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "static",
+            "favicon": "./assets/logo.png"
+        },
+        "plugins": [
+            "expo-router",
+            "expo-font",
+            [
+                "expo-notifications",
+                {
+                    "icon": "./assets/logo.png",
+                    "color": "#00D4AA"
+                }
+            ],
+            "@react-native-google-signin/google-signin"
+        ],
+        "experiments": {
+            "typedRoutes": true
+        }
+    }
+}
