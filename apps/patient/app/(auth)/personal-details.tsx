@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { supabase } from '@cliniqone/api';
+import { supabase, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { COUNTRIES } from '@cliniqone/config';
 import type { Gender } from '@cliniqone/types';
 import { useAuthStore } from '../../stores/authStore';
+import { useToast } from '../../components/ToastProvider';
 
 // ── City data per country ────────────────────
 const CITIES: Record<string, string[]> = {
@@ -47,6 +48,7 @@ export default function PersonalDetailsScreen() {
     const [whatsappNotif, setWhatsappNotif] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formError, setFormError] = useState('');
+    const toast = useToast((s) => s.show);
 
     // ── Sections open/closed ─────────────────
     const [showYearPicker, setShowYearPicker] = useState(false);
@@ -69,16 +71,22 @@ export default function PersonalDetailsScreen() {
         try {
             console.log('[Registration] Starting profile update...');
 
-            // Try to refresh the session first (handles stale/expired tokens on web)
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            console.log('[Registration] refreshSession result:', refreshError?.message || 'ok', !!refreshData?.session);
-            let session = refreshData?.session;
+            // Try getSession first (fast, cached), then refreshSession with timeout
+            let session = null;
+            const { data: sessionData } = await safeFetch(
+                () => supabase.auth.getSession(),
+                { timeout: 5000, retries: 0, label: 'getSession' },
+            );
+            session = sessionData?.session;
+            console.log('[Registration] getSession:', !!session);
 
             if (!session) {
-                // Fallback: try getSession
-                const { data: sessionData } = await supabase.auth.getSession();
-                console.log('[Registration] getSession fallback:', !!sessionData?.session);
-                session = sessionData?.session;
+                const refreshResult = await safeFetch(
+                    () => supabase.auth.refreshSession(),
+                    { timeout: 5000, retries: 0, label: 'refreshSession' },
+                );
+                session = refreshResult?.data?.session;
+                console.log('[Registration] refreshSession:', !!session);
             }
 
             if (!session?.user?.id) {
@@ -87,18 +95,21 @@ export default function PersonalDetailsScreen() {
 
             console.log('[Registration] User ID:', session.user.id);
 
-            const { data: updateData, error, count } = await supabase
-                .from('users')
-                .update({
-                    year_of_birth: yearOfBirth,
-                    gender: gender!,
-                    country: country!,
-                    city: city!,
-                    insurance_provider: hasInsurance === 'yes' ? insuranceProvider : null,
-                    onboarding_completed: true,
-                })
-                .eq('id', session.user.id)
-                .select();
+            const { data: updateData, error, count } = await safeFetch(
+                () => supabase
+                    .from('users')
+                    .update({
+                        year_of_birth: yearOfBirth,
+                        gender: gender!,
+                        country: country!,
+                        city: city!,
+                        insurance_provider: hasInsurance === 'yes' ? insuranceProvider : null,
+                        onboarding_completed: true,
+                    })
+                    .eq('id', session!.user.id)
+                    .select(),
+                { timeout: 8000, retries: 1, label: 'updateProfile' },
+            );
 
             console.log('[Registration] Update result:', { error: error?.message, rowsUpdated: updateData?.length, count });
 
@@ -108,24 +119,25 @@ export default function PersonalDetailsScreen() {
                 throw new Error('Profile not found. Your user record may not exist yet. Please try signing up again.');
             }
 
-            // Re-initialize auth store (don't block navigation if it fails)
+            // Re-initialize auth store with timeout (don't block navigation)
             try {
-                await useAuthStore.getState().initialize();
-            } catch (initErr) {
-                console.warn('[Registration] Auth store re-init failed:', initErr);
+                await safeFetch(
+                    () => useAuthStore.getState().initialize(),
+                    { timeout: 3000, retries: 0, label: 'authReinit' },
+                );
+            } catch {
+                console.warn('[Registration] Auth re-init timed out, continuing...');
             }
 
             console.log('[Registration] Navigating to welcome...');
             router.replace('/(auth)/welcome');
         } catch (err: any) {
             console.error('[Registration] Error:', err);
-            const message = err?.message || t('errors.serverError');
+            const message = err?.message?.includes('timed out')
+                ? 'Connection is slow. Please try again.'
+                : err?.message || t('errors.serverError');
             setFormError(message);
-            if (Platform.OS === 'web') {
-                (globalThis as any).alert?.(message);
-            } else {
-                Alert.alert(t('common.error'), message);
-            }
+            toast(message, 'error');
         } finally {
             setLoading(false);
         }

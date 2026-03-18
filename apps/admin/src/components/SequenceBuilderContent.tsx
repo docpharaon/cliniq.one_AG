@@ -40,6 +40,7 @@ type SequenceNode = {
     sort_order: number;
     parent_node_id: string | null;
     pathway_condition: string | null;
+    gender_condition: string | null;
     ai_prompts: { id: string; name: string; prompt_type: string; is_active: boolean; version: number } | null;
 };
 
@@ -71,7 +72,13 @@ const PATHWAY_CONDITIONS = [
     { value: 'refill', label: '💊 Refill' },
 ];
 
-const EMOJI_OPTIONS = ['👋', '🔀', '📋', '🏥', '💊', '⚠️', '👨‍👩‍👦', '🏠', '🔍', '📝', '🔄', '🩺', '🧪', '📊', '🏷️'];
+const EMOJI_OPTIONS = ['👋', '🔀', '📋', '🏥', '💊', '⚠️', '👨‍👩‍👦', '🏠', '🔍', '📝', '🔄', '🩺', '🧪', '📊', '🏷️', '🩷'];
+
+const GENDER_CONDITIONS = [
+    { value: '', label: 'None (all genders)' },
+    { value: 'female', label: '♀ Female Only' },
+    { value: 'male', label: '♂ Male Only' },
+];
 
 // ── Protocol Templates ──────────────────────
 const SEQUENCE_TEMPLATES = [
@@ -344,6 +351,11 @@ export default function SequenceBuilderContent() {
 
     async function handleUpdateNodeParent(nodeId: string, parentId: string) {
         await editSequenceNode(nodeId, { parent_node_id: parentId || null });
+        await loadNodes();
+    }
+
+    async function handleUpdateNodeGender(nodeId: string, condition: string) {
+        await editSequenceNode(nodeId, { gender_condition: condition || null });
         await loadNodes();
     }
 
@@ -695,6 +707,13 @@ export default function SequenceBuilderContent() {
                                                     </span>
                                                 )}
 
+                                                {/* Gender badge */}
+                                                {node.gender_condition && (
+                                                    <span className={`text-[10px] px-2 py-1 rounded-md font-semibold ${node.gender_condition === 'female' ? 'bg-pink-500/10 text-pink-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                                        {node.gender_condition === 'female' ? '♀ Female Only' : '♂ Male Only'}
+                                                    </span>
+                                                )}
+
                                                 {/* Actions */}
                                                 <button
                                                     onClick={() => setEditingNodeId(editingNodeId === node.id ? null : node.id)}
@@ -771,6 +790,18 @@ export default function SequenceBuilderContent() {
                                                                 <option value="">—  No parent  —</option>
                                                                 {nodes.filter(n => n.id !== node.id).map(n => (
                                                                     <option key={n.id} value={n.id}>{n.emoji} {n.label}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-text-muted uppercase tracking-wider block mb-1">Gender Condition</label>
+                                                            <select
+                                                                value={node.gender_condition || ''}
+                                                                onChange={e => handleUpdateNodeGender(node.id, e.target.value)}
+                                                                className="w-full bg-bg-primary border border-border rounded-lg px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent appearance-none cursor-pointer"
+                                                            >
+                                                                {GENDER_CONDITIONS.map(c => (
+                                                                    <option key={c.value} value={c.value}>{c.label}</option>
                                                                 ))}
                                                             </select>
                                                         </div>

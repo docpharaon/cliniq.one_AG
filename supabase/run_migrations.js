@@ -1,13 +1,21 @@
 // Run migrations using the Supabase database connection string
 // Supabase projects expose a PostgreSQL connection at:
 // postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+//
+// Usage:
+//   SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx node supabase/run_migrations.js
 
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = 'https://uabbndansgxpvogteyxc.supabase.co';
-const SERVICE_ROLE_KEY = 'sb_secret_Sq-3HgO7WFxk6sIzaZSl_A_MQlX6Exh';
+const SUPABASE_URL     = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    console.error('❌  Missing env vars. Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY.');
+    process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     db: { schema: 'public' },
@@ -111,6 +119,9 @@ async function runMigration(fileName) {
     return true;
 }
 
+// Derive the Supabase project ref from the URL for dashboard link
+const projectRef = SUPABASE_URL.replace('https://', '').split('.')[0];
+
 async function main() {
     console.log('🚀 Applying Supabase migrations...');
     console.log(`   URL: ${SUPABASE_URL}`);
@@ -129,7 +140,7 @@ async function main() {
             console.log(`\n⛔ Stopping due to error in: ${file}`);
             console.log('\n💡 The rpc approach may not be available.');
             console.log('   Please run the SQL manually in the Supabase Dashboard SQL Editor.');
-            console.log('   URL: https://supabase.com/dashboard/project/uabbndansgxpvogteyxc/sql');
+            console.log(`   URL: https://supabase.com/dashboard/project/${projectRef}/sql`);
             break;
         }
     }

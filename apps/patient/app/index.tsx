@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
 import { supabase } from '@cliniqone/api';
-import { Alert } from 'react-native';
 
 // Module-level flag — splash only shows once per app session
 let splashShown = false;
@@ -30,11 +29,7 @@ export default function Index() {
     useEffect(() => {
         if (!isWrongRole) return;
 
-        const msg = user?.role === 'doctor'
-            ? 'This app is for patients only. Please use the Doctor app to log in.'
-            : 'This app is for patients only. Please use the correct app for your role.';
-
-        Alert.alert('Wrong App', msg);
+        console.warn('[RoleGuard] Wrong role detected:', user?.role, '— signing out');
         supabase.auth.signOut().then(() => clear());
     }, [isWrongRole]);
 

@@ -1,3 +1,7 @@
+// ── Async Resilience ──
+export { withTimeout, withRetry, safeFetch, sleep } from './async';
+export type { RetryOptions, SafeFetchOptions } from './async';
+
 // ── Client ──
 export { supabase, getSupabase } from './client';
 
@@ -13,6 +17,7 @@ export {
     getUserProfile,
     updateUserProfile,
     acceptLegalTerms,
+    requestKycToken,
 } from './auth';
 
 // ── Consultations (Patient) ──
@@ -60,4 +65,10 @@ export {
     getProtocolLogs,
     resolveProtocolLog,
     getPlatformStats,
+    getKycStats,
+    getAppSetting,
+    setAppSetting,
+    adminExemptUser,
+    adminResetKyc,
+    getKycUsers,
 } from './admin';

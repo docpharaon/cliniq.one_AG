@@ -1046,6 +1046,7 @@ export async function createSequenceNode(node: {
     sort_order: number;
     parent_node_id?: string | null;
     pathway_condition?: string | null;
+    gender_condition?: string | null;
 }) {
     const { data, error } = await supabaseAdmin
         .from('prompt_sequence_nodes')
@@ -1065,6 +1066,7 @@ export async function updateSequenceNode(id: string, updates: {
     sort_order?: number;
     parent_node_id?: string | null;
     pathway_condition?: string | null;
+    gender_condition?: string | null;
 }) {
     const { data, error } = await supabaseAdmin
         .from('prompt_sequence_nodes')
@@ -1329,6 +1331,90 @@ export async function deleteServiceProvider(id: string) {
         .delete()
         .eq('id', id);
     if (error) { console.error('[deleteServiceProvider]', error.message); return { success: false, error: error.message }; }
+    return { success: true, error: null };
+}
+
+// ──────────────────────────────────────────
+// KYC / ID Verification
+// ──────────────────────────────────────────
+
+export async function getKycStats() {
+    const statuses = ['not_started', 'pending', 'approved', 'rejected', 'resubmission_requested', 'exempt'] as const;
+    const results = await Promise.all(
+        statuses.map((s) =>
+            supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'patient').eq('kyc_status', s),
+        ),
+    );
+
+    const stats: Record<string, number> = {};
+    statuses.forEach((s, i) => {
+        stats[s] = results[i].count || 0;
+    });
+    return stats;
+}
+
+export async function getKycUsers(page = 1, perPage = 50, search?: string, status?: string) {
+    let query = supabaseAdmin
+        .from('users')
+        .select('id, nickname, email, kyc_status, kyc_applicant_id, kyc_verified_at, kyc_rejection_reason, created_at', { count: 'exact' })
+        .eq('role', 'patient')
+        .order('created_at', { ascending: false })
+        .range((page - 1) * perPage, page * perPage - 1);
+
+    if (status && status !== 'all') {
+        query = query.eq('kyc_status', status);
+    }
+    if (search) {
+        query = query.or(`nickname.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    const { data, count, error } = await query;
+    if (error) { console.error('[getKycUsers]', error.message); return { data: [], count: 0 }; }
+    return { data: data ?? [], count: count ?? 0 };
+}
+
+export async function updateUserKycStatus(userId: string, kycStatus: string) {
+    const updates: Record<string, unknown> = { kyc_status: kycStatus, updated_at: new Date().toISOString() };
+
+    // If resetting, clear related fields
+    if (kycStatus === 'not_started') {
+        updates.kyc_applicant_id = null;
+        updates.kyc_verified_at = null;
+        updates.kyc_rejection_reason = null;
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from('users')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) { console.error('[updateUserKycStatus]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function getKycSetting() {
+    const { data, error } = await supabaseAdmin
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'kyc_enabled')
+        .single();
+
+    if (error) return true; // Default: enabled
+    return data?.value === true || data?.value === 'true';
+}
+
+export async function setKycSetting(enabled: boolean) {
+    const { error } = await supabaseAdmin
+        .from('app_settings')
+        .upsert({
+            key: 'kyc_enabled',
+            value: enabled,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
+
+    if (error) { console.error('[setKycSetting]', error.message); return { success: false, error: error.message }; }
     return { success: true, error: null };
 }
 

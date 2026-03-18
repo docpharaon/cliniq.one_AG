@@ -13,6 +13,8 @@ export interface ChatMessage {
     questionType?: 'multiple_choice' | 'free_text' | 'yes_no';
     /** Section label shown above the message */
     sectionLabel?: string;
+    /** Photo URIs attached to this message (for skin photo capture) */
+    imageUrls?: string[];
 }
 
 /** Shape of the snapshot saved to / restored from the database */
@@ -29,6 +31,7 @@ export interface IntakeSnapshot {
     gibberishCount: number;
     medications: string[];
     allergies: string[];
+    patientAddendum: string | null;
     conversationHistory: { role: string; content: string }[];
     sectionTurnCount: number;
 }
@@ -65,6 +68,9 @@ interface IntakeState {
     // Final AI summary
     aiSummary: Record<string, unknown> | null;
 
+    // Patient addendum from final review step
+    patientAddendum: string | null;
+
     // Extracted data from chat
     medications: string[];
     allergies: string[];
@@ -86,6 +92,7 @@ interface IntakeState {
     resetGibberish: () => void;
     addQA: (question: string, answer: string) => void;
     setAiSummary: (summary: Record<string, unknown>) => void;
+    setPatientAddendum: (addendum: string) => void;
     setMedications: (meds: string[]) => void;
     setAllergies: (allergies: string[]) => void;
 
@@ -122,6 +129,7 @@ const initialState = {
     activePathway: null as string | null,
     qaHistory: [] as { question: string; answer: string }[],
     aiSummary: null as Record<string, unknown> | null,
+    patientAddendum: null as string | null,
     medications: [] as string[],
     allergies: [] as string[],
 };
@@ -150,6 +158,7 @@ export const useIntakeStore = create<IntakeState>((set) => ({
         qaHistory: [...s.qaHistory, { question, answer }],
     })),
     setAiSummary: (summary) => set({ aiSummary: summary }),
+    setPatientAddendum: (patientAddendum) => set({ patientAddendum }),
     setMedications: (medications) => set({ medications }),
     setAllergies: (allergies) => set({ allergies }),
 
@@ -204,6 +213,7 @@ export function buildSnapshot(
         gibberishCount: state.gibberishCount,
         medications: state.medications,
         allergies: state.allergies,
+        patientAddendum: state.patientAddendum,
         conversationHistory: extra.conversationHistory,
         sectionTurnCount: extra.sectionTurnCount,
     };

@@ -6,6 +6,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t, getLocale, setLocale } from '@cliniqone/i18n';
+import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 
 const { width: screenWidth } = Dimensions.get('window');
 // Cap to phone-frame width (393px) so web preview looks correct
@@ -103,7 +104,8 @@ export default function LandingScreen() {
                     </View>
                 </View>
 
-
+                {/* Medical Disclaimer — required by app stores */}
+                <DisclaimerBanner />
 
                 {/* CTA */}
                 <View style={styles.cta}>

@@ -24,6 +24,7 @@ import {
     Activity,
     GitBranchPlus,
     ClipboardList,
+    Fingerprint,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -45,6 +46,7 @@ const managementNav = [
     { label: 'Scheduling', href: '/dashboard/scheduling', icon: CalendarDays, gradient: 'from-indigo-500 to-purple-500' },
     { label: 'News', href: '/dashboard/news', icon: Newspaper, gradient: 'from-pink-500 to-rose-500' },
     { label: 'Ads', href: '/dashboard/ads', icon: Megaphone, gradient: 'from-amber-500 to-orange-500' },
+    { label: 'ID Verification', href: '/dashboard/kyc', icon: Fingerprint, gradient: 'from-sky-500 to-blue-500' },
 ];
 
 const bottomNav = [

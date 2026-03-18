@@ -14,7 +14,7 @@ const MAX_CONVERSATION_MESSAGES = 40; // Sliding window: keep last N messages
 const MAX_MESSAGE_LENGTH = 3000;      // Max chars per patient message
 
 // ── Sections that don't use [SECTION_COMPLETE] ──
-const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary'];
+const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary', 'photo_capture', 'patient_addendum'];
 
 // ── Behavioral suffix (appended to all interview section prompts) ──
 const BEHAVIOR_SUFFIX = `
@@ -29,6 +29,7 @@ IMPORTANT behavioral rules:
 - If the patient answers "no", "none", or "nothing" to an opening question, accept it and emit [SECTION_COMPLETE]. Do NOT ask a follow-up confirmation.
 - Keep responses concise (1-2 sentences + your ONE question). Never repeat information the patient already provided.
 - Accept short answers like "no", "yes", "ok", numbers, and brief phrases as valid responses.
+- SKIP HANDLING: If the patient says "skip", "next", "pass", or "move on", IMMEDIATELY accept it and emit [SECTION_COMPLETE]. Do NOT repeat the question, guilt the patient, or add a disclaimer. The patient has the right to skip any section.
 - You MUST ask at least ONE question before emitting [SECTION_COMPLETE]. Never complete a section without asking anything.`;
 
 // ── Summary suffix (appended only to the summary section prompt) ──
@@ -40,6 +41,43 @@ IMPORTANT summary rules:
 - Do NOT add any clinical interpretation or medical opinion.
 - Simply summarize the patient's own words and answers accurately and completely.
 - Use clear, organized formatting with section headers.`;
+
+// ── Concise suffix (appended to non-HPI interview sections to keep them short) ──
+const CONCISE_SECTIONS_SUFFIX = `
+
+EFFICIENCY RULES FOR THIS SECTION:
+- Keep this section SHORT. Ask 1-2 questions maximum, not more.
+- If the patient answers "no", "none", "nothing", "never", "nope", "n/a", or any clear negative to your opening question, accept it immediately and emit [SECTION_COMPLETE]. Do NOT ask a follow-up confirmation or rephrase.
+- Do NOT break the section into multiple sub-topics. Consolidate into a single, comprehensive opening question.
+- Example: Instead of asking about smoking, then alcohol, then exercise separately, ask: "Do you smoke, drink alcohol, or exercise regularly?"
+- If the patient already provided relevant information earlier in the conversation, briefly confirm it and emit [SECTION_COMPLETE].
+- Remember: the doctor will follow up on anything unclear. Your job is screening, not exhaustive questioning.`;
+
+// ── Addendum suffix (appended only to the patient_addendum section) ──
+const ADDENDUM_SUFFIX = `
+
+IMPORTANT addendum rules:
+- You are presenting the patient's intake summary for their final review.
+- Your FIRST message must present a CLINICAL SUMMARY in paragraph format, organized by these headings:
+  **CHIEF COMPLAINT:** One-line description of why the patient is here.
+  **HISTORY OF PRESENT ILLNESS (HPI):** Narrative of symptoms — onset, duration, character, location, severity, aggravating/alleviating factors, associated symptoms. Use what the patient actually reported.
+  **PAST MEDICAL HISTORY:** Chronic conditions, surgeries, hospitalizations. Write "None reported" if the patient denied.
+  **CURRENT MEDICATIONS:** List any medications. Write "None" if denied.
+  **ALLERGIES:** List any allergies. Write "No known allergies" if denied.
+  **FAMILY HISTORY:** Relevant family conditions. Write "Non-contributory" if denied.
+  **SOCIAL HISTORY:** Occupation, smoking, alcohol, exercise. Include what was discussed.
+  **GYNECOLOGICAL/OBSTETRIC HISTORY:** Include if assessed. Omit entirely if not assessed.
+  **REVIEW OF SYSTEMS:** Brief mention of positive and pertinent negative findings.
+  **CLINICAL IMPRESSION:** 1-2 sentence clinical impression based on the data collected.
+  **RECOMMENDED SPECIALTY:** The specialty this will be routed to.
+  **PRIORITY LEVEL:** Routine / Urgent / Emergency.
+- After the summary, ask: "Please review the above summary. Is there anything you'd like to add or clarify before we finalize?"
+- WHEN PATIENT ADDS NEW INFO: Briefly acknowledge what they added (e.g., "Noted, I'll add the scarring to your report."). Do NOT emit [ADDENDUM_DONE]. The system will regenerate the summary automatically.
+- WHEN PATIENT CONFIRMS (e.g. "looks good", "nothing else", "done", "that's all", "no", "nope"): Respond with a brief confirmation and append [ADDENDUM_DONE] at the end.
+- REJECT contradictions: If the patient tries to change their chief complaint or rewrite the report, politely say: "I've noted your concern — you can discuss this further with your doctor during the consultation."
+- Keep all responses very short (1-2 sentences max).
+- Do NOT ask more than one follow-up question.
+- NEVER emit [SECTION_COMPLETE]. Only use [ADDENDUM_DONE].`;
 
 // ── Soft Redirect Detection ──────────────────────
 const REDIRECT_PHRASES = [
@@ -98,10 +136,8 @@ async function verifyAuth(req: Request): Promise<{ userId: string; isAdmin?: boo
 
     try {
         const token = authHeader.replace('Bearer ', '');
-        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-            global: { headers: { Authorization: `Bearer ${token}` } },
-        });
-        const { data: { user }, error } = await userClient.auth.getUser();
+        // Use admin client to verify user token (avoids anon key format issues)
+        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
         if (error || !user) return null;
         return { userId: user.id };
     } catch {
@@ -226,6 +262,79 @@ function truncateHistory(
     // Keep the first message (usually context) + last N-1 messages
     return [history[0], ...history.slice(-(maxMessages - 1))];
 }
+
+// ── Server-side gibberish detection (mirrored from admin tester) ──
+const VALID_SHORT = new Set([
+    'no', 'yes', 'ok', 'hi', 'ya', 'na', 'idk', 'lol', 'ugh', 'ah', 'oh',
+    'none', 'nope', 'yep', 'sure', 'fine', 'good', 'bad', 'pain', 'ache',
+    '1','2','3','4','5','6','7','8','9','10',
+    // Common Arabic transliterations
+    'la', 'aiwa', 'naam', 'mafi',
+    // Medical terms
+    'pus', 'rash', 'itch', 'acne', 'cold', 'flu', 'cough', 'mild', 'severe',
+    'daily', 'dayly', 'weekly', 'monthly', 'never', 'always', 'sometimes',
+    'rarely', 'moderate', 'constant', 'normal', 'worse', 'better', 'same',
+    // Flow / navigation
+    'continue', 'next', 'done', 'stop', 'go', 'skip',
+    // Acknowledgments
+    'hello', 'hey', 'bye', 'thanks',
+]);
+
+function detectGibberish(text: string): { isGibberish: boolean; reason?: string } {
+    const trimmed = text.trim();
+    if (!trimmed) return { isGibberish: false };
+
+    // Allow short valid responses
+    if (VALID_SHORT.has(trimmed.toLowerCase())) return { isGibberish: false };
+
+    // Strip spaces and check the alpha content
+    const alphaOnly = trimmed.replace(/[^a-zA-Z\u0600-\u06FF]/g, ''); // keep Latin + Arabic
+    if (alphaOnly.length < 3) return { isGibberish: false }; // too short to judge
+
+    // 1. Repeated character runs (e.g., "DDDDDESC", "AAAAAAA")
+    if (/(.)\1{4,}/i.test(alphaOnly)) {
+        return { isGibberish: true, reason: 'repeated_characters' };
+    }
+
+    // 2. Vowel ratio check — English text typically has ~35-45% vowels
+    const vowels = (alphaOnly.match(/[aeiouAEIOU]/g) || []).length;
+    const vowelRatio = vowels / alphaOnly.length;
+    if (alphaOnly.length > 5 && vowelRatio < 0.15) {
+        return { isGibberish: true, reason: 'low_vowel_ratio' };
+    }
+
+    // 3. Consecutive consonant clusters (>5 consonants in a row)
+    if (/[bcdfghjklmnpqrstvwxyz]{6,}/i.test(alphaOnly)) {
+        return { isGibberish: true, reason: 'consonant_cluster' };
+    }
+
+    // 4. Random character pattern — no common bigrams
+    const commonBigrams = ['th','he','in','er','an','re','on','at','en','nd','ti','es','or','te','of','ed','is','it','al','ar','st','to','nt','ng','se','ha','as','ou','io','le','ve','co','me','de','hi','ri','ro','ic','ne','ea','ra','ce','li','ch','ll','be','ma','si','om','ur'];
+    const lower = alphaOnly.toLowerCase();
+    if (alphaOnly.length > 6) {
+        const hasBigram = commonBigrams.some(bg => lower.includes(bg));
+        if (!hasBigram) {
+            return { isGibberish: true, reason: 'no_common_bigrams' };
+        }
+    }
+
+    // 5. Single long word with no spaces — likely keyboard mashing
+    const words = trimmed.split(/\s+/);
+    if (words.length === 1 && alphaOnly.length > 8) {
+        const commonPatterns = /(?:ing|tion|ment|ness|able|ible|ical|ous|ive|ful|less|ent|ant|ence|ance|ist|ism|ize|ise|ory|ure|ity|ated|ting|ster|ght|ache|pain|burn|itch|rash|pill|drug|med|skin|head|back|knee|cold|cough|flu|sore|hurt|heal|sick|well|feel|take|need|help|want|persist|constant|occasion|sometime|differin|aspirin|ibuprofen|tylenol|acetaminoph|allerg|diabetes|asthma|prescrip|tretinoin|isotret|accutane|roaccutan|metformin|amoxi|cipro|azithro|omepra|losartan|atorva|lisinop|gabapentin|sertralin|fluoxetin|predniso|hydrocort|clindamycin|doxycyclin|cetirizin|loratadin|monteluk|levothyrox|insulin|warfarin|clopidogr|pantopra|esomepra|naproxen|meloxicam|cyclobenz|tramadol|oxycodon|morphin|fentanyl|amphetam|methylphen|modafin|melatonin|vitamin|supplement|paracetam|diclofenac|ketoprofen|mupirocin|benzoyl|salicyl|retinoic|azole|pril|statin|mycin|cycline|sartan|prazole|olol|dipine|formin|gliptin|glutide|flozin|mab|nib|tinib)/i;
+        if (!commonPatterns.test(alphaOnly)) {
+            return { isGibberish: true, reason: 'single_long_word' };
+        }
+    }
+
+    return { isGibberish: false };
+}
+
+const GIBBERISH_RESPONSES = [
+    "I didn't quite understand that. Could you please rephrase your answer so I can help you properly?",
+    "It looks like your message may have had a typo. Could you please try again with a clear response?",
+    "I want to make sure I capture your information accurately. Could you please provide a clear answer?",
+];
 
 // ── OpenAI call helper (structured JSON responses) ────
 async function callOpenAI(
@@ -602,9 +711,20 @@ serve(async (req: Request) => {
                     systemPrompt += BEHAVIOR_SUFFIX;
                 }
 
+                // 3a. Append concise rules for non-HPI interview sections
+                const CONCISE_SECTIONS = ['medications', 'allergies', 'family_history', 'social_history', 'review_of_systems'];
+                if (CONCISE_SECTIONS.includes(section)) {
+                    systemPrompt += CONCISE_SECTIONS_SUFFIX;
+                }
+
                 // 3b. Append summary-specific rules
                 if (section === 'summary') {
                     systemPrompt += SUMMARY_SUFFIX;
+                }
+
+                // 3c. Append addendum-specific rules
+                if (section === 'patient_addendum') {
+                    systemPrompt += ADDENDUM_SUFFIX;
                 }
 
                 // 3c. Inject patient context (brief background, not full history)
@@ -628,7 +748,40 @@ serve(async (req: Request) => {
                     ? `${guard}\n\n---\n\n${systemPrompt}`
                     : systemPrompt;
 
-                // 7. Truncate history
+                // 7. Gibberish pre-check — intercept before calling OpenAI (saves tokens)
+                const lastUserMsg = [...history].reverse().find((m: { role: string }) => m.role === 'patient' || m.role === 'user');
+                if (lastUserMsg && !NO_COMPLETE_SECTIONS.includes(section)) {
+                    const gibCheck = detectGibberish(lastUserMsg.content);
+                    if (gibCheck.isGibberish) {
+                        console.log(`[chat-section] Gibberish detected in ${section}: "${lastUserMsg.content}" — reason: ${gibCheck.reason}`);
+
+                        // Count consecutive gibberish
+                        let consecutiveGibberish = 1;
+                        for (let i = history.length - 1; i >= 0; i--) {
+                            const m = history[i] as { role: string; content: string };
+                            if (m.role === 'patient' || m.role === 'user') {
+                                if (detectGibberish(m.content).isGibberish) consecutiveGibberish++;
+                                else break;
+                            }
+                        }
+
+                        const responseText = consecutiveGibberish >= 3
+                            ? "I've noticed several unclear messages. If you're having trouble, please try typing your response more carefully, or simply respond with 'yes', 'no', or a brief answer."
+                            : GIBBERISH_RESPONSES[Math.floor(Math.random() * GIBBERISH_RESPONSES.length)];
+
+                        const chatbotVersion = await getChatbotVersion();
+                        result = {
+                            response: responseText,
+                            sectionComplete: false,
+                            violation: 'nonsense',
+                            promptVersion,
+                            chatbotVersion,
+                        };
+                        break;
+                    }
+                }
+
+                // 8. Truncate history
                 const trimmedHistory = truncateHistory(history);
 
                 // 8. Build OpenAI messages
@@ -666,6 +819,7 @@ serve(async (req: Request) => {
 
                 // 10. Post-process response
                 let sectionComplete = rawContent.includes('[SECTION_COMPLETE]');
+                const addendumDone = rawContent.includes('[ADDENDUM_DONE]');
 
                 // ── FIRST-TURN GUARD ──────────────────────────
                 // If the conversation history was empty (first AI turn in this section)
@@ -681,6 +835,7 @@ serve(async (req: Request) => {
                 let violation: string | null = violationMatch ? violationMatch[1] : null;
                 const cleanContent = rawContent
                     .replace(/\[SECTION_COMPLETE\]/g, '')
+                    .replace(/\[ADDENDUM_DONE\]/g, '')
                     .replace(/\[VIOLATION:[^\]]+\]/g, '')
                     .trim();
 
@@ -695,6 +850,7 @@ serve(async (req: Request) => {
                 result = {
                     response: cleanContent,
                     sectionComplete,
+                    addendumDone,
                     violation,
                     promptVersion,
                     chatbotVersion,
@@ -715,7 +871,7 @@ serve(async (req: Request) => {
     } catch (err) {
         console.error('Edge function error:', err);
         return new Response(
-            JSON.stringify({ error: err.message || 'Internal error' }),
+            JSON.stringify({ error: err instanceof Error ? err.message : 'Internal error' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
     }

@@ -38,6 +38,7 @@ type SequenceNode = {
     sort_order: number;
     parent_node_id: string | null;
     pathway_condition: string | null;
+    gender_condition: string | null;
     ai_prompts: { id: string; name: string; prompt_type: string; is_active: boolean; version: number } | null;
 };
 
@@ -161,10 +162,10 @@ const FAM_HX = ['mother had eczema', 'father had stroke at 62', 'grandmother had
 
 function pick<T>(a: T[]): T { return a[Math.floor(Math.random() * a.length)]; }
 
-function generatePatientProfile(type: 'dermatology' | 'family_medicine' | 'mixed'): AutoBotProfile {
-    const g = Math.random() < 0.4 ? 'female' : Math.random() < 0.75 ? 'male' : 'non-binary';
-    const name = g === 'female' ? pick(NAMES_F) : g === 'male' ? pick(NAMES_M) : pick(NAMES_NB);
-    const age = pick(AGES);
+function generatePatientProfile(type: 'dermatology' | 'family_medicine' | 'mixed', overrides?: { name?: string; age?: string; sex?: 'male' | 'female' | '' }): AutoBotProfile {
+    const g = overrides?.sex || (Math.random() < 0.4 ? 'female' : Math.random() < 0.75 ? 'male' : 'non-binary');
+    const name = overrides?.name || (g === 'female' ? pick(NAMES_F) : g === 'male' ? pick(NAMES_M) : pick(NAMES_NB));
+    const age = overrides?.age ? parseInt(overrides.age) : pick(AGES);
     const cc = type === 'dermatology' ? pick(DERMA_CC) : type === 'family_medicine' ? pick(FM_CC) : `${pick(DERMA_CC)} Also: ${pick(FM_CC)}`;
     const labels: Record<string, string> = { dermatology: 'Derma', family_medicine: 'FM', mixed: 'Mixed' };
     const emojis: Record<string, string> = { dermatology: '\ud83e\ude7a', family_medicine: '\ud83d\udc68\u200d\u2695\ufe0f', mixed: '\ud83d\udd00' };
@@ -225,11 +226,11 @@ Rules: 1-2 sentences. Vary approach. Stay somewhat in character as a patient.`,
     },
 ];
 
-function buildProfiles(): AutoBotProfile[] {
+function buildProfiles(overrides?: { name?: string; age?: string; sex?: 'male' | 'female' | '' }): AutoBotProfile[] {
     return [
-        generatePatientProfile('dermatology'),
-        generatePatientProfile('family_medicine'),
-        generatePatientProfile('mixed'),
+        generatePatientProfile('dermatology', overrides),
+        generatePatientProfile('family_medicine', overrides),
+        generatePatientProfile('mixed', overrides),
         ...ADVERSARIAL_PROFILES,
     ];
 }
@@ -311,6 +312,13 @@ export default function ChatTestWindow({
     const debugModeRef = useRef(false);
     useEffect(() => { debugModeRef.current = debugMode; }, [debugMode]);
 
+    // ── Patient Profile state ──
+    const [patientName, setPatientName] = useState('');
+    const [patientAge, setPatientAge] = useState('');
+    const [patientSex, setPatientSex] = useState<'male' | 'female' | ''>('');
+    const patientSexRef = useRef<'male' | 'female' | ''>('');
+    useEffect(() => { patientSexRef.current = patientSex; }, [patientSex]);
+
     const selectedPrompt = prompts.find(p => p.id === selectedPromptId);
 
     // Keep refs in sync
@@ -366,11 +374,14 @@ export default function ChatTestWindow({
 
     function buildInitialFlow(nodes: SequenceNode[]) {
         const pathwayNode = nodes.find(n => n.step_key === 'pathway');
+        const sex = patientSexRef.current || '';
         const beforePathway = nodes.filter(n =>
             !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0)
+            && (!n.gender_condition || n.gender_condition === sex)
         );
         const afterPathway = nodes.filter(n =>
             !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999)
+            && (!n.gender_condition || n.gender_condition === sex)
         );
 
         const flow = [
@@ -382,12 +393,14 @@ export default function ChatTestWindow({
 
     function buildFlowForPathway(pathway: string) {
         const pathwayNode = allNodes.find(n => n.step_key === 'pathway');
+        const sex = patientSexRef.current || '';
+        const genderFilter = (n: SequenceNode) => !n.gender_condition || n.gender_condition === sex;
         const beforePathway = allNodes.filter(n =>
-            !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0)
+            !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0) && genderFilter(n)
         );
-        const branchNodes = allNodes.filter(n => n.pathway_condition === pathway);
+        const branchNodes = allNodes.filter(n => n.pathway_condition === pathway && genderFilter(n));
         const afterPathway = allNodes.filter(n =>
-            !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999)
+            !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999) && genderFilter(n)
         );
 
         const flow = [
@@ -729,6 +742,36 @@ export default function ChatTestWindow({
                         return;
                     }
 
+                    // Skip photo_capture in admin tester (no camera available)
+                    if (nextNode.step_key === 'photo_capture') {
+                        const skipMsg: Message = { id: uid(), role: 'system', content: '📸 Photo upload — skipped (test mode)', timestamp: Date.now() };
+                        setMessages(prev => [...prev, skipMsg]);
+                        // Advance past photo_capture to the next node
+                        const postPhotoIdx = nextIdx + 1;
+                        if (postPhotoIdx < currentFlow.length) {
+                            const postPhotoNode = currentFlow[postPhotoIdx];
+                            if (postPhotoNode.step_key === 'summary') {
+                                setCurrentSectionIdx(postPhotoIdx);
+                                await generateSummary([...newMessages, skipMsg], postPhotoNode.prompt_id ?? undefined);
+                                return;
+                            }
+                            const promptInfo2 = postPhotoNode.prompt_name ? ` → Prompt: ${postPhotoNode.prompt_name} v${postPhotoNode.prompt_version}` : '';
+                            const sysMsg2: Message = { id: uid(), role: 'system', content: `${postPhotoNode.emoji} Starting: ${postPhotoNode.label}${promptInfo2}`, timestamp: Date.now() };
+                            setMessages(prev => [...prev, sysMsg2]);
+                            setCurrentSectionIdx(postPhotoIdx);
+                            const autoMsgId2 = uid();
+                            setMessages(prev => [...prev, { id: autoMsgId2, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                            const autoResult2 = await callAI(
+                                [...newMessages, skipMsg, sysMsg2],
+                                postPhotoNode.step_key,
+                                postPhotoNode.prompt_id ?? undefined,
+                                (token) => { setMessages(prev => prev.map(m => m.id === autoMsgId2 ? { ...m, content: m.content + token } : m)); },
+                            );
+                            setMessages(prev => prev.map(m => m.id === autoMsgId2 ? { ...m, content: autoResult2.content } : m));
+                        }
+                        return;
+                    }
+
                     const promptInfo = nextNode.prompt_name ? ` → Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}` : '';
                     const sysMsg: Message = {
                         id: uid(),
@@ -1026,6 +1069,35 @@ export default function ChatTestWindow({
                             [...messagesRef.current],
                             nextNode.prompt_id ?? undefined,
                         );
+                        return;
+                    }
+
+                    // Skip photo_capture in admin tester (no camera available)
+                    if (nextNode.step_key === 'photo_capture') {
+                        const skipMsg2: Message = { id: uid(), role: 'system', content: '📸 Photo upload — skipped (test mode)', timestamp: Date.now() };
+                        setMessages(prev => [...prev, skipMsg2]);
+                        const postPhotoIdx2 = nextIdx + 1;
+                        if (postPhotoIdx2 < curFlow.length) {
+                            const postPhotoNode2 = curFlow[postPhotoIdx2];
+                            if (postPhotoNode2.step_key === 'summary') {
+                                setCurrentSectionIdx(postPhotoIdx2);
+                                await generateSummary([...messagesRef.current, skipMsg2], postPhotoNode2.prompt_id ?? undefined);
+                                return;
+                            }
+                            const promptInfo3 = postPhotoNode2.prompt_name ? ` → Prompt: ${postPhotoNode2.prompt_name} v${postPhotoNode2.prompt_version}` : '';
+                            const transSysMsg2: Message = { id: uid(), role: 'system', content: `${postPhotoNode2.emoji} Starting: ${postPhotoNode2.label}${promptInfo3}`, timestamp: Date.now() };
+                            setMessages(prev => [...prev, transSysMsg2]);
+                            setCurrentSectionIdx(postPhotoIdx2);
+                            const autoAdvMsgId2 = uid();
+                            setMessages(prev => [...prev, { id: autoAdvMsgId2, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                            const autoAdvResult2 = await callAI(
+                                [...messagesRef.current, skipMsg2, transSysMsg2],
+                                postPhotoNode2.step_key,
+                                postPhotoNode2.prompt_id ?? undefined,
+                                (token) => { setMessages(prev => prev.map(m => m.id === autoAdvMsgId2 ? { ...m, content: m.content + token } : m)); },
+                            );
+                            setMessages(prev => prev.map(m => m.id === autoAdvMsgId2 ? { ...m, content: autoAdvResult2.content } : m));
+                        }
                         return;
                     }
                     const promptInfo = nextNode.prompt_name ? ` → Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}` : '';
@@ -1694,6 +1766,53 @@ export default function ChatTestWindow({
                     </div>
                 )}
 
+                {/* ── Patient Profile Card ─────────────── */}
+                <div className="px-4 py-2.5 border-b border-border bg-bg-elevated/40">
+                    <div className="flex items-center gap-2 mb-2">
+                        <User className="w-3.5 h-3.5 text-accent" />
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Test Patient Profile</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            placeholder="Name"
+                            value={patientName}
+                            onChange={e => setPatientName(e.target.value)}
+                            className="flex-1 h-7 px-2.5 rounded-lg bg-bg-card border border-border text-xs text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-accent/40 transition-colors"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Age"
+                            value={patientAge}
+                            onChange={e => setPatientAge(e.target.value)}
+                            className="w-16 h-7 px-2.5 rounded-lg bg-bg-card border border-border text-xs text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-accent/40 transition-colors"
+                        />
+                        <div className="flex items-center gap-0.5">
+                            <button
+                                onClick={() => setPatientSex(patientSex === 'male' ? '' : 'male')}
+                                className={`h-7 px-2.5 rounded-l-lg text-[10px] font-bold transition-all ${patientSex === 'male'
+                                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                                    : 'bg-bg-card text-text-muted border border-border hover:text-text-primary'
+                                }`}
+                            >
+                                ♂ Male
+                            </button>
+                            <button
+                                onClick={() => setPatientSex(patientSex === 'female' ? '' : 'female')}
+                                className={`h-7 px-2.5 rounded-r-lg text-[10px] font-bold transition-all ${patientSex === 'female'
+                                    ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40'
+                                    : 'bg-bg-card text-text-muted border border-border hover:text-text-primary'
+                                }`}
+                            >
+                                ♀ Female
+                            </button>
+                        </div>
+                    </div>
+                    {patientSex === 'female' && (
+                        <p className="text-[9px] text-pink-400/70 mt-1.5">🩷 GYN History section will be included in the flow</p>
+                    )}
+                </div>
+
                 {/* ── Auto-Test Panel ──────────────────── */}
                 {showAutoPanel && !autoMode && (
                     <div className="px-4 py-3 border-b border-purple/20 bg-purple/5 animate-fade-in">
@@ -1706,7 +1825,7 @@ export default function ChatTestWindow({
                         <div className="flex items-center justify-between mb-3">
                             <p className="text-[10px] text-text-muted">Select a patient profile or adversarial mode:</p>
                             <button
-                                onClick={() => { AUTO_BOT_PROFILES = buildProfiles(); setAutoProfile(null); }}
+                                onClick={() => { AUTO_BOT_PROFILES = buildProfiles({ name: patientName || undefined, age: patientAge || undefined, sex: patientSex || undefined }); setAutoProfile(null); }}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-bg-elevated border border-border text-[9px] font-semibold text-text-muted hover:text-accent hover:border-accent/30 transition-colors"
                                 title="Generate new random scenarios"
                             >

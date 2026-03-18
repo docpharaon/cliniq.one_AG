@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Input } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { resetPassword } from '@cliniqone/api';
+import { resetPassword, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
+import { useToast } from '../../components/ToastProvider';
 
 export default function ForgotPasswordScreen() {
     const params = useLocalSearchParams<{ email?: string }>();
     const [email, setEmail] = useState(params.email || '');
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const isValidEmail = email.includes('@') && email.includes('.');
 
@@ -20,10 +22,17 @@ export default function ForgotPasswordScreen() {
         setLoading(true);
 
         try {
-            await resetPassword(email.trim().toLowerCase());
+            await safeFetch(
+                () => resetPassword(email.trim().toLowerCase()),
+                { timeout: 8000, retries: 1, label: 'resetPassword' },
+            );
             setSent(true);
+            toast('Reset link sent to your email', 'success');
         } catch (err: any) {
-            Alert.alert(t('common.error'), err?.message || t('errors.serverError'));
+            const msg = err?.message?.includes('timed out')
+                ? 'Connection is slow. Please try again.'
+                : err?.message || t('errors.serverError');
+            toast(msg, 'error');
         } finally {
             setLoading(false);
         }

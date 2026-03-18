@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ScrollView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
+import { useToast } from './ToastProvider';
 
 interface PhotoUploadProps {
     photos: string[];
@@ -13,11 +14,13 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ photos, onAdd, onRemove, maxPhotos = 5 }: PhotoUploadProps) {
     const [uploading, setUploading] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
+    const toast = useToast((s) => s.show);
 
     async function pickImage() {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission Required', 'Please allow access to your photo library.');
+            toast('Please allow access to your photo library.', 'warning');
             return;
         }
 
@@ -30,12 +33,13 @@ export function PhotoUpload({ photos, onAdd, onRemove, maxPhotos = 5 }: PhotoUpl
         if (!result.canceled && result.assets[0]) {
             onAdd(result.assets[0].uri);
         }
+        setShowOptions(false);
     }
 
     async function takePhoto() {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission Required', 'Please allow camera access.');
+            toast('Please allow camera access.', 'warning');
             return;
         }
 
@@ -47,19 +51,26 @@ export function PhotoUpload({ photos, onAdd, onRemove, maxPhotos = 5 }: PhotoUpl
         if (!result.canceled && result.assets[0]) {
             onAdd(result.assets[0].uri);
         }
+        setShowOptions(false);
     }
 
     function handleAdd() {
         if (photos.length >= maxPhotos) {
-            Alert.alert('Limit Reached', `You can add up to ${maxPhotos} photos.`);
+            toast(`You can add up to ${maxPhotos} photos.`, 'warning');
             return;
         }
 
-        Alert.alert('Add Photo', 'Choose an option', [
-            { text: 'Camera', onPress: takePhoto },
-            { text: 'Photo Library', onPress: pickImage },
-            { text: 'Cancel', style: 'cancel' },
-        ]);
+        if (Platform.OS === 'web') {
+            // Web: toggle inline options
+            setShowOptions(!showOptions);
+        } else {
+            // Native: action sheet
+            Alert.alert('Add Photo', 'Choose an option', [
+                { text: 'Camera', onPress: takePhoto },
+                { text: 'Photo Library', onPress: pickImage },
+                { text: 'Cancel', style: 'cancel' },
+            ]);
+        }
     }
 
     return (
@@ -90,6 +101,21 @@ export function PhotoUpload({ photos, onAdd, onRemove, maxPhotos = 5 }: PhotoUpl
                     </TouchableOpacity>
                 )}
             </ScrollView>
+
+            {/* Web: inline camera/gallery buttons */}
+            {showOptions && Platform.OS === 'web' && (
+                <View style={styles.webOptions}>
+                    <TouchableOpacity style={styles.webOptionBtn} onPress={takePhoto}>
+                        <Text style={styles.webOptionText}>📸 Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.webOptionBtn} onPress={pickImage}>
+                        <Text style={styles.webOptionText}>🖼️ Gallery</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.webOptionBtnCancel} onPress={() => setShowOptions(false)}>
+                        <Text style={styles.webOptionCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
     );
 }
@@ -130,4 +156,23 @@ const styles = StyleSheet.create({
     },
     addIcon: { fontSize: 28, marginBottom: 4 },
     addText: { ...typography.caption, color: colors.textTertiary },
+
+    // Web inline options
+    webOptions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+    webOptionBtn: {
+        flex: 1,
+        paddingVertical: spacing.sm,
+        borderRadius: radius.md,
+        backgroundColor: colors.accentTealFaded,
+        alignItems: 'center' as const,
+    },
+    webOptionText: { ...typography.bodySm, color: colors.accentTeal, fontWeight: '600' as const },
+    webOptionBtnCancel: {
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.bgTertiary,
+        alignItems: 'center' as const,
+    },
+    webOptionCancelText: { ...typography.bodySm, color: colors.textTertiary },
 });

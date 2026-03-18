@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { supabase } from '@cliniqone/api';
+import { supabase, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { SECURITY } from '@cliniqone/config';
+import { useToast } from '../../components/ToastProvider';
 
 export default function VerifyEmailScreen() {
     const [loading, setLoading] = useState(false);
@@ -14,19 +15,24 @@ export default function VerifyEmailScreen() {
     const [resendCount, setResendCount] = useState(0);
     const [confirmed, setConfirmed] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const toast = useToast((s) => s.show);
 
     // Poll for email confirmation every 3 seconds
     useEffect(() => {
         pollRef.current = setInterval(async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await safeFetch(
+                    () => supabase.auth.getSession(),
+                    { timeout: 4000, retries: 0, label: 'pollSession' },
+                );
                 if (session?.user?.email_confirmed_at) {
                     setConfirmed(true);
                     if (pollRef.current) clearInterval(pollRef.current);
+                    toast('Email verified!', 'success');
                     router.replace('/(auth)/personal-details');
                 }
             } catch (err) {
-                // Silently retry
+                // Silently retry — polling so failures are expected
             }
         }, 3000);
 
@@ -47,30 +53,30 @@ export default function VerifyEmailScreen() {
         setLoading(true);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await safeFetch(
+                () => supabase.auth.getSession(),
+                { timeout: 5000, retries: 0, label: 'getSessionForResend' },
+            );
             const email = session?.user?.email;
             if (!email) {
-                const msg = 'No email found. Please go back and sign up again.';
-                if (Platform.OS === 'web') {
-                    (globalThis as any).alert(msg);
-                } else {
-                    Alert.alert(t('common.error'), msg);
-                }
+                toast('No email found. Please go back and sign up again.', 'error');
                 return;
             }
 
-            const { error } = await supabase.auth.resend({ type: 'signup', email });
+            const { error } = await safeFetch(
+                () => supabase.auth.resend({ type: 'signup', email }),
+                { timeout: 8000, retries: 1, label: 'resendEmail' },
+            );
             if (error) throw error;
 
             setResendCount((c) => c + 1);
             setResendCooldown(60);
+            toast('Verification email resent', 'success');
         } catch (err: any) {
-            const msg = err?.message || t('errors.serverError');
-            if (Platform.OS === 'web') {
-                (globalThis as any).alert(msg);
-            } else {
-                Alert.alert(t('common.error'), msg);
-            }
+            const msg = err?.message?.includes('timed out')
+                ? 'Connection is slow. Please try again.'
+                : err?.message || t('errors.serverError');
+            toast(msg, 'error');
         } finally {
             setLoading(false);
         }

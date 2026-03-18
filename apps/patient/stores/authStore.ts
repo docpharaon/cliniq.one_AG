@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '@cliniqone/api';
+import { supabase, safeFetch } from '@cliniqone/api';
 import type { User } from '@cliniqone/types';
 import type { Session } from '@supabase/supabase-js';
 
@@ -12,6 +12,7 @@ interface AuthState {
     initialize: () => Promise<void>;
     setSession: (session: Session | null) => void;
     setUser: (user: User | null) => void;
+    refreshUser: () => Promise<void>;
     clear: () => void;
 }
 
@@ -23,17 +24,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     initialize: async () => {
         try {
-            // Get current session
-            const { data } = await supabase.auth.getSession();
+            // Get current session (with timeout protection)
+            const { data } = await safeFetch(
+                () => supabase.auth.getSession(),
+                { timeout: 5000, retries: 1, label: 'getSession' },
+            );
             const session = data.session;
 
             if (session) {
-                // Fetch user profile
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
+                // Fetch user profile (with timeout protection)
+                const { data: userData } = await safeFetch(
+                    () => supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single(),
+                    { timeout: 5000, retries: 1, label: 'fetchUserProfile' },
+                );
 
                 set({ session, user: userData as User | null, isLoading: false, isReady: true });
             } else {
@@ -45,12 +52,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 set({ session: newSession });
 
                 if (newSession) {
-                    const { data: userData } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', newSession.user.id)
-                        .single();
-                    set({ user: userData as User | null });
+                    try {
+                        const { data: userData } = await safeFetch(
+                            () => supabase
+                                .from('users')
+                                .select('*')
+                                .eq('id', newSession.user.id)
+                                .single(),
+                            { timeout: 5000, retries: 0, label: 'authChangeUser' },
+                        );
+                        set({ user: userData as User | null });
+                    } catch (err) {
+                        console.warn('Failed to fetch user on auth change:', err);
+                    }
                 } else {
                     set({ user: null });
                 }
@@ -63,5 +77,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     setSession: (session) => set({ session }),
     setUser: (user) => set({ user }),
+    refreshUser: async () => {
+        const { session } = get();
+        if (!session) return;
+        try {
+            const { data: userData } = await safeFetch(
+                () => supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single(),
+                { timeout: 5000, retries: 1, label: 'refreshUser' },
+            );
+            if (userData) set({ user: userData as User });
+        } catch (err) {
+            console.warn('Failed to refresh user:', err);
+        }
+    },
     clear: () => set({ session: null, user: null }),
 }));

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
 import { APP } from '@cliniqone/config';
+import { useToast } from '../../components/ToastProvider';
 
 const INSURERS = [
     { id: 'bupa', name: 'Bupa Arabia', nameAr: 'بوبا العربية', logo: '🏥' },
@@ -26,6 +27,7 @@ export default function InsuranceScreen() {
     const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
     const [card, setCard] = useState<InsuranceCard | null>(null);
     const [uploading, setUploading] = useState(false);
+    const toast = useToast((s) => s.show);
 
     function handleSelectProvider(id: string) {
         setSelectedProvider(id);
@@ -33,23 +35,16 @@ export default function InsuranceScreen() {
 
     async function handleUploadCard(side: 'front' | 'back') {
         // In production, use expo-image-picker here
-        Alert.alert(
-            'Upload Insurance Card',
-            `Select a photo of the ${side} of your insurance card.`,
-            [{ text: 'OK' }]
-        );
+        toast(`Select a photo of the ${side} of your card`, 'info');
     }
 
     function handleSave() {
         if (!selectedProvider) {
-            Alert.alert('Error', 'Please select your insurance provider.');
+            toast('Please select your insurance provider.', 'warning');
             return;
         }
-        Alert.alert(
-            'Saved',
-            'Your insurance information has been saved successfully.',
-            [{ text: 'OK', onPress: () => router.back() }]
-        );
+        toast('Insurance information saved!', 'success');
+        router.back();
     }
 
     return (

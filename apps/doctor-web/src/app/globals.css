@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+@theme {
+  /* ─── Background Colors (unified with packages/ui tokens) ─── */
+  --color-bg-primary: #0A0E1A;
+  --color-bg-secondary: #111827;
+  --color-bg-tertiary: #1A2235;
+  --color-bg-card: rgba(30, 41, 59, 0.6);
+  --color-bg-elevated: rgba(36, 48, 68, 0.8);
+
+  /* ─── Accent - Teal (unified) ─── */
+  --color-accent: #2DD4BF;
+  --color-accent-dark: #14B8A6;
+  --color-accent-light: #5EEAD4;
+  --color-accent-faded: rgba(45, 212, 191, 0.15);
+
+  /* ─── Accent - Blue ─── */
+  --color-blue: #3B82F6;
+  --color-blue-dark: #2563EB;
+  --color-blue-light: #60A5FA;
+  --color-blue-faded: rgba(59, 130, 246, 0.15);
+
+  /* ─── Accent - Purple ─── */
+  --color-purple: #9B72CF;
+  --color-purple-faded: rgba(155, 114, 207, 0.15);
+
+  /* ─── Accent - Pink ─── */
+  --color-pink: #C98BB9;
+  --color-pink-faded: rgba(201, 139, 185, 0.15);
+
+  /* ─── Accent - Gold ─── */
+  --color-gold: #FFD700;
+  --color-gold-faded: rgba(255, 215, 0, 0.15);
+
+  /* ─── Text Colors (unified with packages/ui tokens) ─── */
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-text-inverse: #0F172A;
+
+  /* ─── Semantic (unified) ─── */
+  --color-success: #22C55E;
+  --color-success-faded: rgba(34, 197, 94, 0.15);
+  --color-warning: #F59E0B;
+  --color-warning-faded: rgba(245, 158, 11, 0.15);
+  --color-error: #EF4444;
+  --color-error-faded: rgba(239, 68, 68, 0.15);
+  --color-info: #3B82F6;
+  --color-info-faded: rgba(59, 130, 246, 0.15);
+
+  /* ─── Border (unified) ─── */
+  --color-border: #1E293B;
+  --color-border-focused: #2DD4BF;
+
+  /* ─── Border Radius ─── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+
+  /* ─── Font Family ─── */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─── Base Styles ─── */
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 191, 0.5);
+}
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s infinite;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.2s ease forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Glass Effect ─── */
+.glass {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+}
+
+.glass-premium {
+  background: rgba(26, 34, 53, 0.5);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-report {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    color: black;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .print-report h1,
+  .print-report h2,
+  .print-report h3 {
+    color: black !important;
+  }
+
+  .print-report p,
+  .print-report td,
+  .print-report th,
+  .print-report span {
+    color: #333 !important;
+  }
+
+  aside,
+  nav {
+    display: none !important;
+  }
+}

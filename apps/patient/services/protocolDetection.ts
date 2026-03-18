@@ -140,11 +140,21 @@ export function getEscalationMessage(strikeCount: number): string {
 // Common short patient responses that should never be flagged as gibberish
 const VALID_SHORT_ANSWERS = new Set([
     // Greetings & acknowledgments
-    'hi', 'ok', 'hey', 'bye',
+    'hi', 'ok', 'hey', 'bye', 'hello', 'thanks', 'thank you', 'sure', 'fine',
     // Yes / No variants
     'no', 'yes', 'ya', 'yep', 'yea', 'yeah', 'nah', 'nope', 'na',
     // Numeric scales (0-10 severity ratings)
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
+    // Navigation / flow control
+    'continue', 'go', 'next', 'done', 'stop', 'ask me', 'go on', 'move on',
+    'go ahead', 'please continue', 'what next',
+    // Common medical short answers
+    'pus', 'rash', 'itch', 'pain', 'acne', 'cold', 'flu', 'cough',
+    'no pain', 'mild', 'severe', 'moderate', 'constant', 'daily',
+    'weekly', 'monthly', 'rarely', 'never', 'always', 'sometimes',
+    'none', 'nothing', 'same', 'worse', 'better', 'normal',
+    // Common typos and informal
+    'dayly', 'dayli', 'idk', 'n/a', 'dunno', 'dont know',
     // Arabic yes/no
     'لا', 'نعم', 'اي', 'أي', 'لأ',
 ]);
@@ -178,15 +188,21 @@ function isGibberish(text: string): boolean {
     const stripped = trimmed.replace(/[\u{1F600}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s]/gu, '');
     if (stripped.length === 0 && trimmed.length > 0) return true;
 
-    // All-caps screaming (>10 chars all uppercase)
-    // BUT skip if it contains emergency keywords (patients type emergencies in caps)
-    if (latinChars.length > 10 && latinChars === latinChars.toUpperCase()) {
+    // All-caps screaming (>30 chars all uppercase)
+    // Relaxed threshold — many patients type in all-caps on mobile keyboards
+    // Only flag very long all-caps messages with no recognizable content
+    if (latinChars.length > 30 && latinChars === latinChars.toUpperCase()) {
         const lowerMsg = lower;
-        const hasEmergencyWord = [
+        const hasRealWord = [
             'pain', 'hurt', 'help', 'blood', 'emergency', 'dying', 'severe',
             'breathe', 'chest', 'heart', 'head', 'accident', 'ambulance',
+            // Common medical words patients type
+            'acne', 'rash', 'itch', 'cough', 'fever', 'cold', 'skin',
+            'doctor', 'medication', 'allergy', 'pregnant', 'surgery',
+            'take', 'have', 'need', 'want', 'feel', 'been', 'week',
+            'month', 'year', 'daily', 'time', 'day', 'night',
         ].some(w => lowerMsg.includes(w));
-        if (!hasEmergencyWord) return true;
+        if (!hasRealWord) return true;
     }
 
     // Random character detection: single "word" of 5+ Latin chars with no spaces

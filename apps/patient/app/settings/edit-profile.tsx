@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { updateUserProfile } from '@cliniqone/api';
+import { updateUserProfile, safeFetch } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 import { t } from '@cliniqone/i18n';
+import { COUNTRIES } from '@cliniqone/config';
+import { useToast } from '../../components/ToastProvider';
 
 const GENDERS = [
     { key: 'male', label: 'Male' },
@@ -14,11 +16,12 @@ const GENDERS = [
     { key: 'prefer_not_to_say', label: 'Prefer not to say' },
 ];
 
-const COUNTRIES = ['Saudi Arabia', 'UAE', 'Kuwait', 'Bahrain', 'Oman', 'Qatar', 'Egypt', 'Jordan'];
+
 
 export default function EditProfileScreen() {
     const { user, setUser } = useAuthStore();
     const [saving, setSaving] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const [nickname, setNickname] = useState(user?.nickname || '');
     const [yearOfBirth, setYearOfBirth] = useState(String(user?.year_of_birth || ''));
@@ -31,7 +34,7 @@ export default function EditProfileScreen() {
 
     async function handleSave() {
         if (!nickname.trim()) {
-            Alert.alert('Error', 'Nickname is required');
+            toast('Nickname is required', 'warning');
             return;
         }
 
@@ -48,13 +51,15 @@ export default function EditProfileScreen() {
                 insurance_policy_number: policyNumber.trim() || null,
             };
 
-            await updateUserProfile(updates as any);
+            await safeFetch(
+                () => updateUserProfile(updates as any),
+                { timeout: 8000, retries: 1, label: 'updateProfile' },
+            );
             setUser({ ...user!, ...updates } as any);
-            Alert.alert('Success', 'Profile updated successfully', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
-        } catch (err) {
-            Alert.alert('Error', 'Failed to save. Please try again.');
+            toast('Profile updated!', 'success');
+            router.back();
+        } catch (err: any) {
+            toast(err?.message?.includes('timed out') ? 'Connection is slow. Please try again.' : 'Failed to save. Please try again.', 'error');
         } finally {
             setSaving(false);
         }
@@ -108,11 +113,11 @@ export default function EditProfileScreen() {
                 <View style={styles.countryChips}>
                     {COUNTRIES.map((c) => (
                         <TouchableOpacity
-                            key={c}
-                            style={[styles.countryChip, country === c && styles.countryChipActive]}
-                            onPress={() => setCountry(c)}
+                            key={c.code}
+                            style={[styles.countryChip, country === c.code && styles.countryChipActive]}
+                            onPress={() => setCountry(c.code)}
                         >
-                            <Text style={[styles.countryChipText, country === c && styles.countryChipTextActive]}>{c}</Text>
+                            <Text style={[styles.countryChipText, country === c.code && styles.countryChipTextActive]}>{c.flag} {c.name}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>

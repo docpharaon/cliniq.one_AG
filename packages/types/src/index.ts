@@ -5,6 +5,7 @@
 export type UserRole = 'patient' | 'doctor' | 'admin';
 export type UserStatus = 'active' | 'inactive' | 'blocked' | 'pending';
 export type Gender = 'male' | 'female' | 'prefer_not_to_say';
+export type KycStatus = 'not_started' | 'pending' | 'approved' | 'rejected' | 'resubmission_requested' | 'exempt';
 
 export interface User {
     id: string;
@@ -23,6 +24,10 @@ export interface User {
     insurance_provider: string | null;
     insurance_policy_number: string | null;
     onboarding_completed: boolean;
+    kyc_status: KycStatus;
+    kyc_applicant_id: string | null;
+    kyc_verified_at: string | null;
+    kyc_rejection_reason: string | null;
     legal_accepted_at: string | null;
     created_at: string;
     updated_at: string;
@@ -33,7 +38,7 @@ export interface User {
 // ──────────────────────────────────────────
 
 export type DoctorStatus = 'pending' | 'active' | 'probation' | 'limited' | 'suspended' | 'inactive';
-export type Specialty = 'dermatology' | 'family_medicine';
+export type Specialty = 'general' | 'dermatology' | 'family_medicine';
 
 export interface Doctor {
     id: string;
@@ -512,6 +517,7 @@ export interface CatalogIntervention {
 }
 
 export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> = {
+    general: [],
     dermatology: [
         { name: 'Skin Biopsy', type: 'lab_test', category: 'Dermatopathology', estimated_cost_sar: 450, instructions: 'Keep area clean and dry before biopsy' },
         { name: 'Patch Testing (Allergy)', type: 'lab_test', category: 'Allergy', estimated_cost_sar: 600, instructions: 'Do not apply creams 48h before test' },

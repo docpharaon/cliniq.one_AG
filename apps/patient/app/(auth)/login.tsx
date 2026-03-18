@@ -4,10 +4,11 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Input } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { signIn, supabase } from '@cliniqone/api';
+import { signIn, supabase, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { SECURITY } from '@cliniqone/config';
 import { handleGoogleSignIn } from '../../services/googleAuth';
+import { useToast } from '../../components/ToastProvider';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -16,6 +17,7 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [error, setError] = useState('');
+    const toast = useToast((s) => s.show);
 
     const isValid = email.length > 0 && password.length >= SECURITY.PASSWORD_MIN_LENGTH;
 
@@ -25,15 +27,21 @@ export default function LoginScreen() {
         setLoading(true);
 
         try {
-            const { session } = await signIn({ email, password });
+            const { session } = await safeFetch(
+                () => signIn({ email, password }),
+                { timeout: 8000, retries: 1, label: 'signIn' },
+            );
 
             // Check user role — only patients can use this app
             if (session) {
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', session.user.id)
-                    .single();
+                const { data: userData } = await safeFetch(
+                    () => supabase
+                        .from('users')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .single(),
+                    { timeout: 5000, retries: 0, label: 'checkRole' },
+                );
 
                 if (userData && userData.role !== 'patient') {
                     // Sign out the non-patient user
@@ -45,11 +53,14 @@ export default function LoginScreen() {
                 }
             }
 
+            toast('Welcome back!', 'success');
             router.replace('/');
         } catch (err: any) {
             const message = err?.message || '';
 
-            if (message.includes('Invalid login')) {
+            if (message.includes('timed out')) {
+                setError('Connection is slow. Please check your internet and try again.');
+            } else if (message.includes('Invalid login')) {
                 setError(t('errors.invalidCredentials'));
             } else if (message.includes('Email not confirmed')) {
                 setError(t('errors.emailNotVerified'));

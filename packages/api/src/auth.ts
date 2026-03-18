@@ -198,3 +198,19 @@ export async function signInWithGoogle(idToken: string, displayName?: string | n
 
     return data;
 }
+
+/**
+ * Request a Sumsub SDK access token for identity verification.
+ * Calls the kyc-token edge function.
+ */
+export async function requestKycToken(): Promise<{ token: string; applicantId: string } | { status: string; message: string }> {
+    const session = await getSession();
+    if (!session) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase.functions.invoke('kyc-token', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+
+    if (error) throw error;
+    return data;
+}

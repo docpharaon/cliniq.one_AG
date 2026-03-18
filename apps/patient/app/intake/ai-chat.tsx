@@ -19,6 +19,9 @@ import {
 } from '../../services/aiService';
 import { detectProtocols, EMERGENCY_NUMBERS, getEscalationLevel, getEscalationMessage, getEscalationColor, getCooldownMs, setProtocolConfig } from '../../services/protocolDetection';
 import { saveIntakeSession, getActiveIntakeSession, deleteIntakeSession } from '@cliniqone/api';
+import { SkinPhotoCapture } from '../../components/SkinPhotoCapture';
+import { DisclaimerBanner } from '../../components/DisclaimerBanner';
+import { Button } from '@cliniqone/ui';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const AI_DOCTOR_AVATAR = require('../../assets/ai-doctor-avatar.jpg');
@@ -39,13 +42,79 @@ function stripInternalTags(text: string): string {
         .trim();
 }
 
-// ── Get the applicable nodes for a pathway ──────
-function getApplicableNodes(nodes: SequenceNode[], pathway: string | null): SequenceNode[] {
+/**
+ * Extract patient answers that belong to a specific section from the messages array.
+ * Uses sectionLabel on system messages to determine section boundaries.
+ */
+function extractSectionAnswers(msgs: ChatMessage[], sectionKeywords: string[]): string[] {
+    const answers: string[] = [];
+    let inTargetSection = false;
+
+    for (const msg of msgs) {
+        // Detect section transitions
+        if (msg.role === 'system' && msg.sectionLabel) {
+            const label = msg.sectionLabel.toLowerCase();
+            inTargetSection = sectionKeywords.some((kw) => label.includes(kw));
+            continue;
+        }
+        // Collect patient answers while in the target section
+        if (inTargetSection && msg.role === 'patient') {
+            const text = msg.content.trim();
+            if (text && !text.startsWith('📸')) {
+                answers.push(text);
+            }
+        }
+    }
+    return answers;
+}
+
+/**
+ * Build a structured summary object from raw AI text and the chat messages.
+ * This is used as a fallback when the AI summary is not valid JSON.
+ */
+function buildStructuredSummary(
+    rawSummaryText: string,
+    msgs: ChatMessage[],
+): Record<string, unknown> {
+    // Map section labels to their structured keys
+    const sectionMap: { keywords: string[]; key: string; label: string }[] = [
+        { keywords: ['present illness', 'hpi'], key: 'hpi', label: 'History of Present Illness' },
+        { keywords: ['past medical', 'pmh'], key: 'pmh', label: 'Past Medical History' },
+        { keywords: ['medication'], key: 'medicationsText', label: 'Medications' },
+        { keywords: ['allerg'], key: 'allergiesText', label: 'Allergies' },
+        { keywords: ['family'], key: 'familyHistory', label: 'Family History' },
+        { keywords: ['social'], key: 'socialHistory', label: 'Social History' },
+        { keywords: ['review of systems', 'ros'], key: 'reviewOfSystems', label: 'Review of Systems' },
+    ];
+
+    const structured: Record<string, unknown> = {
+        summary: rawSummaryText,
+        raw: true,
+    };
+
+    // Build each section from the chat messages
+    for (const sec of sectionMap) {
+        const answers = extractSectionAnswers(msgs, sec.keywords);
+        if (answers.length > 0) {
+            structured[sec.key] = answers.join('. ');
+        }
+    }
+
+    return structured;
+}
+
+// ── Get the applicable nodes for a pathway + gender ──
+function getApplicableNodes(nodes: SequenceNode[], pathway: string | null, gender?: string | null): SequenceNode[] {
     return nodes.filter((n) => {
-        // Always include nodes with no pathway condition
-        if (!n.pathway_condition) return true;
-        // Include nodes matching the active pathway
-        return pathway ? n.pathway_condition === pathway : false;
+        // Pathway filtering
+        if (n.pathway_condition) {
+            if (!pathway || n.pathway_condition !== pathway) return false;
+        }
+        // Gender filtering
+        if (n.gender_condition) {
+            if (!gender || n.gender_condition !== gender) return false;
+        }
+        return true;
     });
 }
 
@@ -64,10 +133,11 @@ export default function AIChatScreen() {
         sessionId, aiErrorType, lastFailedMessage,
         addMessage, setProgress, setAiTyping,
         addProtocolFlag, addQA, setAiSummary,
-        setMedications, setAllergies,
+        setMedications, setAllergies, addPhoto,
         setSequenceNodes, setCurrentNodeIndex, setActivePathway,
         setSessionId, restoreFromSnapshot,
         setAiError, clearAiError,
+        setPatientAddendum,
     } = useIntakeStore();
     const { user, session } = useAuthStore();
 
@@ -109,6 +179,18 @@ export default function AIChatScreen() {
     const [cooldownRemaining, setCooldownRemaining] = useState(0);
     const [sectionTurnCount, setSectionTurnCount] = useState(0);
     const [isReported, setIsReported] = useState(false);
+    const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+    const [aiConsentGiven, setAiConsentGiven] = useState(false);
+
+    // ── Addendum state ───────────────────────
+    const MAX_ADDENDUM_TURNS = 5;
+    const MAX_ADDENDUM_REGENERATIONS = 2;
+    const [isInAddendum, setIsInAddendum] = useState(false);
+    const [addendumTurnCount, setAddendumTurnCount] = useState(0);
+    const [addendumHistory, setAddendumHistory] = useState<{ role: string; content: string }[]>([]);
+    const [addendumTexts, setAddendumTexts] = useState<string[]>([]);
+    const [addendumRegenerationCount, setAddendumRegenerationCount] = useState(0);
+
     const scrollRef = useRef<ScrollView>(null);
     const typingAnim = useRef(new Animated.Value(0)).current;
 
@@ -160,7 +242,7 @@ export default function AIChatScreen() {
             const result = await saveIntakeSession({
                 sessionId: storeState.sessionId || undefined,
                 patientId: user.id,
-                specialty: storeState.specialty || 'dermatology',
+                specialty: storeState.specialty || 'general',
                 chiefComplaint: storeState.chiefComplaint || undefined,
                 snapshot: snapshot as unknown as Record<string, unknown>,
             });
@@ -198,7 +280,7 @@ export default function AIChatScreen() {
                     // Recompute applicable nodes from restored sequence
                     const restoredNodes = (snap.sequenceNodes || []) as SequenceNode[];
                     const pathway = (snap.activePathway as string) ?? null;
-                    setApplicableNodes(getApplicableNodes(restoredNodes, pathway));
+                    setApplicableNodes(getApplicableNodes(restoredNodes, pathway, user?.gender));
                     setIsLoading(false);
                     return; // Skip fresh initialization
                 }
@@ -252,7 +334,7 @@ export default function AIChatScreen() {
             setSequenceNodes(nodes);
 
             // 2. Start with the first node (should be "greeting")
-            const initial = getApplicableNodes(nodes, null);
+            const initial = getApplicableNodes(nodes, null, user?.gender);
             setApplicableNodes(initial);
             setCurrentNodeIndex(0);
 
@@ -314,6 +396,12 @@ export default function AIChatScreen() {
     async function handleSend(text?: string) {
         const msgText = (text || inputText).trim();
         if (!msgText || isAiTyping || isEmergency || isTerminated) return;
+
+        // If in addendum mode, delegate to addendum handler
+        if (isInAddendum) {
+            await handleAddendumSend(msgText);
+            return;
+        }
 
         // Block during cooldown
         if (cooldownUntil && Date.now() < cooldownUntil) return;
@@ -503,7 +591,7 @@ export default function AIChatScreen() {
                 setPatientContext(newPatientContext);
 
                 // Recalculate applicable nodes with this pathway
-                const newApplicable = getApplicableNodes(sequenceNodes, pathway);
+                const newApplicable = getApplicableNodes(sequenceNodes, pathway, user?.gender);
                 setApplicableNodes(newApplicable);
 
                 // Find the next node after current
@@ -536,6 +624,13 @@ export default function AIChatScreen() {
                         sectionLabel: nextNode.label,
                     });
                     setProgress(Math.round(((nextNodeIdx + 1) / newApplicable.length) * 100));
+
+                    // Photo capture node — handled by client UI, no AI call
+                    if (nextNode.step_key === 'photo_capture') {
+                        setShowPhotoCapture(true);
+                        setAiTyping(false);
+                        return;
+                    }
 
                     // Fresh section history — no prior conversation
                     let nextResult = await chatSection({
@@ -610,6 +705,13 @@ export default function AIChatScreen() {
                     timestamp: Date.now(),
                     sectionLabel: nextNode.label,
                 });
+
+                // Photo capture node — handled by client UI, no AI call
+                if (nextNode.step_key === 'photo_capture') {
+                    setShowPhotoCapture(true);
+                    setAiTyping(false);
+                    return;
+                }
 
                 // Fresh section history for the new section
                 let nextResult = await chatSection({
@@ -793,8 +895,9 @@ export default function AIChatScreen() {
                     if (parsed.medications?.length) setMedications(parsed.medications);
                     if (parsed.allergies?.length) setAllergies(parsed.allergies);
                 } catch {
-                    // If not JSON, store as raw summary
-                    setAiSummary({ summary: summaryResponse, raw: true });
+                    // If not JSON, build structured summary from chat messages
+                    const allMessages = useIntakeStore.getState().messages;
+                    setAiSummary(buildStructuredSummary(summaryResponse, allMessages));
                 }
             } else {
                 // Fallback: use the legacy analyzeQA
@@ -814,6 +917,32 @@ export default function AIChatScreen() {
                 if (summary.allergies?.length) setAllergies(summary.allergies);
             }
 
+            // Fallback: extract medications & allergies from chat messages if not set by AI
+            const allMessages = useIntakeStore.getState().messages;
+            const currentMeds = useIntakeStore.getState().medications;
+            const currentAllergies = useIntakeStore.getState().allergies;
+
+            if (!currentMeds.length) {
+                const medsAnswers = extractSectionAnswers(allMessages, ['medication']);
+                if (medsAnswers.length > 0) {
+                    // Filter out negative answers
+                    const nonNegative = medsAnswers.filter(
+                        (a) => !/^(no|none|nothing|i('m| am) not|nope|n\/a)$/i.test(a.trim()),
+                    );
+                    if (nonNegative.length > 0) setMedications(nonNegative);
+                }
+            }
+
+            if (!currentAllergies.length) {
+                const allergyAnswers = extractSectionAnswers(allMessages, ['allerg']);
+                if (allergyAnswers.length > 0) {
+                    const nonNegative = allergyAnswers.filter(
+                        (a) => !/^(no|none|nothing|nkda|nope|n\/a)$/i.test(a.trim()),
+                    );
+                    if (nonNegative.length > 0) setAllergies(nonNegative);
+                }
+            }
+
             addMessage({
                 id: uid(),
                 role: 'system',
@@ -821,22 +950,46 @@ export default function AIChatScreen() {
                 timestamp: Date.now(),
             });
 
-            setAiTyping(false);
+            // ── Start Patient Addendum step ───────────────
+            // Instead of navigating to review, let the patient review the summary in-chat
+            addMessage({
+                id: uid(),
+                role: 'system',
+                content: '📝 Final Review',
+                timestamp: Date.now(),
+                sectionLabel: 'Final Review',
+            });
 
-            // Navigate to review
-            // Clean up in-progress session from DB
-            const currentSessionId = useIntakeStore.getState().sessionId;
-            if (currentSessionId) {
-                try {
-                    await deleteIntakeSession(currentSessionId);
-                    setSessionId(null);
-                } catch (err) {
-                    console.warn('Session cleanup failed:', err);
-                }
-            }
-            setTimeout(() => {
-                router.push('/intake/review');
-            }, 1500);
+            // Build context from the summary for the addendum AI
+            const currentSummary = useIntakeStore.getState().aiSummary;
+            const summaryContext = currentSummary
+                ? `INTAKE SUMMARY FOR PATIENT REVIEW:\n${JSON.stringify(currentSummary, null, 2)}`
+                : '';
+
+            // Call the addendum AI to present the summary
+            const addendumResult = await chatSection({
+                section: 'patient_addendum',
+                conversationHistory: [],
+                language: user?.language || 'en',
+                patientContext: summaryContext,
+            });
+
+            const addendumResponse = addendumResult.response;
+
+            addMessage({
+                id: uid(),
+                role: 'ai',
+                content: stripInternalTags(addendumResponse),
+                timestamp: Date.now(),
+            });
+
+            // Initialize addendum state
+            setIsInAddendum(true);
+            setAddendumTurnCount(0);
+            setAddendumHistory([{ role: 'ai', content: addendumResponse }]);
+            setAddendumTexts([]);
+
+            setAiTyping(false);
         } catch (err) {
             console.error('Final analysis error:', err);
             addMessage({
@@ -849,10 +1002,308 @@ export default function AIChatScreen() {
         }
     }
 
+    // ── Finalize addendum and navigate to review ──
+    async function finalizeAddendum() {
+        // Combine all patient addendum texts
+        const combinedAddendum = addendumTexts.join('\n');
+        if (combinedAddendum.trim()) {
+            setPatientAddendum(combinedAddendum.trim());
+        }
+
+        // Clean up in-progress session from DB
+        const currentSessionId = useIntakeStore.getState().sessionId;
+        if (currentSessionId) {
+            try {
+                await deleteIntakeSession(currentSessionId);
+                setSessionId(null);
+            } catch (err) {
+                console.warn('Session cleanup failed:', err);
+            }
+        }
+
+        setIsInAddendum(false);
+        setTimeout(() => {
+            router.push('/intake/review');
+        }, 1000);
+    }
+
+    // ── Handle patient message during addendum ───
+    async function handleAddendumSend(msgText: string) {
+        // Add patient message
+        addMessage({
+            id: uid(),
+            role: 'patient',
+            content: msgText,
+            timestamp: Date.now(),
+        });
+        setInputText('');
+
+        // Track addendum texts
+        const newTexts = [...addendumTexts, msgText];
+        setAddendumTexts(newTexts);
+
+        // Track addendum turn count
+        const newTurnCount = addendumTurnCount + 1;
+        setAddendumTurnCount(newTurnCount);
+
+        // Update addendum history
+        const newHistory = [...addendumHistory, { role: 'patient', content: msgText }];
+        setAddendumHistory(newHistory);
+
+        // Check turn limit
+        if (newTurnCount >= MAX_ADDENDUM_TURNS) {
+            addMessage({
+                id: uid(),
+                role: 'system',
+                content: '✅ Thank you for your additions. Finalizing your report...',
+                timestamp: Date.now(),
+            });
+            await finalizeAddendum();
+            return;
+        }
+
+        // Call AI for addendum response
+        setAiTyping(true);
+        try {
+            const currentSummary = useIntakeStore.getState().aiSummary;
+            const summaryContext = currentSummary
+                ? `INTAKE SUMMARY FOR PATIENT REVIEW:\n${JSON.stringify(currentSummary, null, 2)}`
+                : '';
+
+            const addendumResult = await chatSection({
+                section: 'patient_addendum',
+                conversationHistory: newHistory,
+                language: user?.language || 'en',
+                patientContext: summaryContext,
+            });
+
+            const aiResponse = addendumResult.response;
+
+            // Check if AI signaled addendum is done (patient confirmed)
+            if (addendumResult.addendumDone) {
+                // Update history with AI response
+                setAddendumHistory([...newHistory, { role: 'ai', content: aiResponse }]);
+                addMessage({
+                    id: uid(),
+                    role: 'ai',
+                    content: stripInternalTags(aiResponse),
+                    timestamp: Date.now(),
+                });
+                await finalizeAddendum();
+                return;
+            }
+
+            // Patient added new info — regenerate summary if within limit
+            if (addendumRegenerationCount < MAX_ADDENDUM_REGENERATIONS) {
+                setAddendumRegenerationCount(prev => prev + 1);
+
+                // Show acknowledgement
+                addMessage({
+                    id: uid(),
+                    role: 'system',
+                    content: '🧠 Updating your summary with the new information...',
+                    timestamp: Date.now(),
+                });
+
+                // Add the patient's addendum to qaHistory so the summary includes it
+                addQA('Patient addendum', msgText);
+
+                // Regenerate summary with updated QA
+                const summaryNode = sequenceNodes.find((n) => n.step_key === 'summary');
+                const qaHistory = useIntakeStore.getState().qaHistory;
+
+                if (summaryNode?.ai_prompts?.content) {
+                    const summaryResult = await chatSection({
+                        section: 'summary',
+                        promptId: summaryNode.prompt_id || undefined,
+                        conversationHistory,
+                        language: user?.language || 'en',
+                    });
+                    try {
+                        const parsed = JSON.parse(summaryResult.response);
+                        setAiSummary(parsed);
+                        if (parsed.medications?.length) setMedications(parsed.medications);
+                        if (parsed.allergies?.length) setAllergies(parsed.allergies);
+                    } catch {
+                        const allMessages = useIntakeStore.getState().messages;
+                        setAiSummary(buildStructuredSummary(summaryResult.response, allMessages));
+                    }
+                } else {
+                    const summary = await analyzeQA(
+                        qaHistory,
+                        {
+                            nickname: user?.nickname || '',
+                            yearOfBirth: user?.year_of_birth ?? null,
+                            gender: user?.gender ?? null,
+                            country: user?.country ?? null,
+                        },
+                        user?.language || 'en',
+                    );
+                    setAiSummary(summary as unknown as Record<string, unknown>);
+                    if (summary.medications?.length) setMedications(summary.medications);
+                    if (summary.allergies?.length) setAllergies(summary.allergies);
+                }
+
+                addMessage({
+                    id: uid(),
+                    role: 'system',
+                    content: '✅ Summary updated!',
+                    timestamp: Date.now(),
+                });
+
+                // Re-present the updated summary via addendum prompt
+                const updatedSummary = useIntakeStore.getState().aiSummary;
+                const updatedSummaryContext = updatedSummary
+                    ? `INTAKE SUMMARY FOR PATIENT REVIEW:\n${JSON.stringify(updatedSummary, null, 2)}`
+                    : '';
+
+                const regenResult = await chatSection({
+                    section: 'patient_addendum',
+                    conversationHistory: [],  // Fresh — so the AI presents the full updated summary
+                    language: user?.language || 'en',
+                    patientContext: updatedSummaryContext,
+                });
+
+                const regenResponse = regenResult.response;
+                setAddendumHistory([{ role: 'ai', content: regenResponse }]);
+                setAddendumTurnCount(0);  // Reset turns for the new summary
+
+                addMessage({
+                    id: uid(),
+                    role: 'ai',
+                    content: stripInternalTags(regenResponse),
+                    timestamp: Date.now(),
+                });
+            } else {
+                // Max regenerations reached — just acknowledge and finalize
+                setAddendumHistory([...newHistory, { role: 'ai', content: aiResponse }]);
+                addMessage({
+                    id: uid(),
+                    role: 'ai',
+                    content: stripInternalTags(aiResponse),
+                    timestamp: Date.now(),
+                });
+            }
+        } catch (err) {
+            console.error('Addendum error:', err);
+            // On error, just finalize with what we have
+            await finalizeAddendum();
+        } finally {
+            setAiTyping(false);
+        }
+    }
+
+    // ── Handle "Looks Good" quick action ──────────
+    async function handleAddendumConfirm() {
+        if (isAiTyping) return;
+        addMessage({
+            id: uid(),
+            role: 'patient',
+            content: 'Looks good, nothing to add.',
+            timestamp: Date.now(),
+        });
+
+        addMessage({
+            id: uid(),
+            role: 'system',
+            content: '✅ Finalizing your report...',
+            timestamp: Date.now(),
+        });
+
+        await finalizeAddendum();
+    }
+
     // ── Get current section label from sequence ─
     const currentNode = applicableNodes[currentNodeIndex];
     const currentLabel = currentNode ? `${currentNode.emoji} ${currentNode.label}` : '';
     const showSkipButton = sectionTurnCount >= SHOW_SKIP_AFTER && !isAiTyping && !isEmergency && !isTerminated;
+
+    // ── Photo capture handlers ──────────────────
+    async function advanceFromPhotoCapture() {
+        setShowPhotoCapture(false);
+        const currentNodes = applicableNodes;
+        const nextIdx = currentNodeIndex + 1;
+
+        if (nextIdx >= currentNodes.length) {
+            await generateFinalSummary();
+            return;
+        }
+
+        const nextNode = currentNodes[nextIdx];
+        if (nextNode.step_key === 'summary') {
+            await generateFinalSummary();
+            return;
+        }
+
+        setCurrentNodeIndex(nextIdx);
+        setProgress(Math.round(((nextIdx + 1) / currentNodes.length) * 100));
+        setSectionTurnCount(0);
+        setSectionHistory([]);
+        setRecentPatientMessages([]);
+
+        // Show section transition
+        addMessage({
+            id: uid(),
+            role: 'system',
+            content: `${nextNode.emoji} ${nextNode.label}`,
+            timestamp: Date.now(),
+            sectionLabel: nextNode.label,
+        });
+
+        // Start the next section's AI
+        setAiTyping(true);
+        try {
+            const result = await chatSection({
+                section: nextNode.step_key,
+                promptId: nextNode.prompt_id || undefined,
+                conversationHistory: [],
+                language: user?.language || 'en',
+                patientContext,
+            });
+
+            const response = result.response;
+            setConversationHistory(prev => [...prev, { role: 'ai', content: response }]);
+            setSectionHistory([{ role: 'ai', content: response }]);
+
+            addMessage({
+                id: uid(),
+                role: 'ai',
+                content: stripInternalTags(response),
+                timestamp: Date.now(),
+            });
+        } catch (err) {
+            console.error('Post-photo section error:', err);
+        } finally {
+            setAiTyping(false);
+        }
+        autoSaveSession();
+    }
+
+    function handlePhotoComplete(photoUris: string[]) {
+        // Add photos as a message in the chat
+        if (photoUris.length > 0) {
+            addMessage({
+                id: uid(),
+                role: 'patient',
+                content: `📸 ${photoUris.length} photo${photoUris.length > 1 ? 's' : ''} uploaded`,
+                timestamp: Date.now(),
+                imageUrls: photoUris,
+            });
+            // Also store in the intake store
+            photoUris.forEach(uri => addPhoto(uri));
+        }
+        advanceFromPhotoCapture();
+    }
+
+    function handlePhotoSkip() {
+        addMessage({
+            id: uid(),
+            role: 'system',
+            content: '📸 Photo upload skipped',
+            timestamp: Date.now(),
+        });
+        advanceFromPhotoCapture();
+    }
 
     // ── Skip Section handler ────────────────────
     async function handleSkipSection() {
@@ -910,6 +1361,36 @@ export default function AIChatScreen() {
         setAiTyping(false);
     }
 
+    // ── AI Consent Screen (Apple 2025 requirement) ──
+    if (!aiConsentGiven) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.consentContainer}>
+                    <Text style={styles.consentIcon}>🤖</Text>
+                    <Text style={styles.consentTitle}>AI-Assisted Intake</Text>
+                    <Text style={styles.consentBody}>
+                        This chat uses AI to gather your medical information before your consultation.
+                        Your responses will be reviewed by a licensed physician.
+                    </Text>
+                    <DisclaimerBanner variant="compact" />
+                    <View style={{ marginTop: spacing.xl, width: '100%' }}>
+                        <Button
+                            title="I Understand — Continue"
+                            onPress={() => setAiConsentGiven(true)}
+                            size="lg"
+                        />
+                    </View>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{ marginTop: spacing.lg }}
+                    >
+                        <Text style={[styles.backText, { textAlign: 'center' }]}>← Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     // ── Render ──────────────────────────────────
     return (
         <SafeAreaView style={styles.container}>
@@ -927,6 +1408,13 @@ export default function AIChatScreen() {
                         <Image source={AI_DOCTOR_AVATAR} style={styles.headerAvatar} />
                         <Text style={styles.headerTitle}>{t('aiChat.title')}</Text>
                     </View>
+                    <TouchableOpacity
+                        onPress={() => router.push('/intake/report-chat' as any)}
+                        style={styles.headerReportBtn}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Text style={styles.headerReportBtnText}>⚑</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Progress Bar */}
@@ -970,6 +1458,14 @@ export default function AIChatScreen() {
                     {messages.map((msg) => (
                         <MessageBubble key={msg.id} message={msg} />
                     ))}
+
+                    {/* Skin Photo Capture Card (inline in chat) */}
+                    {showPhotoCapture && (
+                        <SkinPhotoCapture
+                            onComplete={handlePhotoComplete}
+                            onSkip={handlePhotoSkip}
+                        />
+                    )}
 
                     {/* Typing indicator */}
                     {isAiTyping && !isLoading && (
@@ -1071,6 +1567,18 @@ export default function AIChatScreen() {
                                 {t('aiChat.reportedHint')}
                             </Text>
                         )}
+                    </View>
+                )}
+
+                {/* Addendum Quick Reply */}
+                {isInAddendum && !isAiTyping && !isEmergency && !isTerminated && (
+                    <View style={styles.addendumQuickReply}>
+                        <TouchableOpacity
+                            style={styles.addendumConfirmButton}
+                            onPress={handleAddendumConfirm}
+                        >
+                            <Text style={styles.addendumConfirmText}>✅ Looks Good — Nothing to Add</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
 
@@ -1455,5 +1963,58 @@ const styles = StyleSheet.create({
         textAlign: 'center' as const,
         fontStyle: 'italic' as const,
         marginTop: spacing.xs,
+    },
+
+    // Header Report Button
+    headerReportBtn: {
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+    },
+    headerReportBtnText: {
+        fontSize: 20,
+        color: colors.warning || '#f59e0b',
+    },
+
+    // Addendum Quick Reply
+    addendumQuickReply: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+    },
+    addendumConfirmButton: {
+        backgroundColor: `${colors.accentTeal}15`,
+        borderWidth: 1,
+        borderColor: colors.accentTeal,
+        paddingVertical: spacing.md,
+        borderRadius: radius.lg,
+        alignItems: 'center' as const,
+    },
+    addendumConfirmText: {
+        ...typography.body,
+        color: colors.accentTeal,
+        fontWeight: '600' as const,
+    },
+
+    // AI Consent Screen
+    consentContainer: {
+        flex: 1,
+        justifyContent: 'center' as const,
+        alignItems: 'center' as const,
+        paddingHorizontal: spacing.xl,
+    },
+    consentIcon: { fontSize: 56, marginBottom: spacing.xl },
+    consentTitle: {
+        ...typography.h2,
+        color: colors.textPrimary,
+        marginBottom: spacing.md,
+        textAlign: 'center' as const,
+    },
+    consentBody: {
+        ...typography.body,
+        color: colors.textSecondary,
+        textAlign: 'center' as const,
+        lineHeight: 22,
+        marginBottom: spacing.xl,
     },
 });

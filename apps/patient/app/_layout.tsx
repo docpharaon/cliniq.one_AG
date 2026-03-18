@@ -6,9 +6,12 @@ import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 import { colors } from '@cliniqone/ui';
+import { supabase } from '@cliniqone/api';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ToastProvider, useToast } from '../components/ToastProvider';
 import { registerForPushNotifications, useNotificationListeners } from '../services/notifications';
 import { initLocale } from '@cliniqone/i18n';
+import { useNetworkStatus, useSessionTimeout } from '../hooks/useNetworkStatus';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -45,14 +48,26 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
     );
 }
 
-export default function RootLayout() {
-    const { isReady, initialize, user } = useAuthStore();
-    const [localeReady, setLocaleReady] = useState(false);
+function AppInner() {
+    const { user } = useAuthStore();
+    const toast = useToast((s) => s.show);
 
-    useEffect(() => {
-        initLocale().then(() => setLocaleReady(true));
-        initialize();
-    }, []);
+    // Monitor network connectivity
+    useNetworkStatus();
+
+    // Auto-lock session after 15 min inactivity (healthcare requirement)
+    useSessionTimeout({
+        timeout: 15 * 60 * 1000,
+        onExpire: async () => {
+            if (!user) return; // Not logged in, no need to expire
+            toast('Session expired for your security', 'warning', 5000);
+            try {
+                await supabase.auth.signOut();
+                useAuthStore.getState().clear();
+            } catch { /* ignore */ }
+            router.replace('/(auth)/landing');
+        },
+    });
 
     // Register push token when user is authenticated
     useEffect(() => {
@@ -69,6 +84,33 @@ export default function RootLayout() {
     }, []);
     useNotificationListeners(handleNotificationTap);
 
+    return (
+        <Stack
+            screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.bgPrimary },
+                animation: 'slide_from_right',
+            }}
+        >
+            <Stack.Screen
+                name="splash"
+                options={{ animation: 'fade' }}
+            />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+        </Stack>
+    );
+}
+
+export default function RootLayout() {
+    const { isReady, initialize } = useAuthStore();
+    const [localeReady, setLocaleReady] = useState(false);
+
+    useEffect(() => {
+        initLocale().then(() => setLocaleReady(true));
+        initialize();
+    }, []);
+
     if (!isReady || !localeReady) {
         return (
             <PhoneFrame>
@@ -84,21 +126,10 @@ export default function RootLayout() {
         <PhoneFrame>
             <ErrorBoundary>
                 <QueryClientProvider client={queryClient}>
-                    <Stack
-                        screenOptions={{
-                            headerShown: false,
-                            contentStyle: { backgroundColor: colors.bgPrimary },
-                            animation: 'slide_from_right',
-                        }}
-                    >
-                        <Stack.Screen
-                            name="splash"
-                            options={{ animation: 'fade' }}
-                        />
-                        <Stack.Screen name="(auth)" />
-                        <Stack.Screen name="(tabs)" />
-                    </Stack>
-                    <StatusBar style="light" />
+                    <ToastProvider>
+                        <AppInner />
+                        <StatusBar style="light" />
+                    </ToastProvider>
                 </QueryClientProvider>
             </ErrorBoundary>
         </PhoneFrame>

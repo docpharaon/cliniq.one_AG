@@ -182,7 +182,29 @@ export default function ConsultationDetailScreen() {
                                 </View>
                             ))
                         ) : (
-                            <Text style={styles.complaintText}>No messages yet</Text>
+                            // Show AI chat from ai_summary when no messages exist yet
+                            (() => {
+                                const aiData = consultation.ai_summary as Record<string, any> | null;
+                                const qaHistory = aiData?.qaHistory as { question: string; answer: string }[] | undefined;
+
+                                if (qaHistory && qaHistory.length > 0) {
+                                    return qaHistory.map((qa, idx) => (
+                                        <View key={idx}>
+                                            {/* AI question */}
+                                            <View style={[styles.messageBubble, styles.doctorMsg]}>
+                                                <Text style={styles.senderLabel}>🤖 AI Assistant</Text>
+                                                <Text style={styles.messageText}>{qa.question}</Text>
+                                            </View>
+                                            {/* Patient answer */}
+                                            <View style={[styles.messageBubble, styles.patientMsg]}>
+                                                <Text style={styles.senderLabelPatient}>You</Text>
+                                                <Text style={styles.messageText}>{qa.answer}</Text>
+                                            </View>
+                                        </View>
+                                    ));
+                                }
+                                return <Text style={styles.complaintText}>No messages yet</Text>;
+                            })()
                         )}
                     </View>
 

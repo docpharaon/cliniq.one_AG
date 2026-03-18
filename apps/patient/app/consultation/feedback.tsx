@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
-import { supabase } from '@cliniqone/api';
+import { supabase, safeFetch } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useToast } from '../../components/ToastProvider';
 
 const STARS = [1, 2, 3, 4, 5];
 
@@ -15,28 +16,29 @@ export default function FeedbackScreen() {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const toast = useToast((s) => s.show);
 
     async function handleSubmit() {
         if (rating === 0) {
-            Alert.alert(t('feedback.ratingRequired'));
+            toast(t('feedback.ratingRequired'), 'warning');
             return;
         }
 
         setSubmitting(true);
         try {
-            await supabase.from('feedback').insert([{
-                consultation_id: consultationId,
-                patient_id: user?.id,
-                rating,
-                comment: comment.trim() || null,
-            }]);
-            Alert.alert(
-                t('feedback.thankYou'),
-                t('feedback.submitted'),
-                [{ text: 'OK', onPress: () => router.back() }]
+            await safeFetch(
+                () => supabase.from('feedback').insert([{
+                    consultation_id: consultationId,
+                    patient_id: user?.id,
+                    rating,
+                    comment: comment.trim() || null,
+                }]),
+                { timeout: 8000, retries: 1, label: 'submitFeedback' },
             );
+            toast(t('feedback.thankYou'), 'success');
+            router.back();
         } catch (err) {
-            Alert.alert(t('common.error'), t('errors.serverError'));
+            toast(t('errors.serverError'), 'error');
         } finally {
             setSubmitting(false);
         }

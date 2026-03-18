@@ -4,14 +4,16 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { acceptLegalTerms } from '@cliniqone/api';
+import { acceptLegalTerms, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
+import { useToast } from '../../components/ToastProvider';
 
 export default function LegalScreen() {
     const [tosAccepted, setTosAccepted] = useState(false);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [aiAccepted, setAiAccepted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const allAccepted = tosAccepted && privacyAccepted && aiAccepted;
 
@@ -19,10 +21,14 @@ export default function LegalScreen() {
         if (!allAccepted) return;
         setLoading(true);
         try {
-            await acceptLegalTerms();
+            await safeFetch(
+                () => acceptLegalTerms(),
+                { timeout: 8000, retries: 1, label: 'acceptLegal' },
+            );
             router.replace('/(tabs)');
-        } catch (err) {
+        } catch (err: any) {
             console.error('Legal acceptance error:', err);
+            toast(err?.message || 'Failed to save. Please try again.', 'error');
         } finally {
             setLoading(false);
         }

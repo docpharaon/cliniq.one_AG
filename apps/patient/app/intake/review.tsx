@@ -5,6 +5,7 @@ import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
 import { CONSULTATION_COSTS } from '@cliniqone/types';
+import { COUNTRIES } from '@cliniqone/config';
 import { useAuthStore } from '../../stores/authStore';
 import { useIntakeStore } from '../../stores/intakeStore';
 
@@ -30,7 +31,7 @@ export default function ReviewScreen() {
                 <Text style={styles.subtitle}>{t('intake.reviewDesc')}</Text>
 
                 {/* Summary Cards */}
-                <ReviewCard icon="🩺" title={t('intake.specialty')} value={specialty || 'Dermatology'} />
+                <ReviewCard icon="🏥" title={t('intake.specialty')} value={specialty || 'General Consultation'} />
                 <ReviewCard icon="💬" title={t('intake.chiefComplaintTitle')} value={chiefComplaint || '—'} />
                 <ReviewCard icon="🤖" title={t('aiChat.title')} value={`${qaHistory.length} ${t('aiChat.questionsAnswered')}`} />
                 <ReviewCard icon="💊" title={t('intake.medsTitle')} value={medications.length > 0 ? medications.join(', ') : t('intake.noCurrentMeds')} />
@@ -41,8 +42,8 @@ export default function ReviewScreen() {
                     <View style={styles.historyCard}>
                         <Text style={styles.historyTitle}>📄 Medical History Summary</Text>
 
-                        {/* Narrative paragraph from AI */}
-                        {(summary.summary || summary.hpi) ? (
+                        {/* Narrative paragraph from AI — skip if using raw fallback */}
+                        {!summary.raw && (summary.summary || summary.hpi) ? (
                             <Text style={styles.historyText}>
                                 {summary.summary as string || ''}
                                 {summary.hpi && summary.summary ? '\n\n' : ''}
@@ -100,6 +101,30 @@ export default function ReviewScreen() {
                             </View>
                         ) : null}
 
+                        {/* Medications (from structured summary) */}
+                        {summary.medicationsText ? (
+                            <View style={styles.historySection}>
+                                <Text style={styles.historySectionLabel}>Medications</Text>
+                                <Text style={styles.historyText}>{summary.medicationsText as string}</Text>
+                            </View>
+                        ) : null}
+
+                        {/* Allergies (from structured summary) */}
+                        {summary.allergiesText ? (
+                            <View style={styles.historySection}>
+                                <Text style={styles.historySectionLabel}>Allergies</Text>
+                                <Text style={styles.historyText}>{summary.allergiesText as string}</Text>
+                            </View>
+                        ) : null}
+
+                        {/* Review of Systems */}
+                        {summary.reviewOfSystems ? (
+                            <View style={styles.historySection}>
+                                <Text style={styles.historySectionLabel}>Review of Systems</Text>
+                                <Text style={styles.historyText}>{summary.reviewOfSystems as string}</Text>
+                            </View>
+                        ) : null}
+
                         {/* Red Flags */}
                         {Array.isArray(summary.redFlags) && (summary.redFlags as string[]).length > 0 ? (
                             <View style={[styles.historySection, styles.redFlagSection]}>
@@ -113,17 +138,60 @@ export default function ReviewScreen() {
                 )}
 
                 {/* Patient Info */}
-                <View style={styles.patientCard}>
-                    <Text style={styles.patientTitle}>👤 {t('intake.patientInfo')}</Text>
-                    <View style={styles.patientRow}>
-                        <Text style={styles.patientLabel}>{t('registration.gender')}</Text>
-                        <Text style={styles.patientValue}>{user?.gender || '—'}</Text>
-                    </View>
-                    <View style={styles.patientRow}>
-                        <Text style={styles.patientLabel}>{t('registration.country')}</Text>
-                        <Text style={styles.patientValue}>{user?.country || '—'}</Text>
-                    </View>
-                </View>
+                {(() => {
+                    const currentYear = new Date().getFullYear();
+                    const age = user?.year_of_birth ? currentYear - user.year_of_birth : null;
+                    const countryEntry = COUNTRIES.find((c) => c.code === user?.country);
+                    const countryLabel = countryEntry ? `${countryEntry.flag} ${countryEntry.name}` : user?.country || null;
+                    const genderLabel = user?.gender === 'male' ? 'Male'
+                        : user?.gender === 'female' ? 'Female'
+                        : user?.gender === 'prefer_not_to_say' ? 'Prefer not to say'
+                        : null;
+                    const profileIncomplete = !user?.gender || !user?.country || !user?.year_of_birth;
+
+                    return (
+                        <View style={styles.patientCard}>
+                            <View style={styles.patientHeader}>
+                                <Text style={styles.patientTitle}>👤 {t('intake.patientInfo')}</Text>
+                                <TouchableOpacity onPress={() => router.push('/settings/edit-profile')}>
+                                    <Text style={styles.editLink}>✏️ Edit</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {profileIncomplete && (
+                                <TouchableOpacity
+                                    style={styles.incompleteWarning}
+                                    onPress={() => router.push('/settings/edit-profile')}
+                                >
+                                    <Text style={styles.incompleteText}>
+                                        ⚠️ Profile incomplete — tap to add missing info
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <View style={styles.patientRow}>
+                                <Text style={styles.patientLabel}>{t('registration.gender')}</Text>
+                                <Text style={styles.patientValue}>{genderLabel || '—'}</Text>
+                            </View>
+                            <View style={styles.patientRow}>
+                                <Text style={styles.patientLabel}>Age</Text>
+                                <Text style={styles.patientValue}>{age ? `${age} years` : '—'}</Text>
+                            </View>
+                            <View style={styles.patientRow}>
+                                <Text style={styles.patientLabel}>{t('registration.country')}</Text>
+                                <Text style={styles.patientValue}>{countryLabel || '—'}</Text>
+                            </View>
+                            <View style={styles.patientRow}>
+                                <Text style={styles.patientLabel}>City</Text>
+                                <Text style={styles.patientValue}>{user?.city || '—'}</Text>
+                            </View>
+                            <View style={styles.patientRow}>
+                                <Text style={styles.patientLabel}>Insurance</Text>
+                                <Text style={styles.patientValue}>{user?.insurance_provider || 'None'}</Text>
+                            </View>
+                        </View>
+                    );
+                })()}
 
                 {/* Cost Summary */}
                 <View style={styles.costCard}>
@@ -217,7 +285,19 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    patientTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: spacing.md },
+    patientTitle: { ...typography.h4, color: colors.textPrimary },
+    patientHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+    editLink: { ...typography.bodySm, color: colors.accentTeal, fontWeight: '600' },
+    incompleteWarning: {
+        backgroundColor: colors.warningFaded || '#F59E0B15',
+        borderRadius: radius.md,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.md,
+        borderLeftWidth: 3,
+        borderLeftColor: colors.warning || '#F59E0B',
+    },
+    incompleteText: { ...typography.bodySm, color: colors.warning || '#F59E0B' },
     patientRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs },
     patientLabel: { ...typography.body, color: colors.textSecondary },
     patientValue: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },

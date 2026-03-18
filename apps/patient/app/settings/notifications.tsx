@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
+import { useToast } from '../../components/ToastProvider';
 
 interface NotifPrefs {
     email: boolean;
@@ -29,6 +30,7 @@ export default function NotificationsScreen() {
         promotions: false,
     });
     const [saving, setSaving] = useState(false);
+    const toast = useToast((s) => s.show);
 
     function toggle(key: keyof NotifPrefs) {
         setPrefs({ ...prefs, [key]: !prefs[key] });
@@ -39,9 +41,8 @@ export default function NotificationsScreen() {
         // In production: save to user profile
         await new Promise((r) => setTimeout(r, 500));
         setSaving(false);
-        Alert.alert('Saved', 'Notification preferences updated.', [
-            { text: 'OK', onPress: () => router.back() },
-        ]);
+        toast('Notification preferences saved!', 'success');
+        router.back();
     }
 
     return (

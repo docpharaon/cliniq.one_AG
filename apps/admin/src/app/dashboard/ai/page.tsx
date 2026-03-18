@@ -7,6 +7,7 @@ import StatCard from '@/components/StatCard';
 import PromptEditorModal from '@/components/PromptEditorModal';
 import ChatTestWindow from '@/components/ChatTestWindow';
 import SequenceBuilderContent from '@/components/SequenceBuilderContent';
+import ChatReportsPanel from '@/components/ChatReportsPanel';
 import { useEffect, useState, useCallback } from 'react';
 import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts } from '@/lib/actions';
 import {
@@ -666,6 +667,9 @@ export default function AIPage() {
                                 </div>
                             )}
                         </div>
+
+                        {/* ── Patient Reports ───────── */}
+                        <ChatReportsPanel />
                     </div>
                 )}
 

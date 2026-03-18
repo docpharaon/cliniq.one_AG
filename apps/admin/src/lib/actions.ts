@@ -63,6 +63,11 @@ import {
     createServiceProvider,
     updateServiceProvider,
     deleteServiceProvider,
+    getKycStats,
+    getKycUsers,
+    updateUserKycStatus,
+    getKycSetting,
+    setKycSetting,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -292,6 +297,7 @@ export async function addSequenceNode(node: {
     sort_order: number;
     parent_node_id?: string | null;
     pathway_condition?: string | null;
+    gender_condition?: string | null;
 }) {
     return createSequenceNode(node);
 }
@@ -304,6 +310,7 @@ export async function editSequenceNode(id: string, updates: {
     sort_order?: number;
     parent_node_id?: string | null;
     pathway_condition?: string | null;
+    gender_condition?: string | null;
 }) {
     return updateSequenceNode(id, updates);
 }
@@ -385,5 +392,27 @@ export async function editServiceProvider(id: string, updates: Record<string, un
 
 export async function removeServiceProvider(id: string) {
     return deleteServiceProvider(id);
+}
+
+// ── KYC / ID Verification ────────────────────────
+
+export async function fetchKycStats() {
+    return getKycStats();
+}
+
+export async function fetchKycUsers(page = 1, perPage = 50, search?: string, status?: string) {
+    return getKycUsers(page, perPage, search, status);
+}
+
+export async function changeUserKycStatus(userId: string, kycStatus: string) {
+    return updateUserKycStatus(userId, kycStatus);
+}
+
+export async function fetchKycSetting() {
+    return getKycSetting();
+}
+
+export async function toggleKycSetting(enabled: boolean) {
+    return setKycSetting(enabled);
 }
 

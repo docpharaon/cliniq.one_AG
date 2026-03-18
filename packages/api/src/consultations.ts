@@ -41,32 +41,66 @@ export async function createConsultation(params: {
     aiSession: Record<string, unknown>;
     tokenCost: number;
 }) {
-    const { data, error } = await supabase
+    // Check if there's an existing intake_in_progress session to update
+    const { data: existing } = await supabase
         .from('consultations')
-        .insert({
-            patient_id: params.patientId,
-            specialty: params.specialty,
-            status: 'submitted',
-            priority: 'routine',
-            chief_complaint: params.chiefComplaint,
-            ai_summary: params.aiSession,
-            token_cost: params.tokenCost,
-            payment_method: 'tokens',
-            protocol_flags: [],
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('patient_id', params.patientId)
+        .eq('status', 'intake_in_progress')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (error) throw error;
+    let consultation;
+
+    if (existing) {
+        // Update the existing intake session → submitted
+        const { data, error } = await supabase
+            .from('consultations')
+            .update({
+                specialty: params.specialty,
+                status: 'submitted',
+                chief_complaint: params.chiefComplaint,
+                ai_summary: params.aiSession,
+                token_cost: params.tokenCost,
+                payment_method: 'tokens',
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        consultation = data;
+    } else {
+        // No existing session — create fresh
+        const { data, error } = await supabase
+            .from('consultations')
+            .insert({
+                patient_id: params.patientId,
+                specialty: params.specialty,
+                status: 'submitted',
+                priority: 'routine',
+                chief_complaint: params.chiefComplaint,
+                ai_summary: params.aiSession,
+                token_cost: params.tokenCost,
+                payment_method: 'tokens',
+                protocol_flags: [],
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        consultation = data;
+    }
 
     // Deduct tokens
     await supabase.rpc('deduct_tokens', {
         p_user_id: params.patientId,
         p_amount: params.tokenCost,
-        p_consultation_id: data.id,
+        p_consultation_id: consultation.id,
     });
 
-    return data as Consultation;
+    return consultation as Consultation;
 }
 
 // ── Fetch messages for a consultation ────────────

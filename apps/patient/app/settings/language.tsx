@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { getLocale, setLocale, t } from '@cliniqone/i18n';
+import { useToast } from '../../components/ToastProvider';
 
 const LANGUAGES = [
     { code: 'en' as const, label: 'English', nativeLabel: 'English', flag: '🇬🇧' },
@@ -12,37 +13,34 @@ const LANGUAGES = [
 
 export default function LanguageScreen() {
     const [selected, setSelected] = useState<'en' | 'ar'>(getLocale());
+    const toast = useToast((s) => s.show);
 
-    function handleSelect(code: 'en' | 'ar') {
+    async function handleSelect(code: 'en' | 'ar') {
         if (code === selected) return;
 
-        Alert.alert(
-            code === 'ar' ? 'تغيير اللغة' : 'Change Language',
-            code === 'ar'
-                ? 'سيتم إعادة تشغيل التطبيق لتطبيق اللغة العربية والتخطيط من اليمين لليسار.'
-                : 'The app will restart to apply the new language.',
-            [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                    text: code === 'ar' ? 'تغيير' : 'Change',
-                    onPress: async () => {
-                        setSelected(code);
-                        await setLocale(code);
-                        // Reload to apply RTL/LTR changes
-                        try {
-                            const Updates = require('expo-updates');
-                            await Updates.reloadAsync();
-                        } catch {
-                            if (Platform.OS === 'web') {
-                                (globalThis as any).location?.reload();
-                            } else {
-                                router.back();
-                            }
-                        }
-                    },
-                },
-            ]
-        );
+        // Language change requires app restart — confirm via browser confirm on web
+        const confirmMsg = code === 'ar'
+            ? 'سيتم إعادة تشغيل التطبيق لتطبيق اللغة العربية'
+            : 'The app will restart to apply the new language.';
+
+        const confirmed = (globalThis as any).confirm?.(confirmMsg) ?? true;
+        if (!confirmed) return;
+
+        setSelected(code);
+        await setLocale(code);
+        toast(code === 'ar' ? 'جاري تغيير اللغة...' : 'Changing language...', 'info');
+
+        // Reload to apply RTL/LTR changes
+        try {
+            const Updates = require('expo-updates');
+            await Updates.reloadAsync();
+        } catch {
+            if (Platform.OS === 'web') {
+                (globalThis as any).location?.reload();
+            } else {
+                router.back();
+            }
+        }
     }
 
     return (

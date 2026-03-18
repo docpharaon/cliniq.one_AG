@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { TOKEN_PACKAGES } from '@cliniqone/types';
 import type { TokenPackage } from '@cliniqone/types';
 import { t } from '@cliniqone/i18n';
+import { useToast } from './ToastProvider';
+import { usePurchase } from '../hooks/usePurchase';
+import { useAuthStore } from '../stores/authStore';
 
 interface TokenPurchaseModalProps {
     visible: boolean;
@@ -14,36 +17,23 @@ interface TokenPurchaseModalProps {
 
 export function TokenPurchaseModal({ visible, onClose, currentBalance }: TokenPurchaseModalProps) {
     const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
-    const [purchasing, setPurchasing] = useState(false);
+    const toast = useToast((s) => s.show);
+    const { user } = useAuthStore();
+    const { purchasing, isSandbox, purchasePackage } = usePurchase(user?.id);
 
     const activePackages = TOKEN_PACKAGES.filter((p) => p.is_active);
 
     async function handlePurchase() {
         if (!selectedPackage) return;
-        setPurchasing(true);
 
-        // ── IAP Stub — simulates a purchase ──────────
-        // In production, replace with:
-        //   - iOS: StoreKit / expo-in-app-purchases
-        //   - Android: Google Play Billing
-        try {
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            const pkg = activePackages.find((p) => p.id === selectedPackage);
-
-            Alert.alert(
-                '🎉 ' + t('tokens.purchaseSuccess'),
-                t('tokens.purchaseSuccessDesc', {
-                    tokens: String(pkg?.tokens ?? 0),
-                    price: `$${pkg?.price_usd.toFixed(2) ?? '0.00'}`,
-                }),
-                [{ text: t('common.done'), onPress: onClose }]
-            );
-        } catch (err: any) {
-            Alert.alert(t('common.error'), err?.message || t('errors.serverError'));
-        } finally {
-            setPurchasing(false);
-            setSelectedPackage(null);
+        const result = await purchasePackage(selectedPackage);
+        if (result.success) {
+            toast(`🎉 ${result.tokens ?? 0} tokens purchased!`, 'success');
+            onClose();
+        } else {
+            toast(result.error || t('errors.serverError'), 'error');
         }
+        setSelectedPackage(null);
     }
 
     const getBadge = (pkg: TokenPackage) => {

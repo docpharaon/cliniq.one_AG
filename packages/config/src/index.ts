@@ -117,6 +117,7 @@ export const COUNTRIES = [
 // ──────────────────────────────────────────
 
 export const SPECIALTIES = [
+    { id: 'general', label: 'General Consultation', icon: '🏥', description: 'General Medical Intake' },
     { id: 'dermatology', label: 'Dermatology', icon: '🩺', description: 'Skin, Hair & Nails' },
     { id: 'family_medicine', label: 'Family Medicine', icon: '👨‍⚕️', description: 'General Health' },
 ] as const;

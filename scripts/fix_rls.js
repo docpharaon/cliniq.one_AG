@@ -1,10 +1,19 @@
 // Fix RLS recursion by creating a SECURITY DEFINER function that drops/recreates policies
+//
+// Usage:
+//   SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/fix_rls.js
+
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-    'https://uabbndansgxpvogteyxc.supabase.co',
-    'sb_secret_Sq-3HgO7WFxk6sIzaZSl_A_MQlX6Exh'
-);
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+    console.error('❌  Missing env vars. Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY.');
+    process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 async function step(label, fn) {
     try {
@@ -27,9 +36,10 @@ async function main() {
     });
 
     // Step 2: Use the REST endpoint to create the function
-    // Since we can't run DDL via the JS client, let's try the Supabase HTTP API
-    const projectUrl = 'https://uabbndansgxpvogteyxc.supabase.co';
-    const serviceKey = 'sb_secret_Sq-3HgO7WFxk6sIzaZSl_A_MQlX6Exh';
+    const sql = `
+        DROP POLICY IF EXISTS admin_read_users ON public.users;
+        DROP POLICY IF EXISTS admin_update_users ON public.users;
+    `;
 
     // Try multiple SQL execution endpoints
     const endpoints = [
@@ -38,21 +48,16 @@ async function main() {
         '/pg-meta/default/query',
     ];
 
-    const sql = `
-        DROP POLICY IF EXISTS admin_read_users ON public.users;
-        DROP POLICY IF EXISTS admin_update_users ON public.users;
-    `;
-
     for (const endpoint of endpoints) {
-        const url = `${projectUrl}${endpoint}`;
+        const url = `${SUPABASE_URL}${endpoint}`;
         console.log(`\nTrying ${endpoint}...`);
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': serviceKey,
-                    'Authorization': `Bearer ${serviceKey}`,
+                    'apikey': SERVICE_KEY,
+                    'Authorization': `Bearer ${SERVICE_KEY}`,
                 },
                 body: JSON.stringify({ query: sql }),
             });
@@ -71,8 +76,6 @@ async function main() {
     // Step 3: Try listing policies via pg_policies view
     console.log('\n--- Checking policies on users table ---');
 
-    // We can't query pg_policies directly via PostgREST.
-    // Let's try an alternative: check if the policies still cause issues by doing a simple select
     console.log('\nTesting users table access with service role key...');
     const { data: users, error: usersErr } = await supabase
         .from('users')
@@ -98,14 +101,13 @@ async function main() {
 
     // Step 4: Let's try using the Supabase Management API
     console.log('\n--- Trying Supabase Management API ---');
-    // The management API needs the access token from dashboard, let's try with service key
-    const mgmtUrl = 'https://api.supabase.com/v1/projects/uabbndansgxpvogteyxc/database/query';
+    const mgmtUrl = `https://api.supabase.com/v1/projects/${SUPABASE_URL.split('//')[1].split('.')[0]}/database/query`;
     try {
         const response = await fetch(mgmtUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${serviceKey}`,
+                'Authorization': `Bearer ${SERVICE_KEY}`,
             },
             body: JSON.stringify({ query: sql }),
         });

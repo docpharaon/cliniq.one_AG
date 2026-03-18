@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Input } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { signUp } from '@cliniqone/api';
+import { signUp, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { SECURITY, COUNTRIES } from '@cliniqone/config';
 import { handleGoogleSignIn } from '../../services/googleAuth';
+import { useToast } from '../../components/ToastProvider';
 
 export default function SignupScreen() {
     const [nickname, setNickname] = useState('');
@@ -21,6 +22,7 @@ export default function SignupScreen() {
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const toast = useToast((s) => s.show);
 
     // Password strength
     const checks = {
@@ -43,28 +45,28 @@ export default function SignupScreen() {
         setErrors({});
 
         try {
-            await signUp({
-                email,
-                password,
-                nickname,
-                phone: phone ? `${countryCode}${phone}` : undefined,
-            });
+            await safeFetch(
+                () => signUp({
+                    email,
+                    password,
+                    nickname,
+                    phone: phone ? `${countryCode}${phone}` : undefined,
+                }),
+                { timeout: 8000, retries: 1, label: 'signUp' },
+            );
+            toast('Account created! Check your email.', 'success');
             router.push('/(auth)/verify-email');
         } catch (err: any) {
             console.error('Signup error:', err);
             const message = err?.message || '';
             if (message.includes('already registered')) {
                 setErrors({ email: t('errors.emailExists') });
+            } else if (message.includes('timed out')) {
+                toast('Connection is slow. Please try again.', 'error');
             } else {
                 const errorMsg = message || t('errors.serverError');
                 setErrors({ general: errorMsg });
-                // Cross-platform alert
-                if (Platform.OS === 'web') {
-                    // eslint-disable-next-line no-alert
-                    (globalThis as any).alert(errorMsg);
-                } else {
-                    Alert.alert(t('common.error'), errorMsg);
-                }
+                toast(errorMsg, 'error');
             }
         } finally {
             setLoading(false);

@@ -1,10 +1,20 @@
-// Quick script to fix RLS recursion by talking directly to Supabase
+// Quick script to check which tables exist in Supabase
+//
+// Usage:
+//   SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/check_tables.js
+//   — or set the vars in .env at the repo root and run:  node -r dotenv/config scripts/check_tables.js
+
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-    'https://uabbndansgxpvogteyxc.supabase.co',
-    'sb_secret_Sq-3HgO7WFxk6sIzaZSl_A_MQlX6Exh'
-);
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+    console.error('❌  Missing env vars. Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY.');
+    process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 async function main() {
     // 1. Check what tables exist

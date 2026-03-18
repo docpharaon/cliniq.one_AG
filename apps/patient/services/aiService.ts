@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────
 // AI Service — Calls Supabase Edge Function for AI intake
 // ─────────────────────────────────────────────────
-import { supabase } from '@cliniqone/api';
+import { supabase, safeFetch } from '@cliniqone/api';
 
 // ── Types ───────────────────────────────────────
 
@@ -64,6 +64,7 @@ export interface SequenceNode {
     sort_order: number;
     parent_node_id: string | null;
     pathway_condition: string | null;
+    gender_condition: string | null;
     // Joined prompt content
     ai_prompts: {
         id: string;
@@ -156,30 +157,39 @@ async function callAI<T>(action: string, payload: Record<string, unknown>): Prom
 // ── Check if AI Chatbot is enabled by admin ─────
 export async function checkChatbotEnabled(): Promise<boolean> {
     try {
-        const { data, error } = await supabase
-            .from('platform_settings')
-            .select('value')
-            .eq('key', 'ai_chatbot_enabled')
-            .maybeSingle();
-        if (error || !data) return false;
-        return data.value === 'true';
+        const { data, error } = await safeFetch(
+            () => supabase
+                .from('platform_settings')
+                .select('value')
+                .eq('key', 'ai_chatbot_enabled')
+                .maybeSingle(),
+            { timeout: 5000, retries: 0, label: 'checkChatbotEnabled' },
+        );
+        // Only disable if we got a definitive 'false' from the database
+        // On errors or missing data, default to ENABLED (don't block patients)
+        if (error || !data) return true;
+        return data.value !== 'false';
     } catch {
-        return false;
+        // Network/auth errors should NOT disable the chatbot
+        return true;
     }
 }
 
 // ── Fetch Chatbot Version from Admin Config ─────
 export async function fetchChatbotVersion(): Promise<string> {
     try {
-        const { data, error } = await supabase
-            .from('platform_settings')
-            .select('value')
-            .eq('key', 'chatbot_version')
-            .maybeSingle();
-        if (error || !data) return 'v0';
+        const { data, error } = await safeFetch(
+            () => supabase
+                .from('platform_settings')
+                .select('value')
+                .eq('key', 'chatbot_version')
+                .maybeSingle(),
+            { timeout: 5000, retries: 0, label: 'fetchChatbotVersion' },
+        );
+        if (error || !data) return '';
         return `v${data.value}`;
     } catch {
-        return 'v0';
+        return '';
     }
 }
 
@@ -193,10 +203,13 @@ export async function fetchProtocolConfig(): Promise<Record<string, unknown>> {
             'protocol_escalation_thresholds',
             'protocol_cooldown_seconds',
         ];
-        const { data, error } = await supabase
-            .from('platform_settings')
-            .select('key, value')
-            .in('key', keys);
+        const { data, error } = await safeFetch(
+            () => supabase
+                .from('platform_settings')
+                .select('key, value')
+                .in('key', keys),
+            { timeout: 5000, retries: 0, label: 'fetchProtocolConfig' },
+        );
 
         if (error || !data || data.length === 0) return {};
 
@@ -232,15 +245,18 @@ export async function logProtocolEvent(params: {
     actionTaken: string;
 }): Promise<void> {
     try {
-        await supabase.from('protocol_logs').insert({
-            patient_id: params.patientId,
-            consultation_id: params.consultationId || null,
-            protocol_code: params.protocolCode,
-            severity: params.severity,
-            trigger_text: params.triggerText,
-            action_taken: params.actionTaken,
-            resolved: false,
-        });
+        await safeFetch(
+            () => supabase.from('protocol_logs').insert({
+                patient_id: params.patientId,
+                consultation_id: params.consultationId || null,
+                protocol_code: params.protocolCode,
+                severity: params.severity,
+                trigger_text: params.triggerText,
+                action_taken: params.actionTaken,
+                resolved: false,
+            }),
+            { timeout: 5000, retries: 0, label: 'logProtocolEvent' },
+        );
     } catch (err) {
         console.error('Failed to log protocol event:', err);
     }
@@ -289,11 +305,14 @@ export async function fetchDefaultSequence(): Promise<SequenceNode[]> {
 }
 
 async function fetchSequenceNodes(sequenceId: string): Promise<SequenceNode[]> {
-    const { data: nodes, error } = await supabase
-        .from('prompt_sequence_nodes')
-        .select('*, ai_prompts(id, name, prompt_type, content, is_active, version)')
-        .eq('sequence_id', sequenceId)
-        .order('sort_order');
+    const { data: nodes, error } = await safeFetch(
+        () => supabase
+            .from('prompt_sequence_nodes')
+            .select('*, ai_prompts(id, name, prompt_type, content, is_active, version)')
+            .eq('sequence_id', sequenceId)
+            .order('sort_order'),
+        { timeout: 8000, retries: 1, label: 'fetchSequenceNodes' },
+    );
 
     if (error) {
         console.error('Failed to fetch sequence nodes:', error.message);
@@ -325,6 +344,7 @@ export async function chatWithSequence(
 export interface ChatSectionResult {
     response: string;
     sectionComplete: boolean;
+    addendumDone?: boolean;
     violation: string | null;
     promptVersion: number;
     chatbotVersion: string;

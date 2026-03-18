@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '@cliniqone/ui';
@@ -9,6 +9,7 @@ import { useIntakeStore } from '../../stores/intakeStore';
 import { t } from '@cliniqone/i18n';
 import { CONSULTATION_COSTS } from '@cliniqone/types';
 import { getActiveIntakeSession, deleteIntakeSession } from '@cliniqone/api';
+import { useToast } from '../../components/ToastProvider';
 
 export default function IntakePreflightScreen() {
     const { user } = useAuthStore();
@@ -16,7 +17,8 @@ export default function IntakePreflightScreen() {
     const tokenBalance = user?.tokens_balance ?? 0;
     const cost = CONSULTATION_COSTS.new;
     const hasEnoughTokens = true; // TODO: TESTING ONLY – was: tokenBalance >= cost
-    const profileComplete = true; // TODO: TESTING ONLY – was: user?.onboarding_completed ?? false
+    const profileComplete = !!(user?.gender && user?.country && user?.year_of_birth);
+    const toast = useToast((s) => s.show);
 
     // ── Resume session state ────────────────────
     const [existingSessionId, setExistingSessionId] = useState<string | null>(null);
@@ -50,49 +52,60 @@ export default function IntakePreflightScreen() {
 
     function handleStart() {
         if (!profileComplete) {
-            Alert.alert(t('intake.profileRequired'), t('intake.profileRequiredDesc'), [
-                { text: t('common.cancel'), style: 'cancel' },
-                { text: t('intake.goToProfile'), onPress: () => router.push('/(tabs)/profile') },
-            ]);
+            toast('Please complete your profile (gender, country, year of birth) to start.', 'warning');
+            router.push('/settings/edit-profile');
             return;
         }
         router.push('/intake/ai-chat');
     }
 
     async function handleStartFresh() {
-        // Delete the old session first, then navigate
-        if (existingSessionId) {
-            try {
-                await deleteIntakeSession(existingSessionId);
-            } catch (err) {
-                console.warn('Delete session failed:', err);
+        console.log('[Start Fresh] Starting...');
+        try {
+            // Delete the old session first
+            if (existingSessionId) {
+                try {
+                    await deleteIntakeSession(existingSessionId);
+                    console.log('[Start Fresh] Old session deleted');
+                } catch (err) {
+                    console.warn('[Start Fresh] Delete session failed (non-blocking):', err);
+                }
             }
+            // Reset the intake store
+            reset();
+            setExistingSessionId(null);
+            console.log('[Start Fresh] Navigating to ai-chat...');
+            router.push('/intake/ai-chat');
+        } catch (err) {
+            console.error('[Start Fresh] Unexpected error:', err);
+            // Force navigate even on error
+            reset();
+            router.push('/intake/ai-chat');
         }
-        reset();
-        setExistingSessionId(null);
-        router.push('/intake/ai-chat');
     }
 
     function confirmStartFresh() {
-        // Alert.alert doesn't work on web — use browser confirm() as fallback
         if (Platform.OS === 'web') {
-            const browserConfirm = (globalThis as unknown as { confirm: (msg: string) => boolean }).confirm;
-            if (!browserConfirm || browserConfirm('This will discard your previous progress. Are you sure?')) {
-                handleStartFresh();
-            }
+            // Expo web suppresses window.confirm() — just proceed directly
+            handleStartFresh().catch((err) => {
+                console.error('[Start Fresh] Unhandled error:', err);
+                reset();
+                router.push('/intake/ai-chat');
+            });
         } else {
             Alert.alert(
-                'Start Fresh?',
+                'Start Fresh',
                 'This will discard your previous progress. Are you sure?',
                 [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Start Fresh', style: 'destructive', onPress: handleStartFresh },
-                ]
+                    { text: 'Start Fresh', style: 'destructive', onPress: () => handleStartFresh() },
+                ],
             );
         }
     }
 
     function handleResume() {
+        if (!profileComplete) { handleStart(); return; }
         // Don't reset the store — ai-chat will detect and restore the session
         router.push('/intake/ai-chat');
     }
@@ -137,12 +150,12 @@ export default function IntakePreflightScreen() {
                     </View>
                 ) : null}
 
-                {/* Specialty Badge */}
+                {/* Consultation Type */}
                 <View style={styles.specialtyCard}>
-                    <Text style={styles.specialtyIcon}>🩺</Text>
-                    <View>
-                        <Text style={styles.specialtyLabel}>{t('intake.specialty')}</Text>
-                        <Text style={styles.specialtyValue}>Dermatology</Text>
+                    <Text style={styles.specialtyIcon}>🏥</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.specialtyValue}>General Medical Consultation</Text>
+                        <Text style={styles.specialtyLabel}>Our AI gathers your history, then matches you with the right specialist</Text>
                     </View>
                 </View>
 

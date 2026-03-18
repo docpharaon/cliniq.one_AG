@@ -161,7 +161,7 @@ export default function ConsultationsScreen() {
                                     <View style={styles.consultSpecialty}>
                                         <Text style={styles.consultIcon}>🩺</Text>
                                         <Text style={styles.consultSpecialtyText}>
-                                            {consultation.specialty === 'dermatology' ? 'Dermatology' : 'Family Medicine'}
+                                            {(consultation.specialty || 'General').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                                         </Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>

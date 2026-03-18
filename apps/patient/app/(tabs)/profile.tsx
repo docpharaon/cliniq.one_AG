@@ -13,19 +13,6 @@ import { APP } from '@cliniqone/config';
 import type { TokenTransaction, Consultation } from '@cliniqone/types';
 import { useTokenHistory, useConsultations } from '../../hooks/useConsultations';
 
-// ── Mock Token History ──────────────────────
-const MOCK_TRANSACTIONS: TokenTransaction[] = [
-    { id: 't1', user_id: 'p1', type: 'bonus', amount: 100, balance_after: 100, consultation_id: null, description: 'Welcome bonus', created_at: '2026-02-14T10:00:00Z' },
-    { id: 't2', user_id: 'p1', type: 'spend', amount: -3, balance_after: 97, consultation_id: 'c1', description: 'Dermatology consultation', created_at: '2026-02-15T10:30:00Z' },
-    { id: 't3', user_id: 'p1', type: 'spend', amount: -3, balance_after: 94, consultation_id: 'c2', description: 'Dermatology consultation', created_at: '2026-02-16T09:00:00Z' },
-    { id: 't4', user_id: 'p1', type: 'spend', amount: -3, balance_after: 91, consultation_id: 'c3', description: 'Dermatology consultation', created_at: '2026-02-16T18:00:00Z' },
-];
-
-const MOCK_CONSULTATIONS: Partial<Consultation>[] = [
-    { id: 'c1', specialty: 'dermatology', status: 'completed', created_at: '2026-02-15T10:30:00Z' },
-    { id: 'c2', specialty: 'dermatology', status: 'completed', created_at: '2026-02-16T09:00:00Z' },
-    { id: 'c3', specialty: 'family_medicine', status: 'in_progress', created_at: '2026-02-16T18:00:00Z' },
-];
 
 const TX_ICONS: Record<string, string> = {
     purchase: '💰',
@@ -37,6 +24,7 @@ const TX_ICONS: Record<string, string> = {
 };
 
 const SPECIALTY_LABELS: Record<string, string> = {
+    general: '🏥 General',
     dermatology: '🩺 Dermatology',
     family_medicine: '🏥 Family Medicine',
 };
@@ -46,11 +34,11 @@ export default function ProfileScreen() {
     const [showPurchase, setShowPurchase] = useState(false);
     const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatar_url ?? null);
 
-    // Live data with mock fallback
+    // Live data (no mock fallback)
     const { data: liveTransactions } = useTokenHistory(user?.id || '');
     const { data: liveConsultations } = useConsultations(user?.id || '');
-    const transactions = (liveTransactions && liveTransactions.length > 0) ? liveTransactions : MOCK_TRANSACTIONS;
-    const consultations = (liveConsultations && liveConsultations.length > 0) ? liveConsultations : MOCK_CONSULTATIONS;
+    const transactions = liveTransactions || [];
+    const consultations = liveConsultations || [];
     const consultCount = consultations.length;
 
     // ── Medical history stats ──────────────
@@ -174,6 +162,13 @@ export default function ProfileScreen() {
                     <Text style={styles.name}>{user?.nickname || 'User'}</Text>
                     <Text style={styles.email}>{user?.email || ''}</Text>
                     <Badge label="Patient" variant="teal" />
+                    {user?.kyc_status === 'approved' ? (
+                        <Badge label="✅ Verified" variant="success" />
+                    ) : (
+                        <TouchableOpacity onPress={() => router.push('/settings/verify-identity')}>
+                            <Badge label="⚠️ Not Verified" variant="warning" />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Stats Grid */}
@@ -278,6 +273,7 @@ export default function ProfileScreen() {
                 <View style={styles.menu}>
                     <Text style={styles.menuSectionTitle}>Settings</Text>
                     <MenuItem icon="👤" label={t('profile.editProfile')} onPress={() => router.push('/settings/edit-profile')} />
+                    <MenuItem icon="🪪" label="Verify Identity" onPress={() => router.push('/settings/verify-identity')} />
                     <MenuItem icon="🏥" label={t('profile.insurance')} onPress={() => router.push('/settings/insurance')} />
                     <MenuItem icon="🔔" label={t('profile.notifications')} onPress={() => router.push('/settings/notifications')} />
                     <MenuItem icon="🌐" label={t('profile.language')} onPress={() => router.push('/settings/language')} />
@@ -285,7 +281,8 @@ export default function ProfileScreen() {
 
                     <Text style={[styles.menuSectionTitle, { marginTop: spacing.xl }]}>Support</Text>
                     <MenuItem icon="❓" label={t('profile.help')} onPress={() => router.push('/settings/help')} />
-                    <MenuItem icon="📜" label={t('profile.terms')} />
+                    <MenuItem icon="🔒" label="Privacy Policy" onPress={() => router.push('/settings/privacy-terms' as any)} />
+                    <MenuItem icon="📜" label={t('profile.terms')} onPress={() => router.push('/settings/privacy-terms' as any)} />
                     <MenuItem icon="🐛" label={t('profile.reportBug')} />
                 </View>
 

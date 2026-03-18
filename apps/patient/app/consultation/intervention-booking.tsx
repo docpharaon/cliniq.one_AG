@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { INTERVENTION_TYPE_LABELS } from '@cliniqone/types';
 import type { InterventionType } from '@cliniqone/types';
+import { useToast } from '../../components/ToastProvider';
 
 // ──────────────────────────────────────────
 // Mock schedule data (will come from doctor_schedules table)
@@ -47,6 +48,7 @@ export default function InterventionBookingScreen() {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [confirming, setConfirming] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const availableSlots = useMemo(() => {
         if (!selectedDate) return [];
@@ -57,32 +59,23 @@ export default function InterventionBookingScreen() {
 
     const handleConfirm = () => {
         if (!selectedDate || !selectedSlot) {
-            Alert.alert('Select Time', 'Please select a date and time slot.');
+            toast('Please select a date and time slot.', 'warning');
             return;
         }
 
-        Alert.alert(
-            'Confirm Booking',
-            `Book "${params.name}" on ${selectedDate} at ${selectedSlot}?\n\nCost: ${cost} SAR (${tokenCost} tokens)`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Pay & Confirm',
-                    onPress: () => {
-                        setConfirming(true);
-                        // TODO: Call Supabase API to create booking + deduct tokens
-                        setTimeout(() => {
-                            setConfirming(false);
-                            Alert.alert(
-                                '✅ Booked!',
-                                `Your ${params.name} is confirmed for ${selectedDate} at ${selectedSlot}.\n\nYou will receive a reminder before your appointment.`,
-                                [{ text: 'OK', onPress: () => router.back() }]
-                            );
-                        }, 1500);
-                    },
-                },
-            ]
-        );
+        const confirmed = (globalThis as any).confirm?.(
+            `Book "${params.name}" on ${selectedDate} at ${selectedSlot}?\n\nCost: ${cost} SAR (${tokenCost} tokens)`
+        ) ?? true;
+
+        if (!confirmed) return;
+
+        setConfirming(true);
+        // TODO: Call Supabase API to create booking + deduct tokens
+        setTimeout(() => {
+            setConfirming(false);
+            toast(`✅ ${params.name} booked for ${selectedDate} at ${selectedSlot}!`, 'success');
+            router.back();
+        }, 1500);
     };
 
     return (

@@ -318,3 +318,115 @@ export async function getPlatformStats() {
         unresolvedProtocols: unresolvedProtocols || 0,
     };
 }
+
+// ── KYC Management ───────────────────────────────
+
+/**
+ * Get KYC status counts for all patients.
+ */
+export async function getKycStats() {
+    const statuses = ['not_started', 'pending', 'approved', 'rejected', 'resubmission_requested', 'exempt'] as const;
+    const results = await Promise.all(
+        statuses.map((s) =>
+            supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'patient').eq('kyc_status', s),
+        ),
+    );
+
+    const stats: Record<string, number> = {};
+    statuses.forEach((s, i) => {
+        stats[s] = results[i].count || 0;
+    });
+    return stats;
+}
+
+/**
+ * Get an app setting value.
+ */
+export async function getAppSetting(key: string) {
+    const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', key)
+        .single();
+
+    if (error) return null;
+    return data?.value;
+}
+
+/**
+ * Set an app setting value.
+ */
+export async function setAppSetting(key: string, value: unknown, adminUserId?: string) {
+    const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+            key,
+            value: JSON.stringify(value),
+            updated_at: new Date().toISOString(),
+            updated_by: adminUserId || null,
+        });
+
+    if (error) throw error;
+}
+
+/**
+ * Exempt a user from KYC (admin override).
+ */
+export async function adminExemptUser(userId: string) {
+    const { data, error } = await supabase
+        .from('users')
+        .update({ kyc_status: 'exempt' })
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data as User;
+}
+
+/**
+ * Reset a user's KYC status back to not_started.
+ */
+export async function adminResetKyc(userId: string) {
+    const { data, error } = await supabase
+        .from('users')
+        .update({
+            kyc_status: 'not_started',
+            kyc_applicant_id: null,
+            kyc_verified_at: null,
+            kyc_rejection_reason: null,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data as User;
+}
+
+/**
+ * Get users with KYC status for admin view.
+ */
+export async function getKycUsers(params?: {
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+}) {
+    let query = supabase
+        .from('users')
+        .select('id, nickname, email, kyc_status, kyc_applicant_id, kyc_verified_at, kyc_rejection_reason, created_at', { count: 'exact' })
+        .eq('role', 'patient')
+        .order('created_at', { ascending: false });
+
+    if (params?.status) query = query.eq('kyc_status', params.status);
+    if (params?.search) {
+        query = query.or(`nickname.ilike.%${params.search}%,email.ilike.%${params.search}%`);
+    }
+    if (params?.limit) query = query.limit(params.limit);
+    if (params?.offset) query = query.range(params.offset, params.offset + (params.limit || 20) - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { users: data || [], total: count || 0 };
+}

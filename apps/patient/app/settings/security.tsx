@@ -6,6 +6,7 @@ import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
 import { SECURITY } from '@cliniqone/config';
+import { useToast } from '../../components/ToastProvider';
 
 export default function SecurityScreen() {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -13,6 +14,7 @@ export default function SecurityScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [biometric, setBiometric] = useState(false);
     const [saving, setSaving] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const canSave = currentPassword.length >= SECURITY.PASSWORD_MIN_LENGTH &&
         newPassword.length >= SECURITY.PASSWORD_MIN_LENGTH &&
@@ -24,11 +26,10 @@ export default function SecurityScreen() {
         try {
             // In production: call supabase auth.updateUser
             await new Promise((r) => setTimeout(r, 1000));
-            Alert.alert('Success', 'Password changed. You may need to sign in again.', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
+            toast('Password changed successfully!', 'success');
+            router.back();
         } catch {
-            Alert.alert('Error', 'Could not change password. Please try again.');
+            toast('Could not change password. Please try again.', 'error');
         } finally {
             setSaving(false);
         }
@@ -122,14 +123,7 @@ export default function SecurityScreen() {
                     </Text>
                     <TouchableOpacity
                         style={styles.dangerButton}
-                        onPress={() => Alert.alert(
-                            'Delete Account?',
-                            'This will permanently delete your account, consultations, and all medical records. This cannot be undone.',
-                            [
-                                { text: 'Cancel', style: 'cancel' },
-                                { text: 'Delete', style: 'destructive', onPress: () => { } },
-                            ],
-                        )}
+                        onPress={() => router.push('/settings/delete-account' as any)}
                     >
                         <Text style={styles.dangerButtonText}>Delete My Account</Text>
                     </TouchableOpacity>
