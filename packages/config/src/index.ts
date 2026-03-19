@@ -2,27 +2,38 @@
 // Environment (cross-platform: Expo + Next.js)
 // ──────────────────────────────────────────
 
-// Helper: pick first defined env var across platform prefixes
-function env(key: string): string {
-    // Try EXPO_PUBLIC_ prefix (React Native / Expo)
-    const expoKey = `EXPO_PUBLIC_${key}`;
-    // Try NEXT_PUBLIC_ prefix (Next.js / Web)
-    const nextKey = `NEXT_PUBLIC_${key}`;
-    // Try bare key (server-side)
+// IMPORTANT: Each process.env.* reference MUST be a full static string literal.
+// Expo/Metro Babel plugin replaces process.env.EXPO_PUBLIC_* at build time,
+// but ONLY when the key is written out statically (not constructed dynamically).
 
-    return (
-        (typeof process !== 'undefined' && process.env?.[expoKey]) ||
-        (typeof process !== 'undefined' && process.env?.[nextKey]) ||
-        (typeof process !== 'undefined' && process.env?.[key]) ||
-        ''
-    );
+function pickEnv(...candidates: (string | undefined)[]): string {
+    for (const v of candidates) {
+        if (v) return v;
+    }
+    return '';
 }
 
 export const ENV = {
-    SUPABASE_URL: env('SUPABASE_URL'),
-    SUPABASE_ANON_KEY: env('SUPABASE_ANON_KEY'),
-    GOOGLE_WEB_CLIENT_ID: env('GOOGLE_WEB_CLIENT_ID'),
-    APP_ENV: (env('APP_ENV') || 'development') as 'development' | 'staging' | 'production',
+    SUPABASE_URL: pickEnv(
+        process.env.EXPO_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_URL,
+    ),
+    SUPABASE_ANON_KEY: pickEnv(
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        process.env.SUPABASE_ANON_KEY,
+    ),
+    GOOGLE_WEB_CLIENT_ID: pickEnv(
+        process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        process.env.GOOGLE_WEB_CLIENT_ID,
+    ),
+    APP_ENV: (pickEnv(
+        process.env.EXPO_PUBLIC_APP_ENV,
+        process.env.NEXT_PUBLIC_APP_ENV,
+        process.env.APP_ENV,
+    ) || 'development') as 'development' | 'staging' | 'production',
 } as const;
 
 // ──────────────────────────────────────────

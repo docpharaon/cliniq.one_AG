@@ -52,8 +52,8 @@ export default function RespondPage() {
                 setConsultation(data);
 
                 // Pre-fill if report already exists
-                if (data?.doctor_report) {
-                    const r = data.doctor_report;
+                if (data?.report) {
+                    const r = data.report;
                     setDiagnosis(r.diagnosis || '');
                     setIcd10(r.icd10 || '');
                     setTreatmentPlan(r.treatment_plan || '');

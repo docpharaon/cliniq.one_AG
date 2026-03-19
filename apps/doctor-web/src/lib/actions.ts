@@ -206,7 +206,7 @@ export async function submitReportAction(
     const supabase = await createServerSupabase();
 
     const updateData: Record<string, unknown> = {
-        doctor_report: report,
+        report: report,
         status: 'report_ready',
     };
 

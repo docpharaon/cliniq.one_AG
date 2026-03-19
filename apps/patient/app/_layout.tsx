@@ -2,7 +2,9 @@ import { useEffect, useCallback, useState } from 'react';
 import { Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 import { colors } from '@cliniqone/ui';
@@ -107,32 +109,57 @@ export default function RootLayout() {
     const [localeReady, setLocaleReady] = useState(false);
 
     useEffect(() => {
-        initLocale().then(() => setLocaleReady(true));
-        initialize();
+        // Safety timeout — never block the app for more than 6 seconds
+        const safetyTimer = setTimeout(() => {
+            console.warn('[RootLayout] Safety timeout — forcing init complete');
+            setLocaleReady(true);
+            if (!useAuthStore.getState().isReady) {
+                useAuthStore.setState({ isReady: true, isLoading: false });
+            }
+        }, 6000);
+
+        initLocale()
+            .then(() => setLocaleReady(true))
+            .catch(() => setLocaleReady(true));
+        
+        initialize().catch(() => {});
+
+        return () => clearTimeout(safetyTimer);
     }, []);
+
+    // Hide the native splash screen once initialization completes
+    useEffect(() => {
+        if (isReady && localeReady) {
+            SplashScreen.hideAsync().catch(() => {});
+        }
+    }, [isReady, localeReady]);
 
     if (!isReady || !localeReady) {
         return (
-            <PhoneFrame>
-                <View style={styles.loading}>
-                    <ActivityIndicator size="large" color={colors.accentTeal} />
-                    <StatusBar style="light" />
-                </View>
-            </PhoneFrame>
+            <SafeAreaProvider>
+                <PhoneFrame>
+                    <View style={styles.loading}>
+                        <View style={styles.loadingDot} />
+                        <StatusBar style="light" />
+                    </View>
+                </PhoneFrame>
+            </SafeAreaProvider>
         );
     }
 
     return (
-        <PhoneFrame>
-            <ErrorBoundary>
-                <QueryClientProvider client={queryClient}>
-                    <ToastProvider>
-                        <AppInner />
-                        <StatusBar style="light" />
-                    </ToastProvider>
-                </QueryClientProvider>
-            </ErrorBoundary>
-        </PhoneFrame>
+        <SafeAreaProvider>
+            <PhoneFrame>
+                <ErrorBoundary>
+                    <QueryClientProvider client={queryClient}>
+                        <ToastProvider>
+                            <AppInner />
+                            <StatusBar style="light" />
+                        </ToastProvider>
+                    </QueryClientProvider>
+                </ErrorBoundary>
+            </PhoneFrame>
+        </SafeAreaProvider>
     );
 }
 
@@ -142,6 +169,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: colors.bgPrimary,
+    },
+    loadingDot: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.accentTeal,
+        opacity: 0.6,
     },
 });
 

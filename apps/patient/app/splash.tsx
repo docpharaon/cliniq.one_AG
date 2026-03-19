@@ -4,18 +4,17 @@ import {
     StyleSheet,
     Animated,
     TouchableWithoutFeedback,
-    Image,
     Dimensions,
     Text,
 } from 'react-native';
-// Video import removed - using Image for GIF background
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@cliniqone/ui';
 import { markSplashShown } from './index';
 
 const { width, height } = Dimensions.get('window');
-const SPLASH_DURATION = 10000; // 10 seconds
+const SPLASH_DURATION = 3000; // 3 seconds
 
 // ─── Assets ──────────────────────────────────────────────────────
 const gifSource = require('../assets/splash-video01.gif');
@@ -44,7 +43,7 @@ export default function SplashScreen() {
             }),
         ]).start();
 
-        // Auto-dismiss after 8 seconds
+        // Auto-dismiss after splash duration
         timerRef.current = setTimeout(() => {
             dismiss();
         }, SPLASH_DURATION);
@@ -79,7 +78,8 @@ export default function SplashScreen() {
                 <Image
                     source={gifSource}
                     style={styles.video}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    autoplay={true}
                 />
 
                 {/* Dark overlay for better logo visibility */}
@@ -99,7 +99,7 @@ export default function SplashScreen() {
                         <Image
                             source={logoSource}
                             style={styles.logo}
-                            resizeMode="contain"
+                            contentFit="contain"
                         />
                     ) : (
                         <View style={styles.textLogoContainer}>

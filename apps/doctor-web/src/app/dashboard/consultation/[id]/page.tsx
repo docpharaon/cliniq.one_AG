@@ -125,7 +125,7 @@ export default function ConsultationDetailPage() {
 
     const patient = consultation.patient;
     const aiReport = consultation.ai_summary || {};
-    const doctorReport = consultation.doctor_report;
+    const doctorReport = consultation.report;
 
     const TABS: { key: TabKey; label: string; icon: any }[] = [
         { key: 'overview', label: 'Patient File', icon: User },
