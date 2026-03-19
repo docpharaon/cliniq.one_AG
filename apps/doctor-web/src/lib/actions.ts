@@ -85,7 +85,7 @@ export async function fetchQueueConsultations(
     // Get doctor's own active + pending unassigned
     let query = supabase
         .from('consultations')
-        .select('*, patient:patients!consultations_patient_id_fkey(nickname, gender, year_of_birth, city, country, language)', { count: 'exact' })
+        .select('*, patient:users!consultations_patient_id_fkey(nickname, gender, year_of_birth, city, country, language)', { count: 'exact' })
         .order('created_at', { ascending: false });
 
     if (statusFilter === 'mine') {
@@ -118,7 +118,7 @@ export async function fetchConsultationDetail(consultationId: string) {
 
     const { data, error } = await supabase
         .from('consultations')
-        .select('*, patient:patients!consultations_patient_id_fkey(*)')
+        .select('*, patient:users!consultations_patient_id_fkey(*)')
         .eq('id', consultationId)
         .single();
 
@@ -139,7 +139,7 @@ export async function fetchConsultationHistory(
 
     let query = supabase
         .from('consultations')
-        .select('*, patient:patients!consultations_patient_id_fkey(nickname, gender, year_of_birth)', { count: 'exact' })
+        .select('*, patient:users!consultations_patient_id_fkey(nickname, gender, year_of_birth)', { count: 'exact' })
         .eq('doctor_id', doctorId)
         .order('created_at', { ascending: false });
 
