@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, TextInput, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '@cliniqone/ui';
@@ -44,6 +44,67 @@ function timeAgo(dateStr: string): string {
     if (hours < 24) return t('consultations.hoursAgo', { count: hours });
     const days = Math.floor(hours / 24);
     return t('consultations.daysAgo', { count: days });
+}
+
+// ── Report generation helper ────────────────────
+function generateReportText(consultation: Consultation): string {
+    const report = consultation.report as Record<string, any> | null;
+    if (!report) return '';
+    const lines: string[] = [
+        `MEDICAL CONSULTATION REPORT`,
+        `Date: ${new Date(consultation.created_at).toLocaleDateString()}`,
+        `Status: ${consultation.status}`,
+        ``,
+        `CHIEF COMPLAINT:`,
+        consultation.chief_complaint || 'N/A',
+        ``,
+    ];
+    if (report.diagnosis) { lines.push(`DIAGNOSIS: ${report.diagnosis}`); }
+    if (report.icd10_code) { lines.push(`ICD-10: ${report.icd10_code}`); }
+    if (report.treatment_plan) { lines.push(``, `TREATMENT PLAN:`, report.treatment_plan); }
+    if (report.follow_up) { lines.push(``, `FOLLOW-UP: ${report.follow_up}`); }
+    if (report.prescriptions?.length) {
+        lines.push(``, `PRESCRIPTION:`);
+        for (const rx of report.prescriptions) {
+            lines.push(`  - ${rx.medication} — ${rx.dosage} (${rx.duration})`);
+        }
+    }
+    lines.push(``, `--- cliniq.one ---`);
+    return lines.join('\n');
+}
+
+function handleDownloadReport(consultation: Consultation) {
+    const text = generateReportText(consultation);
+    if (!text) { Alert.alert('No Report', 'Report data is not available.'); return; }
+    if (Platform.OS === 'web') {
+        // Use globalThis to access web-only APIs without requiring 'dom' lib
+        const g = globalThis as any;
+        const blob = new g.Blob([text], { type: 'text/plain' });
+        const url = g.URL.createObjectURL(blob);
+        const a = g.document.createElement('a');
+        a.href = url;
+        a.download = `consultation-report-${consultation.id.slice(0, 8)}.txt`;
+        a.click();
+        g.URL.revokeObjectURL(url);
+    } else {
+        Alert.alert('Report', text);
+    }
+}
+
+async function handleShareReport(consultation: Consultation) {
+    const text = generateReportText(consultation);
+    if (!text) { Alert.alert('No Report', 'Report data is not available.'); return; }
+    const g = globalThis as any;
+    if (Platform.OS === 'web' && g.navigator?.share) {
+        try {
+            await g.navigator.share({ title: 'Medical Report', text });
+        } catch { /* user cancelled */ }
+    } else if (Platform.OS === 'web' && g.navigator?.clipboard) {
+        await g.navigator.clipboard.writeText(text);
+        Alert.alert('Copied', 'Report copied to clipboard.');
+    } else {
+        Alert.alert('Report', text);
+    }
 }
 
 export default function ConsultationsScreen() {
@@ -183,10 +244,10 @@ export default function ConsultationsScreen() {
                                     <View style={styles.reportBanner}>
                                         <Text style={styles.reportBannerText}>{t('consultations.reportAvailable')}</Text>
                                         <View style={styles.reportActions}>
-                                            <TouchableOpacity style={styles.reportActionBtn}>
+                                            <TouchableOpacity style={styles.reportActionBtn} onPress={() => handleDownloadReport(consultation)}>
                                                 <Text style={styles.reportActionText}>📥 {t('consultations.downloadReport')}</Text>
                                             </TouchableOpacity>
-                                            <TouchableOpacity style={styles.reportActionBtn}>
+                                            <TouchableOpacity style={styles.reportActionBtn} onPress={() => handleShareReport(consultation)}>
                                                 <Text style={styles.reportActionText}>📤 {t('consultations.shareReport')}</Text>
                                             </TouchableOpacity>
                                         </View>

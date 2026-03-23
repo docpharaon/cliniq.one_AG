@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Card, Badge, Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
-import { signOut } from '@cliniqone/api';
+import { signOut, supabase } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 import { t, toLocalNum, localDate } from '@cliniqone/i18n';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
@@ -85,8 +85,37 @@ export default function ProfileScreen() {
         }
 
         if (!result.canceled && result.assets?.[0]) {
-            setAvatarUri(result.assets[0].uri);
-            // In production: upload to Supabase Storage and update user.avatar_url
+            const asset = result.assets[0];
+            setAvatarUri(asset.uri);
+
+            // Upload to Supabase Storage
+            if (user?.id) {
+                try {
+                    const ext = asset.uri.split('.').pop() || 'jpg';
+                    const fileName = `${user.id}/avatar.${ext}`;
+                    const response = await fetch(asset.uri);
+                    const blob = await response.blob();
+                    const { error: uploadError } = await supabase.storage
+                        .from('avatars')
+                        .upload(fileName, blob, { upsert: true, contentType: `image/${ext}` });
+
+                    if (uploadError) {
+                        console.warn('Avatar upload failed:', uploadError.message);
+                    } else {
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('avatars')
+                            .getPublicUrl(fileName);
+
+                        await supabase.from('users')
+                            .update({ avatar_url: publicUrl })
+                            .eq('id', user.id);
+
+                        useAuthStore.getState().refreshUser();
+                    }
+                } catch (err) {
+                    console.warn('Avatar upload error:', err);
+                }
+            }
         }
     }
 

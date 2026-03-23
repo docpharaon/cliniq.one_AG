@@ -42,18 +42,15 @@ export function usePurchase(userId?: string) {
                 // ── Sandbox: simulate purchase ──
                 await new Promise(r => setTimeout(r, 1500));
             } else {
-                // ── Production: real IAP ──
-                // When ready, install expo-in-app-purchases and uncomment:
-                //
+                // Production: Real IAP integration required
+                // When ready, install expo-in-app-purchases and:
                 // import * as IAP from 'expo-in-app-purchases';
                 // await IAP.connectAsync();
                 // const { results } = await IAP.getProductsAsync([pkg.id]);
                 // if (results.length === 0) throw new Error('Product not found');
                 // await IAP.purchaseItemAsync(pkg.id);
-                // Wait for purchase confirmation via IAP listener...
-                //
-                // For now, fall through to sandbox
-                await new Promise(r => setTimeout(r, 1500));
+                console.warn('[usePurchase] Production IAP not yet integrated. Purchase blocked.');
+                throw new Error('In-app purchases are not yet available. Please try again later.');
             }
 
             // Credit tokens to user account
