@@ -13,9 +13,14 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "test:e2e": "npx playwright test",
+    "test:e2e:patient": "npx playwright test --project=patient-app",
+    "test:e2e:doctor": "npx playwright test --project=doctor-web",
+    "test:e2e:report": "npx playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "expo-asset": "^11.0.5",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"
