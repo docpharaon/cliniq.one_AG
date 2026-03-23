@@ -41,7 +41,7 @@ export default function NotificationsScreen() {
         // In production: save to user profile
         await new Promise((r) => setTimeout(r, 500));
         setSaving(false);
-        toast('Notification preferences saved!', 'success');
+        toast(t('settings.prefsSaved'), 'success');
         router.back();
     }
 
@@ -57,26 +57,26 @@ export default function NotificationsScreen() {
                 </View>
 
                 {/* Channels */}
-                <Text style={styles.sectionTitle}>Channels</Text>
+                <Text style={styles.sectionTitle}>{t('settings.channels')}</Text>
                 <View style={styles.card}>
-                    <ToggleRow icon="📱" label="Push Notifications" value={prefs.push} onToggle={() => toggle('push')} />
-                    <ToggleRow icon="📧" label="Email" value={prefs.email} onToggle={() => toggle('email')} />
-                    <ToggleRow icon="💬" label="SMS" value={prefs.sms} onToggle={() => toggle('sms')} />
-                    <ToggleRow icon="📲" label="WhatsApp" value={prefs.whatsapp} onToggle={() => toggle('whatsapp')} last />
+                    <ToggleRow icon="📱" label={t('settings.pushNotifications')} value={prefs.push} onToggle={() => toggle('push')} />
+                    <ToggleRow icon="📧" label={t('settings.emailChannel')} value={prefs.email} onToggle={() => toggle('email')} />
+                    <ToggleRow icon="💬" label={t('settings.smsChannel')} value={prefs.sms} onToggle={() => toggle('sms')} />
+                    <ToggleRow icon="📲" label={t('settings.whatsappChannel')} value={prefs.whatsapp} onToggle={() => toggle('whatsapp')} last />
                 </View>
 
                 {/* Event Types */}
-                <Text style={styles.sectionTitle}>What to notify</Text>
+                <Text style={styles.sectionTitle}>{t('settings.whatToNotify')}</Text>
                 <View style={styles.card}>
-                    <ToggleRow icon="🔄" label="Consultation Updates" desc="Status changes, doctor assignment" value={prefs.consultUpdate} onToggle={() => toggle('consultUpdate')} />
-                    <ToggleRow icon="📋" label="Report Ready" desc="When your doctor completes the report" value={prefs.reportReady} onToggle={() => toggle('reportReady')} />
-                    <ToggleRow icon="💰" label="Token Purchases" desc="Payment confirmations" value={prefs.tokenPurchase} onToggle={() => toggle('tokenPurchase')} />
-                    <ToggleRow icon="🎁" label="Promotions & Offers" desc="Special deals and announcements" value={prefs.promotions} onToggle={() => toggle('promotions')} last />
+                    <ToggleRow icon="🔄" label={t('settings.consultationUpdates')} desc={t('settings.consultationUpdatesDesc')} value={prefs.consultUpdate} onToggle={() => toggle('consultUpdate')} />
+                    <ToggleRow icon="📋" label={t('settings.reportReady')} desc={t('settings.reportReadyDesc')} value={prefs.reportReady} onToggle={() => toggle('reportReady')} />
+                    <ToggleRow icon="💰" label={t('settings.tokenPurchases')} desc={t('settings.tokenPurchasesDesc')} value={prefs.tokenPurchase} onToggle={() => toggle('tokenPurchase')} />
+                    <ToggleRow icon="🎁" label={t('settings.promotions')} desc={t('settings.promotionsDesc')} value={prefs.promotions} onToggle={() => toggle('promotions')} last />
                 </View>
 
                 <View style={{ marginTop: spacing.xl }}>
                     <Button
-                        title={saving ? 'Saving...' : 'Save Preferences'}
+                        title={saving ? t('settings.saving') : t('settings.savePreferences')}
                         onPress={handleSave}
                         size="lg"
                         disabled={saving}

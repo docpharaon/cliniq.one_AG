@@ -26,10 +26,10 @@ export default function SecurityScreen() {
         try {
             // In production: call supabase auth.updateUser
             await new Promise((r) => setTimeout(r, 1000));
-            toast('Password changed successfully!', 'success');
+            toast(t('settings.passwordChanged'), 'success');
             router.back();
         } catch {
-            toast('Could not change password. Please try again.', 'error');
+            toast(t('settings.passwordChangeFailed'), 'error');
         } finally {
             setSaving(false);
         }
@@ -50,8 +50,8 @@ export default function SecurityScreen() {
                 <View style={styles.card}>
                     <View style={styles.biometricRow}>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.biometricLabel}>🔐 Biometric Login</Text>
-                            <Text style={styles.biometricDesc}>Use Face ID or fingerprint to sign in</Text>
+                            <Text style={styles.biometricLabel}>🔐 {t('settings.biometricLogin')}</Text>
+                            <Text style={styles.biometricDesc}>{t('settings.biometricDesc')}</Text>
                         </View>
                         <Switch
                             value={biometric}
@@ -63,51 +63,51 @@ export default function SecurityScreen() {
                 </View>
 
                 {/* Change Password */}
-                <Text style={styles.sectionTitle}>Change Password</Text>
+                <Text style={styles.sectionTitle}>{t('settings.changePassword')}</Text>
                 <View style={styles.card}>
                     <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Current Password</Text>
+                        <Text style={styles.fieldLabel}>{t('settings.currentPassword')}</Text>
                         <TextInput
                             style={styles.input}
                             secureTextEntry
                             value={currentPassword}
                             onChangeText={setCurrentPassword}
-                            placeholder="Enter current password"
+                            placeholder={t('settings.currentPasswordPlaceholder')}
                             placeholderTextColor={colors.textTertiary}
                         />
                     </View>
 
                     <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>New Password</Text>
+                        <Text style={styles.fieldLabel}>{t('settings.newPassword')}</Text>
                         <TextInput
                             style={styles.input}
                             secureTextEntry
                             value={newPassword}
                             onChangeText={setNewPassword}
-                            placeholder={`Min ${SECURITY.PASSWORD_MIN_LENGTH} characters`}
+                            placeholder={`${SECURITY.PASSWORD_MIN_LENGTH} ${t('settings.minCharsPlaceholder', { count: SECURITY.PASSWORD_MIN_LENGTH })}`}
                             placeholderTextColor={colors.textTertiary}
                         />
                     </View>
 
                     <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Confirm New Password</Text>
+                        <Text style={styles.fieldLabel}>{t('settings.confirmNewPassword')}</Text>
                         <TextInput
                             style={styles.input}
                             secureTextEntry
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
-                            placeholder="Re-enter new password"
+                            placeholder={t('settings.reenterPassword')}
                             placeholderTextColor={colors.textTertiary}
                         />
                         {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                            <Text style={styles.errorText}>Passwords don't match</Text>
+                            <Text style={styles.errorText}>{t('settings.passwordsDontMatch')}</Text>
                         )}
                     </View>
                 </View>
 
                 <View style={{ marginTop: spacing.xl }}>
                     <Button
-                        title={saving ? 'Changing...' : 'Change Password'}
+                        title={saving ? t('settings.changingPassword') : t('settings.changePassword')}
                         onPress={handleChangePassword}
                         size="lg"
                         disabled={!canSave || saving}
@@ -115,17 +115,17 @@ export default function SecurityScreen() {
                 </View>
 
                 {/* Danger Zone */}
-                <Text style={styles.sectionTitle}>Danger Zone</Text>
+                <Text style={styles.sectionTitle}>{t('settings.dangerZone')}</Text>
                 <View style={[styles.card, styles.dangerCard]}>
-                    <Text style={styles.dangerTitle}>🗑️ Delete Account</Text>
+                    <Text style={styles.dangerTitle}>🗑️ {t('settings.deleteAccount')}</Text>
                     <Text style={styles.dangerDesc}>
-                        Permanently delete your account and all data. This action cannot be undone.
+                        {t('settings.deleteAccountDesc')}
                     </Text>
                     <TouchableOpacity
                         style={styles.dangerButton}
                         onPress={() => router.push('/settings/delete-account' as any)}
                     >
-                        <Text style={styles.dangerButtonText}>Delete My Account</Text>
+                        <Text style={styles.dangerButtonText}>{t('settings.deleteMyAccount')}</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

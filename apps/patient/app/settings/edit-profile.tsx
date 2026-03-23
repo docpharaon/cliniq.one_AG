@@ -11,9 +11,9 @@ import { COUNTRIES } from '@cliniqone/config';
 import { useToast } from '../../components/ToastProvider';
 
 const GENDERS = [
-    { key: 'male', label: 'Male' },
-    { key: 'female', label: 'Female' },
-    { key: 'prefer_not_to_say', label: 'Prefer not to say' },
+    { key: 'male', labelKey: 'settings.genderMale' },
+    { key: 'female', labelKey: 'settings.genderFemale' },
+    { key: 'prefer_not_to_say', labelKey: 'settings.genderPreferNot' },
 ];
 
 
@@ -34,7 +34,7 @@ export default function EditProfileScreen() {
 
     async function handleSave() {
         if (!nickname.trim()) {
-            toast('Nickname is required', 'warning');
+            toast(t('settings.nicknameRequired'), 'warning');
             return;
         }
 
@@ -56,10 +56,10 @@ export default function EditProfileScreen() {
                 { timeout: 8000, retries: 1, label: 'updateProfile' },
             );
             setUser({ ...user!, ...updates } as any);
-            toast('Profile updated!', 'success');
+            toast(t('settings.profileUpdated'), 'success');
             router.back();
         } catch (err: any) {
-            toast(err?.message?.includes('timed out') ? 'Connection is slow. Please try again.' : 'Failed to save. Please try again.', 'error');
+            toast(err?.message?.includes('timed out') ? t('settings.connectionSlow') : t('settings.saveFailed'), 'error');
         } finally {
             setSaving(false);
         }
@@ -81,16 +81,16 @@ export default function EditProfileScreen() {
                     <View style={styles.avatar}>
                         <Text style={styles.avatarText}>{nickname?.[0]?.toUpperCase() || '?'}</Text>
                     </View>
-                    <Text style={styles.avatarHint}>Tap to change photo</Text>
+                    <Text style={styles.avatarHint}>{t('settings.tapToChangePhoto')}</Text>
                 </View>
 
                 {/* Form Fields */}
-                <Text style={styles.sectionTitle}>Personal Information</Text>
+                <Text style={styles.sectionTitle}>{t('settings.personalInfo')}</Text>
 
-                <FormField label="Nickname" value={nickname} onChangeText={setNickname} placeholder="Your first name" />
-                <FormField label="Email" value={user?.email || ''} editable={false} />
-                <FormField label="Phone" value={phone} onChangeText={setPhone} placeholder="+966 5XX XXX XXXX" keyboardType="phone-pad" />
-                <FormField label="Year of Birth" value={yearOfBirth} onChangeText={setYearOfBirth} placeholder="e.g. 1990" keyboardType="number-pad" maxLength={4} />
+                <FormField label={t('settings.nickname')} value={nickname} onChangeText={setNickname} placeholder={t('settings.nicknamePlaceholder')} />
+                <FormField label={t('settings.emailLabel')} value={user?.email || ''} editable={false} />
+                <FormField label={t('settings.phoneLabel')} value={phone} onChangeText={setPhone} placeholder={t('settings.phonePlaceholder')} keyboardType="phone-pad" />
+                <FormField label={t('settings.yearOfBirth')} value={yearOfBirth} onChangeText={setYearOfBirth} placeholder={t('settings.yearPlaceholder')} keyboardType="number-pad" maxLength={4} />
 
                 {/* Gender */}
                 <Text style={styles.fieldLabel}>{t('registration.gender')}</Text>
@@ -101,13 +101,13 @@ export default function EditProfileScreen() {
                             style={[styles.genderOption, gender === g.key && styles.genderActive]}
                             onPress={() => setGender(g.key)}
                         >
-                            <Text style={[styles.genderText, gender === g.key && styles.genderTextActive]}>{g.label}</Text>
+                            <Text style={[styles.genderText, gender === g.key && styles.genderTextActive]}>{t(g.labelKey)}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 {/* Location */}
-                <Text style={styles.sectionTitle}>Location</Text>
+                <Text style={styles.sectionTitle}>{t('settings.location')}</Text>
 
                 <Text style={styles.fieldLabel}>{t('registration.country')}</Text>
                 <View style={styles.countryChips}>
@@ -122,17 +122,17 @@ export default function EditProfileScreen() {
                     ))}
                 </View>
 
-                <FormField label={t('registration.city')} value={city} onChangeText={setCity} placeholder="Your city" />
+                <FormField label={t('registration.city')} value={city} onChangeText={setCity} placeholder={t('settings.cityPlaceholder')} />
 
                 {/* Insurance */}
-                <Text style={styles.sectionTitle}>Insurance</Text>
-                <FormField label={t('registration.insuranceProvider')} value={insurance} onChangeText={setInsurance} placeholder="e.g. Bupa, Tawuniya" />
-                <FormField label="Policy Number" value={policyNumber} onChangeText={setPolicyNumber} placeholder="Optional" />
+                <Text style={styles.sectionTitle}>{t('settings.insuranceSection')}</Text>
+                <FormField label={t('registration.insuranceProvider')} value={insurance} onChangeText={setInsurance} placeholder={t('settings.insurancePlaceholder')} />
+                <FormField label={t('settings.policyNumber')} value={policyNumber} onChangeText={setPolicyNumber} placeholder={t('settings.optional')} />
 
                 {/* Save */}
                 <View style={{ marginTop: spacing.xl }}>
                     <Button
-                        title={saving ? 'Saving...' : 'Save Changes'}
+                        title={saving ? t('settings.saving') : t('settings.saveChanges')}
                         onPress={handleSave}
                         size="lg"
                         disabled={saving}

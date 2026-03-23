@@ -3,9 +3,11 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, ActivityIn
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
-import { t } from '@cliniqone/i18n';
+import { t, getLocale } from '@cliniqone/i18n';
 import { APP } from '@cliniqone/config';
 import { useToast } from '../../components/ToastProvider';
+
+const isAr = () => getLocale() === 'ar';
 
 const INSURERS = [
     { id: 'bupa', name: 'Bupa Arabia', nameAr: 'بوبا العربية', logo: '🏥' },
@@ -35,15 +37,15 @@ export default function InsuranceScreen() {
 
     async function handleUploadCard(side: 'front' | 'back') {
         // In production, use expo-image-picker here
-        toast(`Select a photo of the ${side} of your card`, 'info');
+        toast(t('insurance.uploadDesc', { side: side === 'front' ? t('insurance.frontSide') : t('insurance.backSide') }), 'info');
     }
 
     function handleSave() {
         if (!selectedProvider) {
-            toast('Please select your insurance provider.', 'warning');
+            toast(t('insurance.selectProviderError'), 'warning');
             return;
         }
-        toast('Insurance information saved!', 'success');
+        toast(t('insurance.saved'), 'success');
         router.back();
     }
 
@@ -55,14 +57,14 @@ export default function InsuranceScreen() {
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <Text style={styles.backText}>← {t('common.back')}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>🏥 Insurance</Text>
+                    <Text style={styles.title}>🏥 {t('insurance.title')}</Text>
                     <Text style={styles.subtitle}>
-                        Add your insurance details for seamless billing and claims processing.
+                        {t('insurance.subtitle')}
                     </Text>
                 </View>
 
                 {/* Provider Selection */}
-                <Text style={styles.sectionTitle}>Select Insurance Provider</Text>
+                <Text style={styles.sectionTitle}>{t('insurance.selectProvider')}</Text>
                 <View style={styles.providerGrid}>
                     {INSURERS.map((ins) => (
                         <TouchableOpacity
@@ -79,7 +81,7 @@ export default function InsuranceScreen() {
                                 styles.providerName,
                                 selectedProvider === ins.id && styles.providerNameSelected,
                             ]}>
-                                {ins.name}
+                                {isAr() ? ins.nameAr : ins.name}
                             </Text>
                             {selectedProvider === ins.id && (
                                 <View style={styles.checkBadge}>
@@ -93,9 +95,9 @@ export default function InsuranceScreen() {
                 {/* Card Upload Section */}
                 {selectedProvider && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>📸 Insurance Card Photos</Text>
+                        <Text style={styles.sectionTitle}>📸 {t('insurance.cardPhotos')}</Text>
                         <Text style={styles.sectionSubtitle}>
-                            Upload photos of your card for faster verification.
+                            {t('insurance.cardPhotosDesc')}
                         </Text>
 
                         <View style={styles.cardUploadRow}>
@@ -105,8 +107,8 @@ export default function InsuranceScreen() {
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.uploadIcon}>📄</Text>
-                                <Text style={styles.uploadLabel}>Front Side</Text>
-                                <Text style={styles.uploadHint}>Tap to upload</Text>
+                                <Text style={styles.uploadLabel}>{t('insurance.frontSide')}</Text>
+                                <Text style={styles.uploadHint}>{t('insurance.tapToUpload')}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -115,8 +117,8 @@ export default function InsuranceScreen() {
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.uploadIcon}>📄</Text>
-                                <Text style={styles.uploadLabel}>Back Side</Text>
-                                <Text style={styles.uploadHint}>Tap to upload</Text>
+                                <Text style={styles.uploadLabel}>{t('insurance.backSide')}</Text>
+                                <Text style={styles.uploadHint}>{t('insurance.tapToUpload')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -126,7 +128,7 @@ export default function InsuranceScreen() {
                 <View style={styles.infoCard}>
                     <Text style={styles.infoIcon}>ℹ️</Text>
                     <Text style={styles.infoText}>
-                        Insurance information is used to process claims directly with your provider. Your data is encrypted and stored securely.
+                        {t('insurance.securityNote')}
                     </Text>
                 </View>
 
@@ -139,7 +141,7 @@ export default function InsuranceScreen() {
                     {uploading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.saveButtonText}>Save Insurance Details</Text>
+                        <Text style={styles.saveButtonText}>{t('insurance.save')}</Text>
                     )}
                 </TouchableOpacity>
             </ScrollView>
