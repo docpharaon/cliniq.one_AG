@@ -313,8 +313,7 @@ export default function ProfileScreen() {
 
                     <Text style={[styles.menuSectionTitle, { marginTop: spacing.xl }]}>{t('profile.supportTitle')}</Text>
                     <MenuItem icon="❓" label={t('profile.help')} onPress={() => router.push('/settings/help')} />
-                    <MenuItem icon="🔒" label={t('profile.privacyPolicy')} onPress={() => router.push('/settings/privacy-terms' as any)} />
-                    <MenuItem icon="📜" label={t('profile.terms')} onPress={() => router.push('/settings/privacy-terms' as any)} />
+                    <MenuItem icon="📜" label={t('settings.privacyTermsTitle')} onPress={() => router.push('/settings/privacy-terms' as any)} />
                     <MenuItem icon="🐛" label={t('profile.reportBug')} />
                 </View>
 

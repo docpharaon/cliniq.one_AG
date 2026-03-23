@@ -5,7 +5,6 @@ import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
 import { APP } from '@cliniqone/config';
 
-// Update these when you publish the actual legal pages
 const PRIVACY_URL = 'https://cliniq.one/privacy';
 const TERMS_URL = 'https://cliniq.one/terms';
 
@@ -18,7 +17,7 @@ export default function PrivacyTermsScreen() {
                     <TouchableOpacity onPress={() => router.back()}>
                         <Text style={styles.backText}>← {t('common.back')}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>📜 Privacy & Terms</Text>
+                    <Text style={styles.title}>📜 {t('settings.privacyTermsTitle')}</Text>
                 </View>
 
                 {/* Privacy Policy Card */}
@@ -30,9 +29,9 @@ export default function PrivacyTermsScreen() {
                     <View style={styles.cardRow}>
                         <Text style={styles.cardIcon}>🔒</Text>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.cardTitle}>Privacy Policy</Text>
+                            <Text style={styles.cardTitle}>{t('settings.privacyPolicyTitle')}</Text>
                             <Text style={styles.cardDesc}>
-                                How we collect, use, and protect your personal and medical data.
+                                {t('settings.privacyPolicyDesc')}
                             </Text>
                         </View>
                         <Text style={styles.cardArrow}>→</Text>
@@ -48,9 +47,9 @@ export default function PrivacyTermsScreen() {
                     <View style={styles.cardRow}>
                         <Text style={styles.cardIcon}>📋</Text>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.cardTitle}>Terms of Service</Text>
+                            <Text style={styles.cardTitle}>{t('settings.termsOfServiceTitle')}</Text>
                             <Text style={styles.cardDesc}>
-                                Rules and conditions for using cliniq.one services.
+                                {t('settings.termsOfServiceDesc')}
                             </Text>
                         </View>
                         <Text style={styles.cardArrow}>→</Text>
@@ -60,39 +59,36 @@ export default function PrivacyTermsScreen() {
                 {/* Medical Disclaimer */}
                 <View style={styles.disclaimerCard}>
                     <Text style={styles.disclaimerIcon}>⚕️</Text>
-                    <Text style={styles.disclaimerTitle}>Medical Disclaimer</Text>
+                    <Text style={styles.disclaimerTitle}>{t('settings.medicalDisclaimer')}</Text>
                     <Text style={styles.disclaimerBody}>
-                        cliniq.one is a telemedicine platform that connects patients with licensed physicians.
-                        The AI-powered intake system gathers preliminary information only — all medical decisions
-                        are made by qualified doctors.
+                        {t('settings.disclaimerP1')}
                     </Text>
                     <Text style={styles.disclaimerBody}>
-                        This app does not replace emergency medical services. In case of a medical emergency,
-                        call your local emergency number immediately.
+                        {t('settings.disclaimerP2')}
                     </Text>
                 </View>
 
                 {/* Data Rights */}
                 <View style={styles.rightsCard}>
-                    <Text style={styles.rightsTitle}>Your Data Rights</Text>
+                    <Text style={styles.rightsTitle}>{t('settings.dataRightsTitle')}</Text>
                     <View style={styles.rightsList}>
-                        <Text style={styles.rightsItem}>✅ Right to access your data</Text>
-                        <Text style={styles.rightsItem}>✅ Right to correct inaccurate data</Text>
-                        <Text style={styles.rightsItem}>✅ Right to delete your account</Text>
-                        <Text style={styles.rightsItem}>✅ Right to export your data</Text>
-                        <Text style={styles.rightsItem}>✅ Right to withdraw consent</Text>
+                        <Text style={styles.rightsItem}>✅ {t('settings.rightAccess')}</Text>
+                        <Text style={styles.rightsItem}>✅ {t('settings.rightCorrect')}</Text>
+                        <Text style={styles.rightsItem}>✅ {t('settings.rightDelete')}</Text>
+                        <Text style={styles.rightsItem}>✅ {t('settings.rightExport')}</Text>
+                        <Text style={styles.rightsItem}>✅ {t('settings.rightWithdraw')}</Text>
                     </View>
                     <TouchableOpacity
                         style={styles.deleteAccountLink}
                         onPress={() => router.push('/settings/delete-account' as any)}
                     >
-                        <Text style={styles.deleteAccountText}>Delete My Account →</Text>
+                        <Text style={styles.deleteAccountText}>{t('settings.deleteMyAccount')} →</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Version */}
                 <Text style={styles.versionText}>
-                    cliniq.one v{APP.VERSION} • Last updated: March 2026
+                    cliniq.one v{APP.VERSION} • {t('settings.lastUpdated')}
                 </Text>
             </ScrollView>
         </SafeAreaView>

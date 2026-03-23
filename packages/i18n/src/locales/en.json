@@ -581,7 +581,22 @@
         "tokenPurchasesDesc": "Payment confirmations",
         "promotions": "Promotions & Offers",
         "promotionsDesc": "Special deals and announcements",
-        "prefsSaved": "Notification preferences saved!"
+        "prefsSaved": "Notification preferences saved!",
+        "privacyTermsTitle": "Privacy & Terms",
+        "privacyPolicyTitle": "Privacy Policy",
+        "privacyPolicyDesc": "How we collect, use, and protect your personal and medical data.",
+        "termsOfServiceTitle": "Terms of Service",
+        "termsOfServiceDesc": "Rules and conditions for using cliniq.one services.",
+        "medicalDisclaimer": "Medical Disclaimer",
+        "disclaimerP1": "cliniq.one is a telemedicine platform that connects patients with licensed physicians. The AI-powered intake system gathers preliminary information only — all medical decisions are made by qualified doctors.",
+        "disclaimerP2": "This app does not replace emergency medical services. In case of a medical emergency, call your local emergency number immediately.",
+        "dataRightsTitle": "Your Data Rights",
+        "rightAccess": "Right to access your data",
+        "rightCorrect": "Right to correct inaccurate data",
+        "rightDelete": "Right to delete your account",
+        "rightExport": "Right to export your data",
+        "rightWithdraw": "Right to withdraw consent",
+        "lastUpdated": "Last updated: March 2026"
     },
     "protocol": {
         "emergencyDetected": "Your message suggests a medical emergency. Please call emergency services immediately.",
