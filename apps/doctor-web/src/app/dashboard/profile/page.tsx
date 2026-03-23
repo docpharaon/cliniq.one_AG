@@ -56,7 +56,7 @@ export default function ProfilePage() {
         setSaving(true);
         try {
             const supabase = createBrowserSupabase();
-            await supabase
+            const { error } = await supabase
                 .from('doctors')
                 .update({
                     full_name: fullName,
@@ -67,9 +67,14 @@ export default function ProfilePage() {
                 })
                 .eq('id', doctor.id);
 
-            setIsEditing(false);
+            if (error) {
+                alert(`Save failed: ${error.message}`);
+            } else {
+                setIsEditing(false);
+            }
         } catch (err) {
             console.error('Save error:', err);
+            alert('Failed to save profile. Please try again.');
         }
         setSaving(false);
     }

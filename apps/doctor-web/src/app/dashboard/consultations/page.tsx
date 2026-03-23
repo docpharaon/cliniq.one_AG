@@ -12,6 +12,7 @@ import Link from 'next/link';
 const FILTER_TABS = [
     { key: 'all', label: 'All' },
     { key: 'in_progress', label: 'In Progress' },
+    { key: 'inquiry_sent', label: 'Inquiry Sent' },
     { key: 'report_ready', label: 'Report Ready' },
     { key: 'completed', label: 'Completed' },
     { key: 'cancelled', label: 'Cancelled' },
@@ -20,6 +21,7 @@ const FILTER_TABS = [
 const statusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
     assigned: { label: 'Assigned', variant: 'info' },
     in_progress: { label: 'In Progress', variant: 'info' },
+    inquiry_sent: { label: 'Inquiry Sent', variant: 'warning' },
     report_ready: { label: 'Report Ready', variant: 'success' },
     completed: { label: 'Completed', variant: 'success' },
     cancelled: { label: 'Cancelled', variant: 'error' },

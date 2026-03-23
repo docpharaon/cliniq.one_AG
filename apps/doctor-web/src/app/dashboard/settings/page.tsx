@@ -20,6 +20,13 @@ export default function SettingsPage() {
     const handleLogout = async () => {
         const supabase = createBrowserSupabase();
         await supabase.auth.signOut();
+        // Clear remaining sb- cookies
+        document.cookie.split(';').forEach(c => {
+            const name = c.trim().split('=')[0];
+            if (name.startsWith('sb-')) {
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+            }
+        });
         window.location.href = '/login';
     };
 
@@ -85,10 +92,10 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <SettingsLink label="Help Center" icon={HelpCircle} />
-                        <SettingsLink label="Contact Support" icon={Mail} />
-                        <SettingsLink label="Terms of Service" icon={Shield} />
-                        <SettingsLink label="Privacy Policy" icon={Shield} />
+                        <SettingsLink label="Help Center" icon={HelpCircle} href="mailto:support@cliniq.one?subject=Help%20Request" />
+                        <SettingsLink label="Contact Support" icon={Mail} href="mailto:support@cliniq.one" />
+                        <SettingsLink label="Terms of Service" icon={Shield} href="https://cliniq.one/terms" />
+                        <SettingsLink label="Privacy Policy" icon={Shield} href="https://cliniq.one/privacy" />
                     </div>
                 </div>
 
@@ -145,14 +152,28 @@ function NotifToggle({
     );
 }
 
-function SettingsLink({ label, icon: Icon }: { label: string; icon: any }) {
-    return (
-        <button className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-bg-elevated border border-border hover:border-accent/30 transition-all">
+function SettingsLink({ label, icon: Icon, href }: { label: string; icon: any; href?: string }) {
+    const content = (
+        <>
             <div className="flex items-center gap-3">
                 <Icon className="w-4 h-4 text-text-muted" />
                 <span className="text-sm text-text-primary">{label}</span>
             </div>
             <ChevronRight className="w-4 h-4 text-text-muted" />
+        </>
+    );
+
+    if (href) {
+        return (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-bg-elevated border border-border hover:border-accent/30 transition-all">
+                {content}
+            </a>
+        );
+    }
+
+    return (
+        <button className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-bg-elevated border border-border hover:border-accent/30 transition-all">
+            {content}
         </button>
     );
 }

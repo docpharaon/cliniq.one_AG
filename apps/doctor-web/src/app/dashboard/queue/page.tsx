@@ -45,6 +45,7 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'warning' 
     submitted: { label: 'Pending', variant: 'warning' },
     assigned: { label: 'Assigned', variant: 'info' },
     in_progress: { label: 'In Progress', variant: 'info' },
+    inquiry_sent: { label: 'Inquiry Sent', variant: 'warning' },
     report_ready: { label: 'Report Ready', variant: 'success' },
     completed: { label: 'Completed', variant: 'success' },
 };

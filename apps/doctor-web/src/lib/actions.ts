@@ -44,7 +44,7 @@ export async function fetchDoctorDashboardStats(doctorId: string) {
         .from('consultations')
         .select('*', { count: 'exact', head: true })
         .eq('doctor_id', doctorId)
-        .in('status', ['assigned', 'in_progress']);
+        .in('status', ['assigned', 'in_progress', 'inquiry_sent']);
 
     // Pending in doctor's specialty
     const { data: doctorData } = await supabase
@@ -89,12 +89,12 @@ export async function fetchQueueConsultations(
         .order('created_at', { ascending: false });
 
     if (statusFilter === 'mine') {
-        query = query.eq('doctor_id', doctorId).in('status', ['assigned', 'in_progress']);
+        query = query.eq('doctor_id', doctorId).in('status', ['assigned', 'in_progress', 'inquiry_sent']);
     } else if (statusFilter === 'pending') {
         query = query.eq('status', 'submitted').is('doctor_id', null);
     } else {
         // All: doctor's active + pending
-        query = query.or(`and(doctor_id.eq.${doctorId},status.in.(assigned,in_progress)),and(doctor_id.is.null,status.eq.submitted)`);
+        query = query.or(`and(doctor_id.eq.${doctorId},status.in.(assigned,in_progress,inquiry_sent)),and(doctor_id.is.null,status.eq.submitted)`);
     }
 
     if (priorityFilter && priorityFilter !== 'all') {

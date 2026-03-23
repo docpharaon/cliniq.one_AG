@@ -116,7 +116,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right mt-2 sm:mt-0">
                         <p className="text-sm text-text-secondary">📅 {dateStr}</p>
-                        <p className="text-sm text-text-muted">{timeStr} AST</p>
+                        <p className="text-sm text-text-muted">{timeStr} {Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replace('_', ' ') || 'Local'}</p>
                     </div>
                 </div>
 
