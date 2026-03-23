@@ -21,7 +21,6 @@ type UserStats = {
     active: number;
     blocked: number;
     patients: number;
-    doctors: number;
 };
 
 // ── Constants ────────────────────────────────
@@ -41,12 +40,6 @@ const STATUS_TABS = [
     { key: 'inactive', label: 'Inactive' },
 ] as const;
 
-const ROLE_TABS = [
-    { key: 'all', label: 'All Roles' },
-    { key: 'patient', label: 'Patients' },
-    { key: 'doctor', label: 'Doctors' },
-    { key: 'admin', label: 'Admins' },
-] as const;
 
 // ── Helpers ──────────────────────────────────
 
@@ -65,9 +58,8 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserRow[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState<UserStats>({ total: 0, active: 0, blocked: 0, patients: 0, doctors: 0 });
+    const [stats, setStats] = useState<UserStats>({ total: 0, active: 0, blocked: 0, patients: 0 });
     const [activeStatus, setActiveStatus] = useState('all');
-    const [activeRole, setActiveRole] = useState('all');
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const perPage = 25;
@@ -78,14 +70,13 @@ export default function UsersPage() {
     const loadUsers = useCallback(() => {
         setLoading(true);
         const status = activeStatus === 'all' ? undefined : activeStatus;
-        const role = activeRole === 'all' ? undefined : activeRole;
         const searchTerm = search.trim() || undefined;
-        fetchUsers(page, perPage, searchTerm, status, role).then(({ data, count }) => {
+        fetchUsers(page, perPage, searchTerm, status).then(({ data, count }) => {
             setUsers(data as UserRow[]);
             setTotalCount(count);
             setLoading(false);
         });
-    }, [activeStatus, activeRole, search, page]);
+    }, [activeStatus, search, page]);
 
     const loadStats = useCallback(() => {
         fetchUserStats().then(setStats);
@@ -95,7 +86,6 @@ export default function UsersPage() {
     useEffect(() => { loadStats(); }, [loadStats]);
 
     function handleStatusFilter(key: string) { setActiveStatus(key); setPage(1); }
-    function handleRoleFilter(key: string) { setActiveRole(key); setPage(1); }
     function handleSearchChange(val: string) { setSearch(val); setPage(1); }
 
     function refreshAll() { loadUsers(); loadStats(); }
@@ -147,9 +137,9 @@ export default function UsersPage() {
                     {/* Table Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border">
                         <div>
-                            <h2 className="text-xl font-bold text-text-primary">All Users</h2>
+                            <h2 className="text-xl font-bold text-text-primary">All Patients</h2>
                             <p className="text-sm text-text-muted mt-0.5">
-                                {totalCount} registered users
+                                {totalCount} registered patients
                             </p>
                         </div>
                     </div>
@@ -171,23 +161,6 @@ export default function UsersPage() {
                                         {stats.blocked}
                                     </span>
                                 )}
-                            </button>
-                        ))}
-
-                        {/* Separator */}
-                        <div className="w-px h-6 bg-border/50 mx-1" />
-
-                        {/* Role sub-filter */}
-                        {ROLE_TABS.map(tab => (
-                            <button
-                                key={tab.key}
-                                onClick={() => handleRoleFilter(tab.key)}
-                                className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${activeRole === tab.key
-                                    ? 'bg-bg-elevated text-text-primary border border-accent/30'
-                                    : 'text-text-muted hover:text-text-secondary'
-                                    }`}
-                            >
-                                {tab.label}
                             </button>
                         ))}
                     </div>

@@ -193,10 +193,17 @@ export default function DashboardPage() {
                                             <Link
                                                 key={item.id}
                                                 href={`/dashboard/consultation/${item.id}`}
-                                                className="flex items-center gap-4 px-4 py-3 rounded-xl bg-bg-elevated border border-border hover:border-accent/30 transition-all group"
+                                                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-elevated hover:bg-bg-elevated/80 border border-border hover:border-accent/30 transition-all"
                                             >
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
+                                                {/* Initials Avatar */}
+                                                <div
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+                                                    style={{ backgroundColor: `hsl(${((item.patient?.nickname || 'P').charCodeAt(0) * 37) % 360}, 60%, 45%)` }}
+                                                >
+                                                    {(item.patient?.nickname || 'P')[0].toUpperCase()}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-0.5">
                                                         <StatusBadge
                                                             label={item.priority === 'urgent' ? 'URGENT' : 'ROUTINE'}
                                                             variant={item.priority === 'urgent' ? 'error' : 'success'}

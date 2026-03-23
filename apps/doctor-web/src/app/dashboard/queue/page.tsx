@@ -207,11 +207,19 @@ export default function QueuePage() {
                                                 return (
                                                     <tr key={row.id} className="group">
                                                         <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-l-xl">
-                                                            <div>
-                                                                <span className="font-semibold text-text-primary">{row.patient?.nickname || 'Patient'}</span>
-                                                                <p className="text-xs text-text-muted capitalize">
-                                                                    {row.patient?.gender} · {new Date().getFullYear() - (row.patient?.year_of_birth || 2000)}y
-                                                                </p>
+                                                            <div className="flex items-center gap-3">
+                                                                <div
+                                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+                                                                    style={{ backgroundColor: `hsl(${((row.patient?.nickname || 'P').charCodeAt(0) * 37) % 360}, 60%, 45%)` }}
+                                                                >
+                                                                    {(row.patient?.nickname || 'P')[0].toUpperCase()}
+                                                                </div>
+                                                                <div>
+                                                                    <span className="font-semibold text-text-primary">{row.patient?.nickname || 'Patient'}</span>
+                                                                    <p className="text-xs text-text-muted capitalize">
+                                                                        {row.patient?.gender} · {new Date().getFullYear() - (row.patient?.year_of_birth || 2000)}y
+                                                                    </p>
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">

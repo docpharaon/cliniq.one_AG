@@ -7,21 +7,31 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { supabase, safeFetch } from '@cliniqone/api';
+import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
 
 // ── Report Categories ────────────────────────────
-const CATEGORIES = [
-    { key: 'wrong_question', label: '❓ Wrong or irrelevant question', },
-    { key: 'repeated_question', label: '🔁 Asked the same thing again', },
-    { key: 'inappropriate', label: '⚠️ Inappropriate response', },
-    { key: 'stuck_loop', label: '🔄 Stuck in a loop', },
-    { key: 'skipped_section', label: '⏭️ Skipped a section', },
-    { key: 'other', label: '📝 Other issue', },
+const CATEGORY_KEYS = [
+    'wrong_question',
+    'repeated_question',
+    'inappropriate',
+    'stuck_loop',
+    'skipped_section',
+    'other',
 ] as const;
 
-type CategoryKey = typeof CATEGORIES[number]['key'];
+const CATEGORY_LABELS: Record<string, string> = {
+    wrong_question: 'report.wrongQuestion',
+    repeated_question: 'report.repeatedQuestion',
+    inappropriate: 'report.inappropriate',
+    stuck_loop: 'report.stuckLoop',
+    skipped_section: 'report.skippedSection',
+    other: 'report.otherIssue',
+};
+
+type CategoryKey = typeof CATEGORY_KEYS[number];
 
 export default function ReportChatScreen() {
     const [category, setCategory] = useState<CategoryKey>('other');
@@ -40,11 +50,11 @@ export default function ReportChatScreen() {
 
     async function handleSubmit() {
         if (note.trim().length < 10) {
-            toast('Please provide more detail (at least 10 characters).', 'warning');
+            toast(t('report.minCharsWarning'), 'warning');
             return;
         }
         if (!user?.id) {
-            toast('You must be logged in to submit a report.', 'error');
+            toast(t('report.mustBeLoggedIn'), 'error');
             return;
         }
 
@@ -87,15 +97,15 @@ export default function ReportChatScreen() {
             if (error) throw error;
 
             setSubmitted(true);
-            toast('Report submitted — thank you!', 'success');
+            toast(t('report.submitted'), 'success');
             setTimeout(() => {
                 router.back();
             }, 2000);
         } catch (err: any) {
             console.error('Report submission error:', err);
             const msg = err?.message?.includes('timed out')
-                ? 'Connection is slow. Please try again.'
-                : 'Failed to submit report. Please try again.';
+                ? t('report.connectionSlow')
+                : t('report.submitFailed');
             toast(msg, 'error');
         } finally {
             setSubmitting(false);
@@ -108,11 +118,11 @@ export default function ReportChatScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.confirmationBox}>
                     <Text style={styles.confirmEmoji}>✅</Text>
-                    <Text style={styles.confirmTitle}>Thank you for your feedback</Text>
+                    <Text style={styles.confirmTitle}>{t('report.thankYou')}</Text>
                     <Text style={styles.confirmText}>
-                        Your report has been submitted and will be reviewed by our team.
+                        {t('report.submittedDesc')}
                     </Text>
-                    <Text style={styles.confirmRedirect}>Returning to chat...</Text>
+                    <Text style={styles.confirmRedirect}>{t('report.returning')}</Text>
                 </View>
             </SafeAreaView>
         );
@@ -124,51 +134,50 @@ export default function ReportChatScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.backText}>← Back to chat</Text>
+                    <Text style={styles.backText}>{t('report.backToChat')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>⚑ Report an Issue</Text>
+                <Text style={styles.headerTitle}>{t('report.title')}</Text>
             </View>
 
             <ScrollView style={styles.scrollContent} contentContainerStyle={styles.formContent}>
                 {/* Description */}
                 <Text style={styles.description}>
-                    If the AI asked something wrong, repeated itself, or behaved unexpectedly,
-                    let us know so we can improve.
+                    {t('report.description')}
                 </Text>
 
                 {/* Category Picker */}
-                <Text style={styles.sectionTitle}>What happened?</Text>
+                <Text style={styles.sectionTitle}>{t('report.whatHappened')}</Text>
                 <View style={styles.categoryList}>
-                    {CATEGORIES.map((cat) => (
+                    {CATEGORY_KEYS.map((key) => (
                         <TouchableOpacity
-                            key={cat.key}
+                            key={key}
                             style={[
                                 styles.categoryItem,
-                                category === cat.key && styles.categoryItemSelected,
+                                category === key && styles.categoryItemSelected,
                             ]}
-                            onPress={() => setCategory(cat.key)}
+                            onPress={() => setCategory(key)}
                         >
                             <View style={[
                                 styles.radio,
-                                category === cat.key && styles.radioSelected,
+                                category === key && styles.radioSelected,
                             ]}>
-                                {category === cat.key && <View style={styles.radioInner} />}
+                                {category === key && <View style={styles.radioInner} />}
                             </View>
                             <Text style={[
                                 styles.categoryLabel,
-                                category === cat.key && styles.categoryLabelSelected,
+                                category === key && styles.categoryLabelSelected,
                             ]}>
-                                {cat.label}
+                                {t(CATEGORY_LABELS[key])}
                             </Text>
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 {/* Note */}
-                <Text style={styles.sectionTitle}>Describe the issue</Text>
+                <Text style={styles.sectionTitle}>{t('report.describeIssue')}</Text>
                 <TextInput
                     style={styles.textArea}
-                    placeholder="Tell us what went wrong..."
+                    placeholder={t('report.placeholder')}
                     placeholderTextColor={colors.textTertiary}
                     value={note}
                     onChangeText={setNote}
@@ -182,9 +191,7 @@ export default function ReportChatScreen() {
                 {/* Info notice */}
                 <View style={styles.infoBox}>
                     <Text style={styles.infoText}>
-                        ℹ️ Your chat history will be attached to this report so our team can
-                        diagnose the issue. No personal data beyond what you've shared in the
-                        chat will be included.
+                        {t('report.infoNote')}
                     </Text>
                 </View>
 
@@ -197,7 +204,7 @@ export default function ReportChatScreen() {
                     {submitting ? (
                         <ActivityIndicator color="#fff" size="small" />
                     ) : (
-                        <Text style={styles.submitText}>Submit Report</Text>
+                        <Text style={styles.submitText}>{t('report.submitButton')}</Text>
                     )}
                 </TouchableOpacity>
             </ScrollView>

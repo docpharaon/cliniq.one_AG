@@ -110,6 +110,9 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
     const [archiving, setArchiving] = useState(false);
     const [purging, setPurging] = useState(false);
     const [activeSection, setActiveSection] = useState<string | null>('details');
+    const [hasPrinted, setHasPrinted] = useState(false);
+    const [confirmPrinted, setConfirmPrinted] = useState(false);
+    const [confirmIrreversible, setConfirmIrreversible] = useState(false);
 
     const st = statusMap[c.status] ?? { label: c.status, variant: 'neutral' as const };
     const deadlineInfo = getDeadlineInfo(c.deadline_at, c.status);
@@ -225,6 +228,7 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
         `);
         printWindow.document.close();
         printWindow.print();
+        setHasPrinted(true);
     }
 
     function SectionToggle({ title, icon: Icon, sectionKey }: { title: string; icon: React.ElementType; sectionKey: string }) {
@@ -500,10 +504,10 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
                 </div>
             </div>
 
-            {/* Purge Confirmation Modal */}
+            {/* Purge Confirmation Modal — Print-Before-Purge Enforcement */}
             {showPurgeConfirm && (
                 <>
-                    <div className="fixed inset-0 bg-black/70 z-[60]" onClick={() => setShowPurgeConfirm(false)} />
+                    <div className="fixed inset-0 bg-black/70 z-[60]" onClick={() => { setShowPurgeConfirm(false); setConfirmPrinted(false); setConfirmIrreversible(false); }} />
                     <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-full max-w-md bg-bg-primary border border-border rounded-2xl p-6 shadow-2xl">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-error/10 rounded-xl flex items-center justify-center">
@@ -511,7 +515,7 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-text-primary">Purge Cloud Data</h3>
-                                <p className="text-xs text-text-muted">Case {c.id.slice(0, 8)}</p>
+                                <p className="text-xs text-text-muted">Case {c.id.slice(0, 8)} — Zero Retention Policy</p>
                             </div>
                         </div>
 
@@ -525,22 +529,54 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
                                 <li>• Protocol logs</li>
                                 <li>• Medical report & prescription data</li>
                             </ul>
-                            <p className="mt-3 text-xs text-error font-semibold">
-                                ⚠️ This action cannot be undone. Ensure the PDF has been stored offline first.
-                            </p>
+                        </div>
+
+                        {/* Print First Button */}
+                        <button
+                            onClick={handlePrintPDF}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent text-bg-primary text-sm font-bold mb-4 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all"
+                        >
+                            <Printer className="w-4 h-4" />
+                            {hasPrinted ? '✅ Printed — Print Again' : '🖨 Print Hard Copy First'}
+                        </button>
+
+                        {/* Enforcement Checkboxes */}
+                        <div className="space-y-3 mb-4 border-t border-border pt-4">
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={confirmPrinted}
+                                    onChange={e => setConfirmPrinted(e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 rounded border-border accent-accent cursor-pointer"
+                                />
+                                <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">
+                                    I confirm I have <strong className="text-text-primary">printed/exported a hard copy</strong> of this consultation record
+                                </span>
+                            </label>
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={confirmIrreversible}
+                                    onChange={e => setConfirmIrreversible(e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 rounded border-border accent-error cursor-pointer"
+                                />
+                                <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">
+                                    I understand this action is <strong className="text-error">irreversible</strong> and all cloud data will be permanently deleted
+                                </span>
+                            </label>
                         </div>
 
                         <div className="flex gap-3">
                             <button
-                                onClick={() => setShowPurgeConfirm(false)}
+                                onClick={() => { setShowPurgeConfirm(false); setConfirmPrinted(false); setConfirmIrreversible(false); }}
                                 className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm text-text-secondary hover:bg-bg-elevated transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handlePurge}
-                                disabled={purging}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-error text-white text-sm font-semibold hover:bg-error/90 transition-colors disabled:opacity-50"
+                                disabled={purging || !confirmPrinted || !confirmIrreversible}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-error text-white text-sm font-semibold hover:bg-error/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 {purging ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                 Purge Forever

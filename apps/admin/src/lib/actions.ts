@@ -13,16 +13,37 @@ import {
     getDoctorStats,
     createDoctor,
     resetDoctorPassword,
+    renewLocumCredential,
+    getExpiredLocumDoctors,
+    getExpiringLocumDoctors,
+    lookupDoctorByCode,
+    createLocumInvitation,
+    getLocumInvitations,
+    revokeLocumInvitation,
+    getLocumDocuments,
+    getPendingLocumOnboarding,
+    approveLocumOnboarding,
+    rejectLocumOnboarding,
+    updateDoctorPricing,
+    getLocumPricingLimits,
+    setLocumPricingLimits,
     getConsultations,
     getConsultationById,
     getConsultationStats,
     getOverdueConsultations,
     archiveConsultation,
     purgeConsultationData,
+    getPendingArchiveCount,
+    getPendingArchiveConsultations,
+    batchArchiveConsultations,
+    batchPurgeConsultations,
     assignConsultationToDoctor,
     getProtocolLogs,
     getTokenTransactions,
     getDashboardStats,
+    getConsultationFlow,
+    getSpecialtyBreakdown,
+    getRecentActivity,
     getSchedules,
     createSchedule,
     updateSchedule,
@@ -39,12 +60,14 @@ import {
     getActivePromptByType,
     getDraftCount,
     publishDrafts,
+    getRecentPromptActivity,
     getPromptSequences,
     getSequenceWithNodes,
     getDefaultSequence,
     createPromptSequence,
     updatePromptSequence,
     deletePromptSequence,
+    clonePromptSequence,
     createSequenceNode,
     updateSequenceNode,
     deleteSequenceNode,
@@ -131,12 +154,71 @@ export async function addDoctor(doctor: {
     bio?: string;
     daily_limit?: number;
     is_accepting?: boolean;
+    doctor_type?: 'permanent' | 'locum';
 }) {
     return createDoctor(doctor);
 }
 
 export async function resetDoctorPasswordAction(doctorId: string, newPassword: string) {
     return resetDoctorPassword(doctorId, newPassword);
+}
+
+export async function doRenewLocumCredential(doctorId: string) {
+    return renewLocumCredential(doctorId);
+}
+
+export async function fetchExpiredLocumDoctors() {
+    return getExpiredLocumDoctors();
+}
+
+export async function fetchExpiringLocumDoctors(withinDays?: number) {
+    return getExpiringLocumDoctors(withinDays);
+}
+
+export async function doLookupDoctorByCode(code: string) {
+    return lookupDoctorByCode(code);
+}
+
+// ── Locum Onboarding Actions ─────────────────
+
+export async function doCreateLocumInvitation(adminId: string, specialty: string, expiresInDays?: number, notes?: string) {
+    return createLocumInvitation(adminId, specialty, expiresInDays, notes);
+}
+
+export async function fetchLocumInvitations() {
+    return getLocumInvitations();
+}
+
+export async function doRevokeLocumInvitation(invitationId: string) {
+    return revokeLocumInvitation(invitationId);
+}
+
+export async function fetchLocumDocuments(doctorId: string) {
+    return getLocumDocuments(doctorId);
+}
+
+export async function fetchPendingLocumOnboarding() {
+    return getPendingLocumOnboarding();
+}
+
+export async function doApproveLocumOnboarding(doctorId: string, adminId: string) {
+    return approveLocumOnboarding(doctorId, adminId);
+}
+
+export async function doRejectLocumOnboarding(doctorId: string, reason: string) {
+    return rejectLocumOnboarding(doctorId, reason);
+}
+
+export async function doUpdateDoctorPricing(doctorId: string, feeTokens: number) {
+    return updateDoctorPricing(doctorId, feeTokens);
+}
+
+export async function fetchLocumPricingLimits() {
+    return getLocumPricingLimits();
+}
+
+export async function doSetLocumPricingLimits(min: number, max: number) {
+    return setLocumPricingLimits(min, max);
 }
 
 export async function fetchConsultations(page = 1, perPage = 50, search?: string, status?: string) {
@@ -163,6 +245,22 @@ export async function doPurgeConsultation(id: string, adminUserId: string) {
     return purgeConsultationData(id, adminUserId);
 }
 
+export async function fetchPendingArchiveCount() {
+    return getPendingArchiveCount();
+}
+
+export async function fetchPendingArchiveList() {
+    return getPendingArchiveConsultations();
+}
+
+export async function doBatchArchive(ids: string[], adminUserId: string) {
+    return batchArchiveConsultations(ids, adminUserId);
+}
+
+export async function doBatchPurge(ids: string[], adminUserId: string) {
+    return batchPurgeConsultations(ids, adminUserId);
+}
+
 export async function doAssignDoctor(consultationId: string, doctorId: string) {
     return assignConsultationToDoctor(consultationId, doctorId);
 }
@@ -177,6 +275,18 @@ export async function fetchTokenTransactions(page = 1, perPage = 50, search?: st
 
 export async function fetchDashboardStats() {
     return getDashboardStats();
+}
+
+export async function fetchConsultationFlow() {
+    return getConsultationFlow();
+}
+
+export async function fetchSpecialtyBreakdown() {
+    return getSpecialtyBreakdown();
+}
+
+export async function fetchRecentActivity() {
+    return getRecentActivity();
 }
 
 export async function fetchSchedules(page = 1, perPage = 50, search?: string, dayOfWeek?: number, doctorId?: string) {
@@ -262,6 +372,10 @@ export async function doPublishDrafts() {
     return publishDrafts();
 }
 
+export async function fetchRecentPromptActivity(limit = 5) {
+    return getRecentPromptActivity(limit);
+}
+
 // ── Prompt Sequences ──────────────────────
 
 export async function fetchPromptSequences() {
@@ -286,6 +400,10 @@ export async function editPromptSequence(id: string, updates: { name?: string; i
 
 export async function removePromptSequence(id: string) {
     return deletePromptSequence(id);
+}
+
+export async function cloneSequence(sourceId: string, newName: string) {
+    return clonePromptSequence(sourceId, newName);
 }
 
 export async function addSequenceNode(node: {

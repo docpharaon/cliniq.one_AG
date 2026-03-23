@@ -4,27 +4,27 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
-import { t } from '@cliniqone/i18n';
+import { t, toLocalNum, localDate } from '@cliniqone/i18n';
 import type { Consultation, ConsultationStatus } from '@cliniqone/types';
 import { useAuthStore } from '../../stores/authStore';
 import { useConsultations } from '../../hooks/useConsultations';
 
-const STATUS_FILTERS: { key: string; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'completed', label: 'Completed' },
+const STATUS_FILTERS: { key: string; labelKey: string }[] = [
+    { key: 'all', labelKey: 'consultations.filterAll' },
+    { key: 'active', labelKey: 'consultations.filterActive' },
+    { key: 'completed', labelKey: 'consultations.filterCompleted' },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-    draft: { label: 'Draft', color: colors.textTertiary, bg: colors.bgTertiary },
-    intake_in_progress: { label: 'Intake', color: colors.accentBlue, bg: colors.infoFaded },
-    pending_payment: { label: 'Pending', color: colors.warning, bg: colors.warningFaded },
-    submitted: { label: 'Submitted', color: colors.accentTeal, bg: colors.accentTealFaded },
-    assigned: { label: 'Assigned', color: colors.accentBlue, bg: colors.infoFaded },
-    in_progress: { label: 'In Progress', color: colors.accentBlue, bg: colors.infoFaded },
-    report_ready: { label: 'Report Ready', color: colors.success, bg: colors.successFaded },
-    completed: { label: 'Completed', color: colors.success, bg: colors.successFaded },
-    cancelled: { label: 'Cancelled', color: colors.error, bg: colors.errorFaded },
+const STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: string }> = {
+    draft: { labelKey: 'consultations.statusDraft', color: colors.textTertiary, bg: colors.bgTertiary },
+    intake_in_progress: { labelKey: 'consultations.statusIntake', color: colors.accentBlue, bg: colors.infoFaded },
+    pending_payment: { labelKey: 'consultations.statusPending', color: colors.warning, bg: colors.warningFaded },
+    submitted: { labelKey: 'consultations.statusSubmitted', color: colors.accentTeal, bg: colors.accentTealFaded },
+    assigned: { labelKey: 'consultations.statusAssigned', color: colors.accentBlue, bg: colors.infoFaded },
+    in_progress: { labelKey: 'consultations.statusInProgress', color: colors.accentBlue, bg: colors.infoFaded },
+    report_ready: { labelKey: 'consultations.statusReportReady', color: colors.success, bg: colors.successFaded },
+    completed: { labelKey: 'consultations.statusCompleted', color: colors.success, bg: colors.successFaded },
+    cancelled: { labelKey: 'consultations.statusCancelled', color: colors.error, bg: colors.errorFaded },
 };
 
 function filterConsultations(consultations: Consultation[], filter: string): Consultation[] {
@@ -39,10 +39,10 @@ function filterConsultations(consultations: Consultation[], filter: string): Con
 function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const hours = Math.floor(diff / 3600000);
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 1) return t('consultations.justNow');
+    if (hours < 24) return t('consultations.hoursAgo', { count: hours });
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return t('consultations.daysAgo', { count: days });
 }
 
 export default function ConsultationsScreen() {
@@ -120,7 +120,7 @@ export default function ConsultationsScreen() {
                                 onPress={() => setFilter(f.key)}
                             >
                                 <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
-                                    {f.label}
+                                    {t(f.labelKey)}
                                 </Text>
                             </TouchableOpacity>
                         ))}
@@ -161,11 +161,11 @@ export default function ConsultationsScreen() {
                                     <View style={styles.consultSpecialty}>
                                         <Text style={styles.consultIcon}>🩺</Text>
                                         <Text style={styles.consultSpecialtyText}>
-                                            {(consultation.specialty || 'General').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                            {(consultation.specialty || t('consultations.general')).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                                         </Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-                                        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                                        <Text style={[styles.statusText, { color: status.color }]}>{t(status.labelKey)}</Text>
                                     </View>
                                 </View>
 
@@ -175,12 +175,12 @@ export default function ConsultationsScreen() {
 
                                 <View style={styles.consultFooter}>
                                     <Text style={styles.consultTime}>{timeAgo(consultation.created_at)}</Text>
-                                    <Text style={styles.consultCost}>{consultation.token_cost} tokens</Text>
+                                    <Text style={styles.consultCost}>{toLocalNum(consultation.token_cost)} {t('tokens.tokensLabel')}</Text>
                                 </View>
 
                                 {consultation.status === 'completed' && consultation.report && (
                                     <View style={styles.reportBanner}>
-                                        <Text style={styles.reportBannerText}>📋 Report & Prescription Available</Text>
+                                        <Text style={styles.reportBannerText}>{t('consultations.reportAvailable')}</Text>
                                         <View style={styles.reportActions}>
                                             <TouchableOpacity style={styles.reportActionBtn}>
                                                 <Text style={styles.reportActionText}>📥 {t('consultations.downloadReport')}</Text>
@@ -195,7 +195,7 @@ export default function ConsultationsScreen() {
                                 {/* Intervention notification */}
                                 {consultation.status === 'completed' && consultation.report && (
                                     <View style={styles.interventionBanner}>
-                                        <Text style={styles.interventionBannerText}>🧪 Interventions suggested — View details</Text>
+                                        <Text style={styles.interventionBannerText}>{t('consultations.interventionsSuggested')}</Text>
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -206,7 +206,7 @@ export default function ConsultationsScreen() {
                 {/* Start New */}
                 <View style={{ marginTop: spacing.xl }}>
                     <Button
-                        title="🩺 Start New Consultation"
+                        title={t('consultations.startNewConsultation')}
                         onPress={() => router.push('/intake')}
                         variant="outline"
                         size="lg"

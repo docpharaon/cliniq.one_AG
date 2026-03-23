@@ -15,11 +15,13 @@ import {
     fetchPromptVersions,
     rollbackToVersion,
     updatePrompt,
+    cloneSequence,
+    fetchPlatformSetting,
 } from '@/lib/actions';
 import {
     Plus, Trash2, Save, Star, ChevronUp, ChevronDown,
     Loader2, GitBranchPlus, AlertTriangle, Edit3, X, Link2,
-    History, RotateCcw, Clock, ChevronRight, Copy, ShieldCheck, CheckCircle2,
+    History, RotateCcw, Clock, ChevronRight, Copy, ShieldCheck, CheckCircle2, Shield,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────
@@ -100,7 +102,7 @@ const SEQUENCE_TEMPLATES = [
     },
     {
         name: '⚡ Quick Follow-Up',
-        desc: 'Streamlined: greeting → HPI → summary',
+        desc: 'Streamlined: greeting → HPI → meds → summary',
         nodes: [
             { step_key: 'greeting', label: 'Greeting', emoji: '👋' },
             { step_key: 'hpi', label: 'Present Illness', emoji: '📋' },
@@ -110,7 +112,7 @@ const SEQUENCE_TEMPLATES = [
     },
     {
         name: '💊 Refill Request',
-        desc: 'Minimal: greeting → medications → summary',
+        desc: 'Minimal: greeting → medications → allergies → summary',
         nodes: [
             { step_key: 'greeting', label: 'Greeting', emoji: '👋' },
             { step_key: 'medications', label: 'Current Medications', emoji: '💊' },
@@ -202,6 +204,111 @@ export default function SequenceBuilderContent() {
     const [checkingIntegrity, setCheckingIntegrity] = useState(false);
     const [fixingNodeId, setFixingNodeId] = useState<string | null>(null);
 
+    // ── Active Sequence Protection ──
+    const [activeProductionId, setActiveProductionId] = useState<string | null>(null);
+    const [showCloneDialog, setShowCloneDialog] = useState(false);
+    const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+    const [acknowledgedDirectEdit, setAcknowledgedDirectEdit] = useState(false);
+    const [cloning, setCloning] = useState(false);
+
+    const isActiveSequence = selectedId !== '' && (
+        selectedId === activeProductionId ||
+        (!activeProductionId && sequences.find(s => s.id === selectedId)?.is_default === true)
+    );
+
+    // Fetch the active production sequence ID on mount
+    useEffect(() => {
+        fetchPlatformSetting('ai_active_sequence_id').then(val => {
+            if (val) setActiveProductionId(val);
+        });
+    }, []);
+
+    // Reset session acknowledgment when switching sequences
+    useEffect(() => {
+        setAcknowledgedDirectEdit(false);
+    }, [selectedId]);
+
+    /**
+     * Guard: intercept edit actions on the active production sequence.
+     * Returns true if the action should proceed, false if it was intercepted.
+     */
+    function guardActiveSequence(action: () => void): boolean {
+        if (!isActiveSequence || acknowledgedDirectEdit) return true;
+        setPendingAction(() => action);
+        setShowCloneDialog(true);
+        return false;
+    }
+
+    async function handleCloneAndEdit() {
+        if (!selectedSeq) return;
+        setCloning(true);
+        const res = await cloneSequence(selectedId, `${selectedSeq.name} (draft)`);
+        if (res.error || !res.data) {
+            setError(res.error || 'Failed to clone sequence');
+            setCloning(false);
+            setShowCloneDialog(false);
+            return;
+        }
+        await loadSequences();
+        setSelectedId(res.data.id);
+        setSuccess(`Cloned as "${res.data.name}" — now editing the draft`);
+        setShowCloneDialog(false);
+        setPendingAction(null);
+        setCloning(false);
+    }
+
+    function handleEditAnyway() {
+        setAcknowledgedDirectEdit(true);
+        setShowCloneDialog(false);
+        if (pendingAction) {
+            pendingAction();
+            setPendingAction(null);
+        }
+    }
+
+    function handleCancelCloneDialog() {
+        setShowCloneDialog(false);
+        setPendingAction(null);
+    }
+
+    // ── Multi-level Undo Stack (5 levels) ──
+    const [undoStack, setUndoStack] = useState<{ label: string; snapshot: SequenceNode[] }[]>([]);
+    const [restoringSnapshot, setRestoringSnapshot] = useState(false);
+    const MAX_UNDO_LEVELS = 5;
+
+    function saveSnapshot(label: string) {
+        setUndoStack(prev => {
+            const updated = [{ label, snapshot: [...nodes] }, ...prev];
+            return updated.slice(0, MAX_UNDO_LEVELS);
+        });
+    }
+
+    async function handleUndo() {
+        if (undoStack.length === 0 || !selectedId) return;
+        const latest = undoStack[0];
+        if (!confirm(`Undo "${latest.label}"? This will revert the sequence to its previous state.`)) return;
+        setRestoringSnapshot(true);
+        try {
+            // Restore each node's state (prompt_id, pathway, gender, order)
+            for (const snapNode of latest.snapshot) {
+                await editSequenceNode(snapNode.id, {
+                    prompt_id: snapNode.prompt_id,
+                    pathway_condition: snapNode.pathway_condition,
+                    gender_condition: snapNode.gender_condition,
+                    sort_order: snapNode.sort_order,
+                });
+            }
+            // Re-order by snapshot order
+            await reorderNodes(selectedId, latest.snapshot.map(n => n.id));
+            await loadNodes();
+            setSuccess(`Reverted: "${latest.label}"`);
+            setUndoStack(prev => prev.slice(1));
+        } catch {
+            setError('Failed to revert');
+        }
+        setRestoringSnapshot(false);
+    }
+
     // ── New node form ──
     const [newNode, setNewNode] = useState({
         step_key: '',
@@ -287,46 +394,61 @@ export default function SequenceBuilderContent() {
     }
 
     async function handleDeleteSequence(id: string) {
-        if (!confirm('Delete this sequence and all its nodes?')) return;
-        await removePromptSequence(id);
+        if (!confirm('Delete this sequence and all its nodes? This cannot be undone.')) return;
+        const res = await removePromptSequence(id);
+        if (res.error) {
+            setError(res.error);
+            return;
+        }
         setSuccess('Sequence deleted');
         setSelectedId('');
         await loadSequences();
     }
 
     async function handleAddNode() {
-        if (!newNode.step_key.trim() || !newNode.label.trim()) { setError('Step key and label required'); return; }
-        setSaving(true);
-        const res = await addSequenceNode({
-            sequence_id: selectedId,
-            step_key: newNode.step_key,
-            label: newNode.label,
-            emoji: newNode.emoji,
-            prompt_id: newNode.prompt_id || null,
-            sort_order: nodes.length,
-            parent_node_id: newNode.parent_node_id || null,
-            pathway_condition: newNode.pathway_condition || null,
-        });
-        if (res.error) setError(res.error);
-        else {
-            setSuccess('Node added!');
-            setShowAddNode(false);
-            setNewNode({ step_key: '', label: '', emoji: '📋', prompt_id: '', pathway_condition: '', parent_node_id: '' });
-            await loadNodes();
-        }
-        setSaving(false);
+        const doIt = async () => {
+            if (!newNode.step_key.trim() || !newNode.label.trim()) { setError('Step key and label required'); return; }
+            setSaving(true);
+            const res = await addSequenceNode({
+                sequence_id: selectedId,
+                step_key: newNode.step_key,
+                label: newNode.label,
+                emoji: newNode.emoji,
+                prompt_id: newNode.prompt_id || null,
+                sort_order: nodes.length,
+                parent_node_id: newNode.parent_node_id || null,
+                pathway_condition: newNode.pathway_condition || null,
+            });
+            if (res.error) setError(res.error);
+            else {
+                setSuccess('Node added!');
+                setShowAddNode(false);
+                setNewNode({ step_key: '', label: '', emoji: '📋', prompt_id: '', pathway_condition: '', parent_node_id: '' });
+                await loadNodes();
+            }
+            setSaving(false);
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     async function handleUpdateNodePrompt(nodeId: string, promptId: string | null) {
-        await editSequenceNode(nodeId, { prompt_id: promptId });
-        await loadNodes();
-        setSuccess('Prompt linked!');
-        // Load versions for the newly linked prompt
-        if (promptId) {
-            loadVersionsForPrompt(nodeId, promptId);
-        } else {
-            setNodeVersions(prev => { const n = { ...prev }; delete n[nodeId]; return n; });
-        }
+        const doIt = async () => {
+            const node = nodes.find(n => n.id === nodeId);
+            const promptName = promptId ? prompts.find(p => p.id === promptId)?.name : 'None';
+            if (!confirm(`Link prompt "${promptName}" to "${node?.label}"?`)) return;
+            saveSnapshot('prompt link change');
+            await editSequenceNode(nodeId, { prompt_id: promptId });
+            await loadNodes();
+            setSuccess('Prompt linked!');
+            if (promptId) {
+                loadVersionsForPrompt(nodeId, promptId);
+            } else {
+                setNodeVersions(prev => { const n = { ...prev }; delete n[nodeId]; return n; });
+            }
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     async function handleRollbackVersion(nodeId: string, promptId: string, versionId: string) {
@@ -345,35 +467,71 @@ export default function SequenceBuilderContent() {
     }
 
     async function handleUpdateNodePathway(nodeId: string, condition: string) {
-        await editSequenceNode(nodeId, { pathway_condition: condition || null });
-        await loadNodes();
+        const doIt = async () => {
+            const node = nodes.find(n => n.id === nodeId);
+            const condLabel = PATHWAY_CONDITIONS.find(c => c.value === condition)?.label || 'None';
+            if (!confirm(`Set pathway condition to "${condLabel}" for "${node?.label}"?`)) return;
+            saveSnapshot('pathway change');
+            await editSequenceNode(nodeId, { pathway_condition: condition || null });
+            await loadNodes();
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     async function handleUpdateNodeParent(nodeId: string, parentId: string) {
-        await editSequenceNode(nodeId, { parent_node_id: parentId || null });
-        await loadNodes();
+        const doIt = async () => {
+            const node = nodes.find(n => n.id === nodeId);
+            const parentNode = nodes.find(n => n.id === parentId);
+            if (!confirm(`Set parent of "${node?.label}" to "${parentNode?.label || 'None'}"?`)) return;
+            saveSnapshot('parent change');
+            await editSequenceNode(nodeId, { parent_node_id: parentId || null });
+            await loadNodes();
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     async function handleUpdateNodeGender(nodeId: string, condition: string) {
-        await editSequenceNode(nodeId, { gender_condition: condition || null });
-        await loadNodes();
+        const doIt = async () => {
+            const node = nodes.find(n => n.id === nodeId);
+            const genderLabel = GENDER_CONDITIONS.find(c => c.value === condition)?.label || 'None';
+            if (!confirm(`Set gender condition to "${genderLabel}" for "${node?.label}"?`)) return;
+            saveSnapshot('gender condition change');
+            await editSequenceNode(nodeId, { gender_condition: condition || null });
+            await loadNodes();
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     async function handleDeleteNode(nodeId: string) {
-        if (!confirm('Delete this node?')) return;
-        await removeSequenceNode(nodeId);
-        setSuccess('Node deleted');
-        await loadNodes();
+        const doIt = async () => {
+            const node = nodes.find(n => n.id === nodeId);
+            if (!confirm(`Delete node "${node?.label || nodeId}"? This cannot be undone.`)) return;
+            saveSnapshot('node deletion');
+            await removeSequenceNode(nodeId);
+            setSuccess('Node deleted');
+            await loadNodes();
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     async function handleMoveNode(idx: number, direction: 'up' | 'down') {
-        const updated = [...nodes];
-        const swap = direction === 'up' ? idx - 1 : idx + 1;
-        if (swap < 0 || swap >= updated.length) return;
-        [updated[idx], updated[swap]] = [updated[swap], updated[idx]];
-        const ids = updated.map(n => n.id);
-        await reorderNodes(selectedId, ids);
-        await loadNodes();
+        const doIt = async () => {
+            const updated = [...nodes];
+            const swap = direction === 'up' ? idx - 1 : idx + 1;
+            if (swap < 0 || swap >= updated.length) return;
+            if (!confirm(`Move "${updated[idx].label}" ${direction}?`)) return;
+            saveSnapshot('reorder');
+            [updated[idx], updated[swap]] = [updated[swap], updated[idx]];
+            const ids = updated.map(n => n.id);
+            await reorderNodes(selectedId, ids);
+            await loadNodes();
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     // ── Integrity Check Handlers ──────────────
@@ -453,26 +611,51 @@ export default function SequenceBuilderContent() {
     }
 
     async function handleApplyTemplate(template: typeof SEQUENCE_TEMPLATES[0]) {
-        if (nodes.length > 0 && !confirm('This will add template nodes to this sequence. Continue?')) return;
-        setSaving(true);
-        setError('');
-        try {
-            for (let i = 0; i < template.nodes.length; i++) {
-                const t = template.nodes[i];
-                await addSequenceNode({
-                    sequence_id: selectedId,
-                    step_key: t.step_key,
-                    label: t.label,
-                    emoji: t.emoji,
-                    sort_order: nodes.length + i,
-                });
+        const doIt = async () => {
+            let mode: 'replace' | 'append' = 'replace';
+            if (nodes.length > 0) {
+                const choice = confirm(
+                    `Apply template "${template.name}"?\n\n` +
+                    `Click OK to REPLACE all existing nodes (recommended).\n` +
+                    `Click Cancel to CANCEL.`
+                );
+                if (!choice) return;
+                mode = 'replace';
             }
-            await loadNodes();
-            setSuccess(`Template "${template.name}" applied!`);
-        } catch {
-            setError('Failed to apply template');
-        }
-        setSaving(false);
+            setSaving(true);
+            setError('');
+            saveSnapshot('template application');
+            try {
+                if (mode === 'replace' && nodes.length > 0) {
+                    for (const node of nodes) {
+                        await removeSequenceNode(node.id);
+                    }
+                }
+                const baseOrder = mode === 'replace' ? 0 : nodes.length;
+                for (let i = 0; i < template.nodes.length; i++) {
+                    const t = template.nodes[i];
+                    const matchingPrompt = prompts.find(p =>
+                        p.name.toLowerCase().includes(t.step_key.replace(/_/g, ' ')) ||
+                        t.label.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
+                    );
+                    await addSequenceNode({
+                        sequence_id: selectedId,
+                        step_key: t.step_key,
+                        label: t.label,
+                        emoji: t.emoji,
+                        prompt_id: matchingPrompt?.id || null,
+                        sort_order: baseOrder + i,
+                    });
+                }
+                await loadNodes();
+                setSuccess(`Template "${template.name}" applied!`);
+            } catch {
+                setError('Failed to apply template');
+            }
+            setSaving(false);
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
     }
 
     const selectedSeq = sequences.find(s => s.id === selectedId);
@@ -599,8 +782,39 @@ export default function SequenceBuilderContent() {
                                     >
                                         <Trash2 className="w-3.5 h-3.5" /> Delete
                                     </button>
+                                    {undoStack.length > 0 && (
+                                        <button
+                                            onClick={handleUndo}
+                                            disabled={restoringSnapshot}
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+                                        >
+                                            {restoringSnapshot ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                                            Undo {undoStack[0]?.label} ({undoStack.length})
+                                        </button>
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Active sequence warning banner */}
+                            {isActiveSequence && (
+                                <div className="mb-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 animate-fade-in">
+                                    <Shield className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-amber-400">Active Production Sequence</p>
+                                        <p className="text-xs text-amber-400/70">This sequence is currently being used by patients. Changes will affect live consultations.</p>
+                                    </div>
+                                    {!acknowledgedDirectEdit && (
+                                        <button
+                                            onClick={handleCloneAndEdit}
+                                            disabled={cloning}
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors whitespace-nowrap disabled:opacity-50"
+                                        >
+                                            {cloning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                                            Clone to Draft
+                                        </button>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Node list */}
                             <div className="space-y-2 mb-4">
@@ -1214,6 +1428,52 @@ export default function SequenceBuilderContent() {
                     )}
                 </div>
             </div>
+
+            {/* ── Clone Dialog Modal ────────── */}
+            {showCloneDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-bg-elevated rounded-2xl border border-amber-500/30 shadow-2xl shadow-amber-500/10 p-6 max-w-md w-full mx-4 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                                <Shield className="w-6 h-6 text-amber-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-text-primary">Active Sequence</h3>
+                                <p className="text-xs text-text-muted">This sequence is currently in production</p>
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-text-secondary leading-relaxed">
+                            <strong className="text-amber-400">&ldquo;{selectedSeq?.name}&rdquo;</strong> is currently being used by patients.
+                            Editing it directly will affect live consultations immediately.
+                        </p>
+
+                        <div className="space-y-2 pt-2">
+                            <button
+                                onClick={handleCloneAndEdit}
+                                disabled={cloning}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-accent to-teal-400 text-bg-primary hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(45,212,191,0.3)] transition-all duration-300 disabled:opacity-50"
+                            >
+                                {cloning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                                Clone & Edit Draft
+                            </button>
+                            <button
+                                onClick={handleEditAnyway}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+                            >
+                                <Edit3 className="w-4 h-4" />
+                                Edit Anyway (I understand the risk)
+                            </button>
+                            <button
+                                onClick={handleCancelCloneDialog}
+                                className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl text-xs text-text-muted hover:text-text-primary transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

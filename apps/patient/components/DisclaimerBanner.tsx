@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
+import { t } from '@cliniqone/i18n';
 
 interface DisclaimerBannerProps {
     variant?: 'default' | 'compact';
@@ -18,8 +19,8 @@ export function DisclaimerBanner({ variant = 'default' }: DisclaimerBannerProps)
             <Text style={styles.icon}>⚕️</Text>
             <Text style={[styles.text, isCompact && styles.textCompact]}>
                 {isCompact
-                    ? 'cliniq.one connects you with licensed physicians. It is not a medical device and does not replace emergency services.'
-                    : 'cliniq.one is a telemedicine platform that connects you with licensed physicians. It is not a medical device and does not replace emergency services. Always call emergency services for life-threatening conditions.'}
+                    ? t('disclaimer.compact')
+                    : t('disclaimer.full')}
             </Text>
         </View>
     );

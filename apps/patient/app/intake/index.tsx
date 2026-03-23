@@ -14,6 +14,7 @@ import { useToast } from '../../components/ToastProvider';
 export default function IntakePreflightScreen() {
     const { user } = useAuthStore();
     const reset = useIntakeStore((s) => s.reset);
+    const requestedDoctorId = useIntakeStore((s) => s.requestedDoctorId);
     const tokenBalance = user?.tokens_balance ?? 0;
     const cost = CONSULTATION_COSTS.new;
     const hasEnoughTokens = true; // TODO: TESTING ONLY – was: tokenBalance >= cost
@@ -52,7 +53,7 @@ export default function IntakePreflightScreen() {
 
     function handleStart() {
         if (!profileComplete) {
-            toast('Please complete your profile (gender, country, year of birth) to start.', 'warning');
+            toast(t('intake.profileIncompleteToast'), 'warning');
             router.push('/settings/edit-profile');
             return;
         }
@@ -94,11 +95,11 @@ export default function IntakePreflightScreen() {
             });
         } else {
             Alert.alert(
-                'Start Fresh',
-                'This will discard your previous progress. Are you sure?',
+                t('intake.startFreshConfirmTitle'),
+                t('intake.startFreshConfirmMsg'),
                 [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Start Fresh', style: 'destructive', onPress: () => handleStartFresh() },
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('intake.startFresh'), style: 'destructive', onPress: () => handleStartFresh() },
                 ],
             );
         }
@@ -132,19 +133,19 @@ export default function IntakePreflightScreen() {
                         <View style={styles.resumeContent}>
                             <Text style={styles.resumeIcon}>📝</Text>
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.resumeTitle}>Unfinished intake session</Text>
-                                <Text style={styles.resumeDate}>Started {existingSessionDate}</Text>
+                                <Text style={styles.resumeTitle}>{t('intake.unfinishedSession')}</Text>
+                                <Text style={styles.resumeDate}>{t('intake.startedAt', { date: existingSessionDate || '' })}</Text>
                             </View>
                         </View>
                         <View style={styles.resumeActions}>
                             <TouchableOpacity style={styles.resumeButton} onPress={handleResume}>
-                                <Text style={styles.resumeButtonText}>Resume →</Text>
+                                <Text style={styles.resumeButtonText}>{t('intake.resume')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.startFreshButton}
                                 onPress={confirmStartFresh}
                             >
-                                <Text style={styles.startFreshText}>Start Fresh</Text>
+                                <Text style={styles.startFreshText}>{t('intake.startFresh')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -154,10 +155,27 @@ export default function IntakePreflightScreen() {
                 <View style={styles.specialtyCard}>
                     <Text style={styles.specialtyIcon}>🏥</Text>
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.specialtyValue}>General Medical Consultation</Text>
-                        <Text style={styles.specialtyLabel}>Our AI gathers your history, then matches you with the right specialist</Text>
+                        <Text style={styles.specialtyValue}>{t('intake.generalMedicalConsultation')}</Text>
+                        <Text style={styles.specialtyLabel}>{t('intake.generalMedicalDesc')}</Text>
                     </View>
                 </View>
+
+                {/* Choose Doctor */}
+                <TouchableOpacity
+                    style={styles.doctorSelectCard}
+                    onPress={() => router.push('/intake/doctor-select' as never)}
+                >
+                    <Text style={styles.specialtyIcon}>👨‍⚕️</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.specialtyValue}>Choose Your Doctor</Text>
+                        {requestedDoctorId ? (
+                            <Text style={[styles.specialtyLabel, { color: colors.accentTeal }]}>Doctor selected ✓</Text>
+                        ) : (
+                            <Text style={styles.specialtyLabel}>Optional — search, enter code, or skip</Text>
+                        )}
+                    </View>
+                    <Text style={{ color: colors.textTertiary, fontSize: 18 }}>›</Text>
+                </TouchableOpacity>
 
                 {/* Pre-flight Checks */}
                 <Text style={styles.sectionTitle}>{t('intake.preflightChecks')}</Text>
@@ -286,7 +304,18 @@ const styles = StyleSheet.create({
         backgroundColor: colors.bgCard,
         padding: spacing.lg,
         borderRadius: radius.lg,
+        marginBottom: spacing.md,
+    },
+    doctorSelectCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.lg,
+        backgroundColor: colors.bgCard,
+        padding: spacing.lg,
+        borderRadius: radius.lg,
         marginBottom: spacing['2xl'],
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     specialtyIcon: { fontSize: 32 },
     specialtyLabel: { ...typography.caption, color: colors.textTertiary },

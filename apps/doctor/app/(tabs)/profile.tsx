@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Switch, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, Switch, TouchableOpacity, StyleSheet, Alert, Share, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
@@ -9,9 +9,15 @@ export default function ProfileScreen() {
     const { doctor, session, setDoctor } = useAuthStore();
     const [isAccepting, setIsAccepting] = useState(doctor?.is_accepting ?? true);
     const [dailyLimit, setDailyLimit] = useState(doctor?.daily_limit ?? 10);
+    const [consultationFee, setConsultationFee] = useState(doctor?.consultation_fee_tokens ?? 3);
 
     const toggleMutation = useToggleAccepting();
     const updateProfileMutation = useUpdateDoctorProfile();
+
+    const isLocum = doctor?.doctor_type === 'locum';
+    const recruitmentLink = isLocum && doctor?.identifier_code
+        ? `https://cliniq.one/doctor/${doctor.identifier_code}`
+        : null;
 
     const handleToggleAccepting = (value: boolean) => {
         setIsAccepting(value);
@@ -42,6 +48,30 @@ export default function ProfileScreen() {
         }
     };
 
+    const handleFeeChange = (newFee: number) => {
+        setConsultationFee(newFee);
+        if (doctor) {
+            updateProfileMutation.mutate(
+                { doctorId: doctor.id, updates: { consultation_fee_tokens: newFee } },
+                {
+                    onSuccess: () => setDoctor({ ...doctor, consultation_fee_tokens: newFee }),
+                    onError: () => Alert.alert('Error', 'Failed to update consultation fee'),
+                },
+            );
+        }
+    };
+
+    const handleShareRecruitment = async () => {
+        if (!recruitmentLink) return;
+        try {
+            await Share.share({
+                message: `Consult with me on cliniq.one! Use my code: ${doctor?.identifier_code}\n${recruitmentLink}`,
+            });
+        } catch {
+            // User cancelled
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -54,6 +84,14 @@ export default function ProfileScreen() {
                     </View>
                     <Text style={styles.doctorName}>{doctor?.display_name || 'Dr. Unknown'}</Text>
                     <Text style={styles.doctorSpecialty}>{doctor?.specialty || 'General'}</Text>
+                    {isLocum && (
+                        <View style={styles.locumBadge}>
+                            <Text style={styles.locumBadgeText}>LOCUM</Text>
+                        </View>
+                    )}
+                    {doctor?.identifier_code && (
+                        <Text style={styles.identifierCode}>Code: {doctor.identifier_code}</Text>
+                    )}
                     {session?.user?.email ? (
                         <Text style={styles.doctorEmail}>✉️ {session.user.email}</Text>
                     ) : null}
@@ -62,6 +100,84 @@ export default function ProfileScreen() {
                         <Text style={styles.ratingCount}>({doctor?.rating_count || 0} reviews)</Text>
                     </View>
                 </View>
+
+                {/* Locum: Patient Recruitment */}
+                {isLocum && recruitmentLink && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>📣 Patient Recruitment</Text>
+                        <View style={styles.recruitmentCard}>
+                            <Text style={styles.recruitmentHint}>
+                                Share this link with your patients so they can book consultations with you directly.
+                            </Text>
+                            <View style={styles.linkBox}>
+                                <Text style={styles.linkText} numberOfLines={1}>{recruitmentLink}</Text>
+                            </View>
+                            <TouchableOpacity style={styles.shareButton} onPress={handleShareRecruitment}>
+                                <Text style={styles.shareButtonText}>📤 Share Recruitment Link</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.recruitmentNote}>
+                                Your identifier: <Text style={{ color: colors.accentTeal, fontWeight: '700' }}>{doctor?.identifier_code}</Text>
+                            </Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* Locum: Custom Pricing */}
+                {isLocum && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>💰 Consultation Fee</Text>
+                        <View style={styles.settingCard}>
+                            <Text style={styles.settingHint}>
+                                Set your fee within platform limits (2–10 tokens)
+                            </Text>
+                            <View style={styles.feeRow}>
+                                <TouchableOpacity
+                                    style={styles.counterBtn}
+                                    onPress={() => handleFeeChange(Math.max(2, consultationFee - 1))}
+                                >
+                                    <Text style={styles.counterBtnText}>−</Text>
+                                </TouchableOpacity>
+                                <View style={styles.feeDisplay}>
+                                    <Text style={styles.feeValue}>💎 {consultationFee}</Text>
+                                    <Text style={styles.feeLabel}>tokens</Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.counterBtn}
+                                    onPress={() => handleFeeChange(Math.min(10, consultationFee + 1))}
+                                >
+                                    <Text style={styles.counterBtnText}>+</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.feeHint}>
+                                ≈ {consultationFee * 5} SAR per consultation
+                            </Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* Locum: Credential Status */}
+                {isLocum && doctor?.credential_expires_at && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>🔐 Credential Status</Text>
+                        <View style={[styles.settingCard, new Date(doctor.credential_expires_at) < new Date() && styles.expiredCard]}>
+                            <View style={styles.settingRow}>
+                                <View>
+                                    <Text style={styles.settingLabel}>
+                                        {new Date(doctor.credential_expires_at) < new Date() ? '🔴 Expired' : '🟢 Active'}
+                                    </Text>
+                                    <Text style={styles.settingHint}>
+                                        Expires: {new Date(doctor.credential_expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </Text>
+                                </View>
+                            </View>
+                            {new Date(doctor.credential_expires_at) < new Date() && (
+                                <Text style={styles.expiredText}>
+                                    ⚠️ Contact admin to renew your credentials
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+                )}
 
                 {/* Availability Toggle */}
                 <View style={styles.section}>
@@ -178,4 +294,22 @@ const styles = StyleSheet.create({
     earningsLabel: { ...typography.body, color: colors.textTertiary },
     earningsValue: { ...typography.h2, color: colors.gold, fontWeight: '800' },
     earningsHint: { ...typography.caption, color: colors.textTertiary, marginTop: 4 },
+    // Locum styles
+    locumBadge: { backgroundColor: colors.warningFaded, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 8 },
+    locumBadgeText: { ...typography.caption, color: colors.warning, fontWeight: '700', textTransform: 'uppercase' as const },
+    identifierCode: { ...typography.caption, color: colors.accentTeal, marginTop: 4, fontWeight: '600' as const },
+    recruitmentCard: { backgroundColor: colors.bgSecondary, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.accentTealFaded },
+    recruitmentHint: { ...typography.caption, color: colors.textSecondary, marginBottom: 12 },
+    linkBox: { backgroundColor: colors.bgTertiary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
+    linkText: { ...typography.caption, color: colors.accentTeal, fontWeight: '500' as const },
+    shareButton: { backgroundColor: colors.accentTeal, borderRadius: 12, paddingVertical: 12, alignItems: 'center' as const, marginBottom: 8 },
+    shareButtonText: { ...typography.body, color: colors.bgPrimary, fontWeight: '700' as const },
+    recruitmentNote: { ...typography.caption, color: colors.textTertiary, textAlign: 'center' as const, marginTop: 4 },
+    feeRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 20, paddingVertical: 16 },
+    feeDisplay: { alignItems: 'center' as const },
+    feeValue: { ...typography.h2, color: colors.gold, fontWeight: '800' as const },
+    feeLabel: { ...typography.caption, color: colors.textTertiary },
+    feeHint: { ...typography.caption, color: colors.textTertiary, textAlign: 'center' as const },
+    expiredCard: { borderColor: colors.errorFaded },
+    expiredText: { ...typography.caption, color: colors.error, marginTop: 8 },
 });

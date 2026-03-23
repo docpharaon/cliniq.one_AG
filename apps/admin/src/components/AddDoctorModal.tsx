@@ -21,6 +21,7 @@ type DoctorForm = {
     bio: string;
     daily_limit: string;
     is_accepting: boolean;
+    doctor_type: 'permanent' | 'locum';
 };
 
 type Props = {
@@ -66,6 +67,7 @@ const initialForm: DoctorForm = {
     bio: '',
     daily_limit: '8',
     is_accepting: true,
+    doctor_type: 'permanent',
 };
 
 export default function AddDoctorModal({ onClose, onSaved }: Props) {
@@ -121,6 +123,7 @@ export default function AddDoctorModal({ onClose, onSaved }: Props) {
                 bio: form.bio.trim() || undefined,
                 daily_limit: form.daily_limit ? parseInt(form.daily_limit, 10) : 8,
                 is_accepting: form.is_accepting,
+                doctor_type: form.doctor_type,
             });
             if (res.error) throw new Error(res.error);
             setSuccess('Doctor created successfully!');
@@ -180,6 +183,38 @@ export default function AddDoctorModal({ onClose, onSaved }: Props) {
                             <span className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-bold">1</span>
                             Account Credentials
                         </h4>
+
+                        {/* Doctor Type Toggle */}
+                        <div className="mb-4">
+                            <label className={labelCls}>Doctor Type <span className="text-error">*</span></label>
+                            <div className="flex gap-2 mt-1">
+                                <button
+                                    type="button"
+                                    onClick={() => updateField('doctor_type', 'permanent')}
+                                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold border transition-all ${form.doctor_type === 'permanent'
+                                        ? 'bg-accent-faded border-accent/40 text-accent'
+                                        : 'bg-bg-elevated border-border text-text-muted hover:text-text-primary'
+                                    }`}
+                                >
+                                    🟢 Permanent
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => updateField('doctor_type', 'locum')}
+                                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold border transition-all ${form.doctor_type === 'locum'
+                                        ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-400'
+                                        : 'bg-bg-elevated border-border text-text-muted hover:text-text-primary'
+                                    }`}
+                                >
+                                    🟡 Locum (Temporary)
+                                </button>
+                            </div>
+                            {form.doctor_type === 'locum' && (
+                                <div className="mt-2 px-3 py-2 rounded-lg text-[11px] text-yellow-400/80" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                                    ⚠ Locum doctors are sandboxed — only patients who enter their code/QR can consult them. Credentials expire in 7 days and require admin renewal.
+                                </div>
+                            )}
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className={labelCls}>

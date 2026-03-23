@@ -11,22 +11,22 @@ import { subscribeToConsultation } from '@cliniqone/api';
 import type { Consultation, ConsultationStatus } from '@cliniqone/types';
 
 // ── Steps definition ─────────────────────────────
-const STEPS: { key: ConsultationStatus; icon: string; label: string }[] = [
-    { key: 'submitted', icon: '📤', label: 'Submitted' },
-    { key: 'assigned', icon: '👨‍⚕️', label: 'Doctor Assigned' },
-    { key: 'in_progress', icon: '🔄', label: 'In Review' },
-    { key: 'report_ready', icon: '📋', label: 'Report Ready' },
+const STEPS: { key: ConsultationStatus; icon: string; labelKey: string }[] = [
+    { key: 'submitted', icon: '📤', labelKey: 'consultations.statusSubmitted' },
+    { key: 'assigned', icon: '👨‍⚕️', labelKey: 'consultations.statusDoctorAssigned' },
+    { key: 'in_progress', icon: '🔄', labelKey: 'consultations.statusInReview' },
+    { key: 'report_ready', icon: '📋', labelKey: 'consultations.statusReportReady' },
 ];
 
 const STATUS_ORDER: ConsultationStatus[] = ['submitted', 'assigned', 'in_progress', 'report_ready', 'completed'];
 
 // ── Health tips while waiting ────────────────────
-const HEALTH_TIPS = [
-    { icon: '💧', text: 'Stay hydrated — aim for 8 glasses of water daily.' },
-    { icon: '🚶', text: 'A 30-minute walk each day can improve your mood and heart health.' },
-    { icon: '😴', text: 'Adults need 7-9 hours of sleep for optimal health.' },
-    { icon: '🥗', text: 'Add more fruits and vegetables to your diet for better nutrition.' },
-    { icon: '🧘', text: 'Practice deep breathing for 5 minutes to reduce stress.' },
+const HEALTH_TIP_KEYS = [
+    { icon: '💧', key: 'waitingRoom.tipHydrate' },
+    { icon: '🚶', key: 'waitingRoom.tipWalk' },
+    { icon: '😴', key: 'waitingRoom.tipSleep' },
+    { icon: '🥗', key: 'waitingRoom.tipNutrition' },
+    { icon: '🧘', key: 'waitingRoom.tipBreathing' },
 ];
 
 function getStepIndex(status: ConsultationStatus): number {
@@ -85,14 +85,14 @@ export default function WaitingRoomScreen() {
     // Rotate health tips
     useEffect(() => {
         const interval = setInterval(() => {
-            setTipIndex((prev) => (prev + 1) % HEALTH_TIPS.length);
+            setTipIndex((prev) => (prev + 1) % HEALTH_TIP_KEYS.length);
         }, 8000);
         return () => clearInterval(interval);
     }, []);
 
     const activeStepIdx = getStepIndex(currentStatus);
     const isComplete = currentStatus === 'report_ready' || currentStatus === 'completed';
-    const tip = HEALTH_TIPS[tipIndex];
+    const tip = HEALTH_TIP_KEYS[tipIndex];
 
     return (
         <SafeAreaView style={styles.container}>
@@ -135,7 +135,7 @@ export default function WaitingRoomScreen() {
                                 </View>
                                 <View style={styles.stepInfo}>
                                     <Text style={[styles.stepLabel, isActive && styles.stepLabelActive]}>
-                                        {step.label}
+                                        {t(step.labelKey)}
                                     </Text>
                                     {isCurrent && !isComplete && (
                                         <Animated.Text style={[styles.stepCurrentTag, { opacity: pulseAnim }]}>
@@ -165,7 +165,7 @@ export default function WaitingRoomScreen() {
                         <Text style={styles.tipIcon}>{tip.icon}</Text>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.tipLabel}>{t('waitingRoom.healthTip')}</Text>
-                            <Text style={styles.tipText}>{tip.text}</Text>
+                            <Text style={styles.tipText}>{t(tip.key)}</Text>
                         </View>
                     </View>
                 )}

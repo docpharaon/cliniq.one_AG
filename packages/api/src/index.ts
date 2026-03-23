@@ -33,6 +33,8 @@ export {
     saveIntakeSession,
     getActiveIntakeSession,
     deleteIntakeSession,
+    lookupDoctorByCode,
+    searchDoctorsForPatient,
 } from './consultations';
 
 // ── Doctor ──

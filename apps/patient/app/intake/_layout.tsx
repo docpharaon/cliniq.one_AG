@@ -12,6 +12,7 @@ export default function IntakeLayout() {
             }}
         >
             <Stack.Screen name="index" />
+            <Stack.Screen name="doctor-select" />
             <Stack.Screen name="complaint" />
             <Stack.Screen name="ai-chat" />
             <Stack.Screen name="analyzing" />

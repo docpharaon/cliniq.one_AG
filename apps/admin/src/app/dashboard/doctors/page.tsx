@@ -1,6 +1,7 @@
 'use client';
 
 import Header from '@/components/Header';
+import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
 import StatCard from '@/components/StatCard';
 import AddDoctorModal from '@/components/AddDoctorModal';
@@ -8,10 +9,10 @@ import DoctorDetailPanel, { type DoctorFull } from '@/components/DoctorDetailPan
 import {
     UserPlus, Users, ShieldCheck, Clock, Star, Search, Download,
     ChevronLeft, ChevronRight, Loader2, MoreVertical, Eye,
-    ShieldAlert, Trash2, ToggleLeft, ToggleRight
+    ShieldAlert, Trash2, ToggleLeft, ToggleRight, RefreshCw, QrCode
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import { fetchDoctors, fetchDoctorStats, editDoctor } from '@/lib/actions';
+import { fetchDoctors, fetchDoctorStats, editDoctor, doRenewLocumCredential } from '@/lib/actions';
 
 // ── Types ────────────────────────────────────
 
@@ -167,13 +168,22 @@ export default function DoctorsPage() {
                                 {totalCount} licensed medical practitioners
                             </p>
                         </div>
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-semibold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all self-start"
-                        >
-                            <UserPlus className="w-4 h-4" />
-                            Add Doctor
-                        </button>
+                        <div className="flex gap-2">
+                            <Link
+                                href="/dashboard/doctors/locum"
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-sm font-semibold hover:-translate-y-0.5 transition-all self-start"
+                            >
+                                <QrCode className="w-4 h-4" />
+                                Manage Locum
+                            </Link>
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-semibold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all self-start"
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                Add Doctor
+                            </button>
+                        </div>
                     </div>
 
                     {/* Filter Tabs */}
@@ -229,12 +239,12 @@ export default function DoctorsPage() {
                                     <thead>
                                         <tr>
                                             <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated rounded-l-xl">Doctor</th>
+                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Type</th>
+                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Code</th>
                                             <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Specialty</th>
                                             <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Status</th>
                                             <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Rating</th>
-                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Daily Limit</th>
                                             <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Accepting</th>
-                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Joined</th>
                                             <th className="px-4 py-3 text-right text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated rounded-r-xl">Actions</th>
                                         </tr>
                                     </thead>
@@ -260,6 +270,42 @@ export default function DoctorsPage() {
                                                             </div>
                                                         </div>
                                                     </td>
+                                                    {/* Type */}
+                                                    <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
+                                                        {(() => {
+                                                            const d = doc as Record<string, unknown>;
+                                                            const expiresAt = d.credential_expires_at ? String(d.credential_expires_at) : null;
+                                                            const isExpired = expiresAt ? new Date(expiresAt) < new Date() : false;
+                                                            if (d.doctor_type === 'locum') {
+                                                                return (
+                                                                    <div>
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                                                                            🟡 Locum
+                                                                        </span>
+                                                                        {expiresAt && (
+                                                                            <p className="text-[10px] text-text-muted mt-1">
+                                                                                {isExpired
+                                                                                    ? <span className="text-error">Expired</span>
+                                                                                    : <>Exp: {new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                                                                                }
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-accent/10 text-accent border border-accent/20">
+                                                                    🟢 Permanent
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </td>
+                                                    {/* Code */}
+                                                    <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
+                                                        <span className="font-mono text-xs text-text-secondary bg-bg-elevated px-2 py-1 rounded-lg">
+                                                            {String((doc as Record<string, unknown>).identifier_code ?? '—')}
+                                                        </span>
+                                                    </td>
                                                     {/* Specialty */}
                                                     <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
                                                         <span className="text-accent text-sm capitalize">{doc.specialty?.replace('_', ' ')}</span>
@@ -278,10 +324,6 @@ export default function DoctorsPage() {
                                                             <span className="font-medium">{Number(doc.rating_avg).toFixed(1)}</span>
                                                         </div>
                                                     </td>
-                                                    {/* Daily Limit */}
-                                                    <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
-                                                        <span className="text-text-secondary">{doc.daily_limit}/day</span>
-                                                    </td>
                                                     {/* Accepting Toggle */}
                                                     <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
                                                         <button
@@ -298,10 +340,6 @@ export default function DoctorsPage() {
                                                                 <ToggleLeft className="w-7 h-7 text-text-muted" />
                                                             )}
                                                         </button>
-                                                    </td>
-                                                    {/* Joined */}
-                                                    <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
-                                                        <span className="text-text-muted text-xs">{formatDate(doc.created_at)}</span>
                                                     </td>
                                                     {/* Actions */}
                                                     <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-r-xl">

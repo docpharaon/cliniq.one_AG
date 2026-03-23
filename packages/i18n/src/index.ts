@@ -20,14 +20,22 @@ const translations: Record<string, typeof en> = { en, ar };
  */
 export async function initLocale(): Promise<'en' | 'ar'> {
     try {
+        // On web, also try synchronous localStorage first for faster init
+        if (Platform.OS === 'web') {
+            const ls = (globalThis as any).localStorage;
+            if (ls) {
+                const webSaved = ls.getItem(LOCALE_KEY);
+                if (webSaved === 'ar' || webSaved === 'en') {
+                    currentLocale = webSaved;
+                    applyDirection(webSaved);
+                    return currentLocale;
+                }
+            }
+        }
         const saved = await AsyncStorage.getItem(LOCALE_KEY);
         if (saved === 'ar' || saved === 'en') {
             currentLocale = saved;
-            const shouldBeRTL = saved === 'ar';
-            if (I18nManager.isRTL !== shouldBeRTL) {
-                I18nManager.forceRTL(shouldBeRTL);
-                I18nManager.allowRTL(shouldBeRTL);
-            }
+            applyDirection(saved);
         }
     } catch { /* first launch — use default 'en' */ }
     return currentLocale;
@@ -35,12 +43,13 @@ export async function initLocale(): Promise<'en' | 'ar'> {
 
 export async function setLocale(locale: 'en' | 'ar') {
     currentLocale = locale;
-    const shouldBeRTL = locale === 'ar';
-    if (I18nManager.isRTL !== shouldBeRTL) {
-        I18nManager.forceRTL(shouldBeRTL);
-        I18nManager.allowRTL(shouldBeRTL);
-    }
+    applyDirection(locale);
     try {
+        // On web, write synchronously to localStorage so it survives page reload
+        if (Platform.OS === 'web') {
+            const ls = (globalThis as any).localStorage;
+            if (ls) ls.setItem(LOCALE_KEY, locale);
+        }
         await AsyncStorage.setItem(LOCALE_KEY, locale);
     } catch { /* storage write failed — locale still set in memory */ }
 }
@@ -51,6 +60,26 @@ export function getLocale() {
 
 export function isRTL() {
     return currentLocale === 'ar';
+}
+
+/**
+ * Apply text direction for RTL/LTR.
+ * On web, sets document.documentElement.dir.
+ * On native, uses I18nManager.
+ */
+function applyDirection(locale: 'en' | 'ar') {
+    const shouldBeRTL = locale === 'ar';
+    if (Platform.OS === 'web') {
+        const doc = (globalThis as any).document;
+        if (doc?.documentElement) {
+            doc.documentElement.dir = shouldBeRTL ? 'rtl' : 'ltr';
+            doc.documentElement.lang = locale;
+        }
+    }
+    if (I18nManager.isRTL !== shouldBeRTL) {
+        I18nManager.forceRTL(shouldBeRTL);
+        I18nManager.allowRTL(shouldBeRTL);
+    }
 }
 
 /**
@@ -85,6 +114,30 @@ export function t(key: string, params?: Record<string, string | number>): string
     }
 
     return value;
+}
+
+/**
+ * Convert Western digits (0-9) to Arabic-Indic digits (٠-٩) when locale is Arabic.
+ * Pass any value — numbers, strings, or mixed content.
+ */
+export function toLocalNum(value: string | number): string {
+    const str = String(value);
+    if (currentLocale !== 'ar') return str;
+    return str.replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
+}
+
+/**
+ * Format a date string/Date in a locale-aware way.
+ * Uses Arabic locale when currentLocale is 'ar'.
+ */
+export function localDate(
+    date: string | Date,
+    options?: Intl.DateTimeFormatOptions,
+): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const locale = currentLocale === 'ar' ? 'ar-SA' : 'en-US';
+    const defaults: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    return d.toLocaleDateString(locale, options || defaults);
 }
 
 export { en, ar };

@@ -167,7 +167,7 @@ export async function fetchDoctorSchedule(doctorId: string) {
     const supabase = await createServerSupabase();
 
     const { data, error } = await supabase
-        .from('doctor_schedules')
+        .from('schedules')
         .select('*')
         .eq('doctor_id', doctorId)
         .order('day_of_week', { ascending: true });

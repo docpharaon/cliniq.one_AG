@@ -62,6 +62,14 @@ export interface Doctor {
     tokens_earned: number;
     is_accepting: boolean;
     must_change_password: boolean;
+    // Locum fields
+    doctor_type: 'permanent' | 'locum';
+    identifier_code: string | null;
+    sandbox_mode: boolean;
+    credential_expires_at: string | null;
+    consultation_fee_tokens: number | null;
+    onboarding_status: 'documents_pending' | 'review_pending' | 'approved' | 'rejected' | null;
+    recruitment_qr_payload: string | null;
     verified_at: string | null;
     verified_by: string | null;
     created_at: string;

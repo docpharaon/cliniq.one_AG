@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { getLocale, setLocale, t } from '@cliniqone/i18n';
+import { supabase } from '@cliniqone/api';
+import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
 
 const LANGUAGES = [
@@ -14,6 +16,7 @@ const LANGUAGES = [
 export default function LanguageScreen() {
     const [selected, setSelected] = useState<'en' | 'ar'>(getLocale());
     const toast = useToast((s) => s.show);
+    const user = useAuthStore((s) => s.user);
 
     async function handleSelect(code: 'en' | 'ar') {
         if (code === selected) return;
@@ -28,6 +31,12 @@ export default function LanguageScreen() {
 
         setSelected(code);
         await setLocale(code);
+
+        // Sync to user profile so the AI knows the language
+        if (user?.id) {
+            supabase.from('users').update({ language: code }).eq('id', user.id).then(() => {});
+        }
+
         toast(code === 'ar' ? 'جاري تغيير اللغة...' : 'Changing language...', 'info');
 
         // Reload to apply RTL/LTR changes
@@ -50,7 +59,7 @@ export default function LanguageScreen() {
                     <Text style={styles.backText}>← {t('common.back')}</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>{t('profile.language')}</Text>
-                <Text style={styles.subtitle}>Choose your preferred language</Text>
+                <Text style={styles.subtitle}>{t('settings.chooseLanguage')}</Text>
             </View>
 
             <View style={styles.list}>
@@ -81,7 +90,7 @@ export default function LanguageScreen() {
             <View style={styles.infoBox}>
                 <Text style={styles.infoIcon}>ℹ️</Text>
                 <Text style={styles.infoText}>
-                    Switching languages will restart the app to apply layout direction changes.
+                    {t('settings.languageSwitchInfo')}
                 </Text>
             </View>
         </SafeAreaView>

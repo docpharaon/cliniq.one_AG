@@ -28,7 +28,9 @@ export default function SubmitScreen() {
                 medications: intake.medications,
                 allergies: intake.allergies,
                 aiSession: { qaHistory: intake.qaHistory, aiSummary: intake.aiSummary, photos: intake.photos },
-                tokenCost: CONSULTATION_COSTS.new,
+                tokenCost: intake.requestedDoctorFee ?? CONSULTATION_COSTS.new,
+                requestedDoctorId: intake.requestedDoctorId,
+                doctorSelectionMethod: intake.doctorSelectionMethod,
             },
             {
                 onSuccess: () => {

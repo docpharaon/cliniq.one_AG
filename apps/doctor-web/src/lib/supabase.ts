@@ -11,3 +11,9 @@ export function createBrowserSupabase() {
 export const supabase = supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey)
     : (null as unknown as ReturnType<typeof createClient>);
+
+// Admin client — bypasses RLS (server-side only, for locum signup)
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+export const supabaseAdmin = supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : (null as unknown as ReturnType<typeof createClient>);

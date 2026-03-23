@@ -49,6 +49,8 @@ export async function getUsers(page = 1, perPage = 50, search?: string, status?:
     }
     if (role && role !== 'all') {
         query = query.eq('role', role);
+    } else {
+        query = query.neq('role', 'doctor');
     }
     if (search) {
         query = query.or(`nickname.ilike.%${search}%,email.ilike.%${search}%,id::text.ilike.%${search}%`);
@@ -88,12 +90,11 @@ export async function deleteUser(id: string) {
 }
 
 export async function getUserStats() {
-    const [totalRes, activeRes, blockedRes, patientRes, doctorRes] = await Promise.all([
-        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('status', 'blocked'),
+    const [totalRes, activeRes, blockedRes, patientRes] = await Promise.all([
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).neq('role', 'doctor'),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('status', 'active').neq('role', 'doctor'),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('status', 'blocked').neq('role', 'doctor'),
         supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'patient'),
-        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'doctor'),
     ]);
 
     return {
@@ -101,7 +102,6 @@ export async function getUserStats() {
         active: activeRes.count ?? 0,
         blocked: blockedRes.count ?? 0,
         patients: patientRes.count ?? 0,
-        doctors: doctorRes.count ?? 0,
     };
 }
 
@@ -222,7 +222,12 @@ export async function createDoctor(doctor: {
     bio?: string;
     daily_limit?: number;
     is_accepting?: boolean;
+    doctor_type?: 'permanent' | 'locum';
 }) {
+    const docType = doctor.doctor_type ?? 'permanent';
+    const isLocum = docType === 'locum';
+    // Generate unique identifier code: DR-XXXX
+    const identifierCode = 'DR-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     // 1) Create auth user via Supabase Admin API
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: doctor.email,
@@ -272,9 +277,14 @@ export async function createDoctor(doctor: {
             city: doctor.city ?? null,
             bio: doctor.bio ?? null,
             daily_limit: doctor.daily_limit ?? 8,
-            is_accepting: doctor.is_accepting ?? true,
+            is_accepting: isLocum ? false : (doctor.is_accepting ?? true),
             must_change_password: true,
             status: 'active',
+            doctor_type: docType,
+            identifier_code: identifierCode,
+            credential_expires_at: isLocum ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
+            sandbox_mode: isLocum,
+            qr_payload: JSON.stringify({ code: identifierCode, type: docType }),
         })
         .select()
         .single();
@@ -287,6 +297,228 @@ export async function createDoctor(doctor: {
     }
 
     return { data: doctorData, error: null };
+}
+
+// ── Locum Management ─────────────────────────
+
+export async function renewLocumCredential(doctorId: string) {
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .update({ credential_expires_at: newExpiry })
+        .eq('id', doctorId)
+        .eq('doctor_type', 'locum')
+        .select()
+        .single();
+    if (error) { console.error('[renewLocumCredential]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function getExpiredLocumDoctors() {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, specialty, credential_expires_at, identifier_code, status')
+        .eq('doctor_type', 'locum')
+        .lt('credential_expires_at', new Date().toISOString())
+        .order('credential_expires_at', { ascending: true });
+    if (error) { console.error('[getExpiredLocumDoctors]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function getExpiringLocumDoctors(withinDays = 2) {
+    const futureDate = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, specialty, credential_expires_at, identifier_code')
+        .eq('doctor_type', 'locum')
+        .gt('credential_expires_at', now)
+        .lt('credential_expires_at', futureDate)
+        .order('credential_expires_at', { ascending: true });
+    if (error) { console.error('[getExpiringLocumDoctors]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function lookupDoctorByCode(code: string) {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, avatar_url, rating_avg, doctor_type, identifier_code, credential_expires_at, is_accepting, status')
+        .eq('identifier_code', code.toUpperCase())
+        .eq('status', 'active')
+        .single();
+    if (error) { console.error('[lookupDoctorByCode]', error.message); return null; }
+    // Check if locum credentials are valid
+    if (data.doctor_type === 'locum' && data.credential_expires_at) {
+        if (new Date(data.credential_expires_at) < new Date()) {
+            return null; // Expired locum
+        }
+    }
+    return data;
+}
+
+// ── Locum Onboarding Pipeline ────────────────
+
+/** Generate a short unique invite code like INV-A3F2 */
+function generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 for readability
+    let code = 'INV-';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+export async function createLocumInvitation(adminId: string, specialty: string, expiresInDays = 14, notes?: string) {
+    if (!adminId) {
+        console.error('[createLocumInvitation] adminId is empty');
+        return { data: null, error: 'Admin ID is required' };
+    }
+
+    // Ensure admin exists in users table (FK constraint)
+    const { data: existingUser } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', adminId)
+        .single();
+
+    if (!existingUser) {
+        // Auto-create user row for admin (may have been created via auth but not inserted into users)
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(adminId);
+        if (authUser?.user) {
+            await supabaseAdmin.from('users').upsert({
+                id: adminId,
+                email: authUser.user.email || '',
+                nickname: authUser.user.email?.split('@')[0] || 'admin',
+                role: 'admin',
+                status: 'active',
+            }, { onConflict: 'id' });
+        }
+    }
+
+    const inviteCode = generateInviteCode();
+    // QR payload is a URL pointing to the doctor-web locum signup page
+    const baseUrl = process.env.NEXT_PUBLIC_DOCTOR_WEB_URL || 'https://doctor.cliniq.one';
+    const qrPayload = `${baseUrl}/locum-signup/${inviteCode}`;
+
+    const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabaseAdmin
+        .from('locum_invitations')
+        .insert({
+            invited_by: adminId,
+            invite_code: inviteCode,
+            qr_payload: qrPayload,
+            specialty,
+            status: 'pending',
+            notes: notes || null,
+            expires_at: expiresAt,
+        })
+        .select()
+        .single();
+
+    if (error) { console.error('[createLocumInvitation]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+
+export async function getLocumInvitations() {
+    const { data, error } = await supabaseAdmin
+        .from('locum_invitations')
+        .select('*, invited_user:users!invited_by(nickname)')
+        .order('created_at', { ascending: false });
+    if (error) { console.error('[getLocumInvitations]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function revokeLocumInvitation(invitationId: string) {
+    const { data, error } = await supabaseAdmin
+        .from('locum_invitations')
+        .update({ status: 'revoked' })
+        .eq('id', invitationId)
+        .eq('status', 'pending')
+        .select()
+        .single();
+    if (error) { console.error('[revokeLocumInvitation]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function getLocumDocuments(doctorId: string) {
+    const { data, error } = await supabaseAdmin
+        .from('locum_documents')
+        .select('*')
+        .eq('doctor_id', doctorId)
+        .order('uploaded_at', { ascending: false });
+    if (error) { console.error('[getLocumDocuments]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function getPendingLocumOnboarding() {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, identifier_code, onboarding_status, created_at')
+        .in('onboarding_status', ['documents_pending', 'review_pending'])
+        .eq('doctor_type', 'locum')
+        .order('created_at', { ascending: true });
+    if (error) { console.error('[getPendingLocumOnboarding]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function approveLocumOnboarding(doctorId: string, adminId: string) {
+    // 1. Set onboarding status to approved
+    const { error: docError } = await supabaseAdmin
+        .from('doctors')
+        .update({
+            onboarding_status: 'approved',
+            status: 'active',
+            credential_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq('id', doctorId);
+    if (docError) { console.error('[approveLocumOnboarding]', docError.message); return { error: docError.message }; }
+
+    // 2. Mark all documents as verified
+    await supabaseAdmin
+        .from('locum_documents')
+        .update({ verified: true, verified_by: adminId, verified_at: new Date().toISOString() })
+        .eq('doctor_id', doctorId);
+
+    return { error: null };
+}
+
+export async function rejectLocumOnboarding(doctorId: string, reason: string) {
+    const { error } = await supabaseAdmin
+        .from('doctors')
+        .update({ onboarding_status: 'rejected', status: 'suspended' })
+        .eq('id', doctorId);
+    if (error) { console.error('[rejectLocumOnboarding]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function updateDoctorPricing(doctorId: string, feeTokens: number) {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .update({ consultation_fee_tokens: feeTokens })
+        .eq('id', doctorId)
+        .select('id, consultation_fee_tokens')
+        .single();
+    if (error) { console.error('[updateDoctorPricing]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function getLocumPricingLimits() {
+    const [minRes, maxRes] = await Promise.all([
+        supabaseAdmin.from('app_settings').select('value').eq('key', 'locum_fee_min_tokens').single(),
+        supabaseAdmin.from('app_settings').select('value').eq('key', 'locum_fee_max_tokens').single(),
+    ]);
+    return {
+        min: parseInt(minRes.data?.value ?? '2', 10),
+        max: parseInt(maxRes.data?.value ?? '10', 10),
+    };
+}
+
+export async function setLocumPricingLimits(min: number, max: number) {
+    await Promise.all([
+        supabaseAdmin.from('app_settings').upsert({ key: 'locum_fee_min_tokens', value: String(min), description: 'Minimum consultation fee (tokens) a locum can charge' }),
+        supabaseAdmin.from('app_settings').upsert({ key: 'locum_fee_max_tokens', value: String(max), description: 'Maximum consultation fee (tokens) a locum can charge' }),
+    ]);
+    return { error: null };
 }
 
 export async function resetDoctorPassword(doctorId: string, newPassword: string) {
@@ -501,6 +733,98 @@ export async function purgeConsultationData(id: string, adminUserId: string) {
     return { success: true, error: null };
 }
 
+export async function getPendingArchiveCount() {
+    // Concluded but not yet archived or purged
+    const { count, error } = await supabaseAdmin
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .not('concluded_at', 'is', null)
+        .is('archived_at', null)
+        .is('purged_at', null);
+    if (error) { console.error('[getPendingArchiveCount]', error.message); return 0; }
+    return count ?? 0;
+}
+
+export async function getPendingArchiveConsultations() {
+    const { data, error } = await supabaseAdmin
+        .from('consultations')
+        .select('id, patient_name, doctor_name, specialty, status, priority, chief_complaint, concluded_at, created_at')
+        .not('concluded_at', 'is', null)
+        .is('archived_at', null)
+        .is('purged_at', null)
+        .order('concluded_at', { ascending: true });
+    if (error) { console.error('[getPendingArchiveConsultations]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function batchArchiveConsultations(ids: string[], adminUserId: string) {
+    const now = new Date().toISOString();
+    let successCount = 0;
+    const errors: string[] = [];
+
+    for (const id of ids) {
+        const { error } = await supabaseAdmin
+            .from('consultations')
+            .update({ archived_at: now, archived_by: adminUserId })
+            .eq('id', id);
+        if (error) {
+            console.error(`[batchArchive:${id}]`, error.message);
+            errors.push(`${id.slice(0, 8)}: ${error.message}`);
+        } else {
+            successCount++;
+            await supabaseAdmin.from('consultation_audit_log').insert({
+                consultation_id: id,
+                action: 'archive',
+                performed_by: adminUserId,
+                metadata: { archived_at: now, batch: true },
+            });
+        }
+    }
+
+    return { successCount, totalCount: ids.length, errors };
+}
+
+export async function batchPurgeConsultations(ids: string[], adminUserId: string) {
+    const now = new Date().toISOString();
+    let successCount = 0;
+    const errors: string[] = [];
+
+    for (const id of ids) {
+        // Delete messages
+        await supabaseAdmin.from('messages').delete().eq('consultation_id', id);
+        // Delete AI sessions
+        await supabaseAdmin.from('ai_sessions').delete().eq('consultation_id', id);
+        // Delete protocol logs
+        await supabaseAdmin.from('protocol_logs').delete().eq('consultation_id', id);
+        // Null out data and mark purged
+        const { error } = await supabaseAdmin
+            .from('consultations')
+            .update({
+                purged_at: now,
+                purged_by: adminUserId,
+                ai_summary: null,
+                ai_entities: null,
+                report: null,
+                prescription: null,
+            })
+            .eq('id', id);
+        if (error) {
+            console.error(`[batchPurge:${id}]`, error.message);
+            errors.push(`${id.slice(0, 8)}: ${error.message}`);
+        } else {
+            successCount++;
+            await supabaseAdmin.from('consultation_audit_log').insert({
+                consultation_id: id,
+                action: 'purge',
+                performed_by: adminUserId,
+                metadata: { purged_at: now, batch: true },
+            });
+        }
+    }
+
+    return { successCount, totalCount: ids.length, errors };
+}
+
 export async function assignConsultationToDoctor(consultationId: string, doctorId: string) {
     const { data, error } = await supabaseAdmin
         .from('consultations')
@@ -611,6 +935,125 @@ export async function getDashboardStats() {
         totalTokensInCirculation: totalTokens,
         unresolvedProtocols: protocolsRes.count ?? 0,
     };
+}
+
+/**
+ * Get consultation counts grouped by 3-hour windows over the last 24 hours.
+ */
+export async function getConsultationFlow() {
+    const now = new Date();
+    const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const { data, error } = await supabaseAdmin
+        .from('consultations')
+        .select('created_at')
+        .gte('created_at', past24h.toISOString())
+        .order('created_at', { ascending: true });
+
+    if (error) { console.error('[getConsultationFlow]', error.message); return []; }
+
+    const windows: Record<string, number> = {};
+    for (let h = 0; h < 24; h += 3) {
+        windows[`${String(h).padStart(2, '0')}:00`] = 0;
+    }
+
+    (data ?? []).forEach((c: { created_at: string }) => {
+        const hour = new Date(c.created_at).getHours();
+        const windowStart = Math.floor(hour / 3) * 3;
+        const key = `${String(windowStart).padStart(2, '0')}:00`;
+        windows[key] = (windows[key] || 0) + 1;
+    });
+
+    return Object.entries(windows).map(([time, consultations]) => ({ time, consultations }));
+}
+
+/**
+ * Get consultation counts grouped by specialty.
+ */
+export async function getSpecialtyBreakdown() {
+    const { data, error } = await supabaseAdmin
+        .from('consultations')
+        .select('specialty');
+
+    if (error) { console.error('[getSpecialtyBreakdown]', error.message); return []; }
+
+    const counts: Record<string, number> = {};
+    (data ?? []).forEach((c: { specialty: string }) => {
+        const s = c.specialty || 'unknown';
+        counts[s] = (counts[s] || 0) + 1;
+    });
+
+    const FILL_COLORS: Record<string, string> = {
+        dermatology: '#2DD4BF',
+        family_medicine: '#5EEAD4',
+        general: '#3B82F6',
+    };
+
+    return Object.entries(counts)
+        .map(([name, count]) => ({
+            name: name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+            count,
+            fill: FILL_COLORS[name] || '#9B72CF',
+        }))
+        .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Get recent activity feed from real data (registrations + consultation events).
+ */
+export async function getRecentActivity() {
+    const [usersRes, consultsRes] = await Promise.all([
+        supabaseAdmin
+            .from('users')
+            .select('id, nickname, email, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5),
+        supabaseAdmin
+            .from('consultations')
+            .select('id, status, chief_complaint, specialty, created_at, updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(5),
+    ]);
+
+    const items: { id: string; text: string; time: string; type: 'info' | 'success' | 'error' }[] = [];
+
+    (usersRes.data ?? []).forEach((u: any) => {
+        items.push({
+            id: `user-${u.id}`,
+            text: `New patient ${u.nickname || u.email || 'Anonymous'} registered`,
+            time: u.created_at,
+            type: 'info',
+        });
+    });
+
+    (consultsRes.data ?? []).forEach((c: any) => {
+        const typeMap: Record<string, 'info' | 'success' | 'error'> = {
+            submitted: 'info', assigned: 'info', in_progress: 'info',
+            completed: 'success', report_ready: 'success', cancelled: 'error',
+        };
+        const statusLabel = (c.status || '').replace(/_/g, ' ');
+        items.push({
+            id: `consult-${c.id}`,
+            text: `Consultation "${c.chief_complaint || c.specialty || 'Unknown'}" \u2014 ${statusLabel}`,
+            time: c.updated_at || c.created_at,
+            type: typeMap[c.status] || 'info',
+        });
+    });
+
+    items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+    function formatTimeAgo(isoDate: string): string {
+        const diff = Date.now() - new Date(isoDate).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins} min ago`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
+
+    return items.slice(0, 8).map(item => ({ ...item, time: formatTimeAgo(item.time) }));
 }
 
 // ──────────────────────────────────────────
@@ -738,7 +1181,8 @@ export async function getAIPrompts(page = 1, perPage = 50, search?: string) {
     let query = supabaseAdmin
         .from('ai_prompts')
         .select('*', { count: 'exact' })
-        .order('updated_at', { ascending: false })
+        .neq('status', 'deleted')
+        .order('name', { ascending: true })
         .range((page - 1) * perPage, page * perPage - 1);
 
     if (search) {
@@ -748,6 +1192,18 @@ export async function getAIPrompts(page = 1, perPage = 50, search?: string) {
     const { data, count, error } = await query;
     if (error) { console.error('[getAIPrompts]', error.message); return { data: [], count: 0 }; }
     return { data: data ?? [], count: count ?? 0 };
+}
+
+/** Get recent prompt changes for dashboard "Recent Activity" */
+export async function getRecentPromptActivity(limit = 5) {
+    const { data, error } = await supabaseAdmin
+        .from('ai_prompts')
+        .select('id, name, version, is_active, status, updated_at')
+        .neq('status', 'deleted')
+        .order('updated_at', { ascending: false })
+        .limit(limit);
+    if (error) { console.error('[getRecentPromptActivity]', error.message); return []; }
+    return data ?? [];
 }
 
 export async function getAIPromptById(id: string) {
@@ -823,9 +1279,21 @@ export async function updateAIPrompt(id: string, prompt: {
 }
 
 export async function deleteAIPrompt(id: string) {
+    // Check if any sequence nodes are linked to this prompt
+    const { data: linkedNodes, error: checkErr } = await supabaseAdmin
+        .from('prompt_sequence_nodes')
+        .select('id, label, prompt_sequences(name)')
+        .eq('prompt_id', id);
+    if (checkErr) { console.error('[deleteAIPrompt-check]', checkErr.message); }
+    if (linkedNodes && linkedNodes.length > 0) {
+        const nodeNames = linkedNodes.map((n: any) => `"${n.label}" in ${n.prompt_sequences?.name || 'unknown'}`).join(', ');
+        return { success: false, error: `Cannot delete: prompt is linked to ${linkedNodes.length} sequence node(s): ${nodeNames}. Unlink them first.` };
+    }
+
+    // Soft-delete: mark as deleted instead of hard-removing
     const { error } = await supabaseAdmin
         .from('ai_prompts')
-        .delete()
+        .update({ is_active: false, status: 'deleted', updated_at: new Date().toISOString() })
         .eq('id', id);
     if (error) { console.error('[deleteAIPrompt]', error.message); return { success: false, error: error.message }; }
     return { success: true, error: null };
@@ -1026,6 +1494,18 @@ export async function updatePromptSequence(id: string, updates: { name?: string;
 }
 
 export async function deletePromptSequence(id: string) {
+    // Block deletion if this is the active production sequence
+    const activeSeqId = await getPlatformSetting('ai_active_sequence_id');
+    if (activeSeqId === id) {
+        return { success: false, error: 'Cannot delete: this is the active production sequence. Deactivate it or switch to a different sequence first.' };
+    }
+    // Block deletion of the only remaining sequence
+    const { count } = await supabaseAdmin
+        .from('prompt_sequences')
+        .select('*', { count: 'exact', head: true });
+    if ((count ?? 0) <= 1) {
+        return { success: false, error: 'Cannot delete: this is the only sequence. Create another one first.' };
+    }
     const { error } = await supabaseAdmin
         .from('prompt_sequences')
         .delete()
@@ -1033,6 +1513,67 @@ export async function deletePromptSequence(id: string) {
     if (error) { console.error('[deletePromptSequence]', error.message); return { success: false, error: error.message }; }
     await bumpChatbotVersion();
     return { success: true, error: null };
+}
+
+export async function clonePromptSequence(sourceId: string, newName: string) {
+    // 1) Fetch the source sequence's nodes
+    const { data: sourceNodes, error: nodesErr } = await supabaseAdmin
+        .from('prompt_sequence_nodes')
+        .select('*')
+        .eq('sequence_id', sourceId)
+        .order('sort_order');
+    if (nodesErr) {
+        console.error('[clonePromptSequence:nodes]', nodesErr.message);
+        return { data: null, error: nodesErr.message };
+    }
+
+    // 2) Create the new sequence (never default)
+    const { data: newSeq, error: seqErr } = await supabaseAdmin
+        .from('prompt_sequences')
+        .insert({ name: newName, is_default: false })
+        .select()
+        .single();
+    if (seqErr || !newSeq) {
+        console.error('[clonePromptSequence:seq]', seqErr?.message);
+        return { data: null, error: seqErr?.message ?? 'Failed to create clone' };
+    }
+
+    // 3) Clone each node — first pass without parent_node_id, then remap
+    const oldToNewId: Record<string, string> = {};
+    for (const node of (sourceNodes ?? [])) {
+        const { data: newNode, error: nErr } = await supabaseAdmin
+            .from('prompt_sequence_nodes')
+            .insert({
+                sequence_id: newSeq.id,
+                step_key: node.step_key,
+                label: node.label,
+                emoji: node.emoji,
+                prompt_id: node.prompt_id,
+                sort_order: node.sort_order,
+                pathway_condition: node.pathway_condition,
+                gender_condition: node.gender_condition,
+                parent_node_id: null, // set in second pass
+            })
+            .select()
+            .single();
+        if (nErr || !newNode) {
+            console.error('[clonePromptSequence:cloneNode]', nErr?.message);
+            continue;
+        }
+        oldToNewId[node.id] = newNode.id;
+    }
+
+    // 4) Second pass — remap parent_node_id references
+    for (const node of (sourceNodes ?? [])) {
+        if (node.parent_node_id && oldToNewId[node.parent_node_id] && oldToNewId[node.id]) {
+            await supabaseAdmin
+                .from('prompt_sequence_nodes')
+                .update({ parent_node_id: oldToNewId[node.parent_node_id] })
+                .eq('id', oldToNewId[node.id]);
+        }
+    }
+
+    return { data: newSeq, error: null };
 }
 
 // ── Sequence Nodes ──────────────────────────
@@ -1054,7 +1595,6 @@ export async function createSequenceNode(node: {
         .select('*, ai_prompts(id, name, prompt_type, is_active, version)')
         .single();
     if (error) { console.error('[createSequenceNode]', error.message); return { data: null, error: error.message }; }
-    await bumpChatbotVersion();
     return { data, error: null };
 }
 
@@ -1075,7 +1615,6 @@ export async function updateSequenceNode(id: string, updates: {
         .select('*, ai_prompts(id, name, prompt_type, is_active, version)')
         .single();
     if (error) { console.error('[updateSequenceNode]', error.message); return { data: null, error: error.message }; }
-    await bumpChatbotVersion();
     return { data, error: null };
 }
 
@@ -1085,7 +1624,6 @@ export async function deleteSequenceNode(id: string) {
         .delete()
         .eq('id', id);
     if (error) { console.error('[deleteSequenceNode]', error.message); return { success: false, error: error.message }; }
-    await bumpChatbotVersion();
     return { success: true, error: null };
 }
 
@@ -1098,7 +1636,6 @@ export async function reorderSequenceNodes(sequenceId: string, orderedIds: strin
             .eq('sequence_id', sequenceId)
     );
     await Promise.all(updates);
-    await bumpChatbotVersion();
     return { success: true };
 }
 
@@ -1143,20 +1680,19 @@ export async function getSettings(category?: string) {
 }
 
 export async function upsertPlatformSetting(key: string, value: string, category: string, description?: string) {
+    // Save previous value for changelog / rollback
+    const previousValue = await getPlatformSetting(key);
+
     const { data, error } = await supabaseAdmin
         .from('platform_settings')
         .upsert(
-            { key, value, category, description: description ?? null },
+            { key, value, category, description: description ?? null, previous_value: previousValue ?? null },
             { onConflict: 'key' }
         )
         .select()
         .single();
     if (error) { console.error('[upsertPlatformSetting]', error.message); return { data: null, error: error.message }; }
-    // Bump chatbot version if AI/protocol-related setting changed
-    if (key.startsWith('ai_') || key.startsWith('protocol_') || key.startsWith('openai_')) {
-        await bumpChatbotVersion();
-    }
-    return { data, error: null };
+    return { data, error: null, previousValue };
 }
 
 export async function getPlatformSetting(key: string) {
@@ -1417,4 +1953,3 @@ export async function setKycSetting(enabled: boolean) {
     if (error) { console.error('[setKycSetting]', error.message); return { success: false, error: error.message }; }
     return { success: true, error: null };
 }
-

@@ -9,7 +9,7 @@ import ChatTestWindow from '@/components/ChatTestWindow';
 import SequenceBuilderContent from '@/components/SequenceBuilderContent';
 import ChatReportsPanel from '@/components/ChatReportsPanel';
 import { useEffect, useState, useCallback } from 'react';
-import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts } from '@/lib/actions';
+import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts, fetchRecentPromptActivity } from '@/lib/actions';
 import {
     Bot,
     Zap,
@@ -105,6 +105,12 @@ export default function AIPage() {
     // Quick-test a specific prompt
     const [testingPromptId, setTestingPromptId] = useState<string | null>(null);
 
+    // Delete error feedback
+    const [deleteError, setDeleteError] = useState('');
+
+    // Recent activity (ordered by updated_at)
+    const [recentActivity, setRecentActivity] = useState<PromptRow[]>([]);
+
     // Chat Bot pre-launch config
     const [sequences, setSequences] = useState<SequenceInfo[]>([]);
     const [selectedSequenceId, setSelectedSequenceId] = useState<string>('');
@@ -134,6 +140,7 @@ export default function AIPage() {
     const [savingProto, setSavingProto] = useState(false);
     const [protoMsg, setProtoMsg] = useState('');
     const [newKeyword, setNewKeyword] = useState('');
+    const [newKeywordAr, setNewKeywordAr] = useState('');
 
     // Draft workflow
     const [draftCount, setDraftCount] = useState(0);
@@ -146,8 +153,9 @@ export default function AIPage() {
         setPrompts(data as PromptRow[]);
         setTotalCount(count);
         setLoading(false);
-        // Also refresh draft count
+        // Also refresh draft count + recent activity
         fetchDraftCount().then(c => setDraftCount(c));
+        fetchRecentPromptActivity(5).then(d => setRecentActivity(d as PromptRow[]));
     }, []);
 
     useEffect(() => { loadPrompts(); }, [loadPrompts]);
@@ -229,16 +237,24 @@ export default function AIPage() {
     }
 
     async function handleDeleteRow(id: string) {
+        const prompt = prompts.find(p => p.id === id);
+        const confirmMsg = `Are you sure you want to delete "${prompt?.name}"?\n\nThis action will soft-delete the prompt (it can be recovered later).`;
+        if (!confirm(confirmMsg)) return;
         setDeletingId(id);
+        setDeleteError('');
         const res = await deletePrompt(id);
         if (res.success) {
             await loadPrompts();
+        } else if (res.error) {
+            setDeleteError(res.error);
+            setTimeout(() => setDeleteError(''), 8000);
         }
         setDeletingId(null);
     }
 
     async function handleSaveApiKey() {
         if (!apiKey.trim()) return;
+        if (!confirm('Update the OpenAI API key? This change takes effect immediately.')) return;
         setSavingKey(true);
         setKeyMsg('');
         const res = await savePlatformSetting('openai_api_key', apiKey, 'ai', 'OpenAI API key for AI chat');
@@ -253,6 +269,7 @@ export default function AIPage() {
     }
 
     async function handleSaveModelConfig() {
+        if (!confirm(`Switch model to "${modelName}" with temperature ${temperature.toFixed(1)}? This affects all live patient conversations.`)) return;
         setSavingModel(true);
         setModelMsg('');
         try {
@@ -270,6 +287,28 @@ export default function AIPage() {
     async function handleActivateChatbot() {
         if (!selectedSequenceId) return;
         const newState = !chatbotEnabled;
+
+        // Pre-flight checks before activation
+        if (newState) {
+            if (!apiKey.trim()) {
+                setActivationMsg('❌ Cannot activate: API key is not configured. Go to Settings to add one.');
+                setTimeout(() => setActivationMsg(''), 6000);
+                return;
+            }
+            const unlinked = sequenceNodes.filter(n => !n.ai_prompts);
+            if (unlinked.length > 0) {
+                const names = unlinked.map(n => n.step_key).join(', ');
+                setActivationMsg(`❌ Cannot activate: ${unlinked.length} sequence node(s) have no prompt linked (${names}). Fix in Interview Flow.`);
+                setTimeout(() => setActivationMsg(''), 8000);
+                return;
+            }
+            if (activeCount === 0) {
+                setActivationMsg('❌ Cannot activate: no prompts are active.');
+                setTimeout(() => setActivationMsg(''), 6000);
+                return;
+            }
+        }
+
         const msg = newState
             ? 'Activate the AI Chatbot for all patients? They will immediately start using the selected sequence.'
             : 'Deactivate the AI Chatbot? Patients will no longer be able to use AI-powered intake.';
@@ -341,6 +380,7 @@ export default function AIPage() {
     }
 
     async function handleSaveProtocol() {
+        if (!confirm('Save protocol changes? These affect how the chatbot handles emergencies and escalation.')) return;
         setSavingProto(true);
         setProtoMsg('');
         try {
@@ -441,7 +481,7 @@ export default function AIPage() {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm('Delete this prompt?')) handleDeleteRow(row.id);
+                            handleDeleteRow(row.id);
                         }}
                         disabled={deletingId === row.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg text-error hover:bg-error-faded transition-colors disabled:opacity-50"
@@ -1159,6 +1199,13 @@ export default function AIPage() {
                 {/* ══════════════ TAB: AI Prompts ══════════════ */}
                 {activeTab === 'prompts' && (
                     <div className="animate-fade-in">
+                        {/* Delete error banner */}
+                        {deleteError && (
+                            <div className="mb-4 px-4 py-3 rounded-xl bg-error-faded border border-error/30 text-error text-sm flex items-center gap-2">
+                                ⚠️ {deleteError}
+                                <button onClick={() => setDeleteError('')} className="ml-auto text-error/60 hover:text-error">✕</button>
+                            </div>
+                        )}
                         {loading ? (
                             <div className="flex items-center justify-center h-64">
                                 <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -1242,13 +1289,13 @@ export default function AIPage() {
                                     </div>
                                     <div className="flex gap-2">
                                         <input
-                                            type="text" value={newKeyword}
-                                            onChange={e => setNewKeyword(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && (addKeyword(protoEmergencyAr, setProtoEmergencyAr, newKeyword), e.preventDefault())}
+                                            type="text" value={newKeywordAr}
+                                            onChange={e => setNewKeywordAr(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && (addKeyword(protoEmergencyAr, setProtoEmergencyAr, newKeywordAr), e.preventDefault())}
                                             placeholder="إضافة كلمة طوارئ..." dir="rtl"
                                             className="flex-1 bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-red-400"
                                         />
-                                        <button onClick={() => addKeyword(protoEmergencyAr, setProtoEmergencyAr, newKeyword)} className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors">+ Add</button>
+                                        <button onClick={() => addKeyword(protoEmergencyAr, setProtoEmergencyAr, newKeywordAr)} className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors">+ Add</button>
                                     </div>
                                 </div>
 

@@ -40,6 +40,8 @@ export async function createConsultation(params: {
     allergies: string[];
     aiSession: Record<string, unknown>;
     tokenCost: number;
+    requestedDoctorId?: string | null;
+    doctorSelectionMethod?: string | null;
 }) {
     // Check if there's an existing intake_in_progress session to update
     const { data: existing } = await supabase
@@ -64,6 +66,8 @@ export async function createConsultation(params: {
                 ai_summary: params.aiSession,
                 token_cost: params.tokenCost,
                 payment_method: 'tokens',
+                ...(params.requestedDoctorId ? { requested_doctor_id: params.requestedDoctorId } : {}),
+                ...(params.doctorSelectionMethod ? { doctor_selection_method: params.doctorSelectionMethod } : {}),
             })
             .eq('id', existing.id)
             .select()
@@ -85,6 +89,8 @@ export async function createConsultation(params: {
                 token_cost: params.tokenCost,
                 payment_method: 'tokens',
                 protocol_flags: [],
+                ...(params.requestedDoctorId ? { requested_doctor_id: params.requestedDoctorId } : {}),
+                ...(params.doctorSelectionMethod ? { doctor_selection_method: params.doctorSelectionMethod } : {}),
             })
             .select()
             .single();
@@ -101,6 +107,38 @@ export async function createConsultation(params: {
     });
 
     return consultation as Consultation;
+}
+
+// ── Lookup doctor by identifier code ─────────────
+export async function lookupDoctorByCode(code: string) {
+    const { data, error } = await supabase
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, avatar_url, rating_avg, doctor_type, identifier_code, credential_expires_at, is_accepting, status, consultation_fee_tokens')
+        .eq('identifier_code', code.toUpperCase())
+        .eq('status', 'active')
+        .single();
+
+    if (error) return null;
+    // Check locum credential expiry
+    if (data.doctor_type === 'locum' && data.credential_expires_at) {
+        if (new Date(data.credential_expires_at) < new Date()) return null;
+    }
+    return data;
+}
+
+// ── Search doctors for patient selection ──────────
+export async function searchDoctorsForPatient(query: string) {
+    const { data, error } = await supabase
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, avatar_url, rating_avg, doctor_type, identifier_code, is_accepting, consultation_fee_tokens')
+        .eq('status', 'active')
+        .eq('doctor_type', 'permanent')
+        .eq('is_accepting', true)
+        .or(`display_name.ilike.%${query}%,full_name.ilike.%${query}%,specialty.ilike.%${query}%`)
+        .limit(10);
+
+    if (error) return [];
+    return data ?? [];
 }
 
 // ── Fetch messages for a consultation ────────────

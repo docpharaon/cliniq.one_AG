@@ -261,8 +261,16 @@ export default function ChatTestWindow({
     const [allNodes, setAllNodes] = useState<SequenceNode[]>([]);
     const [sequenceName, setSequenceName] = useState<string>('');
     const [showInfoPanel, setShowInfoPanel] = useState(true);
+    const [chatbotAvatarUrl, setChatbotAvatarUrl] = useState('/ai-doctor-avatar.jpg');
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // ── Load chatbot avatar URL from platform settings ──
+    useEffect(() => {
+        fetchPlatformSetting('chatbot_avatar_url').then((url) => {
+            if (url) setChatbotAvatarUrl(url);
+        });
+    }, []);
 
     // ── Auto-bot state ──
     const [autoMode, setAutoMode] = useState(false);
@@ -1665,9 +1673,12 @@ export default function ChatTestWindow({
                 {/* ── Header ─────────────────────────── */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-accent/20">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-accent-faded flex items-center justify-center">
-                            <Bot className="w-5 h-5 text-accent" />
-                        </div>
+                        <img
+                            src={chatbotAvatarUrl}
+                            alt="AI Doctor"
+                            className="w-9 h-9 rounded-xl object-cover border border-accent/30"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/ai-doctor-avatar.jpg'; }}
+                        />
                         <div>
                             <h3 className="text-sm font-bold text-text-primary">AI Prompt Tester</h3>
                             <p className="text-xs text-text-muted">
@@ -2061,14 +2072,17 @@ export default function ChatTestWindow({
                     className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
                 >
                     {messages.map(msg => (
-                        <MessageBubble key={msg.id} message={msg} debugMode={debugMode} />
+                        <MessageBubble key={msg.id} message={msg} debugMode={debugMode} chatbotAvatarUrl={chatbotAvatarUrl} />
                     ))}
 
                     {isTyping && (
                         <div className="flex items-end gap-2">
-                            <div className="w-7 h-7 rounded-full bg-accent-faded flex items-center justify-center flex-shrink-0">
-                                <Bot className="w-3.5 h-3.5 text-accent" />
-                            </div>
+                            <img
+                                src={chatbotAvatarUrl}
+                                alt="AI"
+                                className="w-7 h-7 rounded-full object-cover border border-accent/30 flex-shrink-0"
+                                onError={(e) => { (e.target as HTMLImageElement).src = '/ai-doctor-avatar.jpg'; }}
+                            />
                             <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-bg-card border border-border">
                                 <div className="flex items-center gap-1.5">
                                     <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -2766,7 +2780,7 @@ function DebugDrawer({ debug }: { debug: DebugPayload }) {
 }
 
 // ── Message Bubble ─────────────────────────────
-function MessageBubble({ message, debugMode = false }: { message: Message; debugMode?: boolean }) {
+function MessageBubble({ message, debugMode = false, chatbotAvatarUrl = '/ai-doctor-avatar.jpg' }: { message: Message; debugMode?: boolean; chatbotAvatarUrl?: string }) {
     const isUser = message.role === 'user';
     const isSystem = message.role === 'system';
 
@@ -2794,9 +2808,12 @@ function MessageBubble({ message, debugMode = false }: { message: Message; debug
     return (
         <div className="animate-fade-in">
             <div className="flex items-end gap-2">
-                <div className="w-7 h-7 rounded-full bg-accent-faded flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-3.5 h-3.5 text-accent" />
-                </div>
+                <img
+                    src={chatbotAvatarUrl}
+                    alt="AI"
+                    className="w-7 h-7 rounded-full object-cover border border-accent/30 flex-shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/ai-doctor-avatar.jpg'; }}
+                />
                 <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-bl-md bg-bg-card border border-border">
                     <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">{message.content}</p>
                 </div>

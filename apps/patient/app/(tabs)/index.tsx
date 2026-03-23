@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
-import { t, getLocale, setLocale } from '@cliniqone/i18n';
+import { t, getLocale, setLocale, toLocalNum, localDate } from '@cliniqone/i18n';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
 import { useConsultations } from '../../hooks/useConsultations';
 import { CONSULTATION_STATUS_LABELS } from '@cliniqone/config';
@@ -29,18 +29,18 @@ const ACTIVE_STATUSES: ConsultationStatus[] = ['submitted', 'assigned', 'in_prog
 
 // ── Quick Actions ────────────────────────────────
 const QUICK_ACTIONS = [
-    { icon: '🩺', label: 'New Consultation', route: '/intake' },
-    { icon: '📋', label: 'View History', route: '/(tabs)/consultations' },
-    { icon: '🧪', label: 'My Tests', route: '/interventions' },
-    { icon: '💰', label: 'Buy Tokens', action: 'purchase' },
-    { icon: '❓', label: 'Help', route: '/settings/help' },
+    { icon: '🩺', labelKey: 'dashboard.newConsultation', route: '/intake' },
+    { icon: '📋', labelKey: 'dashboard.viewHistory', route: '/(tabs)/consultations' },
+    { icon: '🧪', labelKey: 'dashboard.myTests', route: '/interventions' },
+    { icon: '💰', labelKey: 'dashboard.buyTokensAction', action: 'purchase' },
+    { icon: '❓', labelKey: 'dashboard.helpAction', route: '/settings/help' },
 ];
 
 // ── Health Tips ──────────────────────────────────
 const HEALTH_TIPS = [
-    { icon: '💧', title: 'Stay Hydrated', text: 'Drink 8 glasses of water daily for better health.' },
-    { icon: '🚶', title: 'Stay Active', text: 'A 30-min daily walk boosts mood and heart health.' },
-    { icon: '😴', title: 'Sleep Well', text: 'Adults need 7-9 hours of sleep each night.' },
+    { icon: '💧', titleKey: 'dashboard.stayHydrated', textKey: 'dashboard.stayHydratedTip' },
+    { icon: '🚶', titleKey: 'dashboard.stayActive', textKey: 'dashboard.stayActiveTip' },
+    { icon: '😴', titleKey: 'dashboard.sleepWell', textKey: 'dashboard.sleepWellTip' },
 ];
 
 export default function DashboardScreen() {
@@ -89,9 +89,22 @@ export default function DashboardScreen() {
         (c: any) => ACTIVE_STATUSES.includes(c.status)
     );
 
+    const STATUS_EMOJI: Record<string, string> = {
+        draft: '📝', intake_in_progress: '🤖', pending_payment: '💳',
+        submitted: '📧', assigned: '👨‍⚕️', in_progress: '🔄',
+        report_ready: '📋', completed: '✅', cancelled: '❌',
+    };
+    const STATUS_LABEL_KEYS: Record<string, string> = {
+        draft: 'consultations.statusDraft', intake_in_progress: 'consultations.statusAiIntake',
+        pending_payment: 'consultations.statusPendingPayment', submitted: 'consultations.statusSubmitted',
+        assigned: 'consultations.statusDoctorAssigned', in_progress: 'consultations.statusInProgress',
+        report_ready: 'consultations.statusReportReady', completed: 'consultations.statusCompleted',
+        cancelled: 'consultations.statusCancelled',
+    };
     const getStatusLabel = (status: string) => {
-        const entry = CONSULTATION_STATUS_LABELS[status];
-        return entry ? `${entry.emoji} ${entry.label}` : status;
+        const emoji = STATUS_EMOJI[status] || '';
+        const key = STATUS_LABEL_KEYS[status];
+        return key ? `${emoji} ${t(key)}` : status;
     };
 
     const onRefresh = useCallback(async () => {
@@ -157,8 +170,8 @@ export default function DashboardScreen() {
                     <View style={styles.tokenContent}>
                         <Text style={styles.tokenLabel}>{t('dashboard.tokenBalance')}</Text>
                         <View style={styles.tokenRow}>
-                            <Text style={styles.tokenValue}>{user?.tokens_balance ?? 0}</Text>
-                            <Text style={styles.tokenUnit}>tokens</Text>
+                            <Text style={styles.tokenValue}>{toLocalNum(user?.tokens_balance ?? 0)}</Text>
+                            <Text style={styles.tokenUnit}>{t('tokens.tokensLabel')}</Text>
                         </View>
                     </View>
                     <TouchableOpacity style={styles.buyBtn} onPress={() => setShowPurchase(true)}>
@@ -172,7 +185,7 @@ export default function DashboardScreen() {
                         <Text style={styles.ctaIcon}>🩺</Text>
                         <View>
                             <Text style={styles.ctaTitle}>{t('dashboard.startConsultation')}</Text>
-                            <Text style={styles.ctaSubtitle}>AI-powered intake → Doctor review</Text>
+                            <Text style={styles.ctaSubtitle}>{t('dashboard.aiIntakeSubtitle')}</Text>
                         </View>
                     </View>
                     <Text style={styles.ctaArrow}>→</Text>
@@ -189,7 +202,7 @@ export default function DashboardScreen() {
                             activeOpacity={0.7}
                         >
                             <Text style={styles.actionIcon}>{action.icon}</Text>
-                            <Text style={styles.actionLabel}>{action.label}</Text>
+                            <Text style={styles.actionLabel}>{t(action.labelKey)}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -210,12 +223,10 @@ export default function DashboardScreen() {
                                 >
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.consultComplaint} numberOfLines={1}>
-                                            {c.chief_complaint || 'Consultation'}
+                                            {c.chief_complaint || t('dashboard.consultation')}
                                         </Text>
                                         <Text style={styles.consultDate}>
-                                            {new Date(c.created_at).toLocaleDateString('en-US', {
-                                                month: 'short', day: 'numeric', year: 'numeric',
-                                            })}
+                                            {localDate(c.created_at)}
                                         </Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[c.status] || colors.textTertiary) + '20' }]}>
@@ -227,7 +238,7 @@ export default function DashboardScreen() {
                             ))}
                             {(consultations?.length || 0) > 3 && (
                                 <TouchableOpacity onPress={() => router.push('/(tabs)/consultations')} style={styles.viewAllButton}>
-                                    <Text style={styles.viewAllText}>View All Consultations →</Text>
+                                    <Text style={styles.viewAllText}>{t('dashboard.viewAllConsultations')}</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -252,8 +263,8 @@ export default function DashboardScreen() {
                     {HEALTH_TIPS.map((tip, i) => (
                         <View key={i} style={styles.tipCard}>
                             <Text style={styles.tipIcon}>{tip.icon}</Text>
-                            <Text style={styles.tipTitle}>{tip.title}</Text>
-                            <Text style={styles.tipText}>{tip.text}</Text>
+                            <Text style={styles.tipTitle}>{t(tip.titleKey)}</Text>
+                            <Text style={styles.tipText}>{t(tip.textKey)}</Text>
                         </View>
                     ))}
                 </ScrollView>
@@ -262,13 +273,13 @@ export default function DashboardScreen() {
                 <View style={styles.infoGrid}>
                     <View style={styles.infoCard}>
                         <Text style={styles.infoIcon}>⏱️</Text>
-                        <Text style={styles.infoLabel}>Response Time</Text>
-                        <Text style={styles.infoValue}>2-4 hours</Text>
+                        <Text style={styles.infoLabel}>{t('dashboard.responseTime')}</Text>
+                        <Text style={styles.infoValue}>{t('dashboard.responseTimeValue')}</Text>
                     </View>
                     <View style={styles.infoCard}>
                         <Text style={styles.infoIcon}>💰</Text>
-                        <Text style={styles.infoLabel}>Per Consultation</Text>
-                        <Text style={styles.infoValue}>3 tokens</Text>
+                        <Text style={styles.infoLabel}>{t('dashboard.perConsultation')}</Text>
+                        <Text style={styles.infoValue}>{t('dashboard.perConsultationValue')}</Text>
                     </View>
                 </View>
             </ScrollView>

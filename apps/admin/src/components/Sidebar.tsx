@@ -20,11 +20,12 @@ import {
     Megaphone,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
     LogOut,
     Activity,
-    GitBranchPlus,
     ClipboardList,
     Fingerprint,
+    type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -36,32 +37,75 @@ const mainNav = [
     { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
 ];
 
-const managementNav = [
-    { label: 'HR Management', href: '/dashboard/hr', icon: UserCog, gradient: 'from-orange-500 to-red-500' },
-    { label: 'AI', href: '/dashboard/ai', icon: Bot, gradient: 'from-purple-500 to-blue-500' },
-    { label: 'Interventions', href: '/dashboard/interventions', icon: ClipboardList, gradient: 'from-teal-500 to-cyan-500' },
-    { label: 'Pricing', href: '/dashboard/pricing', icon: DollarSign, gradient: 'from-green-500 to-emerald-500' },
-    { label: 'Protocol Alerts', href: '/dashboard/protocols', icon: ShieldAlert, gradient: 'from-red-500 to-orange-500' },
-    { label: 'Error Reports', href: '/dashboard/errors', icon: AlertTriangle, gradient: 'from-red-600 to-red-400' },
-    { label: 'Scheduling', href: '/dashboard/scheduling', icon: CalendarDays, gradient: 'from-indigo-500 to-purple-500' },
-    { label: 'News', href: '/dashboard/news', icon: Newspaper, gradient: 'from-pink-500 to-rose-500' },
-    { label: 'Ads', href: '/dashboard/ads', icon: Megaphone, gradient: 'from-amber-500 to-orange-500' },
-    { label: 'ID Verification', href: '/dashboard/kyc', icon: Fingerprint, gradient: 'from-sky-500 to-blue-500' },
-];
+type NavItem = { label: string; href: string; icon: LucideIcon };
 
-const bottomNav = [
-    { label: 'Tokens', href: '/dashboard/tokens', icon: Coins },
-    { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+const managementGroups: { title: string; items: NavItem[] }[] = [
+    {
+        title: 'Clinical',
+        items: [
+            { label: 'Interventions', href: '/dashboard/interventions', icon: ClipboardList },
+            { label: 'Protocol Alerts', href: '/dashboard/protocols', icon: ShieldAlert },
+            { label: 'Error Reports', href: '/dashboard/errors', icon: AlertTriangle },
+        ],
+    },
+    {
+        title: 'Operations',
+        items: [
+            { label: 'HR Management', href: '/dashboard/hr', icon: UserCog },
+            { label: 'Scheduling', href: '/dashboard/scheduling', icon: CalendarDays },
+            { label: 'AI', href: '/dashboard/ai', icon: Bot },
+            { label: 'ID Verification', href: '/dashboard/kyc', icon: Fingerprint },
+        ],
+    },
+    {
+        title: 'Content',
+        items: [
+            { label: 'News', href: '/dashboard/news', icon: Newspaper },
+            { label: 'Ads', href: '/dashboard/ads', icon: Megaphone },
+        ],
+    },
+    {
+        title: 'Finance',
+        items: [
+            { label: 'Pricing', href: '/dashboard/pricing', icon: DollarSign },
+            { label: 'Tokens', href: '/dashboard/tokens', icon: Coins },
+        ],
+    },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+        // Auto-expand all groups initially
+        const map: Record<string, boolean> = {};
+        managementGroups.forEach(g => { map[g.title] = true; });
+        return map;
+    });
 
     const isActive = (href: string) => {
         if (href === '/dashboard') return pathname === '/dashboard';
         return pathname?.startsWith(href) ?? false;
     };
+
+    const toggleGroup = (title: string) => {
+        setExpandedGroups(prev => ({ ...prev, [title]: !prev[title] }));
+    };
+
+    const renderNavLink = (item: NavItem, active: boolean) => (
+        <Link
+            key={item.href}
+            href={item.href}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
+                ? 'bg-accent-faded text-accent font-semibold border-l-4 border-accent'
+                : 'text-text-secondary hover:bg-accent/[0.08] hover:text-text-primary'
+                }`}
+            title={collapsed ? item.label : undefined}
+        >
+            <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-accent' : ''}`} />
+            {!collapsed && <span className="text-[15px]">{item.label}</span>}
+        </Link>
+    );
 
     return (
         <aside
@@ -97,47 +141,39 @@ export default function Sidebar() {
                         Core
                     </p>
                 )}
-                {mainNav.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
-                                ? 'bg-accent-faded text-accent font-semibold border-l-4 border-accent'
-                                : 'text-text-secondary hover:bg-accent/[0.08] hover:text-text-primary'
-                                }`}
-                            title={collapsed ? item.label : undefined}
-                        >
-                            <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-accent' : ''}`} />
-                            {!collapsed && <span className="text-[15px]">{item.label}</span>}
-                        </Link>
-                    );
-                })}
+                {mainNav.map((item) => renderNavLink(item, isActive(item.href)))}
 
-                {/* Management Section */}
+                {/* Management Section — Collapsible Groups */}
                 {!collapsed && (
                     <p className="text-[11px] uppercase tracking-wider text-text-muted font-semibold px-3 mt-6 mb-2">
                         Management
                     </p>
                 )}
-                {managementNav.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
+                {managementGroups.map((group) => {
+                    const isExpanded = expandedGroups[group.title] ?? true;
+                    const hasActive = group.items.some(i => isActive(i.href));
+
+                    if (collapsed) {
+                        // When collapsed, just show icons without grouping
+                        return group.items.map(item => renderNavLink(item, isActive(item.href)));
+                    }
+
                     return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
-                                ? 'bg-accent-faded text-accent font-semibold border-l-4 border-accent'
-                                : 'text-text-secondary hover:bg-accent/[0.08] hover:text-text-primary'
-                                }`}
-                            title={collapsed ? item.label : undefined}
-                        >
-                            <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-accent' : ''}`} />
-                            {!collapsed && <span className="text-[15px]">{item.label}</span>}
-                        </Link>
+                        <div key={group.title} className="mb-1">
+                            <button
+                                onClick={() => toggleGroup(group.title)}
+                                className={`flex items-center w-full px-3 py-1.5 text-[12px] uppercase tracking-wider font-semibold rounded-lg transition-colors ${hasActive ? 'text-accent' : 'text-text-muted hover:text-text-secondary'
+                                    }`}
+                            >
+                                <ChevronDown className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-200 ${isExpanded ? '' : '-rotate-90'}`} />
+                                {group.title}
+                            </button>
+                            {isExpanded && (
+                                <div className="space-y-0.5 mt-0.5 ml-2">
+                                    {group.items.map(item => renderNavLink(item, isActive(item.href)))}
+                                </div>
+                            )}
+                        </div>
                     );
                 })}
 
@@ -145,24 +181,7 @@ export default function Sidebar() {
                 <div className="my-4 border-t border-[rgba(45,212,191,0.15)]" />
 
                 {/* Bottom Nav */}
-                {bottomNav.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${active
-                                ? 'bg-accent-faded text-accent font-semibold border-l-4 border-accent'
-                                : 'text-text-secondary hover:bg-accent/[0.08] hover:text-text-primary'
-                                }`}
-                            title={collapsed ? item.label : undefined}
-                        >
-                            <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-accent' : ''}`} />
-                            {!collapsed && <span className="text-[15px]">{item.label}</span>}
-                        </Link>
-                    );
-                })}
+                {renderNavLink({ label: 'Settings', href: '/dashboard/settings', icon: Settings }, isActive('/dashboard/settings'))}
             </nav>
 
             {/* Admin Footer */}

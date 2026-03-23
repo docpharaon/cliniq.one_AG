@@ -7,7 +7,7 @@ import { Card, Badge, Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
 import { signOut } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
-import { t } from '@cliniqone/i18n';
+import { t, toLocalNum, localDate } from '@cliniqone/i18n';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
 import { APP } from '@cliniqone/config';
 import type { TokenTransaction, Consultation } from '@cliniqone/types';
@@ -23,11 +23,14 @@ const TX_ICONS: Record<string, string> = {
     admin_grant: '🔑',
 };
 
-const SPECIALTY_LABELS: Record<string, string> = {
-    general: '🏥 General',
-    dermatology: '🩺 Dermatology',
-    family_medicine: '🏥 Family Medicine',
-};
+function getSpecialtyLabel(key: string): string {
+    const labels: Record<string, string> = {
+        general: t('profile.specialtyGeneral'),
+        dermatology: t('profile.specialtyDermatology'),
+        family_medicine: t('profile.specialtyFamilyMedicine'),
+    };
+    return labels[key] || key;
+}
 
 export default function ProfileScreen() {
     const { user, clear, setUser } = useAuthStore();
@@ -159,14 +162,14 @@ export default function ProfileScreen() {
                             <Text style={styles.cameraIcon}>📷</Text>
                         </View>
                     </TouchableOpacity>
-                    <Text style={styles.name}>{user?.nickname || 'User'}</Text>
+                    <Text style={styles.name}>{user?.nickname || t('profile.userFallback')}</Text>
                     <Text style={styles.email}>{user?.email || ''}</Text>
-                    <Badge label="Patient" variant="teal" />
+                    <Badge label={t('profile.patientBadge')} variant="teal" />
                     {user?.kyc_status === 'approved' ? (
-                        <Badge label="✅ Verified" variant="success" />
+                        <Badge label={t('profile.verifiedBadge')} variant="success" />
                     ) : (
                         <TouchableOpacity onPress={() => router.push('/settings/verify-identity')}>
-                            <Badge label="⚠️ Not Verified" variant="warning" />
+                            <Badge label={t('profile.notVerifiedBadge')} variant="warning" />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -174,18 +177,18 @@ export default function ProfileScreen() {
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
                     <View style={styles.statCard}>
-                        <Text style={styles.statValue}>{user?.tokens_balance ?? 0}</Text>
-                        <Text style={styles.statLabel}>Tokens</Text>
+                        <Text style={styles.statValue}>{toLocalNum(user?.tokens_balance ?? 0)}</Text>
+                        <Text style={styles.statLabel}>{t('profile.tokensLabel')}</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Text style={styles.statValue}>{consultCount}</Text>
-                        <Text style={styles.statLabel}>Consultations</Text>
+                        <Text style={styles.statValue}>{toLocalNum(consultCount)}</Text>
+                        <Text style={styles.statLabel}>{t('profile.consultationsLabel')}</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statValue}>
-                            {user?.created_at ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000) : 0}d
+                            {toLocalNum(user?.created_at ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000) : 0)}d
                         </Text>
-                        <Text style={styles.statLabel}>Member</Text>
+                        <Text style={styles.statLabel}>{t('profile.memberLabel')}</Text>
                     </View>
                 </View>
 
@@ -198,8 +201,8 @@ export default function ProfileScreen() {
                     <View style={styles.historyGrid}>
                         <View style={styles.historyItem}>
                             <Text style={styles.historyItemIcon}>🩺</Text>
-                            <Text style={styles.historyItemValue}>{completedConsults.length}</Text>
-                            <Text style={styles.historyItemLabel}>Completed</Text>
+                            <Text style={styles.historyItemValue}>{toLocalNum(completedConsults.length)}</Text>
+                            <Text style={styles.historyItemLabel}>{t('profile.completedLabel')}</Text>
                         </View>
                         <View style={styles.historyDivider} />
                         <View style={styles.historyItem}>
@@ -213,7 +216,7 @@ export default function ProfileScreen() {
                         <View style={styles.historyItem}>
                             <Text style={styles.historyItemIcon}>⭐</Text>
                             <Text style={styles.historyItemValue} numberOfLines={1}>
-                                {topSpecialty ? SPECIALTY_LABELS[topSpecialty]?.split(' ')[1] || topSpecialty : '—'}
+                                {topSpecialty ? getSpecialtyLabel(topSpecialty) : '—'}
                             </Text>
                             <Text style={styles.historyItemLabel}>{t('profile.topSpecialty')}</Text>
                         </View>
@@ -243,27 +246,27 @@ export default function ProfileScreen() {
                 {/* Token Wallet */}
                 <View style={styles.walletCard}>
                     <View style={styles.walletHeader}>
-                        <Text style={styles.walletTitle}>💰 Token Wallet</Text>
+                        <Text style={styles.walletTitle}>{t('profile.tokenWallet')}</Text>
                         <TouchableOpacity onPress={() => setShowPurchase(true)}>
-                            <Text style={styles.buyLink}>+ Buy</Text>
+                            <Text style={styles.buyLink}>{t('profile.buyLink')}</Text>
                         </TouchableOpacity>
                     </View>
                     <View style={styles.walletBalance}>
-                        <Text style={styles.walletAmount}>{user?.tokens_balance ?? 0}</Text>
-                        <Text style={styles.walletLabel}>tokens available</Text>
+                        <Text style={styles.walletAmount}>{toLocalNum(user?.tokens_balance ?? 0)}</Text>
+                        <Text style={styles.walletLabel}>{t('profile.tokensAvailable')}</Text>
                     </View>
 
                     {/* Transaction History */}
-                    <Text style={styles.txTitle}>Recent Activity</Text>
+                    <Text style={styles.txTitle}>{t('profile.recentActivity')}</Text>
                     {transactions.map((tx) => (
                         <View key={tx.id} style={styles.txRow}>
                             <Text style={styles.txIcon}>{TX_ICONS[tx.type] || '•'}</Text>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.txDesc}>{tx.description}</Text>
-                                <Text style={styles.txDate}>{new Date(tx.created_at).toLocaleDateString()}</Text>
+                                <Text style={styles.txDate}>{localDate(tx.created_at)}</Text>
                             </View>
                             <Text style={[styles.txAmount, tx.amount > 0 ? styles.txPositive : styles.txNegative]}>
-                                {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                {tx.amount > 0 ? '+' : ''}{toLocalNum(tx.amount)}
                             </Text>
                         </View>
                     ))}
@@ -271,17 +274,17 @@ export default function ProfileScreen() {
 
                 {/* Menu Items */}
                 <View style={styles.menu}>
-                    <Text style={styles.menuSectionTitle}>Settings</Text>
+                    <Text style={styles.menuSectionTitle}>{t('profile.settingsTitle')}</Text>
                     <MenuItem icon="👤" label={t('profile.editProfile')} onPress={() => router.push('/settings/edit-profile')} />
-                    <MenuItem icon="🪪" label="Verify Identity" onPress={() => router.push('/settings/verify-identity')} />
+                    <MenuItem icon="🪪" label={t('profile.verifyIdentity')} onPress={() => router.push('/settings/verify-identity')} />
                     <MenuItem icon="🏥" label={t('profile.insurance')} onPress={() => router.push('/settings/insurance')} />
                     <MenuItem icon="🔔" label={t('profile.notifications')} onPress={() => router.push('/settings/notifications')} />
                     <MenuItem icon="🌐" label={t('profile.language')} onPress={() => router.push('/settings/language')} />
                     <MenuItem icon="🔒" label={t('profile.security')} onPress={() => router.push('/settings/security')} />
 
-                    <Text style={[styles.menuSectionTitle, { marginTop: spacing.xl }]}>Support</Text>
+                    <Text style={[styles.menuSectionTitle, { marginTop: spacing.xl }]}>{t('profile.supportTitle')}</Text>
                     <MenuItem icon="❓" label={t('profile.help')} onPress={() => router.push('/settings/help')} />
-                    <MenuItem icon="🔒" label="Privacy Policy" onPress={() => router.push('/settings/privacy-terms' as any)} />
+                    <MenuItem icon="🔒" label={t('profile.privacyPolicy')} onPress={() => router.push('/settings/privacy-terms' as any)} />
                     <MenuItem icon="📜" label={t('profile.terms')} onPress={() => router.push('/settings/privacy-terms' as any)} />
                     <MenuItem icon="🐛" label={t('profile.reportBug')} />
                 </View>

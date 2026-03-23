@@ -13,7 +13,6 @@ import {
     Clock,
     ShieldAlert,
     Database,
-    Wifi,
     Bot,
     ArrowRight,
     UserCog,
@@ -23,6 +22,8 @@ import {
     Newspaper,
     Megaphone,
     BarChart3,
+    Archive,
+    Printer,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -37,37 +38,12 @@ import {
     Bar,
 } from 'recharts';
 import { useEffect, useState } from 'react';
-import { fetchDashboardStats } from '@/lib/actions';
+import { fetchDashboardStats, fetchConsultationFlow, fetchSpecialtyBreakdown, fetchRecentActivity, fetchPendingArchiveCount } from '@/lib/actions';
 
-// Mock timeseries data (will be replaced when analytics tables exist)
-const consultationFlow = [
-    { time: '00:00', consultations: 2 },
-    { time: '03:00', consultations: 1 },
-    { time: '06:00', consultations: 5 },
-    { time: '09:00', consultations: 18 },
-    { time: '12:00', consultations: 23 },
-    { time: '15:00', consultations: 15 },
-    { time: '18:00', consultations: 12 },
-    { time: '21:00', consultations: 8 },
-];
-
-const specialtyData = [
-    { name: 'Dermatology', count: 67, fill: '#2DD4BF' },
-    { name: 'Family Medicine', count: 22, fill: '#5EEAD4' },
-];
-
-const recentActivity = [
-    { id: 1, text: 'New patient Sarah K. registered', time: '2 min ago', type: 'info' as const },
-    { id: 2, text: 'Dr. Ahmed completed consultation #C-4523', time: '5 min ago', type: 'success' as const },
-    { id: 3, text: 'Protocol violation detected - Case #C-4518', time: '12 min ago', type: 'error' as const },
-    { id: 4, text: 'Token purchase: 15 tokens by User #U-892', time: '18 min ago', type: 'info' as const },
-    { id: 5, text: 'Dr. Fatima verified and approved', time: '25 min ago', type: 'success' as const },
-];
-
+// System health (static indicators — no live monitoring API yet)
 const systemHealth = [
-    { label: 'Database', status: 'Operational', icon: Database, ok: true },
-    { label: 'API Latency', status: '45ms', icon: Wifi, ok: true },
-    { label: 'AI Service', status: 'Operational', icon: Bot, ok: true },
+    { label: 'Database', status: 'Supabase', icon: Database, ok: true },
+    { label: 'AI Service', status: 'OpenAI', icon: Bot, ok: true },
 ];
 
 const managementCards = [
@@ -147,9 +123,19 @@ type DashboardStats = {
 
 export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [consultationFlow, setConsultationFlow] = useState<{ time: string; consultations: number }[]>([]);
+    const [specialtyData, setSpecialtyData] = useState<{ name: string; count: number; fill: string }[]>([]);
+    const [recentActivity, setRecentActivity] = useState<{ id: string; text: string; time: string; type: 'info' | 'success' | 'error' }[]>([]);
+    const [pendingArchiveCount, setPendingArchiveCount] = useState(0);
 
     useEffect(() => {
-        fetchDashboardStats().then(setStats);
+        Promise.all([
+            fetchDashboardStats().then(setStats),
+            fetchConsultationFlow().then(setConsultationFlow),
+            fetchSpecialtyBreakdown().then(setSpecialtyData),
+            fetchRecentActivity().then(setRecentActivity),
+            fetchPendingArchiveCount().then(setPendingArchiveCount),
+        ]);
     }, []);
 
     const now = new Date();
@@ -211,6 +197,39 @@ export default function DashboardPage() {
                     </div>
                 )}
 
+                {/* Data Retention Alert */}
+                {pendingArchiveCount > 0 && (
+                    <div
+                        className="flex items-center justify-between px-5 py-4 rounded-2xl border animate-fade-in"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))',
+                            borderColor: 'rgba(245,158,11,0.3)',
+                        }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)' }}>
+                                <Archive className="w-5 h-5" style={{ color: '#F59E0B' }} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold" style={{ color: '#F59E0B' }}>
+                                    ⚠ Data Retention Alert — {pendingArchiveCount} consultation{pendingArchiveCount !== 1 ? 's' : ''} pending
+                                </p>
+                                <p className="text-xs text-text-muted mt-0.5">
+                                    Concluded cases need to be printed, archived, and purged per zero-retention policy
+                                </p>
+                            </div>
+                        </div>
+                        <Link
+                            href="/dashboard/consultations"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition-all whitespace-nowrap"
+                            style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}
+                        >
+                            <Printer className="w-3.5 h-3.5" />
+                            Go to Consultations <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                    </div>
+                )}
+
                 {/* KPI Stats - Row 1 (Live from Supabase) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <StatCard
@@ -241,8 +260,8 @@ export default function DashboardPage() {
                     />
                     <StatCard
                         icon={Activity}
-                        value="98.7%"
-                        label="Uptime (30d)"
+                        value={stats ? `${stats.totalDoctors > 0 ? '✓' : '—'}` : '…'}
+                        label="System Status"
                         iconColor="text-success"
                         iconBg="bg-success-faded"
                     />
@@ -396,6 +415,12 @@ export default function DashboardPage() {
                         <Clock className="w-5 h-5 text-accent" />
                         <h3 className="text-lg font-bold text-text-primary">Recent Activity</h3>
                     </div>
+                    {recentActivity.length === 0 ? (
+                        <div className="flex flex-col items-center py-8 text-text-muted">
+                            <span className="text-3xl mb-2">📭</span>
+                            <p className="text-sm">No activity yet</p>
+                        </div>
+                    ) : (
                     <div className="space-y-3">
                         {recentActivity.map((item) => (
                             <div
@@ -408,6 +433,7 @@ export default function DashboardPage() {
                             </div>
                         ))}
                     </div>
+                    )}
                 </div>
             </div>
         </>

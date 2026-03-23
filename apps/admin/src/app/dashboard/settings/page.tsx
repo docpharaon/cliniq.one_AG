@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/Header';
-import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap } from 'lucide-react';
+import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap, Camera, RotateCcw } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { fetchSettings, savePlatformSetting } from '@/lib/actions';
 import { AI, CONSULT, PAYOUT, EXCHANGE, SECURITY, COUNTRIES } from '@cliniqone/config';
@@ -306,6 +306,151 @@ function AIServiceConfig({
     );
 }
 
+// ── Chatbot Avatar Configuration Card ────────
+function ChatbotAvatarConfig({
+    dbSettings,
+    onSaved,
+}: {
+    dbSettings: Setting[];
+    onSaved: () => void;
+}) {
+    const dbByKey = new Map(dbSettings.map(s => [s.key, s.value]));
+    const currentUrl = dbByKey.get('chatbot_avatar_url') || '';
+
+    const [avatarUrl, setAvatarUrl] = useState(currentUrl);
+    const [saving, setSaving] = useState(false);
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const hasChanges = avatarUrl !== currentUrl;
+
+    useEffect(() => {
+        setAvatarUrl(dbByKey.get('chatbot_avatar_url') || '');
+    }, [dbSettings]);
+
+    const showToast = useCallback((type: 'success' | 'error', message: string) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await savePlatformSetting('chatbot_avatar_url', avatarUrl.trim(), 'ai', 'Chatbot profile photo URL shown in patient chat');
+            showToast('success', 'Chatbot avatar updated');
+            onSaved();
+        } catch {
+            showToast('error', 'Failed to save avatar URL');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleReset = async () => {
+        setAvatarUrl('');
+        setSaving(true);
+        try {
+            await savePlatformSetting('chatbot_avatar_url', '', 'ai', 'Chatbot profile photo URL shown in patient chat');
+            showToast('success', 'Avatar reset to default');
+            onSaved();
+        } catch {
+            showToast('error', 'Failed to reset avatar');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const previewSrc = avatarUrl.trim() || '/ai-doctor-avatar.jpg';
+
+    return (
+        <div className="glass rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-indigo-400 to-blue-400" />
+
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-purple-500/15 rounded-xl flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-text-primary">Chatbot Avatar</h3>
+                    <p className="text-xs text-text-muted">Profile photo displayed on AI chat messages in the patient app and test chat</p>
+                </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+                {/* Preview */}
+                <div className="flex flex-col items-center gap-3">
+                    <div className="relative group">
+                        <img
+                            src={previewSrc}
+                            alt="Chatbot avatar preview"
+                            className="w-24 h-24 rounded-2xl object-cover border-2 border-accent/30 shadow-lg"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/ai-doctor-avatar.jpg'; }}
+                        />
+                        <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Camera className="w-6 h-6 text-white" />
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-text-muted text-center">
+                        {avatarUrl.trim() ? 'Custom' : 'Default'}
+                    </p>
+                </div>
+
+                {/* URL Input */}
+                <div className="flex-1 w-full space-y-3">
+                    <div>
+                        <label className="text-xs font-semibold text-text-muted mb-2 block">
+                            Image URL
+                        </label>
+                        <input
+                            type="text"
+                            value={avatarUrl}
+                            onChange={(e) => setAvatarUrl(e.target.value)}
+                            placeholder="https://example.com/avatar.jpg (leave empty for default)"
+                            className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+                        />
+                        <p className="text-[10px] text-text-muted mt-1.5">
+                            Paste a URL to a square image (JPG, PNG, WebP). Leave empty to use the default AI doctor avatar.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleSave}
+                            disabled={saving || !hasChanges}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-bold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
+                        >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Save Avatar
+                        </button>
+                        {currentUrl && (
+                            <button
+                                onClick={handleReset}
+                                disabled={saving}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-semibold text-text-muted hover:text-text-primary hover:bg-bg-elevated disabled:opacity-40 transition-all"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Reset to Default
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Toast */}
+            {toast && (
+                <div
+                    className={`absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg animate-fade-in ${
+                        toast.type === 'success'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                    }`}
+                >
+                    {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    {toast.message}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Main Page ────────────────────────────────
 export default function SettingsPage() {
     const [dbSettings, setDbSettings] = useState<Setting[]>([]);
@@ -337,6 +482,9 @@ export default function SettingsPage() {
                     <>
                         {/* Editable AI Service Config */}
                         <AIServiceConfig dbSettings={dbSettings} onSaved={loadSettings} />
+
+                        {/* Chatbot Avatar Config */}
+                        <ChatbotAvatarConfig dbSettings={dbSettings} onSaved={loadSettings} />
 
                         {/* Read-only config sections */}
                         {Object.entries(defaultSettings).map(([key, section]) => {

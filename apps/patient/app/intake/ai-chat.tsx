@@ -7,7 +7,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
-import { t } from '@cliniqone/i18n';
+import { t, getLocale } from '@cliniqone/i18n';
 import { useIntakeStore, ChatMessage, buildSnapshot } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -30,6 +30,32 @@ const AI_DOCTOR_AVATAR = require('../../assets/ai-doctor-avatar.jpg');
 let msgCounter = 0;
 function uid() {
     return `msg_${Date.now()}_${++msgCounter}`;
+}
+
+// ── Arabic (Gulf) node labels for section badges ──
+const NODE_LABELS_AR_SA: Record<string, string> = {
+    greeting: 'الترحيب',
+    pathway: 'تحديد المسار',
+    hpi: '📋 تفاصيل الحالة الحالية',
+    pmh: '🏥 التاريخ المرضي السابق',
+    medications: '💊 الأدوية الحالية',
+    allergies: '⚠️ الحساسية',
+    family_history: '👨‍👩‍👧‍👦 التاريخ المرضي للعائلة',
+    social_history: '🏠 نمط الحياة',
+    review_of_systems: '🔍 مراجعة الأعراض',
+    physical_exam: '🩺 الفحص السريري',
+    skin_photo: '📸 صورة الحالة',
+    photo_capture: '📸 صورة الحالة',
+    summary: '📝 ملخص الحالة',
+    patient_addendum: '📝 مراجعة أخيرة',
+};
+
+/** Get the localized label for a sequence node */
+function getNodeLabel(node: SequenceNode): string {
+    if (getLocale() === 'ar' && NODE_LABELS_AR_SA[node.step_key]) {
+        return NODE_LABELS_AR_SA[node.step_key];
+    }
+    return `${node.emoji} ${node.label}`;
 }
 
 /** Strip internal AI control tags before displaying to patient */
@@ -307,7 +333,7 @@ export default function AIChatScreen() {
                 addMessage({
                     id: uid(),
                     role: 'system',
-                    content: '🔒 The AI intake assistant is not yet available. Please check back soon or contact the clinic directly.',
+                    content: t('aiChat.chatbotDisabled'),
                     timestamp: Date.now(),
                 });
                 setAiTyping(false);
@@ -323,7 +349,7 @@ export default function AIChatScreen() {
                 addMessage({
                     id: uid(),
                     role: 'system',
-                    content: '⚠️ No intake sequence configured. Please contact the administrator.',
+                    content: t('aiChat.noSequenceConfigured'),
                     timestamp: Date.now(),
                 });
                 setAiTyping(false);
@@ -349,7 +375,7 @@ export default function AIChatScreen() {
             addMessage({
                 id: uid(),
                 role: 'system',
-                content: `${firstNode.emoji} ${firstNode.label}`,
+                content: getNodeLabel(firstNode),
                 timestamp: Date.now(),
                 sectionLabel: firstNode.label,
             });
@@ -359,7 +385,7 @@ export default function AIChatScreen() {
                 section: firstNode.step_key,
                 promptId: firstNode.prompt_id || undefined,
                 conversationHistory: [],
-                language: user?.language || 'en',
+                language: getLocale(),
             });
 
             // 5. Display AI greeting
@@ -383,7 +409,7 @@ export default function AIChatScreen() {
             addMessage({
                 id: uid(),
                 role: 'ai',
-                content: 'Hello! I\'m your cliniq.one AI medical assistant. What brings you in today?',
+                content: t('aiChat.fallbackGreeting'),
                 timestamp: Date.now(),
             });
         }
@@ -525,7 +551,7 @@ export default function AIChatScreen() {
                     addMessage({
                         id: uid(),
                         role: 'system',
-                        content: `${currentNode.emoji} ${currentNode.label}`,
+                        content: getNodeLabel(currentNode),
                         timestamp: Date.now(),
                         sectionLabel: currentNode.label,
                     });
@@ -542,7 +568,7 @@ export default function AIChatScreen() {
                 section: currentNode.step_key,
                 promptId: currentNode.prompt_id || undefined,
                 conversationHistory: newSectionHistory,
-                language: user?.language || 'en',
+                language: getLocale(),
                 patientContext,
             });
 
@@ -619,7 +645,7 @@ export default function AIChatScreen() {
                     addMessage({
                         id: uid(),
                         role: 'system',
-                        content: `${nextNode.emoji} ${nextNode.label}`,
+                        content: getNodeLabel(nextNode),
                         timestamp: Date.now(),
                         sectionLabel: nextNode.label,
                     });
@@ -637,7 +663,7 @@ export default function AIChatScreen() {
                         section: nextNode.step_key,
                         promptId: nextNode.prompt_id || undefined,
                         conversationHistory: [],
-                        language: user?.language || 'en',
+                        language: getLocale(),
                         patientContext: newPatientContext,
                     });
 
@@ -701,7 +727,7 @@ export default function AIChatScreen() {
                 addMessage({
                     id: uid(),
                     role: 'system',
-                    content: `${nextNode.emoji} ${nextNode.label}`,
+                    content: getNodeLabel(nextNode),
                     timestamp: Date.now(),
                     sectionLabel: nextNode.label,
                 });
@@ -718,7 +744,7 @@ export default function AIChatScreen() {
                     section: nextNode.step_key,
                     promptId: nextNode.prompt_id || undefined,
                     conversationHistory: [],
-                    language: user?.language || 'en',
+                    language: getLocale(),
                     patientContext,
                 });
 
@@ -788,7 +814,7 @@ export default function AIChatScreen() {
                 section: currentNode.step_key,
                 promptId: currentNode.prompt_id || undefined,
                 conversationHistory: sectionHistory,
-                language: user?.language || 'en',
+                language: getLocale(),
                 patientContext,
             });
 
@@ -820,12 +846,12 @@ export default function AIChatScreen() {
                     await generateFinalSummary();
                     return;
                 }
-                addMessage({ id: uid(), role: 'system', content: `${nextNode.emoji} ${nextNode.label}`, timestamp: Date.now(), sectionLabel: nextNode.label });
+                addMessage({ id: uid(), role: 'system', content: getNodeLabel(nextNode), timestamp: Date.now(), sectionLabel: nextNode.label });
                 let nextResult = await chatSection({
                     section: nextNode.step_key,
                     promptId: nextNode.prompt_id || undefined,
                     conversationHistory: [],
-                    language: user?.language || 'en',
+                    language: getLocale(),
                     patientContext,
                 });
                 const nextResponse = nextResult.response;
@@ -884,7 +910,7 @@ export default function AIChatScreen() {
                     section: 'summary',
                     promptId: summaryNode.prompt_id || undefined,
                     conversationHistory,
-                    language: user?.language || 'en',
+                    language: getLocale(),
                 });
                 const summaryResponse = summaryResult.response;
 
@@ -909,7 +935,7 @@ export default function AIChatScreen() {
                         gender: user?.gender ?? null,
                         country: user?.country ?? null,
                     },
-                    user?.language || 'en',
+                    getLocale(),
                 );
 
                 setAiSummary(summary as unknown as Record<string, unknown>);
@@ -955,9 +981,9 @@ export default function AIChatScreen() {
             addMessage({
                 id: uid(),
                 role: 'system',
-                content: '📝 Final Review',
+                content: t('aiChat.finalReview'),
                 timestamp: Date.now(),
-                sectionLabel: 'Final Review',
+                sectionLabel: t('aiChat.finalReview'),
             });
 
             // Build context from the summary for the addendum AI
@@ -970,7 +996,7 @@ export default function AIChatScreen() {
             const addendumResult = await chatSection({
                 section: 'patient_addendum',
                 conversationHistory: [],
-                language: user?.language || 'en',
+                language: getLocale(),
                 patientContext: summaryContext,
             });
 
@@ -1055,7 +1081,7 @@ export default function AIChatScreen() {
             addMessage({
                 id: uid(),
                 role: 'system',
-                content: '✅ Thank you for your additions. Finalizing your report...',
+                content: t('aiChat.addendumTurnLimit'),
                 timestamp: Date.now(),
             });
             await finalizeAddendum();
@@ -1073,7 +1099,7 @@ export default function AIChatScreen() {
             const addendumResult = await chatSection({
                 section: 'patient_addendum',
                 conversationHistory: newHistory,
-                language: user?.language || 'en',
+                language: getLocale(),
                 patientContext: summaryContext,
             });
 
@@ -1101,7 +1127,7 @@ export default function AIChatScreen() {
                 addMessage({
                     id: uid(),
                     role: 'system',
-                    content: '🧠 Updating your summary with the new information...',
+                    content: t('aiChat.updatingSummary'),
                     timestamp: Date.now(),
                 });
 
@@ -1117,7 +1143,7 @@ export default function AIChatScreen() {
                         section: 'summary',
                         promptId: summaryNode.prompt_id || undefined,
                         conversationHistory,
-                        language: user?.language || 'en',
+                        language: getLocale(),
                     });
                     try {
                         const parsed = JSON.parse(summaryResult.response);
@@ -1137,7 +1163,7 @@ export default function AIChatScreen() {
                             gender: user?.gender ?? null,
                             country: user?.country ?? null,
                         },
-                        user?.language || 'en',
+                        getLocale(),
                     );
                     setAiSummary(summary as unknown as Record<string, unknown>);
                     if (summary.medications?.length) setMedications(summary.medications);
@@ -1147,7 +1173,7 @@ export default function AIChatScreen() {
                 addMessage({
                     id: uid(),
                     role: 'system',
-                    content: '✅ Summary updated!',
+                    content: t('aiChat.summaryUpdated'),
                     timestamp: Date.now(),
                 });
 
@@ -1160,7 +1186,7 @@ export default function AIChatScreen() {
                 const regenResult = await chatSection({
                     section: 'patient_addendum',
                     conversationHistory: [],  // Fresh — so the AI presents the full updated summary
-                    language: user?.language || 'en',
+                    language: getLocale(),
                     patientContext: updatedSummaryContext,
                 });
 
@@ -1199,14 +1225,14 @@ export default function AIChatScreen() {
         addMessage({
             id: uid(),
             role: 'patient',
-            content: 'Looks good, nothing to add.',
+            content: t('aiChat.looksGoodMessage'),
             timestamp: Date.now(),
         });
 
         addMessage({
             id: uid(),
             role: 'system',
-            content: '✅ Finalizing your report...',
+            content: t('aiChat.finalizingReport'),
             timestamp: Date.now(),
         });
 
@@ -1245,7 +1271,7 @@ export default function AIChatScreen() {
         addMessage({
             id: uid(),
             role: 'system',
-            content: `${nextNode.emoji} ${nextNode.label}`,
+            content: getNodeLabel(nextNode),
             timestamp: Date.now(),
             sectionLabel: nextNode.label,
         });
@@ -1257,7 +1283,7 @@ export default function AIChatScreen() {
                 section: nextNode.step_key,
                 promptId: nextNode.prompt_id || undefined,
                 conversationHistory: [],
-                language: user?.language || 'en',
+                language: getLocale(),
                 patientContext,
             });
 
@@ -1285,7 +1311,7 @@ export default function AIChatScreen() {
             addMessage({
                 id: uid(),
                 role: 'patient',
-                content: `📸 ${photoUris.length} photo${photoUris.length > 1 ? 's' : ''} uploaded`,
+                content: t('aiChat.photosUploaded', { count: String(photoUris.length) }),
                 timestamp: Date.now(),
                 imageUrls: photoUris,
             });
@@ -1299,7 +1325,7 @@ export default function AIChatScreen() {
         addMessage({
             id: uid(),
             role: 'system',
-            content: '📸 Photo upload skipped',
+            content: t('aiChat.photoSkipped'),
             timestamp: Date.now(),
         });
         advanceFromPhotoCapture();
@@ -1330,7 +1356,7 @@ export default function AIChatScreen() {
         addMessage({
             id: uid(),
             role: 'system',
-            content: `${nextNode.emoji} ${nextNode.label}`,
+            content: getNodeLabel(nextNode),
             timestamp: Date.now(),
             sectionLabel: nextNode.label,
         });
@@ -1342,7 +1368,7 @@ export default function AIChatScreen() {
                 section: nextNode.step_key,
                 promptId: nextNode.prompt_id || undefined,
                 conversationHistory,
-                language: user?.language || 'en',
+                language: getLocale(),
             });
 
             // Response is already clean from server
@@ -1367,15 +1393,14 @@ export default function AIChatScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.consentContainer}>
                     <Text style={styles.consentIcon}>🤖</Text>
-                    <Text style={styles.consentTitle}>AI-Assisted Intake</Text>
+                    <Text style={styles.consentTitle}>{t('aiChat.consentTitle')}</Text>
                     <Text style={styles.consentBody}>
-                        This chat uses AI to gather your medical information before your consultation.
-                        Your responses will be reviewed by a licensed physician.
+                        {t('aiChat.consentBody')}
                     </Text>
                     <DisclaimerBanner variant="compact" />
                     <View style={{ marginTop: spacing.xl, width: '100%' }}>
                         <Button
-                            title="I Understand — Continue"
+                            title={t('aiChat.consentButton')}
                             onPress={() => setAiConsentGiven(true)}
                             size="lg"
                         />
@@ -1384,7 +1409,7 @@ export default function AIChatScreen() {
                         onPress={() => router.back()}
                         style={{ marginTop: spacing.lg }}
                     >
-                        <Text style={[styles.backText, { textAlign: 'center' }]}>← Go Back</Text>
+                        <Text style={[styles.backText, { textAlign: 'center' }]}>{t('aiChat.goBack')}</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -1406,7 +1431,7 @@ export default function AIChatScreen() {
                     </TouchableOpacity>
                     <View style={styles.headerRight}>
                         <Image source={AI_DOCTOR_AVATAR} style={styles.headerAvatar} />
-                        <Text style={styles.headerTitle}>{t('aiChat.title')}</Text>
+                        <Text style={styles.headerTitle} numberOfLines={1}>{t('aiChat.title')}</Text>
                     </View>
                     <TouchableOpacity
                         onPress={() => router.push('/intake/report-chat' as any)}
@@ -1433,7 +1458,7 @@ export default function AIChatScreen() {
                         </View>
                         {showSkipButton && (
                             <TouchableOpacity style={styles.skipButton} onPress={handleSkipSection}>
-                                <Text style={styles.skipButtonText}>Next Section →</Text>
+                                <Text style={styles.skipButtonText}>{t('aiChat.nextSection')}</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -1483,9 +1508,9 @@ export default function AIChatScreen() {
                         <Text style={styles.emergencyTitle}>🚨 {t('aiChat.emergencyTitle')}</Text>
                         <Text style={styles.emergencyText}>{t('aiChat.emergencyInstructions')}</Text>
                         <View style={styles.emergencyNumbers}>
-                            <Text style={styles.emergencyNumber}>📞 997 (Ambulance)</Text>
-                            <Text style={styles.emergencyNumber}>📞 999 (Police)</Text>
-                            <Text style={styles.emergencyNumber}>📞 998 (Fire)</Text>
+                            <Text style={styles.emergencyNumber}>{t('aiChat.ambulance')}</Text>
+                            <Text style={styles.emergencyNumber}>{t('aiChat.police')}</Text>
+                            <Text style={styles.emergencyNumber}>{t('aiChat.fire')}</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.emergencyButton}
@@ -1577,7 +1602,7 @@ export default function AIChatScreen() {
                             style={styles.addendumConfirmButton}
                             onPress={handleAddendumConfirm}
                         >
-                            <Text style={styles.addendumConfirmText}>✅ Looks Good — Nothing to Add</Text>
+                            <Text style={styles.addendumConfirmText}>{t('aiChat.looksGoodButton')}</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -1693,8 +1718,8 @@ const styles = StyleSheet.create({
     },
     backButton: { paddingRight: spacing.md },
     backText: { ...typography.body, color: colors.accentTeal },
-    headerRight: { flexDirection: 'row', alignItems: 'center' },
-    headerTitle: { ...typography.h4, color: colors.textPrimary },
+    headerRight: { flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: spacing.sm },
+    headerTitle: { ...typography.h4, color: colors.textPrimary, flexShrink: 1 },
 
     // Progress
     progressContainer: {

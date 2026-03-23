@@ -302,7 +302,7 @@ export function detectProtocols(
                 code: 'A',
                 label: 'Emergency Detected',
                 severity: 'critical',
-                message: 'Your message suggests a medical emergency. Please call emergency services immediately.',
+                message: t('protocol.emergencyDetected'),
             });
             break;
         }
@@ -339,7 +339,7 @@ export function detectProtocols(
                 code: 'I',
                 label: 'Please Respond Properly',
                 severity: 'medium',
-                message: 'We need clear, relevant answers to help you. Please describe your situation.',
+                message: t('protocol.respondProperly'),
             });
         }
     }
@@ -351,7 +351,7 @@ export function detectProtocols(
             code: 'I',
             label: 'Response Declined',
             severity: 'medium',
-            message: 'I understand some questions may feel personal, but this information helps your doctor provide better care. If you\'d prefer to skip this question, we can move on.',
+            message: t('protocol.refusalResponse'),
         });
     }
 
@@ -362,7 +362,7 @@ export function detectProtocols(
             code: 'I',
             label: 'Repeated Message',
             severity: 'medium',
-            message: 'You\'ve sent the same message multiple times. Please provide a different response.',
+            message: t('protocol.repeatedMessage'),
         });
     }
 

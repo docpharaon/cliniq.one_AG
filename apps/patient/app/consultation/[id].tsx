@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
-import { t } from '@cliniqone/i18n';
+import { t, localDate, toLocalNum } from '@cliniqone/i18n';
 import type { Consultation, Message as MessageType, CatalogIntervention } from '@cliniqone/types';
 import { INTERVENTION_TYPE_LABELS } from '@cliniqone/types';
 import { useConsultation, useMessages, useSendMessage } from '../../hooks/useConsultations';
@@ -82,9 +82,9 @@ export default function ConsultationDetailScreen() {
     if (!consultation) {
         return (
             <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={styles.statusLabel}>Consultation not found</Text>
+                <Text style={styles.statusLabel}>{t('consultDetail.notFound')}</Text>
                 <TouchableOpacity onPress={() => router.back()} style={{ marginTop: spacing.lg }}>
-                    <Text style={styles.backText}>← Go Back</Text>
+                    <Text style={styles.backText}>{t('consultDetail.goBack')}</Text>
                 </TouchableOpacity>
             </SafeAreaView>
         );
@@ -107,7 +107,7 @@ export default function ConsultationDetailScreen() {
                         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                             <Text style={styles.backText}>← {t('common.back')}</Text>
                         </TouchableOpacity>
-                        <Text style={styles.title}>Consultation Details</Text>
+                        <Text style={styles.title}>{t('consultDetail.title')}</Text>
                     </View>
 
                     {/* Status Banner */}
@@ -115,18 +115,18 @@ export default function ConsultationDetailScreen() {
                         <Text style={styles.statusIcon}>{consultation.status === 'completed' ? '✅' : '🔄'}</Text>
                         <View>
                             <Text style={styles.statusLabel}>
-                                {consultation.status === 'completed' ? 'Completed' : consultation.status === 'doctor_review' ? 'Doctor Reviewing' : 'In Progress'}
+                                {consultation.status === 'completed' ? t('consultDetail.completed') : consultation.status === 'doctor_review' ? t('consultDetail.doctorReviewing') : t('consultDetail.inProgress')}
                             </Text>
                             <Text style={styles.statusTime}>
-                                {new Date(consultation.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {localDate(consultation.created_at)}
                             </Text>
                         </View>
                     </View>
 
                     {/* Chief Complaint */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>💬 Chief Complaint</Text>
-                        <Text style={styles.complaintText}>{consultation.chief_complaint || 'No complaint recorded'}</Text>
+                        <Text style={styles.sectionTitle}>{t('consultDetail.chiefComplaint')}</Text>
+                        <Text style={styles.complaintText}>{consultation.chief_complaint || t('consultDetail.noComplaint')}</Text>
                     </View>
 
                     {/* Doctor Card */}
@@ -146,7 +146,7 @@ export default function ConsultationDetailScreen() {
                                         <Text style={styles.doctorStat}>⭐ {doctor.rating_avg}</Text>
                                     )}
                                     {doctor.years_experience && (
-                                        <Text style={styles.doctorStat}>🏥 {doctor.years_experience} years</Text>
+                                        <Text style={styles.doctorStat}>🏥 {t('consultDetail.yearsExperience', { count: doctor.years_experience })}</Text>
                                     )}
                                 </View>
                             </View>
@@ -154,7 +154,7 @@ export default function ConsultationDetailScreen() {
                     )}
 
                     {/* Messages / Timeline */}
-                    <Text style={styles.sectionTitle}>💬 Conversation</Text>
+                    <Text style={styles.sectionTitle}>{t('consultDetail.conversation')}</Text>
                     <View style={styles.messagesContainer}>
                         {messages && messages.length > 0 ? (
                             messages.map((msg) => (
@@ -169,7 +169,7 @@ export default function ConsultationDetailScreen() {
                                 >
                                     {msg.sender_role === 'system' && <Text style={styles.systemIcon}>ℹ️</Text>}
                                     {msg.sender_role === 'doctor' && <Text style={styles.senderLabel}>{doctorDisplayName}</Text>}
-                                    {msg.sender_role === 'patient' && <Text style={styles.senderLabelPatient}>You</Text>}
+                                    {msg.sender_role === 'patient' && <Text style={styles.senderLabelPatient}>{t('consultDetail.you')}</Text>}
                                     <Text style={[
                                         styles.messageText,
                                         msg.sender_role === 'system' && styles.systemText,
@@ -192,18 +192,18 @@ export default function ConsultationDetailScreen() {
                                         <View key={idx}>
                                             {/* AI question */}
                                             <View style={[styles.messageBubble, styles.doctorMsg]}>
-                                                <Text style={styles.senderLabel}>🤖 AI Assistant</Text>
+                                                <Text style={styles.senderLabel}>{t('consultDetail.aiAssistant')}</Text>
                                                 <Text style={styles.messageText}>{qa.question}</Text>
                                             </View>
                                             {/* Patient answer */}
                                             <View style={[styles.messageBubble, styles.patientMsg]}>
-                                                <Text style={styles.senderLabelPatient}>You</Text>
+                                                <Text style={styles.senderLabelPatient}>{t('consultDetail.you')}</Text>
                                                 <Text style={styles.messageText}>{qa.answer}</Text>
                                             </View>
                                         </View>
                                     ));
                                 }
-                                return <Text style={styles.complaintText}>No messages yet</Text>;
+                                return <Text style={styles.complaintText}>{t('consultDetail.noMessages')}</Text>;
                             })()
                         )}
                     </View>
@@ -211,12 +211,12 @@ export default function ConsultationDetailScreen() {
                     {/* Report */}
                     {report && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>📋 Medical Report</Text>
+                            <Text style={styles.sectionTitle}>{t('consultDetail.medicalReport')}</Text>
                             <View style={styles.reportCard}>
-                                {report.diagnosis && <ReportRow label="Diagnosis" value={report.diagnosis as string} />}
-                                {report.icd10 && <ReportRow label="ICD-10" value={report.icd10 as string} />}
-                                {report.treatment && <ReportRow label="Treatment Plan" value={report.treatment as string} />}
-                                {report.followUp && <ReportRow label="Follow-up" value={report.followUp as string} />}
+                                {report.diagnosis && <ReportRow label={t('consultDetail.diagnosis')} value={report.diagnosis as string} />}
+                                {report.icd10 && <ReportRow label={t('consultDetail.icd10')} value={report.icd10 as string} />}
+                                {report.treatment && <ReportRow label={t('consultDetail.treatmentPlan')} value={report.treatment as string} />}
+                                {report.followUp && <ReportRow label={t('consultDetail.followUp')} value={report.followUp as string} />}
                             </View>
                         </View>
                     )}
@@ -224,16 +224,16 @@ export default function ConsultationDetailScreen() {
                     {/* Prescription */}
                     {prescription?.medications && (
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>💊 E-Prescription</Text>
+                            <Text style={styles.sectionTitle}>{t('consultDetail.ePrescription')}</Text>
                             {(prescription.medications as any[]).map((med: any, idx: number) => (
                                 <View key={idx} style={styles.prescriptionItem}>
                                     <Text style={styles.prescMedName}>💊 {med.name}</Text>
-                                    <Text style={styles.prescDetail}>Dosage: {med.dosage}</Text>
-                                    <Text style={styles.prescDetail}>Duration: {med.duration}</Text>
+                                    <Text style={styles.prescDetail}>{t('consultDetail.dosage')}: {med.dosage}</Text>
+                                    <Text style={styles.prescDetail}>{t('consultDetail.duration')}: {med.duration}</Text>
                                 </View>
                             ))}
                             <View style={styles.prescNote}>
-                                <Text style={styles.prescNoteText}>🔒 MOH-compliant e-prescription</Text>
+                                <Text style={styles.prescNoteText}>{t('consultDetail.mohCompliant')}</Text>
                             </View>
                         </View>
                     )}
@@ -242,7 +242,7 @@ export default function ConsultationDetailScreen() {
                     {consultation.status === 'completed' && (
                         <View style={{ marginTop: spacing.xl, marginBottom: spacing['2xl'] }}>
                             <Button
-                                title="🔁 Start Follow-up Consultation"
+                                title={t('consultDetail.startFollowUp')}
                                 onPress={() => router.push('/intake')}
                                 variant="outline"
                                 size="lg"
@@ -258,7 +258,7 @@ export default function ConsultationDetailScreen() {
                             style={styles.inputField}
                             value={messageText}
                             onChangeText={setMessageText}
-                            placeholder="Type a message..."
+                            placeholder={t('consultDetail.typeMessage')}
                             placeholderTextColor={colors.textTertiary}
                             multiline
                             maxLength={500}

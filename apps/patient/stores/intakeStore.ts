@@ -75,6 +75,11 @@ interface IntakeState {
     medications: string[];
     allergies: string[];
 
+    // Doctor selection
+    requestedDoctorId: string | null;
+    doctorSelectionMethod: 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null;
+    requestedDoctorFee: number | null;
+
     // ── Actions ─────────────────────────────────
     setSessionId: (id: string | null) => void;
     setSpecialty: (specialty: string) => void;
@@ -95,6 +100,7 @@ interface IntakeState {
     setPatientAddendum: (addendum: string) => void;
     setMedications: (meds: string[]) => void;
     setAllergies: (allergies: string[]) => void;
+    setRequestedDoctor: (doctorId: string | null, method: 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null, fee?: number | null) => void;
 
     // Error/retry actions
     setAiError: (errorType: 'timeout' | 'error', failedMessage: string | null) => void;
@@ -132,6 +138,9 @@ const initialState = {
     patientAddendum: null as string | null,
     medications: [] as string[],
     allergies: [] as string[],
+    requestedDoctorId: null as string | null,
+    doctorSelectionMethod: null as 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null,
+    requestedDoctorFee: null as number | null,
 };
 
 export const useIntakeStore = create<IntakeState>((set) => ({
@@ -161,6 +170,7 @@ export const useIntakeStore = create<IntakeState>((set) => ({
     setPatientAddendum: (patientAddendum) => set({ patientAddendum }),
     setMedications: (medications) => set({ medications }),
     setAllergies: (allergies) => set({ allergies }),
+    setRequestedDoctor: (requestedDoctorId, doctorSelectionMethod, requestedDoctorFee = null) => set({ requestedDoctorId, doctorSelectionMethod, requestedDoctorFee }),
 
     // Error/retry
     setAiError: (aiErrorType, lastFailedMessage) => set({ aiErrorType, lastFailedMessage, isAiTyping: false }),

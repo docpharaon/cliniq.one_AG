@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
+import { t } from '@cliniqone/i18n';
 import { useToast } from './ToastProvider';
 
 // ── Types ────────────────────────────────────────
@@ -20,25 +21,13 @@ interface SkinPhotoCaptureProps {
 type CaptureStep = 'offer' | 'consent' | 'capture' | 'done';
 
 // ── Constants ────────────────────────────────────
-const DISCLAIMER_TEXT = `📋 Photo Consent
+function getDisclaimerText() {
+    return `${t('photo.consentTitle')}\n\n${t('photo.consentLine1')}\n\n• ${t('photo.consentBullet1')}\n• ${t('photo.consentBullet2')}\n• ${t('photo.consentBullet3')}\n\n${t('photo.consentOptional')}`;
+}
 
-Your doctor may benefit from seeing a photo of the affected area.
-
-By proceeding, you consent to:
-• Your photo being stored securely and shared only with your treating physician
-• Photos are encrypted and stored in compliance with healthcare privacy regulations
-• You can request deletion of your photos at any time
-
-This is completely optional. You can skip this step.`;
-
-const PHOTO_INSTRUCTIONS = `📷 Tips for a Good Medical Photo
-
-1. Use good, natural lighting — avoid flash
-2. Hold the phone 15–30 cm (6–12 in) from the area
-3. Place a coin next to the lesion for size reference
-4. Take one close-up and one wider shot showing location
-5. Photograph from directly above (not at an angle)
-6. Make sure the image is in focus before submitting`;
+function getPhotoInstructions() {
+    return `📷 ${t('photo.instructionsTitle')}\n\n1. ${t('photo.tip1')}\n2. ${t('photo.tip2')}\n3. ${t('photo.tip3')}\n4. ${t('photo.tip4')}\n5. ${t('photo.tip5')}\n6. ${t('photo.tip6')}`;
+}
 
 // ── Component ────────────────────────────────────
 export function SkinPhotoCapture({
@@ -59,14 +48,14 @@ export function SkinPhotoCapture({
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
             if (Platform.OS === 'web') {
-                toast('Please allow camera access in your browser settings.', 'warning');
+                toast(t('photo.browserCameraHint'), 'warning');
             } else {
                 Alert.alert(
-                    'Camera Permission Required',
-                    'Please allow camera access in your device settings to take a photo.',
+                    t('photo.cameraPermission'),
+                    t('photo.cameraPermissionDesc'),
                     [
-                        { text: 'Open Settings', onPress: () => Linking.openSettings() },
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: t('photo.openSettings'), onPress: () => Linking.openSettings() },
+                        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
                     ],
                 );
             }
@@ -88,7 +77,7 @@ export function SkinPhotoCapture({
     const pickFromGallery = useCallback(async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            toast('Please allow access to your photo library.', 'warning');
+            toast(t('photo.libraryPermission'), 'warning');
             return;
         }
 
@@ -106,17 +95,17 @@ export function SkinPhotoCapture({
 
     const handleAddPhoto = useCallback(() => {
         if (photos.length >= maxPhotos) {
-            toast(`You can add up to ${maxPhotos} photos.`, 'warning');
+            toast(t('photo.maxPhotosReached', { max: String(maxPhotos) }), 'warning');
             return;
         }
 
         if (Platform.OS === 'web') {
             setShowWebOptions(!showWebOptions);
         } else {
-            Alert.alert('Add Photo', 'Choose an option', [
-                { text: 'Camera', onPress: takePhoto },
-                { text: 'Photo Library', onPress: pickFromGallery },
-                { text: 'Cancel', style: 'cancel' },
+            Alert.alert(t('photo.addPhotoTitle'), '', [
+                { text: t('photo.camera'), onPress: takePhoto },
+                { text: t('photo.photoLibrary'), onPress: pickFromGallery },
+                { text: t('common.cancel') || 'Cancel', style: 'cancel' },
             ]);
         }
     }, [photos.length, maxPhotos, takePhoto, pickFromGallery, showWebOptions, toast]);
@@ -134,23 +123,22 @@ export function SkinPhotoCapture({
         return (
             <View style={styles.card}>
                 <Text style={styles.cardEmoji}>📸</Text>
-                <Text style={styles.cardTitle}>Would you like to add a photo?</Text>
+                <Text style={styles.cardTitle}>{t('photo.offerTitle')}</Text>
                 <Text style={styles.cardDescription}>
-                    A photo of the affected area can help your doctor provide better care.
-                    This is completely optional.
+                    {t('photo.offerDesc')}
                 </Text>
                 <View style={styles.buttonRow}>
                     <TouchableOpacity
                         style={styles.primaryButton}
                         onPress={() => setStep('consent')}
                     >
-                        <Text style={styles.primaryButtonText}>📷 Yes, add a photo</Text>
+                        <Text style={styles.primaryButtonText}>{t('photo.yesAdd')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.secondaryButton}
                         onPress={onSkip}
                     >
-                        <Text style={styles.secondaryButtonText}>Skip</Text>
+                        <Text style={styles.secondaryButtonText}>{t('photo.skip')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -161,7 +149,7 @@ export function SkinPhotoCapture({
     if (step === 'consent') {
         return (
             <View style={styles.card}>
-                <Text style={styles.disclaimerText}>{DISCLAIMER_TEXT}</Text>
+                <Text style={styles.disclaimerText}>{getDisclaimerText()}</Text>
 
                 <TouchableOpacity
                     style={styles.checkboxRow}
@@ -171,7 +159,7 @@ export function SkinPhotoCapture({
                         {consentChecked && <Text style={styles.checkmark}>✓</Text>}
                     </View>
                     <Text style={styles.checkboxLabel}>
-                        I understand and consent to photo storage
+                        {t('photo.checkboxLabel')}
                     </Text>
                 </TouchableOpacity>
 
@@ -181,12 +169,12 @@ export function SkinPhotoCapture({
                     onPress={() => setShowInstructions(!showInstructions)}
                 >
                     <Text style={styles.expandButtonText}>
-                        {showInstructions ? '▼' : '▶'} How to take a good medical photo
+                        {showInstructions ? '▼' : '▶'} {t('photo.instructionsTitle')}
                     </Text>
                 </TouchableOpacity>
                 {showInstructions && (
                     <View style={styles.instructionsBox}>
-                        <Text style={styles.instructionsText}>{PHOTO_INSTRUCTIONS}</Text>
+                        <Text style={styles.instructionsText}>{getPhotoInstructions()}</Text>
                     </View>
                 )}
 
@@ -197,14 +185,14 @@ export function SkinPhotoCapture({
                         disabled={!consentChecked}
                     >
                         <Text style={[styles.primaryButtonText, !consentChecked && styles.disabledText]}>
-                            Continue
+                            {t('photo.continue')}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.secondaryButton}
                         onPress={onSkip}
                     >
-                        <Text style={styles.secondaryButtonText}>Skip</Text>
+                        <Text style={styles.secondaryButtonText}>{t('photo.skip')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -214,9 +202,9 @@ export function SkinPhotoCapture({
     // ── Step: Capture (camera/gallery + preview) ─
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>📸 Upload Photos</Text>
+            <Text style={styles.cardTitle}>{t('photo.uploadTitle')}</Text>
             <Text style={styles.cardDescription}>
-                {photos.length}/{maxPhotos} photos added
+                {t('photo.photosAdded', { current: String(photos.length), max: String(maxPhotos) })}
             </Text>
 
             {/* Photo grid */}
@@ -245,7 +233,7 @@ export function SkinPhotoCapture({
                 <TouchableOpacity style={styles.addPhotoButton} onPress={handleAddPhoto}>
                     <Text style={styles.addPhotoIcon}>📷</Text>
                     <Text style={styles.addPhotoText}>
-                        {photos.length === 0 ? 'Take or select a photo' : 'Add another photo'}
+                        {photos.length === 0 ? t('photo.takeOrSelect') : t('photo.addAnother')}
                     </Text>
                 </TouchableOpacity>
             )}
@@ -254,13 +242,13 @@ export function SkinPhotoCapture({
             {showWebOptions && Platform.OS === 'web' && (
                 <View style={styles.webOptions}>
                     <TouchableOpacity style={styles.webOptionBtn} onPress={takePhoto}>
-                        <Text style={styles.webOptionText}>📸 Camera</Text>
+                        <Text style={styles.webOptionText}>{t('photo.cameraBtn')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.webOptionBtn} onPress={pickFromGallery}>
-                        <Text style={styles.webOptionText}>🖼️ Gallery</Text>
+                        <Text style={styles.webOptionText}>{t('photo.gallery')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.webOptionBtnCancel} onPress={() => setShowWebOptions(false)}>
-                        <Text style={styles.webOptionCancelText}>Cancel</Text>
+                        <Text style={styles.webOptionCancelText}>{t('common.cancel') || 'Cancel'}</Text>
                     </TouchableOpacity>
                 </View>
             )}
@@ -271,12 +259,12 @@ export function SkinPhotoCapture({
                 onPress={() => setShowInstructions(!showInstructions)}
             >
                 <Text style={styles.expandButtonText}>
-                    {showInstructions ? '▼' : '▶'} Photo tips
+                    {showInstructions ? '▼' : '▶'} {t('photo.photoTips')}
                 </Text>
             </TouchableOpacity>
             {showInstructions && (
                 <View style={styles.instructionsBox}>
-                    <Text style={styles.instructionsText}>{PHOTO_INSTRUCTIONS}</Text>
+                    <Text style={styles.instructionsText}>{getPhotoInstructions()}</Text>
                 </View>
             )}
 
@@ -292,7 +280,7 @@ export function SkinPhotoCapture({
                             <ActivityIndicator color="#fff" size="small" />
                         ) : (
                             <Text style={styles.primaryButtonText}>
-                                ✅ Done ({photos.length} photo{photos.length > 1 ? 's' : ''})
+                                {t('photo.done', { count: String(photos.length) })}
                             </Text>
                         )}
                     </TouchableOpacity>
@@ -301,7 +289,7 @@ export function SkinPhotoCapture({
                         style={styles.secondaryButton}
                         onPress={onSkip}
                     >
-                        <Text style={styles.secondaryButtonText}>Skip without photo</Text>
+                        <Text style={styles.secondaryButtonText}>{t('photo.skipWithout')}</Text>
                     </TouchableOpacity>
                 )}
             </View>

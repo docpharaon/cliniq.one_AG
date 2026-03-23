@@ -183,36 +183,25 @@ export async function forceAssignConsultation(consultationId: string, doctorId: 
 
 /**
  * Grant tokens to a user (admin action).
+ * Uses the grant_tokens RPC for atomic balance update (prevents race conditions).
  */
 export async function grantTokens(userId: string, amount: number, description: string) {
-    // Get current balance
-    const { data: user } = await supabase
-        .from('users')
-        .select('tokens_balance')
-        .eq('id', userId)
-        .single();
+    const { error: rpcError } = await supabase.rpc('grant_tokens', {
+        p_user_id: userId,
+        p_amount: amount,
+        p_description: description || `Admin granted ${amount} tokens`,
+        p_type: 'admin_grant',
+    });
 
-    if (!user) throw new Error('User not found');
+    if (rpcError) throw rpcError;
 
-    const newBalance = (user.tokens_balance || 0) + amount;
-
-    // Update balance
-    await supabase
-        .from('users')
-        .update({ tokens_balance: newBalance })
-        .eq('id', userId);
-
-    // Record transaction
+    // Fetch the latest transaction that was just created by the RPC
     const { data, error } = await supabase
         .from('token_transactions')
-        .insert({
-            user_id: userId,
-            type: 'admin_grant',
-            amount,
-            balance_after: newBalance,
-            description: description || `Admin granted ${amount} tokens`,
-        })
-        .select()
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
     if (error) throw error;
