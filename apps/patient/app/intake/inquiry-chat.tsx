@@ -9,7 +9,7 @@ import { chatSection } from '../../services/aiService';
 const MAX_TURNS = 7;
 
 export default function InquiryChatScreen() {
-    const { inquiryId } = useLocalSearchParams<{ inquiryId: string }>();
+    const { inquiryId: rawInquiryId, consultationId } = useLocalSearchParams<{ inquiryId?: string; consultationId?: string }>();
 
     const [inquiry, setInquiry] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -19,20 +19,46 @@ export default function InquiryChatScreen() {
     const [isComplete, setIsComplete] = useState(false);
     const [turnCount, setTurnCount] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [resolvedInquiryId, setResolvedInquiryId] = useState<string | undefined>(rawInquiryId);
     const scrollRef = useRef<ScrollView>(null);
 
     // Load inquiry details
     useEffect(() => {
-        if (!inquiryId) return;
         (async () => {
-            const { data, error } = await supabase
-                .from('doctor_inquiries')
-                .select('*')
-                .eq('id', inquiryId)
-                .single();
+            let data: any = null;
 
-            if (error || !data) {
-                Alert.alert('Error', 'Could not load inquiry');
+            if (rawInquiryId) {
+                // Direct inquiry ID lookup
+                const { data: d, error } = await supabase
+                    .from('doctor_inquiries')
+                    .select('*')
+                    .eq('id', rawInquiryId)
+                    .single();
+                if (error || !d) {
+                    Alert.alert('Error', 'Could not load inquiry');
+                    router.back();
+                    return;
+                }
+                data = d;
+            } else if (consultationId) {
+                // Find pending inquiry for this consultation
+                const { data: d, error } = await supabase
+                    .from('doctor_inquiries')
+                    .select('*')
+                    .eq('consultation_id', consultationId)
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                if (error || !d) {
+                    Alert.alert('No Inquiry', 'No pending inquiry found for this consultation.');
+                    router.back();
+                    return;
+                }
+                data = d;
+                setResolvedInquiryId(d.id);
+            } else {
+                Alert.alert('Error', 'Missing inquiry or consultation ID');
                 router.back();
                 return;
             }
@@ -51,7 +77,7 @@ export default function InquiryChatScreen() {
 
             setMessages([{ role: 'assistant', content: initialResponse.response }]);
         })();
-    }, [inquiryId]);
+    }, [rawInquiryId, consultationId]);
 
     const handleSend = async () => {
         if (!inputText.trim() || isSending || isComplete) return;
@@ -94,7 +120,7 @@ export default function InquiryChatScreen() {
     };
 
     const handleSubmitToDoctor = async () => {
-        if (!inquiryId || isSubmitting) return;
+        if (!resolvedInquiryId || isSubmitting) return;
         setIsSubmitting(true);
 
         try {
@@ -108,7 +134,7 @@ export default function InquiryChatScreen() {
             };
 
             await submitInquiryResponse({
-                inquiryId,
+                inquiryId: resolvedInquiryId,
                 responseSummary: summary,
                 chatHistory: messages,
                 turnCount,

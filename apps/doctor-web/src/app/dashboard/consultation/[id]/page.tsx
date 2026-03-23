@@ -7,7 +7,7 @@ import {
     User, Calendar, MapPin, Globe, Stethoscope,
     Brain, FileText, Pill, AlertCircle, ArrowLeft,
     Send, Loader2, ClipboardList, FlaskConical,
-    MessageSquare, Printer, Eye, Plus,
+    MessageSquare, Printer, Eye, Plus, HelpCircle, X, Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
@@ -37,6 +37,12 @@ export default function ConsultationDetailPage() {
     const [loadingInterventions, setLoadingInterventions] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
     const [doctorId, setDoctorId] = useState('');
+
+    // Inquiry state
+    const [showInquiryModal, setShowInquiryModal] = useState(false);
+    const [inquiryText, setInquiryText] = useState('');
+    const [sendingInquiry, setSendingInquiry] = useState(false);
+    const [improvingInquiry, setImprovingInquiry] = useState(false);
 
     // Print ref
     const printRef = useRef<HTMLDivElement>(null);
@@ -164,6 +170,16 @@ export default function ConsultationDetailPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to Queue
                     </Link>
                     <div className="flex items-center gap-3">
+                        {/* Send Inquiry button - only for active cases */}
+                        {['assigned', 'in_progress'].includes(consultation.status) && (
+                            <button
+                                onClick={() => setShowInquiryModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-warning/40 text-warning hover:bg-warning-faded transition-all font-medium"
+                            >
+                                <HelpCircle className="w-3.5 h-3.5" />
+                                Send Inquiry
+                            </button>
+                        )}
                         {doctorReport && (
                             <button
                                 onClick={handlePrint}
@@ -175,7 +191,7 @@ export default function ConsultationDetailPage() {
                         )}
                         <StatusBadge
                             label={consultation.status?.replace('_', ' ') || 'Unknown'}
-                            variant={consultation.status === 'completed' || consultation.status === 'report_ready' ? 'success' : 'info'}
+                            variant={consultation.status === 'completed' || consultation.status === 'report_ready' ? 'success' : consultation.status === 'inquiry_sent' ? 'warning' : 'info'}
                         />
                         <PriorityBadge priority={consultation.priority || 'routine'} />
                     </div>
@@ -644,6 +660,99 @@ export default function ConsultationDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Inquiry Modal */}
+            {showInquiryModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+                    <div className="bg-bg-primary border border-border rounded-2xl w-full max-w-lg p-6 space-y-4 animate-fade-in">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <HelpCircle className="w-5 h-5 text-warning" />
+                                <h3 className="text-lg font-bold text-text-primary">Send Inquiry to Patient</h3>
+                            </div>
+                            <button onClick={() => setShowInquiryModal(false)} className="text-text-muted hover:text-text-primary">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <p className="text-xs text-text-muted">Ask the patient for additional information. An AI chatbot will guide them through answering your question.</p>
+                        <textarea
+                            value={inquiryText}
+                            onChange={e => setInquiryText(e.target.value)}
+                            placeholder="e.g. Can you describe the frequency and timing of your headaches in the past week?"
+                            rows={4}
+                            className="w-full bg-bg-elevated border border-border rounded-xl p-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none"
+                        />
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={async () => {
+                                    if (!inquiryText.trim()) return;
+                                    setImprovingInquiry(true);
+                                    try {
+                                        const res = await fetch('/api/ai-improve-inquiry', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ question: inquiryText }),
+                                        });
+                                        if (res.ok) {
+                                            const { improved } = await res.json();
+                                            if (improved) setInquiryText(improved);
+                                        }
+                                    } catch { /* ignore */ }
+                                    setImprovingInquiry(false);
+                                }}
+                                disabled={!inquiryText.trim() || improvingInquiry}
+                                className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border border-purple/40 text-purple hover:bg-purple-faded transition-all font-medium disabled:opacity-40"
+                            >
+                                {improvingInquiry ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                AI Improve
+                            </button>
+                            <div className="flex-1" />
+                            <button
+                                onClick={() => setShowInquiryModal(false)}
+                                className="px-4 py-2 text-sm rounded-lg border border-border text-text-muted hover:text-text-primary transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!inquiryText.trim() || !doctorId) return;
+                                    setSendingInquiry(true);
+                                    try {
+                                        const supabase = createBrowserSupabase();
+                                        // Create inquiry
+                                        const { error: inquiryError } = await supabase
+                                            .from('doctor_inquiries')
+                                            .insert({
+                                                consultation_id: consultationId,
+                                                doctor_id: doctorId,
+                                                question_text: inquiryText,
+                                            });
+                                        if (inquiryError) throw inquiryError;
+                                        // Update consultation status
+                                        await supabase
+                                            .from('consultations')
+                                            .update({ status: 'inquiry_sent' })
+                                            .eq('id', consultationId);
+                                        // Refresh
+                                        setConsultation({ ...consultation, status: 'inquiry_sent' });
+                                        setShowInquiryModal(false);
+                                        setInquiryText('');
+                                        alert('✅ Inquiry sent to patient!');
+                                    } catch (err: any) {
+                                        alert(`Error: ${err.message || 'Failed to send inquiry'}`);
+                                    }
+                                    setSendingInquiry(false);
+                                }}
+                                disabled={!inquiryText.trim() || sendingInquiry}
+                                className="flex items-center gap-1.5 px-5 py-2 text-sm rounded-lg bg-accent text-bg-primary font-bold hover:shadow-[0_2px_8px_rgba(45,212,191,0.3)] transition-all disabled:opacity-40"
+                            >
+                                {sendingInquiry ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                Send Inquiry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

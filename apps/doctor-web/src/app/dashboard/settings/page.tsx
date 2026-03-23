@@ -6,7 +6,7 @@ import {
     LogOut, ChevronRight, Loader2,
     Mail, MessageSquare, AlertTriangle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createBrowserSupabase } from '@/lib/supabase';
 
 export default function SettingsPage() {
@@ -16,6 +16,41 @@ export default function SettingsPage() {
         paymentUpdates: true,
         systemAlerts: false,
     });
+    const [doctorId, setDoctorId] = useState('');
+
+    // Load saved notification preferences
+    useEffect(() => {
+        async function loadPrefs() {
+            const supabase = createBrowserSupabase();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: doctor } = await supabase
+                .from('doctors')
+                .select('id, notification_preferences')
+                .eq('user_id', user.id)
+                .single();
+            if (doctor) {
+                setDoctorId(doctor.id);
+                if (doctor.notification_preferences) {
+                    setNotifications(prev => ({ ...prev, ...doctor.notification_preferences }));
+                }
+            }
+        }
+        loadPrefs();
+    }, []);
+
+    // Save notification preferences to DB
+    async function updateNotif(key: string, value: boolean) {
+        const updated = { ...notifications, [key]: value };
+        setNotifications(updated);
+        if (doctorId) {
+            const supabase = createBrowserSupabase();
+            await supabase
+                .from('doctors')
+                .update({ notification_preferences: updated })
+                .eq('id', doctorId);
+        }
+    }
 
     const handleLogout = async () => {
         const supabase = createBrowserSupabase();
@@ -53,28 +88,28 @@ export default function SettingsPage() {
                             label="New Consultations"
                             desc="When a new case enters the queue"
                             checked={notifications.newConsultation}
-                            onChange={v => setNotifications(p => ({ ...p, newConsultation: v }))}
+                            onChange={v => updateNotif('newConsultation', v)}
                         />
                         <NotifToggle
                             icon={AlertTriangle}
                             label="Urgent Cases"
                             desc="High-priority & urgent consultations"
                             checked={notifications.urgentCases}
-                            onChange={v => setNotifications(p => ({ ...p, urgentCases: v }))}
+                            onChange={v => updateNotif('urgentCases', v)}
                         />
                         <NotifToggle
                             icon={CreditCard}
                             label="Payment Updates"
                             desc="Earnings and payout notifications"
                             checked={notifications.paymentUpdates}
-                            onChange={v => setNotifications(p => ({ ...p, paymentUpdates: v }))}
+                            onChange={v => updateNotif('paymentUpdates', v)}
                         />
                         <NotifToggle
                             icon={Shield}
                             label="System Alerts"
                             desc="Platform maintenance and updates"
                             checked={notifications.systemAlerts}
-                            onChange={v => setNotifications(p => ({ ...p, systemAlerts: v }))}
+                            onChange={v => updateNotif('systemAlerts', v)}
                         />
                     </div>
                 </div>
