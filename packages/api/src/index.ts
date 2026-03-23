@@ -50,6 +50,10 @@ export {
     getDoctorStats,
     getConsultationForDoctor,
     createInterventionOrder,
+    createDoctorInquiry,
+    getDoctorInquiries,
+    getPatientPendingInquiries,
+    submitInquiryResponse,
 } from './doctor';
 
 // ── Admin ──

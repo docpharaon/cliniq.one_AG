@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { supabase } from '@cliniqone/api';
 import { TOKEN_PACKAGES } from '@cliniqone/types';
 import type { TokenPackage } from '@cliniqone/types';
+import { useAuthStore } from '../stores/authStore';
 
 // ─────────────────────────────────────────
 // IAP Integration Layer
@@ -70,6 +71,9 @@ export function usePurchase(userId?: string) {
                     // In production, queue for retry — payment was processed
                 }
             }
+
+            // Refresh user balance in auth store
+            await useAuthStore.getState().refreshUser();
 
             setStatus('idle');
             return { success: true, tokens: pkg.tokens };

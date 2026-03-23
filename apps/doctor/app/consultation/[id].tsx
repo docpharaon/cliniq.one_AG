@@ -156,7 +156,7 @@ export default function PatientFileScreen() {
                     style={styles.composeButton}
                     onPress={() => router.push({
                         pathname: '/consultation/respond',
-                        params: { consultationId: consultation.id },
+                        params: { consultationId: consultation.id, doctorId: consultation.doctor_id || '' },
                     })}
                 >
                     <Text style={styles.composeText}>✍️ Compose Medical Response</Text>

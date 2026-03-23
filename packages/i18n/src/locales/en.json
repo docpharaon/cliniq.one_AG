@@ -310,6 +310,7 @@
         "removePhoto": "Remove Photo",
         "topSpecialty": "Top Specialty",
         "noAllergies": "None recorded",
+        "noMedications": "None recorded",
         "noConsultations": "No consultations yet",
         "tokensLabel": "Tokens",
         "consultationsLabel": "Consultations",
@@ -413,7 +414,12 @@
         "packages": "Token Packages",
         "popular": "POPULAR",
         "history": "Transaction History",
-        "noTransactions": "No transactions yet"
+        "noTransactions": "No transactions yet",
+        "filterAll": "All",
+        "filterPurchases": "Purchases",
+        "filterSpent": "Spent",
+        "filterEarned": "Earned",
+        "filterBonuses": "Bonuses"
     },
     "waitingRoom": {
         "title": "Waiting Room",
@@ -462,7 +468,8 @@
         "reportAvailable": "📋 Report & Prescription Available",
         "interventionsSuggested": "🧪 Interventions suggested — View details",
         "startNewConsultation": "🩺 Start New Consultation",
-        "general": "General"
+        "general": "General",
+        "statusInquirySent": "Inquiry Sent"
     },
     "aiChat": {
         "title": "AI Medical Interview",
@@ -617,5 +624,10 @@
         "startFollowUp": "🔁 Start Follow-up Consultation",
         "typeMessage": "Type a message...",
         "yearsExperience": "{{count}} years"
+    },
+    "inquiry": {
+        "bannerTitle": "Doctor Request",
+        "bannerMessage": "Your doctor needs additional information. Tap to respond.",
+        "respond": "Respond Now →"
     }
 }

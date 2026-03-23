@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, FlatList, Refresh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@cliniqone/ui';
 import { colors, spacing, typography, radius, shadows } from '@cliniqone/ui';
-import { t } from '@cliniqone/i18n';
+import { t, toLocalNum } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useTokenHistory } from '../../hooks/useConsultations';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
@@ -11,12 +11,12 @@ import { TOKEN_PACKAGES } from '@cliniqone/types';
 import type { TokenTransaction, TokenTransactionType } from '@cliniqone/types';
 
 // ── Filter tabs ──────────────────────────────────
-const FILTER_TABS: { key: string; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'purchase', label: 'Purchases' },
-    { key: 'spend', label: 'Spent' },
-    { key: 'earn', label: 'Earned' },
-    { key: 'bonus', label: 'Bonuses' },
+const FILTER_TABS: { key: string; labelKey: string }[] = [
+    { key: 'all', labelKey: 'wallet.filterAll' },
+    { key: 'purchase', labelKey: 'wallet.filterPurchases' },
+    { key: 'spend', labelKey: 'wallet.filterSpent' },
+    { key: 'earn', labelKey: 'wallet.filterEarned' },
+    { key: 'bonus', labelKey: 'wallet.filterBonuses' },
 ];
 
 const TX_ICONS: Record<string, string> = {
@@ -51,9 +51,7 @@ export default function WalletScreen() {
     const [refreshing, setRefreshing] = useState(false);
 
     const { data: liveHistory, isLoading, refetch } = useTokenHistory(user?.id || '');
-    const transactions = (liveHistory && liveHistory.length > 0)
-        ? (liveHistory as TokenTransaction[])
-        : MOCK_TRANSACTIONS;
+    const transactions = (liveHistory || []) as TokenTransaction[];
 
     const filteredTx = filter === 'all'
         ? transactions
@@ -104,7 +102,7 @@ export default function WalletScreen() {
                     <View style={styles.balanceGlow} />
                     <Text style={styles.balanceLabel}>{t('wallet.totalBalance')}</Text>
                     <View style={styles.balanceRow}>
-                        <Text style={styles.balanceValue}>{user?.tokens_balance ?? 0}</Text>
+                        <Text style={styles.balanceValue}>{toLocalNum(user?.tokens_balance ?? 0)}</Text>
                         <Text style={styles.balanceUnit}>{t('tokens.tokensLabel')}</Text>
                     </View>
                     <Text style={styles.balanceHint}>{t('tokens.hint')}</Text>
@@ -179,7 +177,7 @@ export default function WalletScreen() {
                             onPress={() => setFilter(tab.key)}
                         >
                             <Text style={[styles.filterText, filter === tab.key && styles.filterTextActive]}>
-                                {tab.label}
+                                {t(tab.labelKey)}
                             </Text>
                         </TouchableOpacity>
                     ))}

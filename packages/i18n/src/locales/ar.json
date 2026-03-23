@@ -310,6 +310,7 @@
         "removePhoto": "إزالة الصورة",
         "topSpecialty": "التخصص الأكثر",
         "noAllergies": "لم يتم تسجيل أي شيء",
+        "noMedications": "لم يتم تسجيل أي شيء",
         "noConsultations": "لا توجد استشارات بعد",
         "tokensLabel": "الرموز",
         "consultationsLabel": "الاستشارات",
@@ -413,7 +414,12 @@
         "packages": "باقات الرموز",
         "popular": "الأكثر شيوعاً",
         "history": "سجل المعاملات",
-        "noTransactions": "لا توجد معاملات بعد"
+        "noTransactions": "لا توجد معاملات بعد",
+        "filterAll": "الكل",
+        "filterPurchases": "المشتريات",
+        "filterSpent": "المُنفق",
+        "filterEarned": "المكتسب",
+        "filterBonuses": "المكافآت"
     },
     "waitingRoom": {
         "title": "غرفة الانتظار",
@@ -462,7 +468,8 @@
         "reportAvailable": "📋 التقرير والوصفة متاحان",
         "interventionsSuggested": "🧪 فحوصات مقترحة — عرض التفاصيل",
         "startNewConsultation": "🩺 بدء استشارة جديدة",
-        "general": "عام"
+        "general": "عام",
+        "statusInquirySent": "تم إرسال الاستفسار"
     },
     "aiChat": {
         "title": "المقابلة الطبية بالذكاء الاصطناعي",
@@ -617,5 +624,10 @@
         "startFollowUp": "🔁 بدء استشارة متابعة",
         "typeMessage": "اكتب رسالة...",
         "yearsExperience": "{{count}} سنة خبرة"
+    },
+    "inquiry": {
+        "bannerTitle": "طلب من الطبيب",
+        "bannerMessage": "طبيبك يحتاج معلومات إضافية. انقر للرد.",
+        "respond": "رد الآن ←"
     }
 }

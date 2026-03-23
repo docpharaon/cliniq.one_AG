@@ -10,6 +10,8 @@ import {
     updateDoctorProfile,
     getConsultationForDoctor,
     createInterventionOrder,
+    createDoctorInquiry,
+    getDoctorInquiries,
 } from '@cliniqone/api';
 import type { Consultation, Doctor } from '@cliniqone/types';
 
@@ -150,5 +152,30 @@ export function useCreateInterventionOrder() {
             queryClient.invalidateQueries({ queryKey: ['doctorConsultations'] });
             queryClient.invalidateQueries({ queryKey: ['consultationDetail'] });
         },
+    });
+}
+
+// ── Create Doctor Inquiry (mutation) ──────────
+export function useCreateInquiry() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (params: Parameters<typeof createDoctorInquiry>[0]) =>
+            createDoctorInquiry(params),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['doctorConsultations'] });
+            queryClient.invalidateQueries({ queryKey: ['consultationDetail'] });
+            queryClient.invalidateQueries({ queryKey: ['doctorInquiries'] });
+        },
+    });
+}
+
+// ── Doctor Inquiries (query) ──────────────────
+export function useDoctorInquiries(consultationId: string) {
+    return useQuery({
+        queryKey: ['doctorInquiries', consultationId],
+        queryFn: () => getDoctorInquiries(consultationId),
+        enabled: !!consultationId,
+        staleTime: 15_000,
     });
 }

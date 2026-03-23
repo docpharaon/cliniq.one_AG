@@ -87,6 +87,7 @@ export type ConsultationStatus =
     | 'submitted'
     | 'assigned'
     | 'in_progress'
+    | 'inquiry_sent'
     | 'report_ready'
     | 'completed'
     | 'cancelled';
@@ -112,6 +113,28 @@ export interface Consultation {
     created_at: string;
     assigned_at: string | null;
     completed_at: string | null;
+}
+
+// ──────────────────────────────────────────
+// Doctor Inquiry
+// ──────────────────────────────────────────
+
+export type DoctorInquiryStatus = 'pending' | 'answered' | 'expired' | 'cancelled';
+
+export interface DoctorInquiry {
+    id: string;
+    consultation_id: string;
+    doctor_id: string;
+    question_text: string;
+    ai_improved_text: string | null;
+    response_summary: Record<string, unknown> | null;
+    chat_history: { role: string; content: string }[] | null;
+    status: DoctorInquiryStatus;
+    max_turns: number;
+    turn_count: number;
+    deadline_at: string;
+    created_at: string;
+    answered_at: string | null;
 }
 
 // ──────────────────────────────────────────

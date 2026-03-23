@@ -3,7 +3,9 @@ import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert,
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '@cliniqone/ui';
-import { useSubmitReport } from '../../hooks/useDoctorData';
+import { useSubmitReport, useCreateInquiry, useDoctorInquiries } from '../../hooks/useDoctorData';
+import { supabase } from '@cliniqone/api';
+import type { DoctorInquiry } from '@cliniqone/types';
 
 interface Medication {
     name: string;
@@ -20,8 +22,73 @@ const emptyMed: Medication = {
 };
 
 export default function RespondScreen() {
-    const { consultationId } = useLocalSearchParams<{ consultationId: string }>();
+    const { consultationId, doctorId } = useLocalSearchParams<{ consultationId: string; doctorId?: string }>();
     const submitReportMutation = useSubmitReport();
+    const createInquiryMutation = useCreateInquiry();
+    const { data: inquiries = [] } = useDoctorInquiries(consultationId || '');
+
+    // Inquiry state
+    const [inquiryText, setInquiryText] = useState('');
+    const [aiImprovedText, setAiImprovedText] = useState('');
+    const [isImprovingWithAi, setIsImprovingWithAi] = useState(false);
+    const [showInquiryForm, setShowInquiryForm] = useState(false);
+
+    // AI Improve handler
+    const handleImproveWithAi = async () => {
+        if (!inquiryText.trim()) return;
+        setIsImprovingWithAi(true);
+        try {
+            const { data: fnData } = await supabase.functions.invoke('ai-intake', {
+                body: { action: 'improve-inquiry', questionText: inquiryText, language: 'en' },
+            });
+            if (fnData?.improvedText) {
+                setAiImprovedText(fnData.improvedText);
+            }
+        } catch (err) {
+            showAlert('Error', 'Failed to improve text. Please try again.');
+        } finally {
+            setIsImprovingWithAi(false);
+        }
+    };
+
+    // Send Inquiry handler
+    const handleSendInquiry = () => {
+        const textToSend = aiImprovedText || inquiryText;
+        if (!textToSend.trim()) {
+            showAlert('Required', 'Please type your question first.');
+            return;
+        }
+        if (!consultationId || !doctorId) {
+            showAlert('Error', 'Missing consultation or doctor ID.');
+            return;
+        }
+        showConfirm(
+            'Send Inquiry',
+            'This will notify the patient and ask them to provide additional information. Continue?',
+            () => {
+                createInquiryMutation.mutate(
+                    {
+                        consultationId,
+                        doctorId,
+                        questionText: inquiryText,
+                        aiImprovedText: aiImprovedText || undefined,
+                    },
+                    {
+                        onSuccess: () => {
+                            showAlert('Sent!', 'Your inquiry has been sent to the patient.', () => {
+                                setInquiryText('');
+                                setAiImprovedText('');
+                                setShowInquiryForm(false);
+                            });
+                        },
+                        onError: (err) => {
+                            showAlert('Error', err.message || 'Failed to send inquiry.');
+                        },
+                    },
+                );
+            },
+        );
+    };
 
     // 1. Clinical Assessment
     const [diagnosis, setDiagnosis] = useState('');
@@ -171,6 +238,127 @@ export default function RespondScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+                {/* 0. Request Additional Information */}
+                <TouchableOpacity
+                    style={[styles.card, { marginBottom: 16, borderColor: colors.warning, borderWidth: 1.5 }]}
+                    onPress={() => setShowInquiryForm(!showInquiryForm)}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ ...typography.body, color: colors.warning, fontWeight: '700' }}>
+                            🔍 Request Additional Information
+                        </Text>
+                        <Text style={{ fontSize: 16, color: colors.textTertiary }}>
+                            {showInquiryForm ? '▲' : '▼'}
+                        </Text>
+                    </View>
+                    <Text style={{ ...typography.caption, color: colors.textTertiary, marginTop: 4 }}>
+                        Ask the patient for more details before completing your response
+                    </Text>
+                </TouchableOpacity>
+
+                {showInquiryForm && (
+                    <View style={[styles.card, { marginBottom: 20, borderColor: colors.warning }]}>
+                        <Text style={styles.subLabel}>YOUR QUESTION TO THE PATIENT</Text>
+                        <TextInput
+                            style={[styles.input, styles.multiline]}
+                            value={inquiryText}
+                            onChangeText={setInquiryText}
+                            placeholder="e.g. Can you describe the rash in more detail? When did it first appear?"
+                            placeholderTextColor={colors.textTertiary}
+                            multiline
+                            numberOfLines={4}
+                        />
+
+                        {/* AI Improve Button */}
+                        <TouchableOpacity
+                            style={[styles.addMedBtn, { marginTop: 8, borderColor: colors.accentTeal }]}
+                            onPress={handleImproveWithAi}
+                            disabled={isImprovingWithAi || !inquiryText.trim()}
+                        >
+                            {isImprovingWithAi ? (
+                                <ActivityIndicator color={colors.accentTeal} size="small" />
+                            ) : (
+                                <Text style={styles.addMedText}>✨ Improve with AI</Text>
+                            )}
+                        </TouchableOpacity>
+
+                        {/* AI Improved Preview */}
+                        {aiImprovedText ? (
+                            <View style={{ marginTop: 12, backgroundColor: colors.bgTertiary, borderRadius: 12, padding: 12 }}>
+                                <Text style={{ ...typography.caption, color: colors.accentTeal, fontWeight: '700', marginBottom: 4 }}>
+                                    AI-IMPROVED VERSION
+                                </Text>
+                                <Text style={{ ...typography.body, color: colors.textPrimary, lineHeight: 22 }}>
+                                    {aiImprovedText}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => { setInquiryText(aiImprovedText); setAiImprovedText(''); }}
+                                    style={{ marginTop: 8 }}
+                                >
+                                    <Text style={{ ...typography.caption, color: colors.accentTeal }}>
+                                        ↑ Use this version
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : null}
+
+                        {/* Send Button */}
+                        <TouchableOpacity
+                            style={[styles.submitBtn, { marginTop: 12, backgroundColor: colors.warning }]}
+                            onPress={handleSendInquiry}
+                            disabled={createInquiryMutation.isPending}
+                        >
+                            {createInquiryMutation.isPending ? (
+                                <ActivityIndicator color={colors.bgPrimary} />
+                            ) : (
+                                <Text style={styles.submitText}>📤 Send Inquiry to Patient</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Previously Sent Inquiries */}
+                {inquiries.length > 0 && (
+                    <View style={[styles.card, { marginBottom: 20 }]}>
+                        <Text style={styles.subLabel}>PREVIOUS INQUIRIES</Text>
+                        {inquiries.map((inq: DoctorInquiry) => (
+                            <View key={inq.id} style={{ backgroundColor: colors.bgTertiary, borderRadius: 10, padding: 12, marginBottom: 8 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                                        {new Date(inq.created_at).toLocaleDateString()}
+                                    </Text>
+                                    <View style={{
+                                        paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+                                        backgroundColor: inq.status === 'answered' ? colors.successFaded : colors.warningFaded,
+                                    }}>
+                                        <Text style={{
+                                            ...typography.caption, fontSize: 10, fontWeight: '700',
+                                            color: inq.status === 'answered' ? colors.success : colors.warning,
+                                        }}>
+                                            {inq.status === 'answered' ? '✓ ANSWERED' : '⏳ PENDING'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Text style={{ ...typography.body, color: colors.textPrimary }}>
+                                    {inq.ai_improved_text || inq.question_text}
+                                </Text>
+                                {inq.status === 'answered' && inq.response_summary && (
+                                    <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
+                                        <Text style={{ ...typography.caption, color: colors.accentTeal, fontWeight: '700', marginBottom: 4 }}>
+                                            PATIENT RESPONSE
+                                        </Text>
+                                        <Text style={{ ...typography.body, color: colors.textSecondary, lineHeight: 20 }}>
+                                            {typeof inq.response_summary === 'object' && (inq.response_summary as any)?.summary
+                                                ? (inq.response_summary as any).summary
+                                                : JSON.stringify(inq.response_summary).slice(0, 300)}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ))}
+                    </View>
+                )}
+
                 {/* 1. Clinical Assessment */}
                 <SectionHeader title="1. Clinical Assessment" emoji="🔬" />
                 <View style={styles.card}>

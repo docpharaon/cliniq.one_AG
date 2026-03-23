@@ -19,13 +19,27 @@ const STATUS_COLORS: Record<string, string> = {
     submitted: colors.info,
     assigned: colors.accentTealDark,
     in_progress: colors.info,
+    inquiry_sent: colors.warning,
     report_ready: colors.purple,
     completed: colors.success,
     cancelled: colors.error,
 };
 
 // ── Active statuses (show banner) ────────────────
-const ACTIVE_STATUSES: ConsultationStatus[] = ['submitted', 'assigned', 'in_progress'];
+const ACTIVE_STATUSES: ConsultationStatus[] = ['submitted', 'assigned', 'in_progress', 'inquiry_sent'];
+
+const STATUS_EMOJI: Record<string, string> = {
+    draft: '📝', intake_in_progress: '🤖', pending_payment: '💳',
+    submitted: '📧', assigned: '👨‍⚕️', in_progress: '🔄',
+    inquiry_sent: '🔍', report_ready: '📋', completed: '✅', cancelled: '❌',
+};
+const STATUS_LABEL_KEYS: Record<string, string> = {
+    draft: 'consultations.statusDraft', intake_in_progress: 'consultations.statusAiIntake',
+    pending_payment: 'consultations.statusPendingPayment', submitted: 'consultations.statusSubmitted',
+    assigned: 'consultations.statusDoctorAssigned', in_progress: 'consultations.statusInProgress',
+    inquiry_sent: 'consultations.statusInquirySent', report_ready: 'consultations.statusReportReady',
+    completed: 'consultations.statusCompleted', cancelled: 'consultations.statusCancelled',
+};
 
 // ── Quick Actions ────────────────────────────────
 const QUICK_ACTIONS = [
@@ -89,18 +103,6 @@ export default function DashboardScreen() {
         (c: any) => ACTIVE_STATUSES.includes(c.status)
     );
 
-    const STATUS_EMOJI: Record<string, string> = {
-        draft: '📝', intake_in_progress: '🤖', pending_payment: '💳',
-        submitted: '📧', assigned: '👨‍⚕️', in_progress: '🔄',
-        report_ready: '📋', completed: '✅', cancelled: '❌',
-    };
-    const STATUS_LABEL_KEYS: Record<string, string> = {
-        draft: 'consultations.statusDraft', intake_in_progress: 'consultations.statusAiIntake',
-        pending_payment: 'consultations.statusPendingPayment', submitted: 'consultations.statusSubmitted',
-        assigned: 'consultations.statusDoctorAssigned', in_progress: 'consultations.statusInProgress',
-        report_ready: 'consultations.statusReportReady', completed: 'consultations.statusCompleted',
-        cancelled: 'consultations.statusCancelled',
-    };
     const getStatusLabel = (status: string) => {
         const emoji = STATUS_EMOJI[status] || '';
         const key = STATUS_LABEL_KEYS[status];
@@ -148,7 +150,7 @@ export default function DashboardScreen() {
                 </View>
 
                 {/* Active Consultation Banner */}
-                {activeConsultation && (
+                {activeConsultation && activeConsultation.status !== 'inquiry_sent' && (
                     <TouchableOpacity
                         style={styles.activeBanner}
                         onPress={() => router.push(`/consultation/waiting-room?id=${activeConsultation.id}`)}
@@ -162,6 +164,22 @@ export default function DashboardScreen() {
                             </Text>
                         </View>
                         <Text style={styles.activeBannerArrow}>→</Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Doctor Inquiry Banner */}
+                {activeConsultation && activeConsultation.status === 'inquiry_sent' && (
+                    <TouchableOpacity
+                        style={styles.inquiryBanner}
+                        onPress={() => router.push(`/intake/inquiry-chat?consultationId=${activeConsultation.id}`)}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.inquiryBannerIcon}>🔍</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.inquiryBannerTitle}>{t('inquiry.bannerTitle')}</Text>
+                            <Text style={styles.inquiryBannerMsg}>{t('inquiry.bannerMessage')}</Text>
+                        </View>
+                        <Text style={styles.inquiryBannerAction}>{t('inquiry.respond')}</Text>
                     </TouchableOpacity>
                 )}
 
@@ -340,6 +358,23 @@ const styles = StyleSheet.create({
     activeBannerTitle: { ...typography.label, color: colors.textSecondary },
     activeBannerStatus: { ...typography.body, color: colors.textPrimary, fontWeight: '600', marginTop: spacing.xxs },
     activeBannerArrow: { fontSize: 18, color: colors.info, fontWeight: '600' },
+
+    // Inquiry banner
+    inquiryBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        backgroundColor: colors.warningFaded,
+        borderRadius: radius.lg,
+        padding: spacing.lg,
+        marginBottom: spacing.lg,
+        borderWidth: 1,
+        borderColor: colors.warning + '60',
+    },
+    inquiryBannerIcon: { fontSize: 24 },
+    inquiryBannerTitle: { ...typography.label, color: colors.warning, fontWeight: '700' },
+    inquiryBannerMsg: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+    inquiryBannerAction: { ...typography.label, color: colors.warning, fontWeight: '700' },
 
     // Token card
     tokenCard: {

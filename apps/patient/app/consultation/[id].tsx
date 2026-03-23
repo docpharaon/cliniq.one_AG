@@ -49,7 +49,7 @@ export default function ConsultationDetailScreen() {
 
     const report = consultation?.report as Record<string, any> | null;
     const prescription = consultation?.prescription as Record<string, any> | null;
-    const isActive = consultation?.status === 'doctor_review' || consultation?.status === 'in_progress';
+    const isActive = consultation?.status === 'assigned' || consultation?.status === 'in_progress' || consultation?.status === 'inquiry_sent';
     const isLoading = loadingConsult || loadingMessages;
 
     // Auto-scroll to bottom on new messages
@@ -112,10 +112,10 @@ export default function ConsultationDetailScreen() {
 
                     {/* Status Banner */}
                     <View style={[styles.statusBanner, consultation.status === 'completed' ? styles.statusCompleted : styles.statusActive]}>
-                        <Text style={styles.statusIcon}>{consultation.status === 'completed' ? '✅' : '🔄'}</Text>
+                        <Text style={styles.statusIcon}>{consultation.status === 'completed' ? '✅' : consultation.status === 'inquiry_sent' ? '🔍' : '🔄'}</Text>
                         <View>
                             <Text style={styles.statusLabel}>
-                                {consultation.status === 'completed' ? t('consultDetail.completed') : consultation.status === 'doctor_review' ? t('consultDetail.doctorReviewing') : t('consultDetail.inProgress')}
+                                {consultation.status === 'completed' ? t('consultDetail.completed') : consultation.status === 'assigned' ? t('consultDetail.doctorReviewing') : consultation.status === 'inquiry_sent' ? 'Inquiry Sent' : t('consultDetail.inProgress')}
                             </Text>
                             <Text style={styles.statusTime}>
                                 {localDate(consultation.created_at)}

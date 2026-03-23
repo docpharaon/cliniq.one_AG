@@ -61,7 +61,8 @@ function AppInner() {
     useSessionTimeout({
         timeout: 15 * 60 * 1000,
         onExpire: async () => {
-            if (!user) return; // Not logged in, no need to expire
+            const currentUser = useAuthStore.getState().user;
+            if (!currentUser) return; // Already signed out
             toast('Session expired for your security', 'warning', 5000);
             try {
                 await supabase.auth.signOut();

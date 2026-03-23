@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Consultation, Doctor, Message } from '@cliniqone/types';
+import type { Consultation, Doctor, Message, DoctorInquiry } from '@cliniqone/types';
 
 // ──────────────────────────────────────────
 // Doctor API Functions
@@ -227,4 +227,126 @@ export async function createInterventionOrder(interventions: Array<{
 
     if (error) throw error;
     return data;
+}
+
+// ──────────────────────────────────────────
+// Doctor Inquiries
+// ──────────────────────────────────────────
+
+/**
+ * Create a doctor inquiry for additional patient information.
+ * Also updates consultation status to 'inquiry_sent'.
+ */
+export async function createDoctorInquiry(params: {
+    consultationId: string;
+    doctorId: string;
+    questionText: string;
+    aiImprovedText?: string;
+    maxTurns?: number;
+    deadlineHours?: number;
+}): Promise<DoctorInquiry> {
+    const deadlineAt = new Date(
+        Date.now() + (params.deadlineHours || 48) * 60 * 60 * 1000
+    ).toISOString();
+
+    const { data, error } = await supabase
+        .from('doctor_inquiries')
+        .insert({
+            consultation_id: params.consultationId,
+            doctor_id: params.doctorId,
+            question_text: params.questionText,
+            ai_improved_text: params.aiImprovedText || null,
+            max_turns: params.maxTurns || 7,
+            deadline_at: deadlineAt,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // Update consultation status to 'inquiry_sent'
+    await supabase
+        .from('consultations')
+        .update({ status: 'inquiry_sent' })
+        .eq('id', params.consultationId);
+
+    return data as DoctorInquiry;
+}
+
+/**
+ * Get all inquiries for a consultation.
+ */
+export async function getDoctorInquiries(consultationId: string): Promise<DoctorInquiry[]> {
+    const { data, error } = await supabase
+        .from('doctor_inquiries')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as DoctorInquiry[];
+}
+
+/**
+ * Get pending inquiries for a patient (across all their consultations).
+ */
+export async function getPatientPendingInquiries(patientId: string): Promise<(DoctorInquiry & { consultation: { specialty: string; chief_complaint: string } })[]> {
+    // Step 1: Get patient's consultation IDs
+    const { data: consultations } = await supabase
+        .from('consultations')
+        .select('id')
+        .eq('patient_id', patientId);
+
+    if (!consultations || consultations.length === 0) return [];
+
+    const consultationIds = consultations.map(c => c.id);
+
+    // Step 2: Get pending inquiries for those consultations
+    const { data, error } = await supabase
+        .from('doctor_inquiries')
+        .select(`
+            *,
+            consultation:consultations!doctor_inquiries_consultation_id_fkey(
+                specialty, chief_complaint
+            )
+        `)
+        .eq('status', 'pending')
+        .in('consultation_id', consultationIds);
+
+    if (error) throw error;
+    return (data || []) as any;
+}
+
+/**
+ * Submit patient's inquiry response. Marks inquiry as answered
+ * and resets consultation status to 'in_progress'.
+ */
+export async function submitInquiryResponse(params: {
+    inquiryId: string;
+    responseSummary: Record<string, unknown>;
+    chatHistory: { role: string; content: string }[];
+    turnCount: number;
+}): Promise<DoctorInquiry> {
+    const { data, error } = await supabase
+        .from('doctor_inquiries')
+        .update({
+            status: 'answered',
+            response_summary: params.responseSummary,
+            chat_history: params.chatHistory,
+            turn_count: params.turnCount,
+            answered_at: new Date().toISOString(),
+        })
+        .eq('id', params.inquiryId)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // Reset consultation back to 'in_progress' so doctor can continue
+    await supabase
+        .from('consultations')
+        .update({ status: 'in_progress' })
+        .eq('id', (data as DoctorInquiry).consultation_id);
+
+    return data as DoctorInquiry;
 }

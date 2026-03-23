@@ -8,6 +8,7 @@ interface AuthState {
     user: User | null;
     isLoading: boolean;
     isReady: boolean;
+    _authSubscription: { unsubscribe: () => void } | null;
 
     initialize: () => Promise<void>;
     setSession: (session: Session | null) => void;
@@ -21,8 +22,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     isLoading: true,
     isReady: false,
+    _authSubscription: null,
 
     initialize: async () => {
+        // Clean up previous listener if any
+        const prev = get()._authSubscription;
+        if (prev) prev.unsubscribe();
+
         try {
             // Get current session (with timeout protection)
             const { data } = await safeFetch(
@@ -48,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             }
 
             // Listen for auth changes
-            supabase.auth.onAuthStateChange(async (event, newSession) => {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
                 set({ session: newSession });
 
                 if (newSession) {
@@ -69,6 +75,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     set({ user: null });
                 }
             });
+            set({ _authSubscription: subscription });
         } catch (error) {
             console.error('Auth initialization error:', error);
             set({ isLoading: false, isReady: true });

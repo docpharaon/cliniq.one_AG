@@ -857,6 +857,35 @@ serve(async (req: Request) => {
                 };
                 break;
             }
+            case 'improve-inquiry': {
+                // Doctor requests AI to polish their inquiry text for a patient
+                const rawQuestion = (params.question || '').slice(0, MAX_MESSAGE_LENGTH);
+                const language = params.language || 'en';
+
+                if (!rawQuestion) {
+                    return new Response(
+                        JSON.stringify({ error: 'question is required' }),
+                        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                    );
+                }
+
+                const improveSystem = `You are a medical communication AI for cliniq.one. A doctor wants to request additional information from a patient.
+
+Your task: Rewrite the doctor's rough question to be:
+1. Clear and patient-friendly — avoid medical jargon
+2. Warm and reassuring — the patient should not feel alarmed
+3. Specific enough to get useful clinical information
+4. Concise — 1-3 sentences max
+
+Language: ${language === 'ar' ? 'Arabic (Gulf dialect)' : 'English'}
+
+Respond in JSON: { "improved": "the improved question text" }`;
+
+                const improveResult = await callOpenAI(improveSystem, `Doctor's question: ${rawQuestion}`, 300);
+                const parsed = safeJsonParse(improveResult, { improved: rawQuestion });
+                result = { improved: parsed.improved || rawQuestion };
+                break;
+            }
             default:
                 return new Response(
                     JSON.stringify({ error: `Unknown action: ${action}` }),

@@ -230,7 +230,7 @@ export default function ProfileScreen() {
                         </View>
                         <View style={styles.historyDetailRow}>
                             <Text style={styles.historyDetailLabel}>💊 {t('profile.currentMedications')}</Text>
-                            <Text style={styles.historyDetailValue}>{t('profile.noAllergies')}</Text>
+                            <Text style={styles.historyDetailValue}>{t('profile.noMedications')}</Text>
                         </View>
                     </View>
 

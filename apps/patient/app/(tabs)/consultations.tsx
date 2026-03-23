@@ -22,6 +22,7 @@ const STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: strin
     submitted: { labelKey: 'consultations.statusSubmitted', color: colors.accentTeal, bg: colors.accentTealFaded },
     assigned: { labelKey: 'consultations.statusAssigned', color: colors.accentBlue, bg: colors.infoFaded },
     in_progress: { labelKey: 'consultations.statusInProgress', color: colors.accentBlue, bg: colors.infoFaded },
+    inquiry_sent: { labelKey: 'consultations.statusInquirySent', color: colors.warning, bg: colors.warningFaded },
     report_ready: { labelKey: 'consultations.statusReportReady', color: colors.success, bg: colors.successFaded },
     completed: { labelKey: 'consultations.statusCompleted', color: colors.success, bg: colors.successFaded },
     cancelled: { labelKey: 'consultations.statusCancelled', color: colors.error, bg: colors.errorFaded },
@@ -30,7 +31,7 @@ const STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: strin
 function filterConsultations(consultations: Consultation[], filter: string): Consultation[] {
     if (filter === 'all') return consultations;
     if (filter === 'active') return consultations.filter((c) =>
-        ['submitted', 'assigned', 'in_progress', 'report_ready'].includes(c.status)
+        ['submitted', 'assigned', 'in_progress', 'report_ready', 'inquiry_sent', 'pending_payment', 'intake_in_progress'].includes(c.status)
     );
     if (filter === 'completed') return consultations.filter((c) => c.status === 'completed');
     return consultations;
@@ -146,7 +147,7 @@ export default function ConsultationsScreen() {
                     </Card>
                 ) : (
                     results.map((consultation) => {
-                        const status = STATUS_CONFIG[consultation.status];
+                        const status = STATUS_CONFIG[consultation.status] || { labelKey: consultation.status, color: colors.textTertiary, bg: colors.bgTertiary };
                         return (
                             <TouchableOpacity
                                 key={consultation.id}
