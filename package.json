@@ -17,6 +17,7 @@
     "test:e2e": "npx playwright test",
     "test:e2e:patient": "npx playwright test --project=patient-app",
     "test:e2e:doctor": "npx playwright test --project=doctor-web",
+    "test:e2e:admin": "npx playwright test --project=admin-panel",
     "test:e2e:report": "npx playwright show-report"
   },
   "devDependencies": {

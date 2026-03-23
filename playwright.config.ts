@@ -32,5 +32,13 @@ export default defineConfig({
       },
       testMatch: /doctor\/.+\.spec\.ts/,
     },
+    {
+      name: 'admin-panel',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3001',
+      },
+      testMatch: /admin\/.+\.spec\.ts/,
+    },
   ],
 });
