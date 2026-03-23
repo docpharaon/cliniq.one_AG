@@ -6,7 +6,7 @@ import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { updateUserProfile, safeFetch } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
-import { t } from '@cliniqone/i18n';
+import { t, getLocale } from '@cliniqone/i18n';
 import { COUNTRIES } from '@cliniqone/config';
 import { useToast } from '../../components/ToastProvider';
 
@@ -117,7 +117,7 @@ export default function EditProfileScreen() {
                             style={[styles.countryChip, country === c.code && styles.countryChipActive]}
                             onPress={() => setCountry(c.code)}
                         >
-                            <Text style={[styles.countryChipText, country === c.code && styles.countryChipTextActive]}>{c.flag} {c.name}</Text>
+                            <Text style={[styles.countryChipText, country === c.code && styles.countryChipTextActive]}>{c.flag} {getLocale() === 'ar' ? c.nameAr : c.name}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>

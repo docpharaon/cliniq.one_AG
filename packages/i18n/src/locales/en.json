@@ -403,7 +403,8 @@
         "faq4Q": "Is my data secure?",
         "faq4A": "Absolutely. All data is encrypted end-to-end and shared only with your assigned doctor. We follow strict privacy standards.",
         "faq5Q": "Which specialties are available?",
-        "faq5A": "Currently we offer Dermatology and Family Medicine, with more specialties coming soon."
+        "faq5A": "Currently we offer Dermatology and Family Medicine, with more specialties coming soon.",
+        "allRightsReserved": "All rights reserved."
     },
     "wallet": {
         "title": "Token Wallet",
@@ -701,5 +702,24 @@
         "bannerTitle": "Doctor Request",
         "bannerMessage": "Your doctor needs additional information. Tap to respond.",
         "respond": "Respond Now →"
+    },
+    "deleteAccount": {
+        "title": "Delete Account",
+        "permanentAction": "This action is permanent",
+        "willRemove": "Deleting your account will permanently remove:",
+        "removeProfile": "Your profile and personal information",
+        "removeConsultations": "All consultation history and medical records",
+        "removeTokens": "Any remaining tokens or wallet balance",
+        "removeChats": "All chat transcripts and AI intake data",
+        "cannotUndo": "This cannot be undone. You will need to create a new account if you wish to use cliniq.one again.",
+        "typeToConfirm": "Type",
+        "toConfirm": "to confirm:",
+        "typePlaceholder": "Type DELETE",
+        "deleting": "Deleting...",
+        "deleteButton": "Permanently Delete My Account",
+        "cancelKeep": "Cancel — keep my account",
+        "deleted": "Account deleted. We're sorry to see you go.",
+        "connectionSlow": "Connection is slow. Please try again.",
+        "deleteFailed": "Failed to delete account. Please try again."
     }
 }

@@ -78,7 +78,7 @@ export default function HelpScreen() {
                 <View style={styles.appInfo}>
                     <Text style={styles.appName}>cliniq.one</Text>
                     <Text style={styles.appVersion}>v1.0.0</Text>
-                    <Text style={styles.appCopy}>© 2024 cliniq.one AG. All rights reserved.</Text>
+                    <Text style={styles.appCopy}>© 2024 cliniq.one AG. {t('help.allRightsReserved')}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>

@@ -23,7 +23,6 @@ export default function DeleteAccountScreen() {
         setLoading(true);
 
         try {
-            // Call edge function to delete account + all related data
             const { data, error } = await safeFetch(
                 () => supabase.functions.invoke('delete-account', {
                     body: { userId: user.id },
@@ -34,15 +33,15 @@ export default function DeleteAccountScreen() {
             if (error) throw error;
             if (data?.error) throw new Error(data.error);
 
-            toast('Account deleted. We\'re sorry to see you go.', 'info');
+            toast(t('deleteAccount.deleted'), 'info');
             await supabase.auth.signOut();
             clear();
             router.replace('/(auth)/landing');
         } catch (err: any) {
             console.error('Delete account error:', err);
             const msg = err?.message?.includes('timed out')
-                ? 'Connection is slow. Please try again.'
-                : err?.message || 'Failed to delete account. Please try again.';
+                ? t('deleteAccount.connectionSlow')
+                : err?.message || t('deleteAccount.deleteFailed');
             toast(msg, 'error');
         } finally {
             setLoading(false);
@@ -57,38 +56,38 @@ export default function DeleteAccountScreen() {
                     <TouchableOpacity onPress={() => router.back()}>
                         <Text style={styles.backText}>← {t('common.back')}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>🗑️ Delete Account</Text>
+                    <Text style={styles.title}>🗑️ {t('deleteAccount.title')}</Text>
                 </View>
 
                 {/* Warning Card */}
                 <View style={styles.warningCard}>
                     <Text style={styles.warningIcon}>⚠️</Text>
-                    <Text style={styles.warningTitle}>This action is permanent</Text>
+                    <Text style={styles.warningTitle}>{t('deleteAccount.permanentAction')}</Text>
                     <Text style={styles.warningBody}>
-                        Deleting your account will permanently remove:
+                        {t('deleteAccount.willRemove')}
                     </Text>
 
                     <View style={styles.list}>
-                        <Text style={styles.listItem}>• Your profile and personal information</Text>
-                        <Text style={styles.listItem}>• All consultation history and medical records</Text>
-                        <Text style={styles.listItem}>• Any remaining tokens or wallet balance</Text>
-                        <Text style={styles.listItem}>• All chat transcripts and AI intake data</Text>
+                        <Text style={styles.listItem}>• {t('deleteAccount.removeProfile')}</Text>
+                        <Text style={styles.listItem}>• {t('deleteAccount.removeConsultations')}</Text>
+                        <Text style={styles.listItem}>• {t('deleteAccount.removeTokens')}</Text>
+                        <Text style={styles.listItem}>• {t('deleteAccount.removeChats')}</Text>
                     </View>
 
                     <Text style={styles.warningFooter}>
-                        This cannot be undone. You will need to create a new account if you wish to use cliniq.one again.
+                        {t('deleteAccount.cannotUndo')}
                     </Text>
                 </View>
 
                 {/* Confirmation Input */}
                 <Text style={styles.confirmLabel}>
-                    Type <Text style={styles.confirmHighlight}>DELETE</Text> to confirm:
+                    {t('deleteAccount.typeToConfirm')} <Text style={styles.confirmHighlight}>DELETE</Text> {t('deleteAccount.toConfirm')}
                 </Text>
                 <TextInput
                     style={[styles.input, isConfirmed && styles.inputConfirmed]}
                     value={confirmText}
                     onChangeText={setConfirmText}
-                    placeholder="Type DELETE"
+                    placeholder={t('deleteAccount.typePlaceholder')}
                     placeholderTextColor={colors.textTertiary}
                     autoCapitalize="none"
                 />
@@ -101,14 +100,14 @@ export default function DeleteAccountScreen() {
                         disabled={!isConfirmed || loading}
                     >
                         <Text style={styles.deleteText}>
-                            {loading ? 'Deleting...' : 'Permanently Delete My Account'}
+                            {loading ? t('deleteAccount.deleting') : t('deleteAccount.deleteButton')}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Cancel */}
                 <TouchableOpacity onPress={() => router.back()} style={styles.cancelRow}>
-                    <Text style={styles.cancelText}>Cancel — keep my account</Text>
+                    <Text style={styles.cancelText}>{t('deleteAccount.cancelKeep')}</Text>
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>

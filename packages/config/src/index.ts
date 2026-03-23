@@ -115,12 +115,12 @@ export const SECURITY = {
 // ──────────────────────────────────────────
 
 export const COUNTRIES = [
-    { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦', dialCode: '+966', ibanPrefix: 'SA' },
-    { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪', dialCode: '+971', ibanPrefix: 'AE' },
-    { code: 'KW', name: 'Kuwait', flag: '🇰🇼', dialCode: '+965', ibanPrefix: 'KW' },
-    { code: 'BH', name: 'Bahrain', flag: '🇧🇭', dialCode: '+973', ibanPrefix: 'BH' },
-    { code: 'QA', name: 'Qatar', flag: '🇶🇦', dialCode: '+974', ibanPrefix: 'QA' },
-    { code: 'OM', name: 'Oman', flag: '🇴🇲', dialCode: '+968', ibanPrefix: 'OM' },
+    { code: 'SA', name: 'Saudi Arabia', nameAr: 'المملكة العربية السعودية', flag: '🇸🇦', dialCode: '+966', ibanPrefix: 'SA' },
+    { code: 'AE', name: 'United Arab Emirates', nameAr: 'الإمارات العربية المتحدة', flag: '🇦🇪', dialCode: '+971', ibanPrefix: 'AE' },
+    { code: 'KW', name: 'Kuwait', nameAr: 'الكويت', flag: '🇰🇼', dialCode: '+965', ibanPrefix: 'KW' },
+    { code: 'BH', name: 'Bahrain', nameAr: 'البحرين', flag: '🇧🇭', dialCode: '+973', ibanPrefix: 'BH' },
+    { code: 'QA', name: 'Qatar', nameAr: 'قطر', flag: '🇶🇦', dialCode: '+974', ibanPrefix: 'QA' },
+    { code: 'OM', name: 'Oman', nameAr: 'عُمان', flag: '🇴🇲', dialCode: '+968', ibanPrefix: 'OM' },
 ] as const;
 
 // ──────────────────────────────────────────
