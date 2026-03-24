@@ -3,8 +3,9 @@
 import Header from '@/components/Header';
 import StatusBadge, { PriorityBadge } from '@/components/StatusBadge';
 import InterventionOrderForm from '@/components/InterventionOrderForm';
+import PsychAssessmentTab from '@/components/PsychAssessmentTab';
 import {
-    User, Calendar, MapPin, Globe, Stethoscope,
+    User as UserIcon, Calendar, MapPin, Globe, Stethoscope,
     Brain, FileText, Pill, AlertCircle, ArrowLeft,
     Send, Loader2, ClipboardList, FlaskConical,
     MessageSquare, Printer, Eye, Plus, HelpCircle, X, Sparkles,
@@ -18,22 +19,26 @@ import {
 } from '@/lib/actions';
 import { useParams } from 'next/navigation';
 import { createBrowserSupabase } from '@/lib/supabase';
+import type { Consultation, User as UserType, Message, Intervention, AISummary, ConsultationReport, PrescriptionMedication } from '@cliniqone/types';
 
-type TabKey = 'overview' | 'ai' | 'chat' | 'interventions' | 'response';
+type ConsultationDetail = Consultation & { patient: UserType | null };
+type InterventionWithProvider = Intervention & { provider?: { name: string; type: string; city: string } | null };
+
+type TabKey = 'overview' | 'ai' | 'chat' | 'interventions' | 'response' | 'psych';
 
 export default function ConsultationDetailPage() {
     const params = useParams();
     const consultationId = params.id as string;
-    const [consultation, setConsultation] = useState<any>(null);
+    const [consultation, setConsultation] = useState<ConsultationDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
     // Chat state
-    const [messages, setMessages] = useState<any[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
 
     // Interventions state
-    const [interventions, setInterventions] = useState<any[]>([]);
+    const [interventions, setInterventions] = useState<InterventionWithProvider[]>([]);
     const [loadingInterventions, setLoadingInterventions] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
     const [doctorId, setDoctorId] = useState('');
@@ -130,15 +135,18 @@ export default function ConsultationDetailPage() {
     }
 
     const patient = consultation.patient;
-    const aiReport = consultation.ai_summary || {};
-    const doctorReport = consultation.report;
+    const aiReport: AISummary = consultation.ai_summary || {};
+    const doctorReport: ConsultationReport | null = consultation.report;
 
     const TABS: { key: TabKey; label: string; icon: any }[] = [
-        { key: 'overview', label: 'Patient File', icon: User },
+        { key: 'overview', label: 'Patient File', icon: UserIcon },
         { key: 'ai', label: 'AI Assessment', icon: Brain },
         { key: 'chat', label: 'Chat Transcript', icon: MessageSquare },
         { key: 'interventions', label: 'Interventions', icon: FlaskConical },
         { key: 'response', label: 'Doctor Response', icon: FileText },
+        ...(consultation.specialty === 'psychiatry'
+            ? [{ key: 'psych' as TabKey, label: '🧠 Psych Assessment', icon: ClipboardList }]
+            : []),
     ];
 
     const interventionStatusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'error' | 'neutral' }> = {
@@ -224,7 +232,7 @@ export default function ConsultationDetailPage() {
                         <div className="glass rounded-2xl p-6 space-y-4">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="w-12 h-12 rounded-xl bg-accent-faded flex items-center justify-center">
-                                    <User className="w-6 h-6 text-accent" />
+                                    <UserIcon className="w-6 h-6 text-accent" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-text-primary">{patient?.nickname || 'Patient'}</h3>
@@ -508,14 +516,14 @@ export default function ConsultationDetailPage() {
                                 )}
 
                                 {/* Prescription */}
-                                {consultation.prescription?.medications?.length > 0 && (
+                                {(consultation.prescription?.medications?.length ?? 0) > 0 && (
                                     <div className="glass rounded-2xl p-6">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Pill className="w-5 h-5 text-info" />
                                             <h3 className="text-lg font-bold text-text-primary">Prescription</h3>
                                         </div>
                                         <div className="space-y-2">
-                                            {consultation.prescription.medications.map((med: any, i: number) => (
+                                            {consultation.prescription!.medications!.map((med: PrescriptionMedication, i: number) => (
                                                 <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 rounded-xl bg-bg-elevated border border-border">
                                                     <span className="font-semibold text-text-primary text-sm flex-1">{med.name}</span>
                                                     <span className="text-xs text-text-muted">{med.dose} · {med.frequency} · {med.duration} · {med.route}</span>
@@ -608,7 +616,7 @@ export default function ConsultationDetailPage() {
                     )}
 
                     {/* Prescription */}
-                    {consultation.prescription?.medications?.length > 0 && (
+                    {(consultation.prescription?.medications?.length ?? 0) > 0 && (
                         <div className="mb-6">
                             <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Prescription</h2>
                             <table className="w-full text-sm border-collapse">
@@ -622,7 +630,7 @@ export default function ConsultationDetailPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {consultation.prescription.medications.map((med: any, i: number) => (
+                                    {consultation.prescription!.medications!.map((med: PrescriptionMedication, i: number) => (
                                         <tr key={i} className="border-b border-gray-200">
                                             <td className="py-1 pr-2">{med.name}</td>
                                             <td className="py-1 pr-2">{med.dose}</td>
@@ -660,6 +668,17 @@ export default function ConsultationDetailPage() {
                     </div>
                 </div>
             </div>
+
+                {/* Psych Assessment Tab — only for psychiatry consultations */}
+                {activeTab === 'psych' && consultation.specialty === 'psychiatry' && consultation.patient && (
+                    <div className="animate-fade-in">
+                        <PsychAssessmentTab
+                            consultationId={consultationId}
+                            doctorId={doctorId}
+                            patientId={consultation.patient_id}
+                        />
+                    </div>
+                )}
 
             {/* Inquiry Modal */}
             {showInquiryModal && (

@@ -21,6 +21,8 @@ export default function IntakeLayout() {
             <Stack.Screen name="allergies" />
             <Stack.Screen name="review" />
             <Stack.Screen name="submit" />
+            <Stack.Screen name="telepsychiatry-consent" />
+            <Stack.Screen name="psych-screening" />
         </Stack>
     );
 }

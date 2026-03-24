@@ -221,7 +221,14 @@ export default function ReviewScreen() {
                 {/* Submit */}
                 <Button
                     title={`${t('intake.submitConsultation')} (${CONSULTATION_COSTS.new} ${t('tokens.tokensLabel')})`}
-                    onPress={() => router.push('/intake/submit')}
+                    onPress={() => {
+                        if (specialty === 'psychiatry') {
+                            // Psychiatry flow: consent → screening → submit
+                            router.push('/intake/telepsychiatry-consent' as never);
+                        } else {
+                            router.push('/intake/submit');
+                        }
+                    }}
                     size="lg"
                 />
             </ScrollView>

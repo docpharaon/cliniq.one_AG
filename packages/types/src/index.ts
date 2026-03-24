@@ -38,7 +38,16 @@ export interface User {
 // ──────────────────────────────────────────
 
 export type DoctorStatus = 'pending' | 'active' | 'probation' | 'limited' | 'suspended' | 'inactive';
-export type Specialty = 'general' | 'dermatology' | 'family_medicine';
+export type Specialty =
+    | 'general'
+    | 'dermatology'
+    | 'family_medicine'
+    | 'internal_medicine'
+    | 'pediatrics'
+    | 'psychiatry'
+    | 'ent'
+    | 'ophthalmology'
+    | 'orthopedics';
 
 export interface Doctor {
     id: string;
@@ -94,6 +103,65 @@ export type ConsultationStatus =
 
 export type ConsultationPriority = 'routine' | 'high' | 'urgent';
 
+// ── AI Report (JSONB ai_summary) ─────────────
+
+export interface AISummary {
+    summary?: string;
+    key_findings?: string[];
+    differential_diagnoses?: string[];
+    medications?: string[];
+    allergies?: string[];
+    triage_category?: string;
+    recommended_specialty?: string;
+    risk_factors?: string[];
+    [key: string]: unknown; // allow extra fields from AI
+}
+
+// ── AI Entities (JSONB ai_entities) ──────────
+
+export interface AIEntities {
+    symptoms?: string[];
+    conditions?: string[];
+    medications?: string[];
+    allergies?: string[];
+    measurements?: Record<string, unknown>[];
+    [key: string]: unknown;
+}
+
+// ── Doctor Report (JSONB report) ─────────────
+
+export interface ConsultationReport {
+    diagnosis?: string;
+    icd10?: string;
+    treatment_plan?: string;
+    patient_education?: string;
+    follow_up?: string;
+    follow_up_timeframe?: string;
+    referral_notes?: string;
+    [key: string]: unknown;
+}
+
+// ── Prescription (JSONB prescription) ────────
+
+export interface PrescriptionMedication {
+    name: string;
+    dose?: string;
+    dosage?: string;
+    frequency?: string;
+    duration?: string;
+    route?: string;
+    instructions?: string;
+    notes?: string;
+}
+
+export interface Prescription {
+    medications?: PrescriptionMedication[];
+    notes?: string;
+    [key: string]: unknown;
+}
+
+// ── Consultation ─────────────────────────────
+
 export interface Consultation {
     id: string;
     patient_id: string;
@@ -102,12 +170,12 @@ export interface Consultation {
     status: ConsultationStatus;
     priority: ConsultationPriority;
     chief_complaint: string;
-    ai_summary: Record<string, unknown> | null;
-    ai_entities: Record<string, unknown> | null;
+    ai_summary: AISummary | null;
+    ai_entities: AIEntities | null;
     token_cost: number;
     payment_method: string | null;
-    report: Record<string, unknown> | null;
-    prescription: Record<string, unknown> | null;
+    report: ConsultationReport | null;
+    prescription: Prescription | null;
     protocol_flags: string[];
     follow_up_id: string | null;
     created_at: string;
@@ -580,4 +648,346 @@ export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> =
         { name: 'Gastroenterology Referral', type: 'referral', category: 'Gastroenterology', estimated_cost_sar: 300 },
         { name: 'Family Medicine Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
     ],
+    internal_medicine: [
+        { name: 'CBC (Complete Blood Count)', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 80 },
+        { name: 'Comprehensive Metabolic Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 150 },
+        { name: 'Lipid Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 100, instructions: 'Fast for 12 hours before test' },
+        { name: 'HbA1c', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 90 },
+        { name: 'Chest X-Ray', type: 'imaging', category: 'X-Ray', estimated_cost_sar: 200 },
+        { name: 'Echocardiogram', type: 'imaging', category: 'Cardiology', estimated_cost_sar: 500 },
+        { name: 'Pulmonology Referral', type: 'referral', category: 'Pulmonology', estimated_cost_sar: 300 },
+        { name: 'Internal Medicine Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+    ],
+    pediatrics: [
+        { name: 'CBC (Complete Blood Count)', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 80 },
+        { name: 'Urinalysis', type: 'lab_test', category: 'Urinalysis', estimated_cost_sar: 50 },
+        { name: 'Stool Analysis', type: 'lab_test', category: 'Microbiology', estimated_cost_sar: 60 },
+        { name: 'Growth Hormone Panel', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 250 },
+        { name: 'Chest X-Ray', type: 'imaging', category: 'X-Ray', estimated_cost_sar: 200 },
+        { name: 'Pediatric ENT Referral', type: 'referral', category: 'ENT', estimated_cost_sar: 300 },
+        { name: 'Pediatrics Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+    ],
+    psychiatry: [
+        { name: 'Thyroid Panel (TSH, T3, T4)', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 180, instructions: 'Fasting not required' },
+        { name: 'CBC (Complete Blood Count)', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 80 },
+        { name: 'Comprehensive Metabolic Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 150 },
+        { name: 'Lithium Level', type: 'lab_test', category: 'Therapeutic Drug Monitoring', estimated_cost_sar: 120, instructions: 'Draw 12 hours after last dose' },
+        { name: 'Valproic Acid Level', type: 'lab_test', category: 'Therapeutic Drug Monitoring', estimated_cost_sar: 120 },
+        { name: 'Vitamin B12', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 100 },
+        { name: 'Vitamin D', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 120 },
+        { name: 'Drug Screening (Urine)', type: 'lab_test', category: 'Toxicology', estimated_cost_sar: 200, instructions: 'Random urine sample' },
+        { name: 'HbA1c (Metabolic Monitoring)', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 90, instructions: 'Monitor for antipsychotic metabolic effects' },
+        { name: 'Lipid Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 100, instructions: 'Fast for 12 hours. Monitor for antipsychotic metabolic effects' },
+        { name: 'Prolactin Level', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 130, instructions: 'Check if on antipsychotics' },
+        { name: 'ECG (QTc Monitoring)', type: 'imaging', category: 'Cardiology', estimated_cost_sar: 150, instructions: 'Baseline and periodic monitoring for QTc-prolonging medications' },
+        { name: 'Psychological Testing', type: 'therapy', category: 'Psychology', estimated_cost_sar: 400 },
+        { name: 'CBT (Cognitive Behavioral Therapy)', type: 'therapy', category: 'Psychology', estimated_cost_sar: 350 },
+        { name: 'DBT (Dialectical Behavior Therapy)', type: 'therapy', category: 'Psychology', estimated_cost_sar: 400 },
+        { name: 'Neurology Referral', type: 'referral', category: 'Neurology', estimated_cost_sar: 300 },
+        { name: 'Psychology Referral', type: 'referral', category: 'Psychology', estimated_cost_sar: 300 },
+        { name: 'Psychiatry Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 200 },
+    ],
+    ent: [
+        { name: 'Audiometry', type: 'lab_test', category: 'Audiology', estimated_cost_sar: 250 },
+        { name: 'Tympanometry', type: 'lab_test', category: 'Audiology', estimated_cost_sar: 150 },
+        { name: 'Throat Swab Culture', type: 'lab_test', category: 'Microbiology', estimated_cost_sar: 120 },
+        { name: 'CT Sinuses', type: 'imaging', category: 'CT', estimated_cost_sar: 600 },
+        { name: 'Nasal Endoscopy', type: 'imaging', category: 'Endoscopy', estimated_cost_sar: 400 },
+        { name: 'Tonsillectomy Referral', type: 'referral', category: 'Surgery', estimated_cost_sar: 800 },
+        { name: 'ENT Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+    ],
+    ophthalmology: [
+        { name: 'Visual Acuity Test', type: 'lab_test', category: 'Optometry', estimated_cost_sar: 100 },
+        { name: 'Intraocular Pressure', type: 'lab_test', category: 'Ophthalmology', estimated_cost_sar: 120 },
+        { name: 'Fundoscopy', type: 'imaging', category: 'Ophthalmology', estimated_cost_sar: 200 },
+        { name: 'OCT (Retinal Scan)', type: 'imaging', category: 'Ophthalmology', estimated_cost_sar: 400 },
+        { name: 'Visual Field Test', type: 'imaging', category: 'Ophthalmology', estimated_cost_sar: 250 },
+        { name: 'Cataract Surgery Referral', type: 'referral', category: 'Surgery', estimated_cost_sar: 3000 },
+        { name: 'Ophthalmology Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+    ],
+    orthopedics: [
+        { name: 'X-Ray (Extremity)', type: 'imaging', category: 'X-Ray', estimated_cost_sar: 180 },
+        { name: 'MRI (Joint)', type: 'imaging', category: 'MRI', estimated_cost_sar: 1200 },
+        { name: 'Bone Density Scan', type: 'imaging', category: 'DEXA', estimated_cost_sar: 400 },
+        { name: 'ESR / CRP', type: 'lab_test', category: 'Immunology', estimated_cost_sar: 100 },
+        { name: 'Uric Acid', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 60 },
+        { name: 'Physical Therapy', type: 'therapy', category: 'Rehabilitation', estimated_cost_sar: 200 },
+        { name: 'Orthopedic Surgery Referral', type: 'referral', category: 'Surgery', estimated_cost_sar: 400 },
+        { name: 'Orthopedics Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+    ],
 };
+
+// ──────────────────────────────────────────
+// Psychiatry Module Types
+// ──────────────────────────────────────────
+
+export type RiskLevel = 'low' | 'moderate' | 'high' | 'imminent';
+export type MedicationPlanStatus = 'active' | 'paused' | 'discontinued' | 'completed';
+export type TherapyPlanStatus = 'active' | 'completed' | 'discontinued';
+export type FollowupPlanStatus = 'pending' | 'completed' | 'missed' | 'cancelled';
+export type ScreeningSeverity = 'minimal' | 'mild' | 'moderate' | 'moderately_severe' | 'severe';
+export type ConsentType = 'telepsychiatry' | 'disclosure' | 'release_to_family' | 'release_to_employer' | 'treatment';
+
+export interface PsychiatricIntake {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    symptom_duration: string | null;
+    past_psychiatric_history: string | null;
+    substance_use: {
+        alcohol?: string;
+        cannabis?: string;
+        stimulants?: string;
+        opioids?: string;
+        tobacco?: string;
+        other?: string;
+    } | null;
+    risk_flags: {
+        suicidality?: boolean;
+        self_harm?: boolean;
+        aggression?: boolean;
+        psychosis?: boolean;
+        homicidality?: boolean;
+    } | null;
+    current_stressors: string | null;
+    previous_treatments: string | null;
+    hospitalization_history: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MentalStatusExam {
+    id: string;
+    consultation_id: string;
+    doctor_id: string;
+    appearance: string | null;
+    behavior: string | null;
+    speech: string | null;
+    mood: string | null;
+    affect: string | null;
+    thought_process: string | null;
+    thought_content: string | null;
+    perceptions: string | null;
+    cognition: string | null;
+    insight: string | null;
+    judgment: string | null;
+    risk_level: RiskLevel | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RiskAssessment {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    assessed_by: string;
+    suicidal_ideation: boolean;
+    suicidal_plan: boolean;
+    suicidal_intent: boolean;
+    prior_attempts: number;
+    self_harm: boolean;
+    homicidal_ideation: boolean;
+    psychosis_active: boolean;
+    risk_level: RiskLevel;
+    protective_factors: string | null;
+    safety_plan: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    disposition: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ScreeningScore {
+    id: string;
+    consultation_id: string | null;
+    patient_id: string;
+    instrument: string;
+    responses: { question_index: number; answer_value: number }[];
+    total_score: number;
+    severity: ScreeningSeverity | null;
+    interpretation: string | null;
+    administered_by: 'patient' | 'clinician';
+    created_at: string;
+}
+
+export interface PsychiatricDiagnosis {
+    id: string;
+    consultation_id: string;
+    doctor_id: string;
+    primary_diagnosis: string;
+    icd10_code: string | null;
+    secondary_diagnoses: { diagnosis: string; icd10_code?: string }[] | null;
+    differential: string | null;
+    clinical_reasoning: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MedicationPlan {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    medication_name: string;
+    generic_name: string | null;
+    dose: string;
+    frequency: string;
+    route: string;
+    indication: string | null;
+    start_date: string | null;
+    titration_schedule: Record<string, number> | null;
+    side_effects_to_monitor: string[];
+    interactions_noted: string[];
+    refill_date: string | null;
+    adherence_status: string;
+    status: MedicationPlanStatus;
+    discontinued_reason: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TherapyPlan {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    therapy_type: string;
+    goals: string | null;
+    frequency: string | null;
+    duration_weeks: number | null;
+    notes: string | null;
+    status: TherapyPlanStatus;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface FollowupPlan {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    followup_type: string;
+    interval_weeks: number;
+    scheduled_date: string | null;
+    notes: string | null;
+    status: FollowupPlanStatus;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ConsentRecord {
+    id: string;
+    patient_id: string;
+    consultation_id: string | null;
+    consent_type: ConsentType;
+    granted: boolean;
+    granted_at: string | null;
+    revoked_at: string | null;
+    notes: string | null;
+    created_at: string;
+}
+
+// ──────────────────────────────────────────
+// Screening Instruments
+// ──────────────────────────────────────────
+
+export interface ScreeningQuestion {
+    index: number;
+    text: string;
+    text_ar: string;
+}
+
+export interface ScreeningInstrument {
+    id: string;
+    name: string;
+    name_ar: string;
+    description: string;
+    questions: ScreeningQuestion[];
+    options: { value: number; label: string; label_ar: string }[];
+    scoring: { min: number; max: number; severity: ScreeningSeverity; label: string }[];
+}
+
+export const PHQ9_INSTRUMENT: ScreeningInstrument = {
+    id: 'PHQ-9',
+    name: 'Patient Health Questionnaire (PHQ-9)',
+    name_ar: 'استبيان صحة المريض (PHQ-9)',
+    description: 'Depression screening and severity measure',
+    questions: [
+        { index: 0, text: 'Little interest or pleasure in doing things', text_ar: 'قلة الاهتمام أو المتعة في القيام بالأشياء' },
+        { index: 1, text: 'Feeling down, depressed, or hopeless', text_ar: 'الشعور بالحزن أو الاكتئاب أو اليأس' },
+        { index: 2, text: 'Trouble falling or staying asleep, or sleeping too much', text_ar: 'صعوبة في النوم أو البقاء نائماً أو النوم كثيراً' },
+        { index: 3, text: 'Feeling tired or having little energy', text_ar: 'الشعور بالتعب أو قلة الطاقة' },
+        { index: 4, text: 'Poor appetite or overeating', text_ar: 'ضعف الشهية أو الإفراط في الأكل' },
+        { index: 5, text: 'Feeling bad about yourself — or that you are a failure', text_ar: 'الشعور بالسوء تجاه نفسك أو أنك فاشل' },
+        { index: 6, text: 'Trouble concentrating on things', text_ar: 'صعوبة في التركيز على الأشياء' },
+        { index: 7, text: 'Moving or speaking so slowly that others noticed, or being fidgety/restless', text_ar: 'التحرك أو التحدث ببطء شديد أو التململ والقلق' },
+        { index: 8, text: 'Thoughts that you would be better off dead, or of hurting yourself', text_ar: 'أفكار بأنك ستكون أفضل حالاً ميتاً أو بإيذاء نفسك' },
+    ],
+    options: [
+        { value: 0, label: 'Not at all', label_ar: 'أبداً' },
+        { value: 1, label: 'Several days', label_ar: 'عدة أيام' },
+        { value: 2, label: 'More than half the days', label_ar: 'أكثر من نصف الأيام' },
+        { value: 3, label: 'Nearly every day', label_ar: 'تقريباً كل يوم' },
+    ],
+    scoring: [
+        { min: 0, max: 4, severity: 'minimal', label: 'Minimal depression' },
+        { min: 5, max: 9, severity: 'mild', label: 'Mild depression' },
+        { min: 10, max: 14, severity: 'moderate', label: 'Moderate depression' },
+        { min: 15, max: 19, severity: 'moderately_severe', label: 'Moderately severe depression' },
+        { min: 20, max: 27, severity: 'severe', label: 'Severe depression' },
+    ],
+};
+
+export const GAD7_INSTRUMENT: ScreeningInstrument = {
+    id: 'GAD-7',
+    name: 'Generalized Anxiety Disorder (GAD-7)',
+    name_ar: 'مقياس اضطراب القلق العام (GAD-7)',
+    description: 'Anxiety screening and severity measure',
+    questions: [
+        { index: 0, text: 'Feeling nervous, anxious, or on edge', text_ar: 'الشعور بالتوتر أو القلق أو العصبية' },
+        { index: 1, text: 'Not being able to stop or control worrying', text_ar: 'عدم القدرة على التوقف عن القلق أو السيطرة عليه' },
+        { index: 2, text: 'Worrying too much about different things', text_ar: 'القلق المفرط بشأن أشياء مختلفة' },
+        { index: 3, text: 'Trouble relaxing', text_ar: 'صعوبة في الاسترخاء' },
+        { index: 4, text: 'Being so restless that it is hard to sit still', text_ar: 'كثرة التململ لدرجة صعوبة الجلوس بثبات' },
+        { index: 5, text: 'Becoming easily annoyed or irritable', text_ar: 'سهولة الانزعاج أو التهيج' },
+        { index: 6, text: 'Feeling afraid, as if something awful might happen', text_ar: 'الشعور بالخوف كأن شيئاً سيئاً سيحدث' },
+    ],
+    options: [
+        { value: 0, label: 'Not at all', label_ar: 'أبداً' },
+        { value: 1, label: 'Several days', label_ar: 'عدة أيام' },
+        { value: 2, label: 'More than half the days', label_ar: 'أكثر من نصف الأيام' },
+        { value: 3, label: 'Nearly every day', label_ar: 'تقريباً كل يوم' },
+    ],
+    scoring: [
+        { min: 0, max: 4, severity: 'minimal', label: 'Minimal anxiety' },
+        { min: 5, max: 9, severity: 'mild', label: 'Mild anxiety' },
+        { min: 10, max: 14, severity: 'moderate', label: 'Moderate anxiety' },
+        { min: 15, max: 21, severity: 'severe', label: 'Severe anxiety' },
+    ],
+};
+
+// ──────────────────────────────────────────
+// Psychiatry Visit Types
+// ──────────────────────────────────────────
+
+export const PSYCH_VISIT_TYPES = [
+    { id: 'initial_evaluation', label: 'Initial Psychiatric Evaluation', label_ar: 'التقييم النفسي الأولي', token_cost: 5 },
+    { id: 'medication_management', label: 'Medication Management Follow-up', label_ar: 'متابعة إدارة الأدوية', token_cost: 2 },
+    { id: 'psychotherapy_session', label: 'Psychotherapy Session', label_ar: 'جلسة علاج نفسي', token_cost: 3 },
+    { id: 'crisis_visit', label: 'Crisis Visit', label_ar: 'زيارة طارئة', token_cost: 1 },
+    { id: 'family_session', label: 'Family Session', label_ar: 'جلسة عائلية', token_cost: 4 },
+    { id: 'telepsychiatry_followup', label: 'Telepsychiatry Follow-up', label_ar: 'متابعة عن بعد', token_cost: 2 },
+] as const;
+
+export function scorePHQ9(totalScore: number): { severity: ScreeningSeverity; label: string } {
+    const tier = PHQ9_INSTRUMENT.scoring.find(s => totalScore >= s.min && totalScore <= s.max);
+    return tier ? { severity: tier.severity, label: tier.label } : { severity: 'minimal', label: 'Minimal depression' };
+}
+
+export function scoreGAD7(totalScore: number): { severity: ScreeningSeverity; label: string } {
+    const tier = GAD7_INSTRUMENT.scoring.find(s => totalScore >= s.min && totalScore <= s.max);
+    return tier ? { severity: tier.severity, label: tier.label } : { severity: 'minimal', label: 'Minimal anxiety' };
+}

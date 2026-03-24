@@ -450,3 +450,255 @@ export async function markAllNotificationsRead(doctorId: string) {
     if (error) return { error: error.message };
     return { success: true };
 }
+
+// ── Psychiatry Module ────────────────────────────
+
+export async function fetchMentalStatusExam(consultationId: string) {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+        .from('mental_status_exam')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (error) console.error('fetchMentalStatusExam error:', error);
+    return data;
+}
+
+export async function saveMentalStatusExam(payload: {
+    consultation_id: string;
+    doctor_id: string;
+    appearance?: string;
+    behavior?: string;
+    speech?: string;
+    mood?: string;
+    affect?: string;
+    thought_process?: string;
+    thought_content?: string;
+    perceptions?: string;
+    cognition?: string;
+    insight?: string;
+    judgment?: string;
+    risk_level?: string;
+    notes?: string;
+}) {
+    const supabase = await createServerSupabase();
+
+    // Upsert: update existing or insert new
+    const existing = await fetchMentalStatusExam(payload.consultation_id);
+    if (existing) {
+        const { error } = await supabase
+            .from('mental_status_exam')
+            .update(payload)
+            .eq('id', existing.id);
+        if (error) return { error: error.message };
+    } else {
+        const { error } = await supabase
+            .from('mental_status_exam')
+            .insert(payload);
+        if (error) return { error: error.message };
+    }
+    return { success: true };
+}
+
+export async function fetchRiskAssessment(consultationId: string) {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+        .from('risk_assessment')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (error) console.error('fetchRiskAssessment error:', error);
+    return data;
+}
+
+export async function saveRiskAssessment(payload: {
+    consultation_id: string;
+    patient_id: string;
+    assessed_by: string;
+    suicidal_ideation?: boolean;
+    suicidal_plan?: boolean;
+    suicidal_intent?: boolean;
+    prior_attempts?: number;
+    self_harm?: boolean;
+    homicidal_ideation?: boolean;
+    psychosis_active?: boolean;
+    risk_level: string;
+    protective_factors?: string;
+    safety_plan?: string;
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    disposition?: string;
+    notes?: string;
+}) {
+    const supabase = await createServerSupabase();
+
+    const existing = await fetchRiskAssessment(payload.consultation_id);
+    if (existing) {
+        const { error } = await supabase
+            .from('risk_assessment')
+            .update(payload)
+            .eq('id', existing.id);
+        if (error) return { error: error.message };
+    } else {
+        const { error } = await supabase
+            .from('risk_assessment')
+            .insert(payload);
+        if (error) return { error: error.message };
+    }
+    return { success: true };
+}
+
+export async function fetchPsychiatricDiagnosis(consultationId: string) {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+        .from('psychiatric_diagnosis')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (error) console.error('fetchPsychiatricDiagnosis error:', error);
+    return data;
+}
+
+export async function savePsychiatricDiagnosis(payload: {
+    consultation_id: string;
+    doctor_id: string;
+    primary_diagnosis: string;
+    icd10_code?: string;
+    secondary_diagnoses?: { diagnosis: string; icd10_code?: string }[];
+    differential?: string;
+    clinical_reasoning?: string;
+}) {
+    const supabase = await createServerSupabase();
+
+    const existing = await fetchPsychiatricDiagnosis(payload.consultation_id);
+    if (existing) {
+        const { error } = await supabase
+            .from('psychiatric_diagnosis')
+            .update(payload)
+            .eq('id', existing.id);
+        if (error) return { error: error.message };
+    } else {
+        const { error } = await supabase
+            .from('psychiatric_diagnosis')
+            .insert(payload);
+        if (error) return { error: error.message };
+    }
+    return { success: true };
+}
+
+export async function fetchMedicationPlans(consultationId: string) {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+        .from('medication_plan')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .order('created_at', { ascending: true });
+    if (error) console.error('fetchMedicationPlans error:', error);
+    return data || [];
+}
+
+export async function saveMedicationPlan(payload: {
+    id?: string;
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    medication_name: string;
+    generic_name?: string;
+    dose: string;
+    frequency: string;
+    route?: string;
+    indication?: string;
+    start_date?: string;
+    titration_schedule?: Record<string, number>;
+    side_effects_to_monitor?: string[];
+    interactions_noted?: string[];
+    status?: string;
+    discontinued_reason?: string;
+}) {
+    const supabase = await createServerSupabase();
+    const { id, ...rest } = payload;
+
+    if (id) {
+        const { error } = await supabase
+            .from('medication_plan')
+            .update(rest)
+            .eq('id', id);
+        if (error) return { error: error.message };
+    } else {
+        const { error } = await supabase
+            .from('medication_plan')
+            .insert(rest);
+        if (error) return { error: error.message };
+    }
+    return { success: true };
+}
+
+export async function fetchScreeningScores(patientId: string, instrument?: string) {
+    const supabase = await createServerSupabase();
+    let query = supabase
+        .from('screening_scores')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false });
+
+    if (instrument) {
+        query = query.eq('instrument', instrument);
+    }
+
+    const { data, error } = await query.limit(20);
+    if (error) console.error('fetchScreeningScores error:', error);
+    return data || [];
+}
+
+export async function fetchPsychiatricIntake(consultationId: string) {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+        .from('psychiatric_intake')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .maybeSingle();
+    if (error) console.error('fetchPsychiatricIntake error:', error);
+    return data;
+}
+
+export async function saveTherapyPlan(payload: {
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    therapy_type: string;
+    goals?: string;
+    frequency?: string;
+    duration_weeks?: number;
+    notes?: string;
+    status?: string;
+}) {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase
+        .from('therapy_plan')
+        .insert(payload);
+    if (error) return { error: error.message };
+    return { success: true };
+}
+
+export async function saveFollowupPlan(payload: {
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    followup_type: string;
+    interval_weeks: number;
+    scheduled_date?: string;
+    notes?: string;
+}) {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase
+        .from('followup_plan')
+        .insert(payload);
+    if (error) return { error: error.message };
+    return { success: true };
+}
