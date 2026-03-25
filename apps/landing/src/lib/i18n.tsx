@@ -177,6 +177,23 @@ const translations: Record<string, Record<Locale, string>> = {
     'safety.z5': { en: 'HIPAA-aligned practices', ar: 'ممارسات متوافقة مع HIPAA' },
     'safety.z6': { en: 'You own your medical data', ar: 'أنت تملك بياناتك الطبية' },
 
+    // ─── APP AVAILABILITY ───
+    'avail.tag': { en: 'Now Open for Testing', ar: 'مفتوح للاختبار الآن' },
+    'avail.h2_1': { en: 'Available on', ar: 'متاح على' },
+    'avail.h2_2': { en: 'Android Today', ar: 'Android اليوم' },
+    'avail.sub': { en: 'We\'re actively onboarding testers. Register your interest and be the first to know when new platforms launch.', ar: 'نستقبل المختبِرين حاليًا. سجّل اهتمامك وكن أول من يعرف عند إطلاق منصات جديدة.' },
+    'avail.android_title': { en: 'Android', ar: 'Android' },
+    'avail.android_status': { en: 'Open for Testing', ar: 'مفتوح للاختبار' },
+    'avail.android_desc': { en: 'The Android APK is available now for approved testers in KSA & UAE. Sign up below to get access to all four apps — Patient, Doctor, Locum, and Admin.', ar: 'تطبيق Android APK متاح الآن للمختبِرين المعتمدين في السعودية والإمارات. سجّل أدناه للحصول على أربعة تطبيقات — المريض، الطبيب، Locum، والإدارة.' },
+    'avail.android_cta': { en: 'Join Android Beta', ar: 'انضم لنسخة Android التجريبية' },
+    'avail.ios_title': { en: 'iOS', ar: 'iOS' },
+    'avail.ios_status': { en: 'Coming Soon', ar: 'قريبًا' },
+    'avail.ios_desc': { en: 'iOS support is in development. Register your interest now and we\'ll notify you as soon as the iPhone and iPad apps are ready for testing.', ar: 'دعم iOS قيد التطوير. سجّل اهتمامك الآن وسنُبلغك فور جاهزية تطبيقات iPhone و iPad للاختبار.' },
+    'avail.ios_cta': { en: 'Notify Me', ar: 'أبلغني' },
+    'avail.notify_title': { en: 'Stay Informed', ar: 'ابقَ على اطلاع' },
+    'avail.notify_sub': { en: 'Register once and we\'ll keep you updated on all platform launches.', ar: 'سجّل مرة واحدة وسنُبقيك على اطلاع بجميع الإطلاقات.' },
+    'avail.notify_cta': { en: 'Register Interest', ar: 'سجّل اهتمامك' },
+
     // ─── DOWNLOADS ───
     'dl.tag': { en: 'Get Started', ar: 'ابدأ الآن' },
     'dl.h2_1': { en: 'Download', ar: 'تحميل' },

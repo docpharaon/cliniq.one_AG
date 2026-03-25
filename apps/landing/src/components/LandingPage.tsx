@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { I18nProvider, useI18n } from '@/lib/i18n';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
+import AppAvailability from '@/components/AppAvailability';
 import About from '@/components/About';
 import HowItWorks from '@/components/HowItWorks';
 import ForWho from '@/components/ForWho';
@@ -45,6 +46,7 @@ function PageContent() {
             <Header />
             <main>
                 <Hero />
+                <AppAvailability />
                 <About />
                 <HowItWorks />
                 <ForWho />
