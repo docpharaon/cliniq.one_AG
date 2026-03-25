@@ -150,7 +150,7 @@ export default function DashboardPage() {
 
             <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6 md:space-y-8">
                 {/* Welcome Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-col gap-3">
                     <div>
                         <p className="text-text-muted text-sm">Welcome back,</p>
                         <h2 className="text-xl md:text-2xl font-bold text-text-primary flex items-center gap-2">
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                             <span className="text-lg">🩺</span>
                         </h2>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                         {/* Accepting Toggle */}
                         <button
                             onClick={async () => {
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                             </div>
                             {isAccepting ? 'Accepting' : 'Paused'}
                         </button>
-                        <div className="text-right">
+                        <div className="text-right ml-auto">
                             <p className="text-sm text-text-secondary">📅 {dateStr}</p>
                             <p className="text-sm text-text-muted">{timeStr} {Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replace('_', ' ') || 'Local'}</p>
                         </div>
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 ) : (
                     <>
                         {/* Stat Cards */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                             <StatCard
                                 icon={ClipboardList}
                                 value={stats?.pendingInQueue ?? 0}
@@ -397,7 +397,7 @@ export default function DashboardPage() {
                                         <p className="text-sm">No activity this week</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height={260}>
+                                <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 260}>
                                     <LineChart data={weeklyActivity}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.1)" />
                                         <XAxis dataKey="day" stroke="#64748B" fontSize={12} />
@@ -426,29 +426,29 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-                            <Link href="/dashboard/queue" className="glass rounded-2xl p-4 md:p-5 flex flex-col items-center gap-2 md:gap-3 hover:-translate-y-1 transition-all duration-200">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                            <Link href="/dashboard/queue" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                                 <div className="w-12 h-12 bg-accent-faded rounded-xl flex items-center justify-center">
                                     <ClipboardList className="w-6 h-6 text-accent" />
                                 </div>
                                 <p className="text-sm font-semibold text-accent">Queue</p>
                                 <p className="text-xs text-text-muted">View cases</p>
                             </Link>
-                            <Link href="/dashboard/consultations" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                            <Link href="/dashboard/consultations" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                                 <div className="w-12 h-12 bg-purple-faded rounded-xl flex items-center justify-center">
                                     <FileText className="w-6 h-6 text-purple" />
                                 </div>
                                 <p className="text-sm font-semibold text-purple">History</p>
                                 <p className="text-xs text-text-muted">Past cases</p>
                             </Link>
-                            <Link href="/dashboard/analytics" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                            <Link href="/dashboard/analytics" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                                 <div className="w-12 h-12 bg-gold-faded rounded-xl flex items-center justify-center">
                                     <BarChart3 className="w-6 h-6 text-gold" />
                                 </div>
                                 <p className="text-sm font-semibold text-gold">Analytics</p>
                                 <p className="text-xs text-text-muted">Earnings</p>
                             </Link>
-                            <Link href="/dashboard/schedule" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                            <Link href="/dashboard/schedule" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                                 <div className="w-12 h-12 bg-info-faded rounded-xl flex items-center justify-center">
                                     <CalendarDays className="w-6 h-6 text-info" />
                                 </div>

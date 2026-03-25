@@ -9,6 +9,7 @@ interface SidebarContextType {
     openMobile: () => void;
     closeMobile: () => void;
     isMobile: boolean;
+    isTablet: boolean;
 }
 
 const SidebarContext = createContext<SidebarContextType | null>(null);
@@ -23,16 +24,29 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isTablet, setIsTablet] = useState(false);
 
     useEffect(() => {
-        const mql = window.matchMedia('(max-width: 767px)');
-        const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
-            setIsMobile(e.matches);
-            if (!e.matches) setMobileOpen(false);
+        const mqlMobile = window.matchMedia('(max-width: 767px)');
+        const mqlTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+
+        const update = () => {
+            const mobile = mqlMobile.matches;
+            const tablet = mqlTablet.matches;
+            setIsMobile(mobile);
+            setIsTablet(tablet);
+            if (!mobile) setMobileOpen(false);
+            // Auto-collapse on tablet
+            if (tablet) setCollapsed(true);
         };
-        onChange(mql);
-        mql.addEventListener('change', onChange);
-        return () => mql.removeEventListener('change', onChange);
+
+        update();
+        mqlMobile.addEventListener('change', update);
+        mqlTablet.addEventListener('change', update);
+        return () => {
+            mqlMobile.removeEventListener('change', update);
+            mqlTablet.removeEventListener('change', update);
+        };
     }, []);
 
     const toggleCollapsed = useCallback(() => setCollapsed(c => !c), []);
@@ -40,7 +54,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const closeMobile = useCallback(() => setMobileOpen(false), []);
 
     return (
-        <SidebarContext value={{ collapsed, toggleCollapsed, mobileOpen, openMobile, closeMobile, isMobile }}>
+        <SidebarContext value={{ collapsed, toggleCollapsed, mobileOpen, openMobile, closeMobile, isMobile, isTablet }}>
             {children}
         </SidebarContext>
     );

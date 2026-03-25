@@ -1,0 +1,67 @@
+'use client';
+
+import { useI18n } from '@/lib/i18n';
+
+export default function ForWho() {
+    const { t } = useI18n();
+
+    const patientKeys = ['who.p1', 'who.p2', 'who.p3', 'who.p4', 'who.p5', 'who.p6'];
+    const patientEmojis = ['🎯', '🤖', '🌐', '💊', '🔒', '📱'];
+    const doctorKeys = ['who.d1', 'who.d2', 'who.d3', 'who.d4', 'who.d5', 'who.d6'];
+    const doctorEmojis = ['📋', '⚡', '🩺', '📊', '💰', '🏥'];
+
+    return (
+        <section className="py-24 sm:py-32">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="text-center mb-16 reveal">
+                    <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-purple-faded text-purple mb-4">{t('who.tag')}</span>
+                    <h2 className="text-4xl sm:text-5xl font-bold">
+                        {t('who.h2_1')} <span className="gradient-text">{t('who.h2_2')}</span>
+                    </h2>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8">
+                    {/* Patients */}
+                    <div className="reveal-left glass-strong rounded-3xl p-8 sm:p-10">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-accent-faded flex items-center justify-center text-2xl">🧑‍🤝‍🧑</div>
+                            <h3 className="text-2xl font-bold">{t('who.patients')}</h3>
+                        </div>
+                        <div className="space-y-4">
+                            {patientKeys.map((key, i) => (
+                                <div key={key} className="flex items-start gap-3 group">
+                                    <span className="text-xl shrink-0 mt-0.5 group-hover:scale-110 transition-transform">{patientEmojis[i]}</span>
+                                    <p className="text-text-secondary">{t(key)}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-8 p-4 rounded-xl bg-accent-faded/50">
+                            <p className="text-sm text-accent font-medium">{t('who.p_footer1')}</p>
+                            <p className="text-xs text-text-muted mt-1">{t('who.p_footer2')}</p>
+                        </div>
+                    </div>
+
+                    {/* Doctors */}
+                    <div className="reveal-right glass-strong rounded-3xl p-8 sm:p-10">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-faded flex items-center justify-center text-2xl">👨‍⚕️</div>
+                            <h3 className="text-2xl font-bold">{t('who.doctors')}</h3>
+                        </div>
+                        <div className="space-y-4">
+                            {doctorKeys.map((key, i) => (
+                                <div key={key} className="flex items-start gap-3 group">
+                                    <span className="text-xl shrink-0 mt-0.5 group-hover:scale-110 transition-transform">{doctorEmojis[i]}</span>
+                                    <p className="text-text-secondary">{t(key)}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-8 p-4 rounded-xl bg-blue-faded/50">
+                            <p className="text-sm text-blue font-medium">{t('who.d_footer1')}</p>
+                            <p className="text-xs text-text-muted mt-1">{t('who.d_footer2')}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}

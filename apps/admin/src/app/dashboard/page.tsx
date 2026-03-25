@@ -231,7 +231,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* KPI Stats - Row 1 (Live from Supabase) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                     <StatCard
                         icon={Users}
                         value={stats ? stats.totalUsers.toLocaleString() : '…'}
@@ -291,29 +291,29 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Quick Navigation Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <Link href="/dashboard/doctors" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <Link href="/dashboard/doctors" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-accent-faded rounded-xl flex items-center justify-center">
                             <Stethoscope className="w-6 h-6 text-accent" />
                         </div>
                         <p className="text-sm font-semibold text-accent">Doctors</p>
                         <p className="text-xs text-text-muted">Manage staff</p>
                     </Link>
-                    <Link href="/dashboard/users" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link href="/dashboard/users" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-info-faded rounded-xl flex items-center justify-center">
                             <Users className="w-6 h-6 text-info" />
                         </div>
                         <p className="text-sm font-semibold text-info">Patients</p>
                         <p className="text-xs text-text-muted">User management</p>
                     </Link>
-                    <Link href="/dashboard/consultations" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link href="/dashboard/consultations" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-purple-faded rounded-xl flex items-center justify-center">
                             <FileText className="w-6 h-6 text-purple" />
                         </div>
                         <p className="text-sm font-semibold text-purple">Consultations</p>
                         <p className="text-xs text-text-muted">View all cases</p>
                     </Link>
-                    <Link href="/dashboard/analytics" className="glass rounded-2xl p-5 flex flex-col items-center gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link href="/dashboard/analytics" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-gold-faded rounded-xl flex items-center justify-center">
                             <BarChart3 className="w-6 h-6 text-gold" />
                         </div>
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                             <h3 className="text-lg font-bold text-text-primary">Consultation Flow</h3>
                             <span className="text-xs text-text-muted ml-auto">Last 24 hours</span>
                         </div>
-                        <ResponsiveContainer width="100%" height={260}>
+                        <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 260}>
                             <LineChart data={consultationFlow}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.1)" />
                                 <XAxis dataKey="time" stroke="#64748B" fontSize={12} />
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                             <h3 className="text-lg font-bold text-text-primary">Specialty Breakdown</h3>
                             <span className="text-xs text-text-muted ml-auto">This month</span>
                         </div>
-                        <ResponsiveContainer width="100%" height={260}>
+                        <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 260}>
                             <BarChart data={specialtyData} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.1)" />
                                 <XAxis type="number" stroke="#64748B" fontSize={12} />

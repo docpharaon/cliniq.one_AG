@@ -3,11 +3,11 @@
 import { useSidebar } from './SidebarContext';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
-    const { collapsed, isMobile } = useSidebar();
+    const { collapsed, isMobile, isTablet } = useSidebar();
 
     const marginClass = isMobile
         ? 'ml-0'
-        : collapsed
+        : (collapsed || isTablet)
             ? 'ml-16'
             : 'ml-[280px]';
 

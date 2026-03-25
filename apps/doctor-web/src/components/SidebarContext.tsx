@@ -13,6 +13,7 @@ interface SidebarContextType {
     closeMobile: () => void;
     /** Current breakpoint helpers */
     isMobile: boolean;
+    isTablet: boolean;
     /** Doctor type: 'permanent' | 'locum' */
     doctorType: 'permanent' | 'locum';
 }
@@ -29,17 +30,30 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isTablet, setIsTablet] = useState(false);
     const [doctorType, setDoctorType] = useState<'permanent' | 'locum'>('permanent');
 
     useEffect(() => {
-        const mql = window.matchMedia('(max-width: 767px)');
-        const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
-            setIsMobile(e.matches);
-            if (!e.matches) setMobileOpen(false); // close drawer when resizing to desktop
+        const mqlMobile = window.matchMedia('(max-width: 767px)');
+        const mqlTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+
+        const update = () => {
+            const mobile = mqlMobile.matches;
+            const tablet = mqlTablet.matches;
+            setIsMobile(mobile);
+            setIsTablet(tablet);
+            if (!mobile) setMobileOpen(false);
+            // Auto-collapse on tablet
+            if (tablet) setCollapsed(true);
         };
-        onChange(mql);
-        mql.addEventListener('change', onChange);
-        return () => mql.removeEventListener('change', onChange);
+
+        update();
+        mqlMobile.addEventListener('change', update);
+        mqlTablet.addEventListener('change', update);
+        return () => {
+            mqlMobile.removeEventListener('change', update);
+            mqlTablet.removeEventListener('change', update);
+        };
     }, []);
 
     // Fetch doctor_type once on mount
@@ -64,7 +78,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const closeMobile = useCallback(() => setMobileOpen(false), []);
 
     return (
-        <SidebarContext.Provider value={{ collapsed, toggleCollapsed, mobileOpen, openMobile, closeMobile, isMobile, doctorType }}>
+        <SidebarContext.Provider value={{ collapsed, toggleCollapsed, mobileOpen, openMobile, closeMobile, isMobile, isTablet, doctorType }}>
             {children}
         </SidebarContext.Provider>
     );

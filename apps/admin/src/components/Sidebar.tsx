@@ -27,6 +27,7 @@ import {
     Bell,
     X,
     Lightbulb,
+    FlaskConical,
     type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -55,6 +56,7 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
     {
         title: 'Operations',
         items: [
+            { label: 'Testers', href: '/dashboard/testers', icon: FlaskConical },
             { label: 'HR Management', href: '/dashboard/hr', icon: UserCog },
             { label: 'Scheduling', href: '/dashboard/scheduling', icon: CalendarDays },
             { label: 'Send Notification', href: '/dashboard/notifications', icon: Bell },
