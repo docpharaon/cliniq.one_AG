@@ -423,12 +423,14 @@ async function chatWithConversation(
 
 async function analyzeConcern(concern: string, language: string) {
     const system = `You are a medical triage AI for cliniq.one. Analyze the patient's concern and determine:
-1. Which specialty to route to (dermatology or family_medicine)
+1. Which specialty to route to (dermatology, family_medicine, psychiatry, or orthopedics)
 2. The urgency level (routine, urgent, or emergency)
 3. Key medical keywords extracted
 
 Routing rules:
 - Skin/hair/nail/rash/acne/eczema/psoriasis/cosmetic concerns → dermatology
+- Joint pain/bone pain/muscle pain/back pain/neck pain/knee/shoulder/hip/ankle/wrist/elbow/spine/fracture/sprain/arthritis/osteoporosis/gout/tendon/ligament/cartilage/disc/sciatica/orthopedic concerns → orthopedics
+- Mental health/depression/anxiety/mood/sleep disturbance/psychiatric/ADHD/bipolar/psychosis/stress/trauma → psychiatry
 - General illness/fever/pain/chronic disease/multi-system → family_medicine
 - Life-threatening symptoms → emergency (specialty = null)
 

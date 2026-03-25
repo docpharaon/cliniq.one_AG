@@ -11,6 +11,7 @@ export default function Header() {
     const NAV_LINKS = [
         { key: 'nav.about', href: '#about' },
         { key: 'nav.howItWorks', href: '#how-it-works' },
+        { key: 'nav.availability', href: '#app-availability' },
         { key: 'nav.story', href: '#story' },
         { key: 'nav.safety', href: '#safety' },
         { key: 'nav.download', href: '#download' },

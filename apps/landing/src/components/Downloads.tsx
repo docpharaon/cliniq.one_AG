@@ -202,7 +202,7 @@ export default function Downloads() {
                                         </a>
                                     ) : (
                                         <span className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-xl text-sm font-medium">
-                                            🔧 Coming soon
+                                            🔧 {t('dl.coming_soon')}
                                         </span>
                                     )}
                                 </div>

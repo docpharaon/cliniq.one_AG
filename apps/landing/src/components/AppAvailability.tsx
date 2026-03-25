@@ -1,15 +1,54 @@
 'use client';
 
+import { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
+
+const SUPABASE_URL = 'https://uabbndansgxpvogteyxc.supabase.co';
 
 export default function AppAvailability() {
     const { t } = useI18n();
+    const [showIosForm, setShowIosForm] = useState(false);
+    const [iosEmail, setIosEmail] = useState('');
+    const [iosLoading, setIosLoading] = useState(false);
+    const [iosSubmitted, setIosSubmitted] = useState(false);
+    const [iosError, setIosError] = useState('');
+
+    const handleIosNotify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!iosEmail) return;
+        setIosError('');
+        setIosLoading(true);
+
+        try {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/register-tester`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: 'iOS Waitlist',
+                    email: iosEmail,
+                    role: 'Patient',
+                    message: 'Notify me when iOS testing opens.',
+                }),
+            });
+
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || `Request failed (${res.status})`);
+            }
+            setIosSubmitted(true);
+        } catch (err) {
+            console.error('iOS notify error:', err);
+            setIosError(err instanceof Error ? err.message : 'Something went wrong.');
+        } finally {
+            setIosLoading(false);
+        }
+    };
 
     return (
         <section id="app-availability" className="py-16 sm:py-20 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/[0.03] to-transparent pointer-events-none" />
             <div className="max-w-5xl mx-auto px-6 relative z-10">
-                <div className="reveal glass-strong rounded-3xl p-8 sm:p-12 border border-accent/20 relative overflow-hidden">
+                <div className="animate-fade-in-up glass-strong rounded-3xl p-8 sm:p-12 border border-accent/20 relative overflow-hidden">
                     {/* Decorative gradient blob */}
                     <div className="absolute -top-20 -right-20 w-60 h-60 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -74,12 +113,44 @@ export default function AppAvailability() {
                                     </div>
                                 </div>
                                 <p className="text-text-secondary text-sm leading-relaxed mb-5">{t('avail.ios_desc')}</p>
-                                <a
-                                    href="#tester-signup"
-                                    className="inline-flex items-center gap-2 px-6 py-3 bg-slate-500/10 hover:bg-slate-500/20 border border-slate-500/20 hover:border-slate-500/40 text-slate-400 rounded-xl text-sm font-medium transition-all"
-                                >
-                                    🔔 {t('avail.ios_cta')}
-                                </a>
+
+                                {/* iOS Notify Me — inline email form */}
+                                {iosSubmitted ? (
+                                    <div className="flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
+                                        ✅ {t('avail.ios_success')}
+                                    </div>
+                                ) : !showIosForm ? (
+                                    <button
+                                        onClick={() => setShowIosForm(true)}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-slate-500/10 hover:bg-slate-500/20 border border-slate-500/20 hover:border-slate-500/40 text-slate-400 rounded-xl text-sm font-medium transition-all"
+                                    >
+                                        🔔 {t('avail.ios_cta')}
+                                    </button>
+                                ) : (
+                                    <form onSubmit={handleIosNotify} className="space-y-3">
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="email"
+                                                required
+                                                value={iosEmail}
+                                                onChange={(e) => setIosEmail(e.target.value)}
+                                                placeholder={t('avail.ios_email_ph')}
+                                                className="flex-1 px-4 py-2.5 rounded-xl bg-bg-tertiary border border-border focus:border-accent focus:outline-none text-text-primary placeholder:text-text-muted text-sm transition-colors"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={iosLoading}
+                                                className="px-5 py-2.5 bg-accent hover:bg-accent-dark text-bg-primary font-bold rounded-xl text-sm transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                                            >
+                                                {iosLoading ? '⏳' : '🔔'} {t('avail.ios_cta')}
+                                            </button>
+                                        </div>
+                                        {iosError && (
+                                            <p className="text-red-400 text-xs">⚠️ {iosError}</p>
+                                        )}
+                                        <p className="text-text-muted text-[11px]">{t('avail.ios_note')}</p>
+                                    </form>
+                                )}
                             </div>
                         </div>
 

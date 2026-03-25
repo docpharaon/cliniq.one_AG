@@ -1007,3 +1007,100 @@ export function scoreGAD7(totalScore: number): { severity: ScreeningSeverity; la
     const tier = GAD7_INSTRUMENT.scoring.find(s => totalScore >= s.min && totalScore <= s.max);
     return tier ? { severity: tier.severity, label: tier.label } : { severity: 'minimal', label: 'Minimal anxiety' };
 }
+
+// ──────────────────────────────────────────
+// Orthopedics Module Types
+// ──────────────────────────────────────────
+
+export type PainLaterality = 'left' | 'right' | 'bilateral' | 'midline';
+export type MSKExamSeverity = 'mild' | 'moderate' | 'severe';
+export type PhysicalTherapyPlanStatus = 'active' | 'completed' | 'discontinued';
+
+export interface OrthopedicIntake {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    // Pain Profile (OPQRST)
+    pain_location: string | null;
+    pain_laterality: PainLaterality | null;
+    pain_onset: string | null;
+    pain_duration: string | null;
+    pain_character: string | null;
+    pain_severity: number | null;           // VAS 0-10
+    pain_aggravating: string | null;
+    pain_relieving: string | null;
+    pain_radiation: string | null;
+    pain_timing: string | null;
+    // Injury & Trauma
+    mechanism_of_injury: string | null;
+    injury_date: string | null;
+    prior_injuries: { area: string; year: string; treatment: string }[] | null;
+    prior_surgeries: { procedure: string; year: string; outcome: string }[] | null;
+    prior_imaging: string | null;
+    // Functional Status
+    mobility_aids: string[] | null;
+    functional_limitations: string | null;
+    occupation_impact: string | null;
+    exercise_activity: string | null;
+    // Red Flags
+    red_flags: {
+        night_pain?: boolean;
+        unexplained_weight_loss?: boolean;
+        fever?: boolean;
+        neuro_deficit?: boolean;
+        bowel_bladder_dysfunction?: boolean;
+        history_of_cancer?: boolean;
+    } | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MusculoskeletalExam {
+    id: string;
+    consultation_id: string;
+    doctor_id: string;
+    body_region: string;
+    laterality: PainLaterality | 'N/A' | null;
+    inspection: string | null;
+    palpation: string | null;
+    range_of_motion: Record<string, string> | null;         // { flexion: "120°", extension: "0°", ... }
+    special_tests: { test_name: string; result: string; positive?: boolean; notes?: string }[] | null;
+    neurovascular_status: string | null;
+    gait_assessment: string | null;
+    clinical_impression: string | null;
+    severity: MSKExamSeverity | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PhysicalTherapyPlan {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    doctor_id: string;
+    therapy_type: string;
+    body_region: string;
+    goals: string | null;
+    frequency: string | null;
+    duration_weeks: number | null;
+    precautions: string | null;
+    home_exercise_program: string | null;
+    notes: string | null;
+    status: PhysicalTherapyPlanStatus;
+    created_at: string;
+    updated_at: string;
+}
+
+// ──────────────────────────────────────────
+// Orthopedics Visit Types
+// ──────────────────────────────────────────
+
+export const ORTHO_VISIT_TYPES = [
+    { id: 'initial_evaluation', label: 'Initial Orthopedic Evaluation', label_ar: 'التقييم العظمي الأولي', token_cost: 3 },
+    { id: 'follow_up', label: 'Follow-up Visit', label_ar: 'زيارة متابعة', token_cost: 1 },
+    { id: 'pt_review', label: 'Physical Therapy Review', label_ar: 'مراجعة العلاج الطبيعي', token_cost: 2 },
+    { id: 'injection_consult', label: 'Injection / Procedure Consult', label_ar: 'استشارة حقن / إجراء', token_cost: 2 },
+    { id: 'imaging_review', label: 'Imaging Review', label_ar: 'مراجعة الأشعة', token_cost: 2 },
+    { id: 'second_opinion', label: 'Second Opinion', label_ar: 'رأي ثانٍ', token_cost: 3 },
+] as const;

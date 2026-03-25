@@ -51,9 +51,9 @@ export default function Footer() {
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-text-muted text-xs">
                     <span>{t('footer.copyright')}</span>
                     <div className="flex items-center gap-6">
-                        <a href="#" className="hover:text-accent transition-colors">{t('footer.terms')}</a>
-                        <a href="#" className="hover:text-accent transition-colors">{t('footer.privacy')}</a>
-                        <a href="#" className="hover:text-accent transition-colors">{t('footer.ai')}</a>
+                        <a href="/terms" className="hover:text-accent transition-colors">{t('footer.terms')}</a>
+                        <a href="/privacy" className="hover:text-accent transition-colors">{t('footer.privacy')}</a>
+                        <a href="/ai-disclosure" className="hover:text-accent transition-colors">{t('footer.ai')}</a>
                     </div>
                 </div>
             </div>
