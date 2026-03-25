@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { t, getLocale, setLocale, toLocalNum, localDate } from '@cliniqone/i18n';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
 import { useConsultations } from '../../hooks/useConsultations';
+import { useHomeContent } from '../../hooks/useHomeContent';
 import { CONSULTATION_STATUS_LABELS } from '@cliniqone/config';
 import type { ConsultationStatus } from '@cliniqone/types';
 
@@ -50,12 +51,7 @@ const QUICK_ACTIONS = [
     { icon: '❓', labelKey: 'dashboard.helpAction', route: '/settings/help' },
 ];
 
-// ── Health Tips ──────────────────────────────────
-const HEALTH_TIPS = [
-    { icon: '💧', titleKey: 'dashboard.stayHydrated', textKey: 'dashboard.stayHydratedTip' },
-    { icon: '🚶', titleKey: 'dashboard.stayActive', textKey: 'dashboard.stayActiveTip' },
-    { icon: '😴', titleKey: 'dashboard.sleepWell', textKey: 'dashboard.sleepWellTip' },
-];
+// Health Tips are now fetched dynamically via useHomeContent hook
 
 export default function DashboardScreen() {
     const { user } = useAuthStore();
@@ -63,35 +59,44 @@ export default function DashboardScreen() {
     const [showPurchase, setShowPurchase] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [lang, setLang] = useState<'en' | 'ar'>(getLocale());
+    const isAr = lang === 'ar';
 
-    function toggleLanguage() {
+    // Dynamic home content (health tips, announcements, campaigns)
+    const { tips, campaigns, responseTime, responseTimeAr, consultationPrice, consultationPriceAr, refresh: refreshHome } = useHomeContent();
+
+    async function toggleLanguage() {
         const next = lang === 'en' ? 'ar' : 'en';
-        Alert.alert(
-            next === 'ar' ? 'تغيير اللغة' : 'Change Language',
-            next === 'ar'
+
+        // On native, confirm before switching
+        if (Platform.OS !== 'web') {
+            const confirmMsg = next === 'ar'
                 ? 'سيتم إعادة تشغيل التطبيق لتطبيق اللغة العربية.'
-                : 'The app will restart to apply English.',
-            [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                    text: next === 'ar' ? 'تغيير' : 'Change',
-                    onPress: async () => {
-                        setLang(next);
-                        await setLocale(next);
-                        try {
-                            const Updates = require('expo-updates');
-                            await Updates.reloadAsync();
-                        } catch {
-                            if (Platform.OS === 'web') {
-                                (globalThis as any).location?.reload();
-                            } else {
-                                router.replace('/(tabs)');
-                            }
-                        }
-                    },
-                },
-            ]
-        );
+                : 'The app will restart to apply English.';
+            const confirmed = await new Promise<boolean>((resolve) => {
+                Alert.alert(
+                    next === 'ar' ? 'تغيير اللغة' : 'Change Language',
+                    confirmMsg,
+                    [
+                        { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+                        { text: next === 'ar' ? 'تغيير' : 'Change', onPress: () => resolve(true) },
+                    ]
+                );
+            });
+            if (!confirmed) return;
+        }
+
+        setLang(next);
+        await setLocale(next);
+        try {
+            const Updates = require('expo-updates');
+            await Updates.reloadAsync();
+        } catch {
+            if (Platform.OS === 'web') {
+                (globalThis as any).location?.reload();
+            } else {
+                router.replace('/(tabs)');
+            }
+        }
     }
 
     // Live recent consultations
@@ -111,9 +116,9 @@ export default function DashboardScreen() {
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await refetch();
+        await Promise.all([refetch(), refreshHome()]);
         setRefreshing(false);
-    }, [refetch]);
+    }, [refetch, refreshHome]);
 
     function handleQuickAction(action: typeof QUICK_ACTIONS[0]) {
         if (action.action === 'purchase') {
@@ -271,33 +276,57 @@ export default function DashboardScreen() {
                     )}
                 </View>
 
-                {/* Health Tips */}
+                {/* Health Tips (dynamic) */}
                 <Text style={styles.sectionTitle}>{t('dashboard.healthTips')}</Text>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.tipsScroll}
                 >
-                    {HEALTH_TIPS.map((tip, i) => (
-                        <View key={i} style={styles.tipCard}>
+                    {tips.map((tip) => (
+                        <View key={tip.id} style={styles.tipCard}>
                             <Text style={styles.tipIcon}>{tip.icon}</Text>
-                            <Text style={styles.tipTitle}>{t(tip.titleKey)}</Text>
-                            <Text style={styles.tipText}>{t(tip.textKey)}</Text>
+                            <Text style={styles.tipTitle}>{isAr && tip.title_ar ? tip.title_ar : tip.title_en}</Text>
+                            <Text style={styles.tipText}>{isAr && tip.text_ar ? tip.text_ar : tip.text_en}</Text>
                         </View>
                     ))}
                 </ScrollView>
 
-                {/* Quick Info */}
+                {/* Campaigns (if any) */}
+                {campaigns.length > 0 && (
+                    <>
+                        <Text style={styles.sectionTitle}>{t('dashboard.latestNews') || (isAr ? 'آخر الأخبار' : 'Latest News')}</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.tipsScroll}
+                        >
+                            {campaigns.map((c) => (
+                                <View key={c.id} style={[styles.tipCard, { minWidth: 200 }]}>
+                                    <Text style={styles.tipIcon}>{c.icon}</Text>
+                                    <Text style={styles.tipTitle}>{isAr && c.title_ar ? c.title_ar : c.title_en}</Text>
+                                    {(c.body_en || c.body_ar) && (
+                                        <Text style={styles.tipText} numberOfLines={3}>
+                                            {isAr && c.body_ar ? c.body_ar : c.body_en}
+                                        </Text>
+                                    )}
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </>
+                )}
+
+                {/* Quick Info (dynamic) */}
                 <View style={styles.infoGrid}>
                     <View style={styles.infoCard}>
                         <Text style={styles.infoIcon}>⏱️</Text>
                         <Text style={styles.infoLabel}>{t('dashboard.responseTime')}</Text>
-                        <Text style={styles.infoValue}>{t('dashboard.responseTimeValue')}</Text>
+                        <Text style={styles.infoValue}>{isAr ? responseTimeAr : responseTime}</Text>
                     </View>
                     <View style={styles.infoCard}>
                         <Text style={styles.infoIcon}>💰</Text>
                         <Text style={styles.infoLabel}>{t('dashboard.perConsultation')}</Text>
-                        <Text style={styles.infoValue}>{t('dashboard.perConsultationValue')}</Text>
+                        <Text style={styles.infoValue}>{isAr ? consultationPriceAr : consultationPrice}</Text>
                     </View>
                 </View>
             </ScrollView>

@@ -101,9 +101,9 @@ export default function UsersPage() {
     return (
         <>
             <Header title="Patient Management" subtitle="Manage all registered users & patients" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* ── Stat Cards ───────────────────── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard
                         label="Total Users"
                         value={stats.total}
@@ -133,7 +133,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* ── Main Table Card ─────────────── */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
                     {/* Table Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border">
                         <div>

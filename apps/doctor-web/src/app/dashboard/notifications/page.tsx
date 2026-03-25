@@ -102,7 +102,7 @@ export default function NotificationsPage() {
         <>
             <Header title="Notifications" subtitle="Stay updated with your latest activity" />
 
-            <div className="p-8 max-w-[800px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[800px] mx-auto space-y-4 md:space-y-6">
                 {/* Header Row */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

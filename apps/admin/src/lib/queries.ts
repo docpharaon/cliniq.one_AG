@@ -521,6 +521,54 @@ export async function setLocumPricingLimits(min: number, max: number) {
     return { error: null };
 }
 
+export async function getActiveLocums() {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, identifier_code, credential_expires_at, sandbox_mode, status, consultation_fee_tokens, created_at')
+        .eq('doctor_type', 'locum')
+        .eq('onboarding_status', 'approved')
+        .order('created_at', { ascending: false });
+    if (error) { console.error('[getActiveLocums]', error.message); return []; }
+
+    // Get consultation counts per doctor
+    const ids = (data ?? []).map(d => d.id);
+    if (ids.length === 0) return [];
+
+    const { data: counts } = await supabaseAdmin
+        .from('consultations')
+        .select('doctor_id')
+        .in('doctor_id', ids);
+
+    const countMap: Record<string, number> = {};
+    (counts ?? []).forEach((c: { doctor_id: string }) => {
+        countMap[c.doctor_id] = (countMap[c.doctor_id] || 0) + 1;
+    });
+
+    return (data ?? []).map(d => ({ ...d, consultation_count: countMap[d.id] || 0 }));
+}
+
+export async function suspendLocum(doctorId: string) {
+    const { data: doc } = await supabaseAdmin.from('doctors').select('status').eq('id', doctorId).single();
+    const newStatus = doc?.status === 'suspended' ? 'active' : 'suspended';
+    const { error } = await supabaseAdmin
+        .from('doctors')
+        .update({ status: newStatus })
+        .eq('id', doctorId)
+        .eq('doctor_type', 'locum');
+    if (error) { console.error('[suspendLocum]', error.message); return { error: error.message }; }
+    return { error: null, newStatus };
+}
+
+export async function toggleLocumSandbox(doctorId: string, sandbox: boolean) {
+    const { error } = await supabaseAdmin
+        .from('doctors')
+        .update({ sandbox_mode: sandbox })
+        .eq('id', doctorId)
+        .eq('doctor_type', 'locum');
+    if (error) { console.error('[toggleLocumSandbox]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
 export async function resetDoctorPassword(doctorId: string, newPassword: string) {
     // 1) Look up user_id
     const { data: doc, error: lookupErr } = await supabaseAdmin
@@ -1137,41 +1185,13 @@ export async function deleteSchedule(id: string) {
 // News Articles
 // ──────────────────────────────────────────
 
-export async function getNewsArticles(page = 1, perPage = 50, search?: string) {
-    let query = supabaseAdmin
-        .from('news_articles')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range((page - 1) * perPage, page * perPage - 1);
-
-    if (search) {
-        query = query.or(`title.ilike.%${search}%,category.ilike.%${search}%`);
-    }
-
-    const { data, count, error } = await query;
-    if (error) { console.error('[getNewsArticles]', error.message); return { data: [], count: 0 }; }
-    return { data: data ?? [], count: count ?? 0 };
-}
+// (Legacy getNewsArticles removed — see backward-compat stub near getCampaigns)
 
 // ──────────────────────────────────────────
 // Advertisements
 // ──────────────────────────────────────────
 
-export async function getAdvertisements(page = 1, perPage = 50, search?: string) {
-    let query = supabaseAdmin
-        .from('advertisements')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range((page - 1) * perPage, page * perPage - 1);
-
-    if (search) {
-        query = query.or(`title.ilike.%${search}%,placement.ilike.%${search}%`);
-    }
-
-    const { data, count, error } = await query;
-    if (error) { console.error('[getAdvertisements]', error.message); return { data: [], count: 0 }; }
-    return { data: data ?? [], count: count ?? 0 };
-}
+// (Legacy getAdvertisements removed — see backward-compat stub near getCampaigns)
 
 // ──────────────────────────────────────────
 // AI Prompts
@@ -1952,4 +1972,454 @@ export async function setKycSetting(enabled: boolean) {
 
     if (error) { console.error('[setKycSetting]', error.message); return { success: false, error: error.message }; }
     return { success: true, error: null };
+}
+
+// ──────────────────────────────────────────
+// Campaigns (unified news / promotions / announcements)
+// ──────────────────────────────────────────
+
+export async function getCampaigns(page = 1, perPage = 50, search?: string, type?: string) {
+    let query = supabaseAdmin
+        .from('campaigns')
+        .select('*', { count: 'exact' })
+        .order('sort_order')
+        .order('created_at', { ascending: false })
+        .range((page - 1) * perPage, page * perPage - 1);
+
+    if (type && type !== 'all') {
+        query = query.eq('type', type);
+    }
+    if (search) {
+        query = query.or(`title_en.ilike.%${search}%,title_ar.ilike.%${search}%,body_en.ilike.%${search}%`);
+    }
+
+    const { data, count, error } = await query;
+    if (error) { console.error('[getCampaigns]', error.message); return { data: [], count: 0 }; }
+    return { data: data ?? [], count: count ?? 0 };
+}
+
+export async function createCampaign(campaign: {
+    type: string;
+    title_en: string;
+    title_ar?: string;
+    body_en?: string;
+    body_ar?: string;
+    icon?: string;
+    image_url?: string;
+    link_url?: string;
+    is_active?: boolean;
+    starts_at?: string | null;
+    expires_at?: string | null;
+    sort_order?: number;
+}) {
+    const { data, error } = await supabaseAdmin
+        .from('campaigns')
+        .insert(campaign)
+        .select()
+        .single();
+    if (error) { console.error('[createCampaign]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function updateCampaign(id: string, updates: Record<string, unknown>) {
+    const { data, error } = await supabaseAdmin
+        .from('campaigns')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+    if (error) { console.error('[updateCampaign]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function deleteCampaign(id: string) {
+    const { error } = await supabaseAdmin
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+    if (error) { console.error('[deleteCampaign]', error.message); return { success: false, error: error.message }; }
+    return { success: true, error: null };
+}
+
+// Backward-compat stubs used by existing admin pages
+export async function getNewsArticles(page = 1, perPage = 50, search?: string) {
+    return getCampaigns(page, perPage, search, 'news');
+}
+
+export async function getAdvertisements(page = 1, perPage = 50, search?: string) {
+    return getCampaigns(page, perPage, search, 'promotion');
+}
+
+// ──────────────────────────────────────────
+// Health Tips
+// ──────────────────────────────────────────
+
+export async function getHealthTips() {
+    const { data, error } = await supabaseAdmin
+        .from('health_tips')
+        .select('*')
+        .order('sort_order')
+        .order('created_at');
+    if (error) { console.error('[getHealthTips]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function createHealthTip(tip: {
+    icon?: string;
+    title_en: string;
+    title_ar?: string;
+    text_en: string;
+    text_ar?: string;
+    is_active?: boolean;
+    sort_order?: number;
+}) {
+    const { data, error } = await supabaseAdmin
+        .from('health_tips')
+        .insert(tip)
+        .select()
+        .single();
+    if (error) { console.error('[createHealthTip]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function updateHealthTip(id: string, updates: Record<string, unknown>) {
+    const { data, error } = await supabaseAdmin
+        .from('health_tips')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+    if (error) { console.error('[updateHealthTip]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function deleteHealthTip(id: string) {
+    const { error } = await supabaseAdmin
+        .from('health_tips')
+        .delete()
+        .eq('id', id);
+    if (error) { console.error('[deleteHealthTip]', error.message); return { success: false, error: error.message }; }
+    return { success: true, error: null };
+}
+
+// ──────────────────────────────────────────
+// Response Time Auto-Measurement
+// ──────────────────────────────────────────
+
+/**
+ * Compute the median response time from completed consultations
+ * over the last 30 days (submitted → report_ready/completed).
+ * Outliers > 48 hours are capped at 48h.
+ */
+export async function computeAvgResponseTime() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabaseAdmin
+        .from('consultations')
+        .select('created_at, concluded_at')
+        .in('status', ['completed', 'report_ready'])
+        .not('concluded_at', 'is', null)
+        .gte('created_at', thirtyDaysAgo);
+
+    if (error) {
+        console.error('[computeAvgResponseTime]', error.message);
+        return { medianMinutes: 180, sampleSize: 0 };
+    }
+
+    if (!data || data.length === 0) {
+        return { medianMinutes: 180, sampleSize: 0 };
+    }
+
+    const CAP_MINUTES = 48 * 60; // 48 hours cap
+    const durations = data
+        .map((c: { created_at: string; concluded_at: string }) => {
+            const mins = (new Date(c.concluded_at).getTime() - new Date(c.created_at).getTime()) / 60000;
+            return Math.min(Math.max(mins, 0), CAP_MINUTES);
+        })
+        .sort((a: number, b: number) => a - b);
+
+    const mid = Math.floor(durations.length / 2);
+    const median = durations.length % 2 === 0
+        ? (durations[mid - 1] + durations[mid]) / 2
+        : durations[mid];
+
+    // Also save the computed value to platform_settings
+    await supabaseAdmin
+        .from('platform_settings')
+        .upsert(
+            { key: 'avg_response_minutes', value: String(Math.round(median)), category: 'announcements', description: 'Auto-computed median response time (minutes)' },
+            { onConflict: 'key' }
+        );
+
+    return { medianMinutes: Math.round(median), sampleSize: data.length };
+}
+
+// ──────────────────────────────────────────
+// ICD Codes
+// ──────────────────────────────────────────
+
+export async function getIcdCodes(page = 1, perPage = 50, search?: string, specialty?: string) {
+    let query = supabaseAdmin
+        .from('icd_codes')
+        .select('*', { count: 'exact' })
+        .order('code', { ascending: true })
+        .range((page - 1) * perPage, page * perPage - 1);
+
+    if (search) {
+        query = query.or(`code.ilike.%${search}%,description.ilike.%${search}%,description_ar.ilike.%${search}%`);
+    }
+    if (specialty && specialty !== 'all') {
+        query = query.contains('specialty_tags', [specialty]);
+    }
+
+    const { data, count, error } = await query;
+    if (error) { console.error('[getIcdCodes]', error.message); return { data: [], count: 0 }; }
+    return { data: data ?? [], count: count ?? 0 };
+}
+
+export async function getIcdCodeStats() {
+    const [totalRes, activeRes] = await Promise.all([
+        supabaseAdmin.from('icd_codes').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('icd_codes').select('*', { count: 'exact', head: true }).eq('is_active', true),
+    ]);
+
+    // Get counts per specialty
+    const { data: allCodes } = await supabaseAdmin.from('icd_codes').select('specialty_tags').eq('is_active', true);
+    const specCounts: Record<string, number> = {};
+    (allCodes ?? []).forEach((row: { specialty_tags: string[] }) => {
+        (row.specialty_tags ?? []).forEach(tag => {
+            specCounts[tag] = (specCounts[tag] || 0) + 1;
+        });
+    });
+
+    return {
+        total: totalRes.count ?? 0,
+        active: activeRes.count ?? 0,
+        inactive: (totalRes.count ?? 0) - (activeRes.count ?? 0),
+        bySpecialty: specCounts,
+    };
+}
+
+export async function createIcdCode(data: {
+    code: string;
+    description: string;
+    description_ar?: string;
+    category?: string;
+    specialty_tags?: string[];
+    is_active?: boolean;
+}) {
+    const { data: result, error } = await supabaseAdmin
+        .from('icd_codes')
+        .insert({
+            code: data.code,
+            description: data.description,
+            description_ar: data.description_ar || '',
+            category: data.category || '',
+            specialty_tags: data.specialty_tags || [],
+            is_active: data.is_active ?? true,
+        })
+        .select()
+        .single();
+    if (error) { console.error('[createIcdCode]', error.message); return { data: null, error: error.message }; }
+    return { data: result, error: null };
+}
+
+export async function updateIcdCode(id: string, updates: Record<string, unknown>) {
+    const { data, error } = await supabaseAdmin
+        .from('icd_codes')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+    if (error) { console.error('[updateIcdCode]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function toggleIcdCodeActive(id: string, isActive: boolean) {
+    const { data, error } = await supabaseAdmin
+        .from('icd_codes')
+        .update({ is_active: isActive, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+    if (error) { console.error('[toggleIcdCodeActive]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+// ──────────────────────────────────────────
+// Admin Notifications
+// ──────────────────────────────────────────
+
+export async function getAdminNotifications(limit = 30) {
+    const { data, error } = await supabaseAdmin
+        .from('admin_notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+    if (error) { console.error('[getAdminNotifications]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function getUnreadAdminNotificationCount() {
+    const { count, error } = await supabaseAdmin
+        .from('admin_notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('read', false);
+    if (error) { console.error('[getUnreadAdminNotificationCount]', error.message); return 0; }
+    return count ?? 0;
+}
+
+export async function markAdminNotificationRead(id: string) {
+    const { error } = await supabaseAdmin
+        .from('admin_notifications')
+        .update({ read: true })
+        .eq('id', id);
+    if (error) { console.error('[markAdminNotificationRead]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function markAllAdminNotificationsRead() {
+    const { error } = await supabaseAdmin
+        .from('admin_notifications')
+        .update({ read: true })
+        .eq('read', false);
+    if (error) { console.error('[markAllAdminNotificationsRead]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function getNotificationToggles() {
+    const keys = ['admin_notify_consultation_submitted', 'admin_notify_user_registered', 'admin_notify_user_login'];
+    const { data, error } = await supabaseAdmin
+        .from('app_settings')
+        .select('key, value')
+        .in('key', keys);
+    if (error) { console.error('[getNotificationToggles]', error.message); return {}; }
+
+    const result: Record<string, boolean> = {};
+    (data ?? []).forEach((row: { key: string; value: unknown }) => {
+        const raw = typeof row.value === 'string' ? row.value : JSON.stringify(row.value);
+        result[row.key] = raw === '"true"' || raw === 'true';
+    });
+    return result;
+}
+
+export async function setNotificationToggle(key: string, enabled: boolean) {
+    const { error } = await supabaseAdmin
+        .from('app_settings')
+        .upsert(
+            { key, value: JSON.stringify(enabled) },
+            { onConflict: 'key' }
+        );
+    if (error) { console.error('[setNotificationToggle]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+// ──────────────────────────────────────────
+// Broadcast Notifications (Admin → Users)
+// ──────────────────────────────────────────
+
+export async function broadcastToAllPatients(title: string, message: string) {
+    // Get all patient IDs
+    const { data: patients, error: fetchErr } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('role', 'patient')
+        .eq('status', 'active');
+    if (fetchErr) { console.error('[broadcastToAllPatients]', fetchErr.message); return { sent: 0, error: fetchErr.message }; }
+
+    const rows = (patients ?? []).map((p: { id: string }) => ({
+        patient_id: p.id,
+        type: 'system',
+        title,
+        message,
+    }));
+
+    if (rows.length === 0) return { sent: 0, error: null };
+
+    const { error } = await supabaseAdmin
+        .from('patient_notifications')
+        .insert(rows);
+    if (error) { console.error('[broadcastToAllPatients:insert]', error.message); return { sent: 0, error: error.message }; }
+    return { sent: rows.length, error: null };
+}
+
+export async function broadcastToAllDoctors(title: string, message: string) {
+    const { data: doctors, error: fetchErr } = await supabaseAdmin
+        .from('doctors')
+        .select('id')
+        .eq('status', 'active');
+    if (fetchErr) { console.error('[broadcastToAllDoctors]', fetchErr.message); return { sent: 0, error: fetchErr.message }; }
+
+    const rows = (doctors ?? []).map((d: { id: string }) => ({
+        doctor_id: d.id,
+        type: 'system',
+        title,
+        message,
+    }));
+
+    if (rows.length === 0) return { sent: 0, error: null };
+
+    const { error } = await supabaseAdmin
+        .from('doctor_notifications')
+        .insert(rows);
+    if (error) { console.error('[broadcastToAllDoctors:insert]', error.message); return { sent: 0, error: error.message }; }
+    return { sent: rows.length, error: null };
+}
+
+export async function sendNotificationToUsers(
+    userIds: string[],
+    title: string,
+    message: string,
+    targetRole: 'patient' | 'doctor'
+) {
+    if (userIds.length === 0) return { sent: 0, error: null };
+
+    if (targetRole === 'patient') {
+        const rows = userIds.map(id => ({
+            patient_id: id,
+            type: 'system',
+            title,
+            message,
+        }));
+        const { error } = await supabaseAdmin.from('patient_notifications').insert(rows);
+        if (error) { console.error('[sendNotificationToUsers:patient]', error.message); return { sent: 0, error: error.message }; }
+        return { sent: rows.length, error: null };
+    } else {
+        // For doctors we need doctor table IDs (not user IDs)
+        const { data: docs } = await supabaseAdmin
+            .from('doctors')
+            .select('id')
+            .in('user_id', userIds);
+        const doctorIds = (docs ?? []).map((d: { id: string }) => d.id);
+        if (doctorIds.length === 0) return { sent: 0, error: 'No matching doctors found' };
+
+        const rows = doctorIds.map((id: string) => ({
+            doctor_id: id,
+            type: 'system',
+            title,
+            message,
+        }));
+        const { error } = await supabaseAdmin.from('doctor_notifications').insert(rows);
+        if (error) { console.error('[sendNotificationToUsers:doctor]', error.message); return { sent: 0, error: error.message }; }
+        return { sent: rows.length, error: null };
+    }
+}
+
+export async function searchUsersForNotification(search: string, role?: 'patient' | 'doctor') {
+    let query = supabaseAdmin
+        .from('users')
+        .select('id, nickname, email, role, avatar_url')
+        .eq('status', 'active')
+        .or(`nickname.ilike.%${search}%,email.ilike.%${search}%`)
+        .limit(20);
+
+    if (role) {
+        query = query.eq('role', role);
+    } else {
+        query = query.in('role', ['patient', 'doctor']);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('[searchUsersForNotification]', error.message); return []; }
+    return data ?? [];
 }

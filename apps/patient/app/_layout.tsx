@@ -32,6 +32,10 @@ const isWeb = Platform.OS === 'web';
 function PhoneFrame({ children }: { children: React.ReactNode }) {
     if (!isWeb) return <>{children}</>;
 
+    // Skip phone frame when running inside Capacitor WebView
+    const isCapacitor = typeof globalThis !== 'undefined' && !!(globalThis as any).Capacitor;
+    if (isCapacitor) return <>{children}</>;
+
     return (
         <View style={webStyles.backdrop}>
             <View style={webStyles.phoneOuter}>

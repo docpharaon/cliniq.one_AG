@@ -1,0 +1,3 @@
+-- Placeholder: migrations 016-018 were not created in the original sequence.
+-- This file closes the numbering gap for consistency.
+-- No schema changes.

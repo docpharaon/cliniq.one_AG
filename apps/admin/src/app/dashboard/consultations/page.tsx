@@ -237,7 +237,7 @@ export default function ConsultationsPage() {
     return (
         <>
             <Header title="Consultations" subtitle="Monitor deadlines, archive & purge consultation data" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
 
                 {/* ── Pending Archive Alert Banner ── */}
                 {pendingArchiveCount > 0 && (
@@ -325,7 +325,7 @@ export default function ConsultationsPage() {
                 </div>
 
                 {/* ── Main Table Card ─────────────── */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
                     {/* Table Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border">
                         <div>

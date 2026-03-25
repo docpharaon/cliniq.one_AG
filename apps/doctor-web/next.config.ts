@@ -16,6 +16,9 @@ const nextConfig: NextConfig = {
 
     devIndicators: false,
 
+    // Static export for Capacitor wrapping (set CAPACITOR_BUILD=1)
+    ...(process.env.CAPACITOR_BUILD === '1' ? { output: 'export' } : {}),
+
     webpack: (config) => {
         config.resolve = config.resolve || {};
         config.resolve.alias = {

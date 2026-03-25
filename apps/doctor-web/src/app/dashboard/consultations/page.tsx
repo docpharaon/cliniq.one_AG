@@ -83,9 +83,9 @@ export default function ConsultationsPage() {
         <>
             <Header title="Consultation History" subtitle="View all your past and current consultations" />
 
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={FileText} value={totalCount} label="Total Cases" />
                     <StatCard icon={Clock} value={consultations.filter(c => c.status === 'in_progress').length} label="In Progress" iconColor="text-info" iconBg="bg-info-faded" />
                     <StatCard icon={CheckCircle2} value={consultations.filter(c => c.status === 'completed').length} label="Completed" iconColor="text-success" iconBg="bg-success-faded" />
@@ -93,11 +93,11 @@ export default function ConsultationsPage() {
                 </div>
 
                 {/* Main Card */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4 pb-3 md:pb-4 border-b border-border">
                         <div>
-                            <h2 className="text-xl font-bold text-text-primary">All Consultations</h2>
-                            <p className="text-sm text-text-muted mt-0.5">{totalCount} cases</p>
+                            <h2 className="text-lg md:text-xl font-bold text-text-primary">All Consultations</h2>
+                            <p className="text-xs md:text-sm text-text-muted mt-0.5">{totalCount} cases</p>
                         </div>
                     </div>
 
@@ -118,8 +118,8 @@ export default function ConsultationsPage() {
                     </div>
 
                     {/* Search */}
-                    <div className="flex flex-wrap items-center gap-3 py-4">
-                        <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+                    <div className="flex flex-wrap items-center gap-3 py-3 md:py-4">
+                        <div className="relative flex-1 min-w-0 max-w-full md:max-w-[320px]">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
                                 type="text"
@@ -138,7 +138,36 @@ export default function ConsultationsPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-3 pt-3">
+                                {consultations.length === 0 ? (
+                                    <div className="text-center py-12 text-text-muted text-sm">No consultations found</div>
+                                ) : (
+                                    consultations.map((row: any) => {
+                                        const st = statusMap[row.status] ?? { label: row.status, variant: 'neutral' as const };
+                                        return (
+                                            <Link
+                                                key={row.id}
+                                                href={`/dashboard/consultation/${row.id}`}
+                                                className="block bg-bg-card border border-border rounded-2xl p-4 hover:border-accent/30 transition-all active:scale-[0.98]"
+                                            >
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="font-mono text-xs font-semibold text-accent">{row.id.slice(0, 8)}…</span>
+                                                    <span data-small-touch><StatusBadge label={st.label} variant={st.variant} /></span>
+                                                </div>
+                                                <p className="font-semibold text-text-primary text-sm">{row.patient?.nickname || 'Patient'}</p>
+                                                <p className="text-sm text-text-secondary line-clamp-1 mt-0.5">{row.chief_complaint || '—'}</p>
+                                                <p className="text-xs text-text-muted mt-2">
+                                                    {new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </p>
+                                            </Link>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full border-separate" style={{ borderSpacing: '0 6px' }}>
                                     <thead>
                                         <tr>

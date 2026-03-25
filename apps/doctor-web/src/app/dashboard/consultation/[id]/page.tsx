@@ -8,10 +8,11 @@ import {
     User as UserIcon, Calendar, MapPin, Globe, Stethoscope,
     Brain, FileText, Pill, AlertCircle, ArrowLeft,
     Send, Loader2, ClipboardList, FlaskConical,
-    MessageSquare, Printer, Eye, Plus, HelpCircle, X, Sparkles,
+    MessageSquare, FileDown, Eye, Plus, HelpCircle, X, Sparkles,
 } from 'lucide-react';
+import { downloadMedicalPdf, previewMedicalPdf } from '@/lib/generateMedicalPdf';
 import Link from 'next/link';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
     fetchConsultationDetail,
     fetchConsultationMessages,
@@ -43,14 +44,15 @@ export default function ConsultationDetailPage() {
     const [showOrderForm, setShowOrderForm] = useState(false);
     const [doctorId, setDoctorId] = useState('');
 
+    // PDF state
+    const [generatingPdf, setGeneratingPdf] = useState(false);
+
     // Inquiry state
     const [showInquiryModal, setShowInquiryModal] = useState(false);
     const [inquiryText, setInquiryText] = useState('');
     const [sendingInquiry, setSendingInquiry] = useState(false);
     const [improvingInquiry, setImprovingInquiry] = useState(false);
 
-    // Print ref
-    const printRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         async function load() {
@@ -106,8 +108,51 @@ export default function ConsultationDetailPage() {
         setLoadingInterventions(false);
     }
 
-    function handlePrint() {
-        window.print();
+    async function handleDownloadPdf() {
+        if (!consultation || !doctorReport) return;
+        setGeneratingPdf(true);
+        try {
+            // Ensure interventions are loaded
+            let intvData = interventions;
+            if (intvData.length === 0) {
+                try {
+                    intvData = await fetchConsultationInterventions(consultationId);
+                } catch { /* ignore */ }
+            }
+            await downloadMedicalPdf({
+                consultation: { ...consultation, patient: consultation.patient },
+                report: doctorReport,
+                interventions: intvData,
+                variant: 'full',
+            });
+        } catch (err) {
+            console.error('PDF generation error:', err);
+            alert('Failed to generate PDF. Please try again.');
+        }
+        setGeneratingPdf(false);
+    }
+
+    async function handlePreviewPdf() {
+        if (!consultation || !doctorReport) return;
+        setGeneratingPdf(true);
+        try {
+            let intvData = interventions;
+            if (intvData.length === 0) {
+                try {
+                    intvData = await fetchConsultationInterventions(consultationId);
+                } catch { /* ignore */ }
+            }
+            await previewMedicalPdf({
+                consultation: { ...consultation, patient: consultation.patient },
+                report: doctorReport,
+                interventions: intvData,
+                variant: 'full',
+            });
+        } catch (err) {
+            console.error('PDF preview error:', err);
+            alert('Failed to generate PDF preview. Please try again.');
+        }
+        setGeneratingPdf(false);
     }
 
     if (loading) {
@@ -168,16 +213,16 @@ export default function ConsultationDetailPage() {
                 subtitle={consultation.chief_complaint || 'Consultation'}
             />
 
-            <div className="p-8 max-w-[1200px] mx-auto space-y-6 no-print">
+            <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-4 md:space-y-6 no-print">
                 {/* Back + Actions Bar */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <Link
                         href="/dashboard/queue"
                         className="flex items-center gap-2 text-sm text-text-secondary hover:text-accent transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to Queue
                     </Link>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                         {/* Send Inquiry button - only for active cases */}
                         {['assigned', 'in_progress'].includes(consultation.status) && (
                             <button
@@ -189,13 +234,24 @@ export default function ConsultationDetailPage() {
                             </button>
                         )}
                         {doctorReport && (
-                            <button
-                                onClick={handlePrint}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border text-text-secondary hover:text-accent hover:bg-accent-faded transition-all font-medium"
-                            >
-                                <Printer className="w-3.5 h-3.5" />
-                                Print Report
-                            </button>
+                            <>
+                                <button
+                                    onClick={handleDownloadPdf}
+                                    disabled={generatingPdf}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-accent/40 text-accent hover:bg-accent-faded transition-all font-medium disabled:opacity-40"
+                                >
+                                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                                    Download PDF
+                                </button>
+                                <button
+                                    onClick={handlePreviewPdf}
+                                    disabled={generatingPdf}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border text-text-secondary hover:text-accent hover:bg-accent-faded transition-all font-medium disabled:opacity-40"
+                                >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Preview PDF
+                                </button>
+                            </>
                         )}
                         <StatusBadge
                             label={consultation.status?.replace('_', ' ') || 'Unknown'}
@@ -366,7 +422,7 @@ export default function ConsultationDetailPage() {
                                 <p className="text-sm">No chat messages for this consultation</p>
                             </div>
                         ) : (
-                            <div className="glass rounded-2xl p-6 space-y-3 max-h-[65vh] overflow-y-auto">
+                            <div className="glass rounded-2xl p-4 md:p-6 space-y-3 max-h-[65vh] overflow-y-auto">
                                 <div className="flex items-center gap-2 mb-4">
                                     <MessageSquare className="w-5 h-5 text-accent" />
                                     <h3 className="text-lg font-bold text-text-primary">Chat Transcript</h3>
@@ -381,7 +437,7 @@ export default function ConsultationDetailPage() {
                                             className={`flex ${isPatient ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isPatient
+                                                className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-3 md:px-4 py-2.5 md:py-3 text-sm leading-relaxed ${isPatient
                                                     ? 'bg-accent/20 text-text-primary rounded-br-md'
                                                     : isSystem
                                                         ? 'bg-bg-elevated text-text-muted text-xs italic text-center rounded-xl max-w-full'
@@ -569,105 +625,7 @@ export default function ConsultationDetailPage() {
                 )}
             </div>
 
-            {/* Printable Report (hidden on screen, shown on print) */}
-            <div ref={printRef} className="hidden print-only print-report">
-                <div className="max-w-[700px] mx-auto p-8">
-                    {/* Clinic Header */}
-                    <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
-                        <h1 className="text-2xl font-bold">cliniq.one</h1>
-                        <p className="text-sm text-gray-600">Medical Consultation Report</p>
-                    </div>
 
-                    {/* Patient Info */}
-                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                        <div>
-                            <p><strong>Patient:</strong> {patient?.nickname || 'N/A'}</p>
-                            <p><strong>Gender:</strong> {patient?.gender || 'N/A'}</p>
-                            {patient?.year_of_birth && <p><strong>Age:</strong> {new Date().getFullYear() - patient.year_of_birth} years</p>}
-                        </div>
-                        <div className="text-right">
-                            <p><strong>Case ID:</strong> {consultationId.slice(0, 8)}</p>
-                            <p><strong>Date:</strong> {new Date(consultation.created_at).toLocaleDateString()}</p>
-                            <p><strong>Specialty:</strong> {consultation.specialty || 'General'}</p>
-                        </div>
-                    </div>
-
-                    {/* Chief Complaint */}
-                    <div className="mb-6">
-                        <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Chief Complaint</h2>
-                        <p className="text-sm">{consultation.chief_complaint || 'N/A'}</p>
-                    </div>
-
-                    {/* Diagnosis */}
-                    {doctorReport?.diagnosis && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Clinical Assessment</h2>
-                            <p className="text-sm"><strong>Diagnosis:</strong> {doctorReport.diagnosis}</p>
-                            {doctorReport.icd10 && <p className="text-sm"><strong>ICD-10:</strong> {doctorReport.icd10}</p>}
-                        </div>
-                    )}
-
-                    {/* Treatment Plan */}
-                    {doctorReport?.treatment_plan && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Treatment Plan</h2>
-                            <p className="text-sm whitespace-pre-wrap">{doctorReport.treatment_plan}</p>
-                        </div>
-                    )}
-
-                    {/* Prescription */}
-                    {(consultation.prescription?.medications?.length ?? 0) > 0 && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Prescription</h2>
-                            <table className="w-full text-sm border-collapse">
-                                <thead>
-                                    <tr className="border-b border-gray-300">
-                                        <th className="text-left py-1 pr-2">Medication</th>
-                                        <th className="text-left py-1 pr-2">Dose</th>
-                                        <th className="text-left py-1 pr-2">Frequency</th>
-                                        <th className="text-left py-1 pr-2">Duration</th>
-                                        <th className="text-left py-1">Route</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {consultation.prescription!.medications!.map((med: PrescriptionMedication, i: number) => (
-                                        <tr key={i} className="border-b border-gray-200">
-                                            <td className="py-1 pr-2">{med.name}</td>
-                                            <td className="py-1 pr-2">{med.dose}</td>
-                                            <td className="py-1 pr-2">{med.frequency}</td>
-                                            <td className="py-1 pr-2">{med.duration}</td>
-                                            <td className="py-1">{med.route}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Patient Education */}
-                    {doctorReport?.patient_education && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Patient Education</h2>
-                            <p className="text-sm whitespace-pre-wrap">{doctorReport.patient_education}</p>
-                        </div>
-                    )}
-
-                    {/* Follow-up */}
-                    {(doctorReport?.follow_up || doctorReport?.follow_up_timeframe) && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold border-b border-gray-300 pb-1 mb-2">Follow-up</h2>
-                            <p className="text-sm">{doctorReport.follow_up}</p>
-                            {doctorReport.follow_up_timeframe && <p className="text-sm">Timeframe: {doctorReport.follow_up_timeframe}</p>}
-                        </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="border-t-2 border-gray-800 pt-4 mt-8 text-center text-xs text-gray-500">
-                        <p>Generated by cliniq.one — {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
-                        <p>This is a system-generated document.</p>
-                    </div>
-                </div>
-            </div>
 
                 {/* Psych Assessment Tab — only for psychiatry consultations */}
                 {activeTab === 'psych' && consultation.specialty === 'psychiatry' && consultation.patient && (
@@ -682,8 +640,8 @@ export default function ConsultationDetailPage() {
 
             {/* Inquiry Modal */}
             {showInquiryModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-                    <div className="bg-bg-primary border border-border rounded-2xl w-full max-w-lg p-6 space-y-4 animate-fade-in">
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 md:p-4">
+                    <div className="bg-bg-primary border border-border rounded-2xl w-full max-w-[95vw] sm:max-w-lg p-4 md:p-6 space-y-4 animate-fade-in">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <HelpCircle className="w-5 h-5 text-warning" />

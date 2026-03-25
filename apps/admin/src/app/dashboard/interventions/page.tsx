@@ -850,7 +850,7 @@ export default function InterventionsPage() {
     return (
         <>
             <Header title="Intervention Management" subtitle="Service catalog, provider network & monitoring" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* Tab bar */}
                 <div className="flex items-center gap-1 p-1 glass rounded-xl w-fit">
                     {tabs.map(tab => {
@@ -876,7 +876,7 @@ export default function InterventionsPage() {
                 {activeTab === 'overview' && (
                     <>
                         {/* Stats cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                             <StatCard icon={ClipboardList} value={String(stats.total)} label="Total Interventions" />
                             <StatCard icon={Clock} value={String(stats.pending)} label="Pending / Scheduled" iconColor="text-warning" iconBg="bg-warning-faded" />
                             <StatCard icon={CheckCircle2} value={String(stats.completed)} label="Completed" iconColor="text-success" iconBg="bg-success-faded" />
@@ -884,7 +884,7 @@ export default function InterventionsPage() {
                         </div>
 
                         {/* Type breakdown */}
-                        <div className="glass rounded-2xl p-6">
+                        <div className="glass rounded-2xl p-4 md:p-6">
                             <h3 className="text-lg font-bold text-text-primary mb-4">By Type</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                                 {Object.entries(typeIcons).map(([key, info]) => {
@@ -921,7 +921,7 @@ export default function InterventionsPage() {
                 {activeTab === 'catalog' && (
                     <>
                         {/* Quick actions */}
-                        <div className="glass rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div className="glass rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="flex-1">
                                 <h3 className="text-lg font-bold text-text-primary">Service Catalog</h3>
                                 <p className="text-sm text-text-muted mt-1">Manage medical tests, imaging, and referral services</p>
@@ -965,7 +965,7 @@ export default function InterventionsPage() {
                 {activeTab === 'providers' && (
                     <>
                         {/* Quick actions */}
-                        <div className="glass rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div className="glass rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="flex-1">
                                 <h3 className="text-lg font-bold text-text-primary">Provider Network</h3>
                                 <p className="text-sm text-text-muted mt-1">Manage laboratories, imaging centers, and specialist clinics</p>
@@ -1011,7 +1011,7 @@ export default function InterventionsPage() {
                         {/* Analytics dashboard */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Completion rate card */}
-                            <div className="glass rounded-2xl p-6">
+                            <div className="glass rounded-2xl p-4 md:p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
                                         <TrendingUp className="w-5 h-5 text-green-400" />
@@ -1049,7 +1049,7 @@ export default function InterventionsPage() {
                             </div>
 
                             {/* Type distribution */}
-                            <div className="glass rounded-2xl p-6">
+                            <div className="glass rounded-2xl p-4 md:p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
                                         <BarChart3 className="w-5 h-5 text-purple-400" />
@@ -1085,7 +1085,7 @@ export default function InterventionsPage() {
                         </div>
 
                         {/* Provider / Catalog stats */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                             <StatCard icon={FlaskConical} value={String(catalogCount)} label="Catalog Services" iconColor="text-blue-400" iconBg="bg-blue-400/10" />
                             <StatCard icon={Building2} value={String(providerCount)} label="Registered Providers" iconColor="text-teal-400" iconBg="bg-teal-400/10" />
                             <StatCard icon={Clock} value="—" label="Avg Turnaround" iconColor="text-amber-400" iconBg="bg-amber-400/10" />

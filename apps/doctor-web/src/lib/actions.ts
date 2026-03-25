@@ -70,6 +70,16 @@ export async function fetchDoctorDashboardStats(doctorId: string) {
     };
 }
 
+export async function updateDoctorAccepting(doctorId: string, isAccepting: boolean) {
+    const supabase = await createServerSupabase();
+    const { error } = await supabase
+        .from('doctors')
+        .update({ is_accepting: isAccepting })
+        .eq('id', doctorId);
+    if (error) return { error: error.message };
+    return { success: true };
+}
+
 // ── Queue ────────────────────────────────────────
 
 export async function fetchQueueConsultations(
@@ -410,6 +420,49 @@ export async function fetchAvgResponseTime(doctorId: string) {
     return `~${hours}h ${mins}m`;
 }
 
+// ── Analytics Extra (Today's Activity + Schedule) ─
+
+export async function fetchDoctorAnalyticsExtra(doctorId: string) {
+    const supabase = await createServerSupabase();
+
+    // Today's completed count
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count: todayCompleted } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('doctor_id', doctorId)
+        .in('status', ['completed', 'report_ready'])
+        .gte('updated_at', todayStart.toISOString());
+
+    // Get daily limit from active schedule for today
+    const dayOfWeek = new Date().getDay();
+    const { data: scheduleSlots } = await supabase
+        .from('schedules')
+        .select('daily_limit')
+        .eq('doctor_id', doctorId)
+        .eq('day_of_week', dayOfWeek)
+        .eq('is_active', true)
+        .limit(1);
+
+    const dailyLimit = scheduleSlots?.[0]?.daily_limit || 20;
+
+    // Rating data
+    const { data: doctor } = await supabase
+        .from('doctors')
+        .select('rating_avg, rating_count')
+        .eq('id', doctorId)
+        .single();
+
+    return {
+        todayCompleted: todayCompleted || 0,
+        dailyLimit,
+        remaining: Math.max(0, dailyLimit - (todayCompleted || 0)),
+        ratingAvg: doctor?.rating_avg || 0,
+        ratingCount: doctor?.rating_count || 0,
+    };
+}
+
 // ── Notifications ────────────────────────────────
 
 export async function fetchDoctorNotifications(doctorId: string) {
@@ -701,4 +754,28 @@ export async function saveFollowupPlan(payload: {
         .insert(payload);
     if (error) return { error: error.message };
     return { success: true };
+}
+
+// ── ICD Code Search ──────────────────────────────
+
+export async function searchIcdCodes(query: string, specialty?: string) {
+    const supabase = await createServerSupabase();
+
+    let q = supabase
+        .from('icd_codes')
+        .select('id, code, description, description_ar, category, specialty_tags')
+        .eq('is_active', true)
+        .order('code', { ascending: true })
+        .limit(20);
+
+    if (query && query.length >= 2) {
+        q = q.or(`code.ilike.%${query}%,description.ilike.%${query}%`);
+    }
+    if (specialty && specialty !== 'all') {
+        q = q.contains('specialty_tags', [specialty]);
+    }
+
+    const { data, error } = await q;
+    if (error) console.error('searchIcdCodes error:', error);
+    return data || [];
 }

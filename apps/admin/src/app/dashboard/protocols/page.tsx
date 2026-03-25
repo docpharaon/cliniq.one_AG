@@ -132,7 +132,7 @@ export default function ProtocolsPage() {
     return (
         <>
             <Header title="Protocol Violations" subtitle="Safety alerts & intervention logs" />
-            <div className="p-8 max-w-[1400px] mx-auto">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto">
                 {/* Severity Filter */}
                 <div className="flex flex-wrap gap-2 mb-6">
                     {['All', 'Critical', 'High', 'Medium', 'Low'].map((s) => (

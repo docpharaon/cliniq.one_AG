@@ -23,9 +23,9 @@ export default function PricingPage() {
     return (
         <>
             <Header title="Pricing Management" subtitle="Token packages, consultation costs & exchange rates" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-8">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-8">
                 {/* Exchange Rates */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={ArrowRightLeft} value={`${EXCHANGE.TOKEN_TO_SAR} SAR`} label="1 Token =" iconColor="text-gold" iconBg="bg-gold-faded" />
                     <StatCard icon={DollarSign} value={`$${EXCHANGE.TOKEN_TO_USD}`} label="1 Token = (USD)" iconColor="text-success" iconBg="bg-success-faded" />
                     <StatCard icon={Coins} value={`${EXCHANGE.TOKEN_TO_KWD} KWD`} label="1 Token = (KWD)" iconColor="text-info" iconBg="bg-info-faded" />
@@ -33,7 +33,7 @@ export default function PricingPage() {
                 </div>
 
                 {/* Token Packages */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-2xl p-4 md:p-6">
                     <div className="flex items-center gap-3 mb-5">
                         <div className="w-10 h-10 bg-gold-faded rounded-xl flex items-center justify-center">
                             <Tag className="w-5 h-5 text-gold" />
@@ -65,7 +65,7 @@ export default function PricingPage() {
                 </div>
 
                 {/* Consultation Costs */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-2xl p-4 md:p-6">
                     <div className="flex items-center gap-3 mb-5">
                         <div className="w-10 h-10 bg-info-faded rounded-xl flex items-center justify-center">
                             <img className="w-5 h-5" src="" alt="" />

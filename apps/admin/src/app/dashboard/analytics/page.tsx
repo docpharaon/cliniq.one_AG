@@ -61,9 +61,9 @@ export default function AnalyticsPage() {
     return (
         <>
             <Header title="Analytics & Reports" subtitle="Platform metrics, trends & insights" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-8">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-8">
                 {/* Live KPIs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={Users} value={stats ? stats.totalUsers.toLocaleString() : '…'} label="Total Users" />
                     <StatCard icon={Stethoscope} value={stats ? String(stats.totalDoctors) : '…'} label="Total Doctors" iconColor="text-purple" iconBg="bg-purple-faded" />
                     <StatCard icon={FileText} value={stats ? String(stats.activeConsultations) : '…'} label="Active Consultations" iconColor="text-info" iconBg="bg-info-faded" />
@@ -71,7 +71,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Growth Chart */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-2xl p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-6">
                         <TrendingUp className="w-5 h-5 text-accent" />
                         <h3 className="text-lg font-bold text-text-primary">Platform Growth</h3>
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Status Distribution Pie */}
-                    <div className="glass rounded-2xl p-6">
+                    <div className="glass rounded-2xl p-4 md:p-6">
                         <h3 className="text-lg font-bold text-text-primary mb-6">Consultation Status Distribution</h3>
                         <div className="flex items-center">
                             <ResponsiveContainer width="50%" height={220}>
@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
                     </div>
 
                     {/* Specialty Breakdown */}
-                    <div className="glass rounded-2xl p-6">
+                    <div className="glass rounded-2xl p-4 md:p-6">
                         <h3 className="text-lg font-bold text-text-primary mb-6">Specialty Breakdown</h3>
                         <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={specialtyBreakdown} layout="vertical">
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Revenue Chart */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-2xl p-4 md:p-6">
                     <h3 className="text-lg font-bold text-text-primary mb-6">Revenue Trend (SAR)</h3>
                     <span className="text-xs text-text-muted">Mock data — will connect to payment analytics</span>
                     <ResponsiveContainer width="100%" height={280}>

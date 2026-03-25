@@ -46,13 +46,22 @@ function timeAgo(dateStr: string): string {
     return t('consultations.daysAgo', { count: days });
 }
 
-// ── Report generation helper ────────────────────
-function generateReportText(consultation: Consultation): string {
+// ── Report generation helper (plain-text fallback for native) ────
+function generateReportText(consultation: Consultation, lang?: string): string {
     const report = consultation.report as Record<string, any> | null;
     if (!report) return '';
+    const isAr = lang === 'ar' || lang === 'Arabic';
+
+    // Helper to pick Arabic or English field
+    const pick = (enKey: string, arKey: string) => {
+        if (isAr && report[arKey]) return report[arKey];
+        return report[enKey] || '';
+    };
+
     const lines: string[] = [
-        `MEDICAL CONSULTATION REPORT`,
+        `MEDICAL CONSULTATION REPORT — cliniq.one`,
         `Date: ${new Date(consultation.created_at).toLocaleDateString()}`,
+        `Case ID: ${consultation.id.slice(0, 8).toUpperCase()}`,
         `Status: ${consultation.status}`,
         ``,
         `CHIEF COMPLAINT:`,
@@ -60,49 +69,83 @@ function generateReportText(consultation: Consultation): string {
         ``,
     ];
     if (report.diagnosis) { lines.push(`DIAGNOSIS: ${report.diagnosis}`); }
-    if (report.icd10_code) { lines.push(`ICD-10: ${report.icd10_code}`); }
-    if (report.treatment_plan) { lines.push(``, `TREATMENT PLAN:`, report.treatment_plan); }
-    if (report.follow_up) { lines.push(``, `FOLLOW-UP: ${report.follow_up}`); }
-    if (report.prescriptions?.length) {
+    if (report.icd10 || report.icd10_code) { lines.push(`ICD-10: ${report.icd10 || report.icd10_code}`); }
+    const tp = pick('treatment_plan', 'treatment_plan_ar');
+    if (tp) { lines.push(``, isAr ? `خطة العلاج:` : `TREATMENT PLAN:`, tp); }
+    const pe = pick('patient_education', 'patient_education_ar');
+    if (pe) { lines.push(``, isAr ? `تثقيف المريض:` : `PATIENT EDUCATION:`, pe); }
+    const np = pick('non_pharmacologic', 'non_pharmacologic_ar');
+    if (np) { lines.push(``, isAr ? `العلاج غير الدوائي:` : `NON-PHARMACOLOGIC:`, np); }
+    const fu = pick('follow_up', 'follow_up_ar');
+    if (fu) { lines.push(``, isAr ? `المتابعة:` : `FOLLOW-UP:`, fu); }
+    const ws = pick('warning_signs', 'warning_signs_ar');
+    if (ws) { lines.push(``, isAr ? `علامات التحذير:` : `WARNING SIGNS:`, typeof ws === 'string' ? ws : (Array.isArray(ws) ? ws.join(', ') : '')); }
+    const meds = consultation.prescription?.medications || report.prescriptions;
+    if (meds?.length) {
         lines.push(``, `PRESCRIPTION:`);
-        for (const rx of report.prescriptions) {
-            lines.push(`  - ${rx.medication} — ${rx.dosage} (${rx.duration})`);
+        for (const rx of meds) {
+            lines.push(`  - ${rx.name || rx.medication} — ${rx.dose || rx.dosage || ''} (${rx.duration || ''})`);
         }
     }
     lines.push(``, `--- cliniq.one ---`);
+    lines.push(``, `DISCLAIMER: This report is generated from a telemedicine consultation. It does not constitute an in-person medical examination. Seek in-person care for emergencies.`);
     return lines.join('\n');
 }
 
-function handleDownloadReport(consultation: Consultation) {
-    const text = generateReportText(consultation);
-    if (!text) { Alert.alert('No Report', 'Report data is not available.'); return; }
+function handleDownloadReport(consultation: Consultation, lang?: string) {
+    if (!consultation.report) { Alert.alert('No Report', 'Report data is not available.'); return; }
     if (Platform.OS === 'web') {
-        // Use globalThis to access web-only APIs without requiring 'dom' lib
-        const g = globalThis as any;
-        const blob = new g.Blob([text], { type: 'text/plain' });
-        const url = g.URL.createObjectURL(blob);
-        const a = g.document.createElement('a');
-        a.href = url;
-        a.download = `consultation-report-${consultation.id.slice(0, 8)}.txt`;
-        a.click();
-        g.URL.revokeObjectURL(url);
+        // Use PDF generation on web
+        try {
+            const { downloadPatientPdf } = require('../../lib/generatePatientPdf');
+            const success = downloadPatientPdf(consultation, lang);
+            if (!success) {
+                Alert.alert('Error', 'Failed to generate PDF report.');
+            }
+        } catch {
+            // Fallback to text if PDF fails
+            const text = generateReportText(consultation, lang);
+            const g = globalThis as any;
+            const blob = new g.Blob([text], { type: 'text/plain' });
+            const url = g.URL.createObjectURL(blob);
+            const a = g.document.createElement('a');
+            a.href = url;
+            a.download = `consultation-report-${consultation.id.slice(0, 8)}.txt`;
+            a.click();
+            g.URL.revokeObjectURL(url);
+        }
     } else {
+        const text = generateReportText(consultation, lang);
         Alert.alert('Report', text);
     }
 }
 
-async function handleShareReport(consultation: Consultation) {
-    const text = generateReportText(consultation);
-    if (!text) { Alert.alert('No Report', 'Report data is not available.'); return; }
+async function handleShareReport(consultation: Consultation, lang?: string) {
+    if (!consultation.report) { Alert.alert('No Report', 'Report data is not available.'); return; }
     const g = globalThis as any;
-    if (Platform.OS === 'web' && g.navigator?.share) {
+    if (Platform.OS === 'web') {
+        // Try PDF blob for sharing
         try {
-            await g.navigator.share({ title: 'Medical Report', text });
-        } catch { /* user cancelled */ }
-    } else if (Platform.OS === 'web' && g.navigator?.clipboard) {
-        await g.navigator.clipboard.writeText(text);
-        Alert.alert('Copied', 'Report copied to clipboard.');
+            const { getPatientPdfBlob } = require('../../lib/generatePatientPdf');
+            const blob = getPatientPdfBlob(consultation, lang);
+            if (blob && g.navigator?.share) {
+                const file = new (g.File)([blob], `cliniq-report-${consultation.id.slice(0, 8)}.pdf`, { type: 'application/pdf' });
+                await g.navigator.share({ title: 'Medical Report', files: [file] });
+                return;
+            }
+        } catch { /* fall through */ }
+        // Fallback to text sharing
+        const text = generateReportText(consultation, lang);
+        if (g.navigator?.share) {
+            try {
+                await g.navigator.share({ title: 'Medical Report', text });
+            } catch { /* user cancelled */ }
+        } else if (g.navigator?.clipboard) {
+            await g.navigator.clipboard.writeText(text);
+            Alert.alert('Copied', 'Report copied to clipboard.');
+        }
     } else {
+        const text = generateReportText(consultation, lang);
         Alert.alert('Report', text);
     }
 }
@@ -244,10 +287,10 @@ export default function ConsultationsScreen() {
                                     <View style={styles.reportBanner}>
                                         <Text style={styles.reportBannerText}>{t('consultations.reportAvailable')}</Text>
                                         <View style={styles.reportActions}>
-                                            <TouchableOpacity style={styles.reportActionBtn} onPress={() => handleDownloadReport(consultation)}>
+                                            <TouchableOpacity style={styles.reportActionBtn} onPress={() => handleDownloadReport(consultation, user?.language)}>
                                                 <Text style={styles.reportActionText}>📥 {t('consultations.downloadReport')}</Text>
                                             </TouchableOpacity>
-                                            <TouchableOpacity style={styles.reportActionBtn} onPress={() => handleShareReport(consultation)}>
+                                            <TouchableOpacity style={styles.reportActionBtn} onPress={() => handleShareReport(consultation, user?.language)}>
                                                 <Text style={styles.reportActionText}>📤 {t('consultations.shareReport')}</Text>
                                             </TouchableOpacity>
                                         </View>

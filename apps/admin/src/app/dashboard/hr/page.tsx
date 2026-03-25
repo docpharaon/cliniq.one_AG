@@ -109,8 +109,8 @@ export default function HRPage() {
     return (
         <>
             <Header title="HR Management" subtitle="Staff credentials, onboarding & verification" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={Stethoscope} value={String(totalCount)} label="Total Staff" />
                     <StatCard icon={UserCheck} value={String(activeCount)} label="Active" iconColor="text-success" iconBg="bg-success-faded" />
                     <StatCard icon={UserX} value={String(pendingCount)} label="Pending Verification" iconColor="text-warning" iconBg="bg-warning-faded" />
@@ -118,7 +118,7 @@ export default function HRPage() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="glass rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="glass rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
                         <h3 className="text-lg font-bold text-text-primary">HR Quick Actions</h3>
                         <p className="text-sm text-text-muted mt-1">Common onboarding and verification tasks</p>

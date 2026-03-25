@@ -69,9 +69,9 @@ export default function SettingsPage() {
         <>
             <Header title="Settings" subtitle="Manage your preferences and account" />
 
-            <div className="p-8 max-w-[800px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[800px] mx-auto space-y-4 md:space-y-6">
                 {/* Notifications */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-xl bg-accent-faded flex items-center justify-center">
                             <Bell className="w-5 h-5 text-accent" />

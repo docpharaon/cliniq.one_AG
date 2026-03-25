@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 export default defineConfig({
   testDir: './e2e',
@@ -16,6 +17,13 @@ export default defineConfig({
   },
 
   projects: [
+    // Auth setup — runs first, saves state for other projects
+    {
+      name: 'auth-setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+
+    // Patient app (Expo web — runs independently, no auth needed for smoke tests)
     {
       name: 'patient-app',
       use: {
@@ -24,20 +32,28 @@ export default defineConfig({
       },
       testMatch: /patient\/.+\.spec\.ts/,
     },
+
+    // Doctor web — uses authenticated doctor state
     {
       name: 'doctor-web',
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://localhost:3002',
+        storageState: path.join(__dirname, 'e2e', '.auth', 'doctor.json'),
       },
+      dependencies: ['auth-setup'],
       testMatch: /doctor\/.+\.spec\.ts/,
     },
+
+    // Admin panel — uses authenticated admin state
     {
       name: 'admin-panel',
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://localhost:3001',
+        storageState: path.join(__dirname, 'e2e', '.auth', 'admin.json'),
       },
+      dependencies: ['auth-setup'],
       testMatch: /admin\/.+\.spec\.ts/,
     },
   ],

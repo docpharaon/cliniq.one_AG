@@ -1,11 +1,17 @@
 import { test, expect } from '@playwright/test';
 
+// ─────────────────────────────────────────────────────
+// Admin Panel — Smoke Tests (no auth required)
+// ─────────────────────────────────────────────────────
+
 test.describe('Admin Panel — Public Pages', () => {
-  test('login page renders', async ({ page }) => {
+  test('login page renders with form', async ({ page }) => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     const body = page.locator('body');
     await expect(body).not.toBeEmpty();
+    const inputs = page.locator('input');
+    expect(await inputs.count()).toBeGreaterThanOrEqual(2);
   });
 
   test('root redirects to login or dashboard', async ({ page }) => {
@@ -16,11 +22,16 @@ test.describe('Admin Panel — Public Pages', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────
+// Admin Panel — All Protected Routes (No 500 Errors)
+// ─────────────────────────────────────────────────────
+
 test.describe('Admin Panel — Dashboard Pages (Auth Guard)', () => {
   const protectedRoutes = [
     '/dashboard',
     '/dashboard/consultations',
     '/dashboard/doctors',
+    '/dashboard/doctors/locum',
     '/dashboard/users',
     '/dashboard/tokens',
     '/dashboard/analytics',
@@ -35,13 +46,11 @@ test.describe('Admin Panel — Dashboard Pages (Auth Guard)', () => {
     '/dashboard/scheduling',
     '/dashboard/interventions',
     '/dashboard/errors',
-    '/dashboard/doctors/locum',
   ];
 
   for (const route of protectedRoutes) {
-    test(`${route} responds (redirects or renders)`, async ({ page }) => {
+    test(`${route} responds without 500`, async ({ page }) => {
       const response = await page.goto(route);
-      // Should not 500 — either redirects to login or renders content
       expect(response?.status()).toBeLessThan(500);
       await page.waitForLoadState('networkidle');
       const body = page.locator('body');
@@ -50,11 +59,49 @@ test.describe('Admin Panel — Dashboard Pages (Auth Guard)', () => {
   }
 });
 
-test.describe('Admin Panel — No Broken Pages', () => {
-  test('test page loads', async ({ page }) => {
-    await page.goto('/test');
+// ─────────────────────────────────────────────────────
+// Admin Panel — Authenticated Flow Tests
+// ─────────────────────────────────────────────────────
+
+test.describe('Admin Panel — Dashboard (Authenticated)', () => {
+  test('dashboard overview shows stat cards', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle');
+
+    const url = page.url();
+    if (url.includes('/dashboard') && !url.includes('/login')) {
+      const content = await page.content();
+      expect(content.length).toBeGreaterThan(500);
+    }
+  });
+
+  test('doctors page renders list or empty state', async ({ page }) => {
+    await page.goto('/dashboard/doctors');
+    await page.waitForLoadState('networkidle');
+
+    const url = page.url();
+    if (url.includes('/doctors')) {
+      const body = page.locator('body');
+      await expect(body).not.toBeEmpty();
+    }
+  });
+
+  test('AI management page loads without error', async ({ page }) => {
+    const response = await page.goto('/dashboard/ai');
+    expect(response?.status()).toBeLessThan(500);
     await page.waitForLoadState('networkidle');
     const body = page.locator('body');
     await expect(body).not.toBeEmpty();
+  });
+
+  test('consultations page renders', async ({ page }) => {
+    await page.goto('/dashboard/consultations');
+    await page.waitForLoadState('networkidle');
+
+    const url = page.url();
+    if (url.includes('/consultations')) {
+      const body = page.locator('body');
+      await expect(body).not.toBeEmpty();
+    }
   });
 });

@@ -1,0 +1,30 @@
+{
+  "name": "cliniqone-doctor-capacitor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:web": "cd ../doctor-web && set CAPACITOR_BUILD=1 && npx next build",
+    "cap:sync": "npx cap sync",
+    "cap:build": "cd android && .\\gradlew.bat assembleRelease",
+    "cap:build:aab": "cd android && .\\gradlew.bat bundleRelease",
+    "cap:run": "npx cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^8.0.1",
+    "@capacitor/browser": "^8.0.2",
+    "@capacitor/clipboard": "^8.0.1",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^8.0.1",
+    "@capacitor/keyboard": "^8.0.1",
+    "@capacitor/local-notifications": "^8.0.1",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
+    "@capacitor/toast": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.2.0"
+  }
+}

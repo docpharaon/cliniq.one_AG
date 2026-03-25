@@ -188,9 +188,9 @@ export default function KycPage() {
     return (
         <>
             <Header title="ID Verification (KYC)" subtitle="Manage patient identity verification via Sumsub" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* Global Toggle */}
-                <div className="glass rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="glass rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
                         <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
                             <Fingerprint className="w-5 h-5 text-accent" />

@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd ../.. && npm run build -- --filter=doctor-web",
+  "installCommand": "cd ../.. && npm ci",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}

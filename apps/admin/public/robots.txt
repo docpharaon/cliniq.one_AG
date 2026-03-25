@@ -1,0 +1,3 @@
+# cliniq.one Admin Panel — Private application, do not index
+User-agent: *
+Disallow: /

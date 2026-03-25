@@ -1,6 +1,8 @@
 'use client';
 
-import { Bell, Search, Settings } from 'lucide-react';
+import { Search, Settings, Menu } from 'lucide-react';
+import { useSidebar } from './SidebarContext';
+import NotificationDropdown from './NotificationDropdown';
 
 interface HeaderProps {
     title: string;
@@ -8,9 +10,11 @@ interface HeaderProps {
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
+    const { isMobile, openMobile } = useSidebar();
+
     return (
         <header
-            className="sticky top-0 z-40 flex items-center justify-between h-16 px-8 border-b"
+            className="sticky top-0 z-40 flex items-center justify-between h-14 md:h-16 px-4 md:px-8 border-b gap-3"
             style={{
                 background: 'rgba(15, 35, 40, 0.95)',
                 backdropFilter: 'blur(16px)',
@@ -19,15 +23,26 @@ export default function Header({ title, subtitle }: HeaderProps) {
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
             }}
         >
-            {/* Left: Title */}
-            <div>
-                <h1 className="text-lg font-bold text-text-primary">{title}</h1>
-                {subtitle && (
-                    <p className="text-xs text-text-muted">{subtitle}</p>
+            {/* Left: Hamburger + Title */}
+            <div className="flex items-center gap-3 min-w-0">
+                {isMobile && (
+                    <button
+                        onClick={openMobile}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent-faded transition-colors text-text-secondary flex-shrink-0"
+                        aria-label="Open menu"
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
                 )}
+                <div className="min-w-0">
+                    <h1 className="text-base md:text-lg font-bold text-text-primary truncate">{title}</h1>
+                    {subtitle && (
+                        <p className="text-xs text-text-muted truncate">{subtitle}</p>
+                    )}
+                </div>
             </div>
 
-            {/* Center: Search */}
+            {/* Center: Search (desktop only) */}
             <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
                 <div className="relative w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
@@ -40,22 +55,14 @@ export default function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-                {/* Notification Bell */}
-                <button className="relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent-faded transition-colors">
-                    <Bell className="w-5 h-5 text-text-secondary" />
-                    <span className="absolute top-1.5 right-1.5 w-[18px] h-[18px] bg-error rounded-full text-[11px] font-bold text-white flex items-center justify-center">
-                        3
-                    </span>
-                </button>
+            <div className="flex items-center gap-1 md:gap-2">
+                <NotificationDropdown />
 
-                {/* Settings */}
-                <button className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent-faded transition-colors">
+                <button className="hidden sm:flex w-10 h-10 items-center justify-center rounded-xl hover:bg-accent-faded transition-colors">
                     <Settings className="w-5 h-5 text-text-secondary" />
                 </button>
 
-                {/* Admin Avatar */}
-                <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-bg-primary border-2 border-accent ml-2 cursor-pointer">
+                <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-bg-primary border-2 border-accent ml-1 md:ml-2 cursor-pointer">
                     A
                 </div>
             </div>

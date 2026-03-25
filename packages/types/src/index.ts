@@ -718,6 +718,22 @@ export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> =
 };
 
 // ──────────────────────────────────────────
+// ICD-10 Codes
+// ──────────────────────────────────────────
+
+export interface IcdCode {
+    id: string;
+    code: string;
+    description: string;
+    description_ar: string;
+    category: string;
+    specialty_tags: string[];
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+// ──────────────────────────────────────────
 // Psychiatry Module Types
 // ──────────────────────────────────────────
 

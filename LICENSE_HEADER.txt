@@ -1,0 +1,9 @@
+/**
+ * cliniq.one — Proprietary and Confidential
+ * Copyright © 2025–2026 cliniq.one. All rights reserved.
+ *
+ * This source code is the property of cliniq.one.
+ * Unauthorized copying, modification, distribution, or use of this
+ * software, via any medium, is strictly prohibited without prior
+ * written permission from cliniq.one.
+ */

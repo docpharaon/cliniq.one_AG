@@ -107,8 +107,8 @@ export default function ErrorsPage() {
     return (
         <>
             <Header title="Error Reports" subtitle="Patient-reported issues & bug tracking" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={AlertTriangle} value={String(totalCount)} label="Total Reports" />
                     <StatCard icon={Clock} value={String(openCount)} label="Open" iconColor="text-error" iconBg="bg-error-faded" />
                     <StatCard icon={Search} value={String(investigatingCount)} label="Investigating" iconColor="text-warning" iconBg="bg-warning-faded" />

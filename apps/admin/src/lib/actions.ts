@@ -27,6 +27,9 @@ import {
     updateDoctorPricing,
     getLocumPricingLimits,
     setLocumPricingLimits,
+    getActiveLocums,
+    suspendLocum,
+    toggleLocumSandbox,
     getConsultations,
     getConsultationById,
     getConsultationStats,
@@ -91,6 +94,30 @@ import {
     updateUserKycStatus,
     getKycSetting,
     setKycSetting,
+    getCampaigns,
+    createCampaign,
+    updateCampaign,
+    deleteCampaign,
+    getHealthTips,
+    createHealthTip,
+    updateHealthTip,
+    deleteHealthTip,
+    computeAvgResponseTime,
+    getIcdCodes,
+    getIcdCodeStats,
+    createIcdCode,
+    updateIcdCode,
+    toggleIcdCodeActive,
+    getAdminNotifications,
+    getUnreadAdminNotificationCount,
+    markAdminNotificationRead,
+    markAllAdminNotificationsRead,
+    getNotificationToggles,
+    setNotificationToggle,
+    broadcastToAllPatients,
+    broadcastToAllDoctors,
+    sendNotificationToUsers,
+    searchUsersForNotification,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -219,6 +246,18 @@ export async function fetchLocumPricingLimits() {
 
 export async function doSetLocumPricingLimits(min: number, max: number) {
     return setLocumPricingLimits(min, max);
+}
+
+export async function fetchActiveLocums() {
+    return getActiveLocums();
+}
+
+export async function doSuspendLocum(doctorId: string) {
+    return suspendLocum(doctorId);
+}
+
+export async function doToggleSandbox(doctorId: string, sandbox: boolean) {
+    return toggleLocumSandbox(doctorId, sandbox);
 }
 
 export async function fetchConsultations(page = 1, perPage = 50, search?: string, status?: string) {
@@ -534,3 +573,138 @@ export async function toggleKycSetting(enabled: boolean) {
     return setKycSetting(enabled);
 }
 
+// ── Campaigns ──────────────────────────────
+
+export async function fetchCampaigns(page = 1, perPage = 50, search?: string, type?: string) {
+    return getCampaigns(page, perPage, search, type);
+}
+
+export async function addCampaign(campaign: {
+    type: string;
+    title_en: string;
+    title_ar?: string;
+    body_en?: string;
+    body_ar?: string;
+    icon?: string;
+    image_url?: string;
+    link_url?: string;
+    is_active?: boolean;
+    starts_at?: string | null;
+    expires_at?: string | null;
+    sort_order?: number;
+}) {
+    return createCampaign(campaign);
+}
+
+export async function editCampaign(id: string, updates: Record<string, unknown>) {
+    return updateCampaign(id, updates);
+}
+
+export async function removeCampaign(id: string) {
+    return deleteCampaign(id);
+}
+
+// ── Health Tips ────────────────────────────
+
+export async function fetchHealthTips() {
+    return getHealthTips();
+}
+
+export async function addHealthTip(tip: {
+    icon?: string;
+    title_en: string;
+    title_ar?: string;
+    text_en: string;
+    text_ar?: string;
+    is_active?: boolean;
+    sort_order?: number;
+}) {
+    return createHealthTip(tip);
+}
+
+export async function editHealthTip(id: string, updates: Record<string, unknown>) {
+    return updateHealthTip(id, updates);
+}
+
+export async function removeHealthTip(id: string) {
+    return deleteHealthTip(id);
+}
+
+// ── Response Time ─────────────────────────
+
+export async function fetchAvgResponseTime() {
+    return computeAvgResponseTime();
+}
+
+// ── ICD Codes ─────────────────────────────
+
+export async function fetchIcdCodes(page = 1, perPage = 50, search?: string, specialty?: string) {
+    return getIcdCodes(page, perPage, search, specialty);
+}
+
+export async function fetchIcdCodeStats() {
+    return getIcdCodeStats();
+}
+
+export async function addIcdCode(data: {
+    code: string;
+    description: string;
+    description_ar?: string;
+    category?: string;
+    specialty_tags?: string[];
+    is_active?: boolean;
+}) {
+    return createIcdCode(data);
+}
+
+export async function editIcdCode(id: string, updates: Record<string, unknown>) {
+    return updateIcdCode(id, updates);
+}
+
+export async function toggleIcdCode(id: string, isActive: boolean) {
+    return toggleIcdCodeActive(id, isActive);
+}
+
+// ── Admin Notifications ───────────────────
+
+export async function fetchAdminNotifications(limit = 30) {
+    return getAdminNotifications(limit);
+}
+
+export async function fetchUnreadAdminNotificationCount() {
+    return getUnreadAdminNotificationCount();
+}
+
+export async function doMarkAdminNotificationRead(id: string) {
+    return markAdminNotificationRead(id);
+}
+
+export async function doMarkAllAdminNotificationsRead() {
+    return markAllAdminNotificationsRead();
+}
+
+export async function fetchNotificationToggles() {
+    return getNotificationToggles();
+}
+
+export async function doSetNotificationToggle(key: string, enabled: boolean) {
+    return setNotificationToggle(key, enabled);
+}
+
+// ── Broadcast Notifications ───────────────
+
+export async function doBroadcastToAllPatients(title: string, message: string) {
+    return broadcastToAllPatients(title, message);
+}
+
+export async function doBroadcastToAllDoctors(title: string, message: string) {
+    return broadcastToAllDoctors(title, message);
+}
+
+export async function doSendNotificationToUsers(userIds: string[], title: string, message: string, role: 'patient' | 'doctor') {
+    return sendNotificationToUsers(userIds, title, message, role);
+}
+
+export async function doSearchUsersForNotification(search: string, role?: 'patient' | 'doctor') {
+    return searchUsersForNotification(search, role);
+}

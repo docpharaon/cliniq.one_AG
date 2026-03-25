@@ -155,7 +155,7 @@ export default function DashboardPage() {
         <>
             <Header title="Dashboard" subtitle="System overview & metrics" />
 
-            <div className="p-8 max-w-[1400px] mx-auto space-y-8">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-8">
                 {/* Welcome Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* System Health */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-2xl p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Activity className="w-5 h-5 text-accent" />
                         <h3 className="text-lg font-bold text-text-primary">System Health</h3>
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Consultation Flow Chart */}
-                    <div className="glass rounded-2xl p-6">
+                    <div className="glass rounded-2xl p-4 md:p-6">
                         <div className="flex items-center gap-2 mb-6">
                             <TrendingUp className="w-5 h-5 text-accent" />
                             <h3 className="text-lg font-bold text-text-primary">Consultation Flow</h3>
@@ -383,7 +383,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Specialty Breakdown */}
-                    <div className="glass rounded-2xl p-6">
+                    <div className="glass rounded-2xl p-4 md:p-6">
                         <div className="flex items-center gap-2 mb-6">
                             <Stethoscope className="w-5 h-5 text-accent" />
                             <h3 className="text-lg font-bold text-text-primary">Specialty Breakdown</h3>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="glass rounded-2xl p-6">
+                <div className="glass rounded-2xl p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-5 h-5 text-accent" />
                         <h3 className="text-lg font-bold text-text-primary">Recent Activity</h3>

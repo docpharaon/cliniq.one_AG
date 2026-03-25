@@ -10,6 +10,7 @@ import {
 import { useEffect, useState, useCallback } from 'react';
 import { fetchQueueConsultations, claimConsultationAction } from '@/lib/actions';
 import { createBrowserSupabase } from '@/lib/supabase';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
 import Link from 'next/link';
 
 const STATUS_TABS = [
@@ -61,6 +62,8 @@ export default function QueuePage() {
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [page, setPage] = useState(1);
     const [claiming, setClaiming] = useState<string | null>(null);
+    const { can } = useFeatureGate();
+    const canClaim = can('claim_cases');
     const perPage = 25;
 
     useEffect(() => {
@@ -128,21 +131,21 @@ export default function QueuePage() {
         <>
             <Header title="Consultation Queue" subtitle="View and claim patient consultations" />
 
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3 md:gap-4">
                     <StatCard icon={ClipboardList} value={totalCount} label="Total Cases" />
                     <StatCard icon={Clock} value={pendingCount} label="Pending" iconColor="text-warning" iconBg="bg-warning-faded" />
                     <StatCard icon={AlertTriangle} value={urgentCount} label="Urgent" iconColor="text-error" iconBg="bg-error-faded" />
                 </div>
 
                 {/* Main Table Card */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
                     {/* Filters Row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-border">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4 pb-3 md:pb-4 border-b border-border">
                         <div>
-                            <h2 className="text-xl font-bold text-text-primary">Queue</h2>
-                            <p className="text-sm text-text-muted mt-0.5">{totalCount} cases</p>
+                            <h2 className="text-lg md:text-xl font-bold text-text-primary">Queue</h2>
+                            <p className="text-xs md:text-sm text-text-muted mt-0.5">{totalCount} cases</p>
                         </div>
                     </div>
 
@@ -182,7 +185,80 @@ export default function QueuePage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
+                            {/* ─── Mobile Card View (< md) ─── */}
+                            <div className="md:hidden space-y-3 pt-3">
+                                {consultations.length === 0 ? (
+                                    <div className="text-center py-12 text-text-muted text-sm">No consultations found</div>
+                                ) : (
+                                    consultations.map(row => {
+                                        const st = statusMap[row.status] ?? { label: row.status, variant: 'neutral' as const };
+                                        return (
+                                            <Link
+                                                key={row.id}
+                                                href={`/dashboard/consultation/${row.id}`}
+                                                className="block bg-bg-card border border-border rounded-2xl p-4 hover:border-accent/30 transition-all active:scale-[0.98]"
+                                            >
+                                                {/* Row 1: Avatar + Name + Priority */}
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div
+                                                        className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
+                                                        style={{ backgroundColor: `hsl(${((row.patient?.nickname || 'P').charCodeAt(0) * 37) % 360}, 60%, 45%)` }}
+                                                    >
+                                                        {(row.patient?.nickname || 'P')[0].toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className="font-semibold text-text-primary text-sm">{row.patient?.nickname || 'Patient'}</span>
+                                                        <p className="text-xs text-text-muted capitalize">
+                                                            {row.patient?.gender} · {new Date().getFullYear() - (row.patient?.year_of_birth || 2000)}y
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5" data-small-touch>
+                                                        <PriorityBadge priority={row.priority} />
+                                                        {row.urgent_fee > 0 && (
+                                                            <span className="inline-flex items-center gap-0.5 text-[10px] text-warning font-semibold">
+                                                                <Zap className="w-3 h-3" />+{row.urgent_fee}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Row 2: Complaint */}
+                                                <p className="text-sm text-text-primary line-clamp-2 mb-2">
+                                                    {row.chief_complaint || 'No complaint'}
+                                                </p>
+
+                                                {/* Row 3: Status + Tokens + Date + Claim */}
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span data-small-touch><StatusBadge label={st.label} variant={st.variant} pulse={row.status === 'in_progress'} /></span>
+                                                    <span className="text-gold font-semibold text-xs" data-small-touch>💎 {row.token_cost || 3}</span>
+                                                    <span className="text-text-muted text-xs ml-auto" data-small-touch>
+                                                        {new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                    {!row.doctor_id && (
+                                                        canClaim ? (
+                                                            <button
+                                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClaim(row.id); }}
+                                                                disabled={!!claiming}
+                                                                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-accent text-bg-primary font-semibold transition-all disabled:opacity-40"
+                                                            >
+                                                                {claiming === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                                                Claim
+                                                            </button>
+                                                        ) : (
+                                                            <span className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-warning/10 text-warning font-semibold cursor-not-allowed">
+                                                                🔒 Locked
+                                                            </span>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </Link>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {/* ─── Desktop Table View (≥ md) ─── */}
+                            <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full border-separate" style={{ borderSpacing: '0 6px' }}>
                                     <thead>
                                         <tr>
@@ -250,14 +326,20 @@ export default function QueuePage() {
                                                         <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-r-xl">
                                                             <div className="flex items-center justify-end gap-1.5">
                                                                 {!row.doctor_id && (
-                                                                    <button
-                                                                        onClick={() => handleClaim(row.id)}
-                                                                        disabled={!!claiming}
-                                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-accent text-bg-primary font-semibold hover:shadow-[0_2px_8px_rgba(45,212,191,0.3)] transition-all disabled:opacity-40"
-                                                                    >
-                                                                        {claiming === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                                                                        Claim
-                                                                    </button>
+                                                                    canClaim ? (
+                                                                        <button
+                                                                            onClick={() => handleClaim(row.id)}
+                                                                            disabled={!!claiming}
+                                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-accent text-bg-primary font-semibold hover:shadow-[0_2px_8px_rgba(45,212,191,0.3)] transition-all disabled:opacity-40"
+                                                                        >
+                                                                            {claiming === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                                                                            Claim
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-warning/10 text-warning font-semibold cursor-not-allowed">
+                                                                            🔒 Locked
+                                                                        </span>
+                                                                    )
                                                                 )}
                                                                 <Link
                                                                     href={`/dashboard/consultation/${row.id}`}

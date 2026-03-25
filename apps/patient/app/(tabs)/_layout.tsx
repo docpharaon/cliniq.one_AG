@@ -1,9 +1,12 @@
 import { Tabs } from 'expo-router';
-import { Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { colors, typography } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
+import { usePatientNotifications } from '../../hooks/usePatientNotifications';
 
 export default function TabLayout() {
+    const { unreadCount } = usePatientNotifications();
+
     return (
         <Tabs
             screenOptions={{
@@ -26,6 +29,22 @@ export default function TabLayout() {
                 options={{
                     title: t('tabs.consultations'),
                     tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>📋</Text>,
+                }}
+            />
+            <Tabs.Screen
+                name="notifications"
+                options={{
+                    title: t('tabs.notifications') || 'Alerts',
+                    tabBarIcon: ({ color }) => (
+                        <View>
+                            <Text style={[styles.icon, { color }]}>🔔</Text>
+                            {unreadCount > 0 && (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                                </View>
+                            )}
+                        </View>
+                    ),
                 }}
             />
             <Tabs.Screen
@@ -61,5 +80,22 @@ const styles = StyleSheet.create({
     },
     icon: {
         fontSize: 22,
+    },
+    badge: {
+        position: 'absolute',
+        top: -4,
+        right: -10,
+        backgroundColor: '#EF4444',
+        borderRadius: 8,
+        minWidth: 16,
+        height: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 3,
+    },
+    badgeText: {
+        color: '#FFF',
+        fontSize: 9,
+        fontWeight: '700',
     },
 });

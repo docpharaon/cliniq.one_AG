@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts, fetchRecentPromptActivity } from '@/lib/actions';
 import {
     Bot,
+    Cpu,
     Zap,
     FileCode,
     Plus,
@@ -32,6 +33,7 @@ import {
     ChevronDown,
     Settings2,
     Info,
+    Languages,
     Power,
     CheckCircle2,
     XCircle,
@@ -78,7 +80,7 @@ const typeMap: Record<string, { variant: 'success' | 'info' | 'warning' | 'neutr
     global_guard: { variant: 'neutral', label: '🛡️ Guard' },
 };
 
-type TabId = 'dashboard' | 'settings' | 'prompts' | 'sequences' | 'sandbox';
+type TabId = 'dashboard' | 'settings' | 'prompts' | 'sequences' | 'sandbox' | 'translation';
 
 export default function AIPage() {
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
@@ -147,6 +149,16 @@ export default function AIPage() {
     const [publishingDrafts, setPublishingDrafts] = useState(false);
     const [publishMsg, setPublishMsg] = useState('');
 
+    // Translation AI state
+    const [translationEnabled, setTranslationEnabled] = useState(true);
+    const [translationPrompt, setTranslationPrompt] = useState('');
+    const [translationModel, setTranslationModel] = useState('');
+    const [savingTranslation, setSavingTranslation] = useState(false);
+    const [translationMsg, setTranslationMsg] = useState('');
+    const [translationTestInput, setTranslationTestInput] = useState('');
+    const [translationTestOutput, setTranslationTestOutput] = useState('');
+    const [translationTesting, setTranslationTesting] = useState(false);
+
     const loadPrompts = useCallback(async () => {
         setLoading(true);
         const { data, count } = await fetchAIPrompts(1, 200);
@@ -198,6 +210,16 @@ export default function AIPage() {
         });
         fetchPlatformSetting('protocol_cooldown_seconds').then(val => {
             if (val) setProtoCooldown(parseInt(val, 10));
+        });
+        // Translation settings
+        fetchPlatformSetting('translation_enabled').then(val => {
+            if (val !== null) setTranslationEnabled(val !== 'false');
+        });
+        fetchPlatformSetting('translation_system_prompt').then(val => {
+            if (val) setTranslationPrompt(val);
+        });
+        fetchPlatformSetting('translation_model').then(val => {
+            if (val) setTranslationModel(val);
         });
     }, []);
 
@@ -503,7 +525,67 @@ export default function AIPage() {
         { id: 'prompts', label: 'Prompts & Safety', icon: FileCode },
         { id: 'sequences', label: 'Interview Flow', icon: GitBranchPlus },
         { id: 'sandbox', label: 'Sandbox', icon: FlaskConical },
+        { id: 'translation', label: 'Translation', icon: Languages },
     ];
+
+    const DEFAULT_TRANSLATION_PROMPT = `You are a professional medical translator. Translate the following English medical text into Modern Standard Arabic (العربية الفصحى).
+
+RULES:
+- Use formal, clear Arabic suitable for a patient medical report
+- Preserve medical terminology accuracy
+- Do not add explanations or notes — output ONLY the Arabic translation
+- Maintain the same structure (bullet points, numbered lists, etc.)
+- Use Arabic numerals (١٢٣) instead of Western numerals`;
+
+    async function handleSaveTranslation() {
+        setSavingTranslation(true);
+        setTranslationMsg('');
+        try {
+            await savePlatformSetting('translation_enabled', translationEnabled ? 'true' : 'false', 'ai', 'Enable Arabic translation for doctor responses');
+            await savePlatformSetting('translation_system_prompt', translationPrompt || DEFAULT_TRANSLATION_PROMPT, 'ai', 'Translation AI system prompt');
+            await savePlatformSetting('translation_model', translationModel, 'ai', 'Translation AI model override');
+            setTranslationMsg('✅ Translation settings saved!');
+            setTimeout(() => setTranslationMsg(''), 3000);
+        } catch {
+            setTranslationMsg('Error saving translation settings');
+        }
+        setSavingTranslation(false);
+    }
+
+    async function handleTestTranslation() {
+        if (!translationTestInput.trim()) return;
+        setTranslationTesting(true);
+        setTranslationTestOutput('');
+        try {
+            const prompt = translationPrompt || DEFAULT_TRANSLATION_PROMPT;
+            const mdl = translationModel || modelName || 'gpt-4o-mini';
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: mdl,
+                    temperature: 0.2,
+                    max_tokens: 2000,
+                    messages: [
+                        { role: 'system', content: prompt },
+                        { role: 'user', content: translationTestInput.trim() },
+                    ],
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setTranslationTestOutput(data.choices?.[0]?.message?.content?.trim() || 'No output');
+            } else {
+                setTranslationTestOutput(`Error: API returned ${res.status}`);
+            }
+        } catch {
+            setTranslationTestOutput('Error: Could not reach OpenAI');
+        }
+        setTranslationTesting(false);
+    }
 
     // Group prompts by type for the chatbot selector
     const promptsByType = prompts.reduce((acc, p) => {
@@ -522,7 +604,7 @@ export default function AIPage() {
     return (
         <>
             <Header title="AI Management" subtitle="Prompts, sequences, chatbot testing & configuration" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
 
                 {/* ── Tab Navigation ─────────────────── */}
                 <div className="flex items-center gap-1 p-1 bg-bg-elevated rounded-2xl border border-border overflow-x-auto">
@@ -725,7 +807,7 @@ export default function AIPage() {
                         </div>
 
                         {/* ── Activation Banner ───────────── */}
-                        <div className={`glass rounded-2xl p-6 border-2 transition-all duration-500 ${chatbotEnabled
+                        <div className={`glass rounded-2xl p-4 md:p-6 border-2 transition-all duration-500 ${chatbotEnabled
                             ? 'border-success/40 bg-success/5 shadow-[0_0_32px_rgba(34,197,94,0.08)]'
                             : 'border-warning/30 bg-warning/5'
                             }`}>
@@ -847,7 +929,7 @@ export default function AIPage() {
                         )}
 
                         {/* ═══ API Key ═══ */}
-                        <div className="glass rounded-2xl p-6 border border-accent/20">
+                        <div className="glass rounded-2xl p-4 md:p-6 border border-accent/20">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-11 h-11 rounded-xl bg-accent-faded flex items-center justify-center">
                                     <Key className="w-5 h-5 text-accent" />
@@ -895,7 +977,7 @@ export default function AIPage() {
                         </div>
 
                         {/* ═══ Model Configuration ═══ */}
-                        <div className="glass rounded-2xl p-6 border border-purple/20">
+                        <div className="glass rounded-2xl p-4 md:p-6 border border-purple/20">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-11 h-11 rounded-xl bg-purple-500/10 flex items-center justify-center">
                                     <BrainCircuit className="w-5 h-5 text-purple" />
@@ -1113,7 +1195,7 @@ export default function AIPage() {
 
                             {/* Right: Launch Panel */}
                             <div className="space-y-5">
-                                <div className="glass rounded-2xl p-6 border border-purple/20 text-center sticky top-8">
+                                <div className="glass rounded-2xl p-4 md:p-6 border border-purple/20 text-center sticky top-8">
                                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-4 border border-purple/20">
                                         <MessageSquare className="w-8 h-8 text-purple" />
                                     </div>
@@ -1385,6 +1467,166 @@ export default function AIPage() {
                 {activeTab === 'sequences' && (
                     <div className="animate-fade-in">
                         <SequenceBuilderContent />
+                    </div>
+                )}
+
+                {/* ══════════════ TAB: Translation ══════════════ */}
+                {activeTab === 'translation' && (
+                    <div className="animate-fade-in space-y-6 max-w-3xl">
+
+                        {/* ── Master Toggle ───────────── */}
+                        <div className={`glass rounded-2xl p-5 border-2 transition-all duration-500 ${translationEnabled
+                            ? 'border-success/30 shadow-[0_0_32px_rgba(34,197,94,0.06)]'
+                            : 'border-warning/20'
+                            }`}>
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${translationEnabled
+                                        ? 'bg-success/20 shadow-[0_0_16px_rgba(34,197,94,0.2)]'
+                                        : 'bg-warning/15'
+                                        }`}>
+                                        <Languages className={`w-7 h-7 ${translationEnabled ? 'text-success' : 'text-warning'}`} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-text-primary">
+                                            Arabic Translation is {translationEnabled ? 'Enabled' : 'Disabled'}
+                                        </h2>
+                                        <p className="text-sm text-text-muted">
+                                            {translationEnabled
+                                                ? 'Doctors can translate consultation responses to formal Arabic'
+                                                : 'Enable to allow doctors to translate responses for Arabic-speaking patients'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setTranslationEnabled(!translationEnabled)}
+                                    className={`group relative flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${translationEnabled
+                                        ? 'bg-bg-elevated border-2 border-warning/40 text-warning hover:bg-warning/10'
+                                        : 'bg-gradient-to-r from-success to-emerald-400 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(34,197,94,0.4)]'
+                                        }`}
+                                >
+                                    <Power className="w-4 h-4" />
+                                    {translationEnabled ? 'Disable' : 'Enable'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* ── System Prompt ───────────── */}
+                        <div className="glass rounded-2xl p-4 md:p-6 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400" />
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-accent-faded rounded-xl flex items-center justify-center">
+                                    <BrainCircuit className="w-5 h-5 text-accent" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-text-primary">Translation System Prompt</h3>
+                                    <p className="text-xs text-text-muted">Controls the tone, formality, and rules for Arabic translations</p>
+                                </div>
+                            </div>
+                            <textarea
+                                value={translationPrompt || DEFAULT_TRANSLATION_PROMPT}
+                                onChange={e => setTranslationPrompt(e.target.value)}
+                                rows={10}
+                                className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary font-mono placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all resize-none"
+                                placeholder="Enter the system prompt for the translation AI..."
+                            />
+                            <p className="text-[10px] text-text-muted mt-2">
+                                This prompt is sent as the system message when the doctor clicks &quot;Translate to Arabic&quot;. Field-specific context (e.g. treatment plan, patient education) is automatically appended.
+                            </p>
+                        </div>
+
+                        {/* ── Model Override ───────────── */}
+                        <div className="glass rounded-2xl p-4 md:p-6 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-indigo-400 to-blue-400" />
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-purple-500/15 rounded-xl flex items-center justify-center">
+                                    <Cpu className="w-5 h-5 text-purple-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-text-primary">Translation Model</h3>
+                                    <p className="text-xs text-text-muted">Optionally use a different model for translations</p>
+                                </div>
+                            </div>
+                            <select
+                                value={translationModel}
+                                onChange={e => setTranslationModel(e.target.value)}
+                                className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">Use Global Default ({modelName})</option>
+                                <option value="gpt-4o-mini">GPT-4o Mini — Fast &amp; affordable</option>
+                                <option value="gpt-4o">GPT-4o — Most capable</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo — High performance</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo — Legacy, cheapest</option>
+                            </select>
+                        </div>
+
+                        {/* ── Save Button ───────────── */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleSaveTranslation}
+                                disabled={savingTranslation}
+                                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-bg-primary text-sm font-bold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all disabled:opacity-50"
+                            >
+                                {savingTranslation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Save Translation Settings
+                            </button>
+                            {translationMsg && (
+                                <p className={`text-sm font-medium ${translationMsg.startsWith('Error') ? 'text-error' : 'text-success'}`}>{translationMsg}</p>
+                            )}
+                        </div>
+
+                        {/* ── Live Test Panel ───────────── */}
+                        <div className="glass rounded-2xl p-4 md:p-6 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-400 to-red-400" />
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-amber-500/15 rounded-xl flex items-center justify-center">
+                                    <Play className="w-5 h-5 text-amber-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-text-primary">Live Test</h3>
+                                    <p className="text-xs text-text-muted">Test the translation with the current prompt and model configuration</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-semibold text-text-muted mb-2 block">English Input</label>
+                                    <textarea
+                                        value={translationTestInput}
+                                        onChange={e => setTranslationTestInput(e.target.value)}
+                                        rows={5}
+                                        placeholder="Type English medical text to translate..."
+                                        className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-text-muted mb-2 block">Arabic Output</label>
+                                    <div
+                                        dir="rtl"
+                                        className="w-full min-h-[130px] bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary whitespace-pre-wrap"
+                                    >
+                                        {translationTesting ? (
+                                            <div className="flex items-center justify-center h-full">
+                                                <Loader2 className="w-5 h-5 text-accent animate-spin" />
+                                            </div>
+                                        ) : translationTestOutput || (
+                                            <span className="text-text-muted/50">Translation will appear here...</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleTestTranslation}
+                                disabled={translationTesting || !translationTestInput.trim() || !apiKey}
+                                className="mt-3 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(245,158,11,0.4)] transition-all disabled:opacity-40"
+                            >
+                                {translationTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                                Test Translation
+                            </button>
+                            {!apiKey && (
+                                <p className="text-xs text-error mt-2">⚠️ API key not configured. Go to Settings tab to add one.</p>
+                            )}
+                        </div>
                     </div>
                 )}
 

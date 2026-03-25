@@ -2,6 +2,28 @@ import { create } from 'zustand';
 import { supabase, safeFetch } from '@cliniqone/api';
 import type { User } from '@cliniqone/types';
 import type { Session } from '@supabase/supabase-js';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+// ── Native auth bridge (syncs JWT to SharedPreferences for widget) ──
+interface AuthBridgePlugin {
+    syncToken(opts: { token: string }): Promise<{ success: boolean }>;
+    clearToken(): Promise<{ success: boolean }>;
+}
+const AuthBridge = registerPlugin<AuthBridgePlugin>('AuthBridge');
+
+/** Push JWT to native SharedPreferences (no-op on web) */
+async function syncTokenToNative(token: string | null) {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+        if (token) {
+            await AuthBridge.syncToken({ token });
+        } else {
+            await AuthBridge.clearToken();
+        }
+    } catch (e) {
+        console.warn('[AuthBridge] sync failed:', e);
+    }
+}
 
 interface AuthState {
     session: Session | null;
@@ -49,8 +71,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 );
 
                 set({ session, user: userData as User | null, isLoading: false, isReady: true });
+                syncTokenToNative(session.access_token);
             } else {
                 set({ session: null, user: null, isLoading: false, isReady: true });
+                syncTokenToNative(null);
             }
 
             // Listen for auth changes
@@ -58,6 +82,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 set({ session: newSession });
 
                 if (newSession) {
+                    syncTokenToNative(newSession.access_token);
                     try {
                         const { data: userData } = await safeFetch(
                             () => supabase
@@ -73,6 +98,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     }
                 } else {
                     set({ user: null });
+                    syncTokenToNative(null);
                 }
             });
             set({ _authSubscription: subscription });
@@ -101,5 +127,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             console.warn('Failed to refresh user:', err);
         }
     },
-    clear: () => set({ session: null, user: null }),
+    clear: () => {
+        syncTokenToNative(null);
+        set({ session: null, user: null });
+    },
 }));

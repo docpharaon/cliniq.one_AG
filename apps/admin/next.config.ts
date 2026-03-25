@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     // React hook errors in monorepos with dual React versions
     devIndicators: false,
 
+    // Static export for Capacitor wrapping (set CAPACITOR_BUILD=1)
+    ...(process.env.CAPACITOR_BUILD === '1' ? { output: 'export' } : {}),
+
     webpack: (config) => {
         // Force ALL React resolution to a single copy (avoids dual-React bugs)
         config.resolve = config.resolve || {};

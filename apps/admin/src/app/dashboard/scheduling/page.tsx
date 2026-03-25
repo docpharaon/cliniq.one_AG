@@ -207,9 +207,9 @@ export default function SchedulingPage() {
     return (
         <>
             <Header title="Doctor Scheduling" subtitle="Manage shifts, availability & daily limits" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={Calendar} value={String(totalCount)} label="Total Slots" />
                     <StatCard icon={CheckCircle} value={String(activeSlots)} label="Active Slots" iconColor="text-success" iconBg="bg-success-faded" />
                     <StatCard icon={Users} value={String(doctorCount)} label="Total Doctors" iconColor="text-purple" iconBg="bg-purple-faded" />

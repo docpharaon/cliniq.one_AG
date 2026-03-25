@@ -14,6 +14,10 @@ const inter = Inter({
 export const metadata: Metadata = {
     title: 'cliniq.one Admin Panel',
     description: 'Administrative dashboard for the cliniq.one telehealth platform',
+    robots: 'noindex, nofollow',
+    authors: [{ name: 'cliniq.one' }],
+    creator: 'cliniq.one',
+    publisher: 'cliniq.one',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -9,8 +9,9 @@ import { t, getLocale, setLocale } from '@cliniqone/i18n';
 import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 
 const { width: screenWidth } = Dimensions.get('window');
-// Cap to phone-frame width (393px) so web preview looks correct
-const MAX_WIDTH = 393;
+// Cap to phone-frame width (393px) on web preview, but use full width in Capacitor
+const isCapacitor = Platform.OS === 'web' && typeof globalThis !== 'undefined' && !!(globalThis as any).Capacitor;
+const MAX_WIDTH = isCapacitor ? screenWidth : 393;
 const effectiveWidth = Math.min(screenWidth, MAX_WIDTH);
 const VIDEO_WIDTH = effectiveWidth - spacing.xl * 2;
 const VIDEO_HEIGHT = VIDEO_WIDTH * 1.4; // Portrait-friendly aspect ratio
@@ -21,56 +22,66 @@ const videoSource = require('../../assets/splash-video.mp4');
 export default function LandingScreen() {
     const [lang, setLang] = useState<'en' | 'ar'>(getLocale());
 
-    function toggleLanguage() {
-        const next = lang === 'en' ? 'ar' : 'en';
+    async function switchLanguage(target: 'en' | 'ar') {
+        if (target === lang) return;
+
+        async function doSwitch() {
+            setLang(target);
+            await setLocale(target);
+            try {
+                const Updates = require('expo-updates');
+                await Updates.reloadAsync();
+            } catch {
+                if (Platform.OS === 'web') {
+                    (globalThis as any).location?.reload();
+                } else {
+                    router.replace('/(auth)/landing');
+                }
+            }
+        }
+
+        // On web, switch immediately (Alert doesn't work well on web)
+        if (Platform.OS === 'web') {
+            await doSwitch();
+            return;
+        }
+
         Alert.alert(
-            next === 'ar' ? 'تغيير اللغة' : 'Change Language',
-            next === 'ar'
+            target === 'ar' ? 'تغيير اللغة' : 'Change Language',
+            target === 'ar'
                 ? 'سيتم إعادة تشغيل التطبيق لتطبيق اللغة العربية.'
                 : 'The app will restart to apply English.',
             [
                 { text: t('common.cancel'), style: 'cancel' },
-                {
-                    text: next === 'ar' ? 'تغيير' : 'Change',
-                    onPress: async () => {
-                        setLang(next);
-                        await setLocale(next);
-                        try {
-                            const Updates = require('expo-updates');
-                            await Updates.reloadAsync();
-                        } catch {
-                            if (Platform.OS === 'web') {
-                                (globalThis as any).location?.reload();
-                            } else {
-                                router.replace('/(auth)/landing');
-                            }
-                        }
-                    },
-                },
+                { text: target === 'ar' ? 'تغيير' : 'Change', onPress: doSwitch },
             ]
         );
     }
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Language Toggle */}
-            <TouchableOpacity style={styles.langToggle} onPress={toggleLanguage}>
-                <Text style={styles.langToggleText}>
-                    {lang === 'ar' ? '🇬🇧 English' : '🇸🇦 العربية'}
-                </Text>
-            </TouchableOpacity>
+            {/* Header — logo centered, flag toggle top-right */}
+            <View style={styles.header}>
+                <Image
+                    source={titleLogoSource}
+                    style={styles.headerLogo}
+                    resizeMode="contain"
+                />
+                <TouchableOpacity
+                    style={styles.flagButton}
+                    onPress={() => switchLanguage(lang === 'en' ? 'ar' : 'en')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.flagEmoji}>{lang === 'en' ? '🇸🇦' : '🇬🇧'}</Text>
+                </TouchableOpacity>
+            </View>
 
             <ScrollView
                 contentContainerStyle={styles.scroll}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Logo & Tagline */}
+                {/* Tagline */}
                 <View style={styles.hero}>
-                    <Image
-                        source={titleLogoSource}
-                        style={styles.titleLogo}
-                        resizeMode="contain"
-                    />
                     <Text style={styles.tagline}>{t('landing.tagline')}</Text>
                 </View>
 
@@ -134,21 +145,31 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.bgPrimary,
     },
-    langToggle: {
+    header: {
+        alignItems: 'center',
+        paddingTop: spacing.xl,
+        paddingBottom: spacing.md,
+        position: 'relative',
+    },
+    headerLogo: {
+        width: 200,
+        height: 55,
+    },
+    flagButton: {
         position: 'absolute',
-        top: spacing['3xl'],
-        right: spacing.xl,
-        zIndex: 10,
+        top: spacing.lg,
+        right: spacing.lg,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: colors.bgCard,
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.sm,
-        borderRadius: radius.full,
         borderWidth: 1,
         borderColor: colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    langToggleText: {
-        ...typography.buttonSm,
-        color: colors.textPrimary,
+    flagEmoji: {
+        fontSize: 18,
     },
     scroll: {
         paddingHorizontal: spacing.xl,
@@ -156,12 +177,8 @@ const styles = StyleSheet.create({
     },
     hero: {
         alignItems: 'center',
-        paddingTop: spacing['4xl'],
+        paddingTop: spacing.xl,
         paddingBottom: spacing['3xl'],
-    },
-    titleLogo: {
-        width: 220,
-        height: 60,
     },
     tagline: {
         ...typography.bodyLg,

@@ -93,9 +93,9 @@ export default function TokensPage() {
     return (
         <>
             <Header title="Token Management" subtitle="Track transactions & manage token economy" />
-            <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-6">
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <StatCard icon={Coins} value={String(totalCount)} label="Total Transactions" iconColor="text-gold" iconBg="bg-gold-faded" />
                     <StatCard icon={ArrowUpRight} value={String(purchased)} label="Purchased (loaded)" iconColor="text-success" iconBg="bg-success-faded" />
                     <StatCard icon={ArrowDownRight} value={String(spent)} label="Spent (loaded)" iconColor="text-error" iconBg="bg-error-faded" />
@@ -103,7 +103,7 @@ export default function TokensPage() {
                 </div>
 
                 {/* Grant Tokens Action */}
-                <div className="glass rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="glass rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
                         <h3 className="text-lg font-bold text-text-primary">Admin Actions</h3>
                         <p className="text-sm text-text-muted mt-1">Grant tokens or process refunds for users</p>

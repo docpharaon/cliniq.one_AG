@@ -83,21 +83,21 @@ export default function SchedulePage() {
         <>
             <Header title="My Schedule" subtitle="View your shift schedule and availability" />
 
-            <div className="p-8 max-w-[1200px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-4 md:space-y-6">
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3 md:gap-4">
                     <StatCard icon={CalendarDays} value={schedules.length} label="Total Slots" />
                     <StatCard icon={CheckCircle} value={activeSlots} label="Active Slots" iconColor="text-success" iconBg="bg-success-faded" />
                     <StatCard icon={Clock} value={nextShiftLabel} label="Next Shift" iconColor="text-info" iconBg="bg-info-faded" />
                 </div>
 
                 {/* Schedule Table */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
+                    <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
-                            <h2 className="text-xl font-bold text-text-primary">Schedule Overview</h2>
-                            <p className="text-sm text-text-muted mt-0.5">
-                                {schedules.length} schedule slots • Contact admin to modify
+                            <h2 className="text-lg md:text-xl font-bold text-text-primary">Schedule Overview</h2>
+                            <p className="text-xs md:text-sm text-text-muted mt-0.5">
+                                {schedules.length} slots • Contact admin to modify
                             </p>
                         </div>
                     </div>
@@ -113,51 +113,76 @@ export default function SchedulePage() {
                             <p className="text-xs mt-1">Contact admin to set up your schedule</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-separate" style={{ borderSpacing: '0 6px' }}>
-                                <thead>
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated rounded-l-xl">Day</th>
-                                        <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Shift</th>
-                                        <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Daily Limit</th>
-                                        <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated rounded-r-xl">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {schedules.map((slot: any) => (
-                                        <tr key={slot.id} className="group">
-                                            <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-l-xl">
-                                                <span className="text-accent font-semibold">{DAYS[slot.day_of_week]}</span>
-                                            </td>
-                                            <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
-                                                <div className="flex items-center gap-2">
-                                                    <Clock className="w-3.5 h-3.5 text-text-muted" />
-                                                    <span className="text-text-primary">
-                                                        {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
-                                                <span className="text-gold font-semibold">{slot.daily_limit}/day</span>
-                                            </td>
-                                            <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-r-xl">
+                        <>
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-3">
+                                {schedules.map((slot: any) => (
+                                    <div key={slot.id} className="bg-bg-card border border-border rounded-2xl p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-accent font-semibold text-sm">{DAYS[slot.day_of_week]}</span>
+                                            <span data-small-touch>
                                                 <StatusBadge
                                                     label={slot.is_active ? 'Active' : 'Inactive'}
                                                     variant={slot.is_active ? 'success' : 'neutral'}
                                                 />
-                                            </td>
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm text-text-primary">
+                                            <Clock className="w-3.5 h-3.5 text-text-muted" />
+                                            {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
+                                        </div>
+                                        <p className="text-xs text-gold font-semibold mt-1">{slot.daily_limit} cases/day</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full border-separate" style={{ borderSpacing: '0 6px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated rounded-l-xl">Day</th>
+                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Shift</th>
+                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated">Daily Limit</th>
+                                            <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-semibold text-text-secondary bg-bg-elevated rounded-r-xl">Status</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {schedules.map((slot: any) => (
+                                            <tr key={slot.id} className="group">
+                                                <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-l-xl">
+                                                    <span className="text-accent font-semibold">{DAYS[slot.day_of_week]}</span>
+                                                </td>
+                                                <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="w-3.5 h-3.5 text-text-muted" />
+                                                        <span className="text-text-primary">
+                                                            {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors">
+                                                    <span className="text-gold font-semibold">{slot.daily_limit}/day</span>
+                                                </td>
+                                                <td className="px-4 py-4 text-sm bg-bg-card group-hover:bg-bg-elevated transition-colors rounded-r-xl">
+                                                    <StatusBadge
+                                                        label={slot.is_active ? 'Active' : 'Inactive'}
+                                                        variant={slot.is_active ? 'success' : 'neutral'}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
                     )}
                 </div>
 
                 {/* Weekly View */}
-                <div className="glass rounded-2xl p-6 animate-fade-in">
+                <div className="glass rounded-2xl p-4 md:p-6 animate-fade-in">
                     <h3 className="text-lg font-bold text-text-primary mb-4">Weekly Overview</h3>
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-1.5 md:gap-2">
                         {DAYS.map((day, index) => {
                             const daySlots = schedules.filter(s => s.day_of_week === index);
                             const hasActive = daySlots.some(s => s.is_active);

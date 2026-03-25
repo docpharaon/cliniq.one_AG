@@ -110,16 +110,16 @@ export default function ProfilePage() {
         <>
             <Header title="Profile" subtitle="Manage your professional information" />
 
-            <div className="p-8 max-w-[900px] mx-auto space-y-6">
+            <div className="p-4 md:p-8 max-w-[900px] mx-auto space-y-4 md:space-y-6">
                 {/* Profile Card */}
-                <div className="glass rounded-2xl p-8 animate-fade-in">
-                    <div className="flex items-start justify-between mb-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent to-purple flex items-center justify-center text-3xl font-bold text-white">
+                <div className="glass rounded-2xl p-4 md:p-8 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 md:mb-8">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-accent to-purple flex items-center justify-center text-2xl md:text-3xl font-bold text-white">
                                 {(displayName || fullName)?.charAt(0) || 'D'}
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-text-primary">{displayName || fullName || 'Doctor'}</h2>
+                                <h2 className="text-xl md:text-2xl font-bold text-text-primary">{displayName || fullName || 'Doctor'}</h2>
                                 {fullName && displayName && fullName !== displayName && (
                                     <p className="text-sm text-text-secondary">{fullName}</p>
                                 )}

@@ -178,6 +178,29 @@ body {
   animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ─── Mobile Utilities ─── */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Responsive touch targets - minimum 44px on mobile */
+@media (max-width: 767px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Exception for inline badges and small UI elements */
+  .badge, [data-small-touch] {
+    min-height: auto;
+    min-width: auto;
+  }
+}
+
 /* ─── Glass Effect ─── */
 .glass {
   background: rgba(30, 41, 59, 0.6);
