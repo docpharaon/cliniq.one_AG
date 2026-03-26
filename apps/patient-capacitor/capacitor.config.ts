@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: '../patient/dist',
   server: {
     androidScheme: 'https',
+    iosScheme: 'https',
   },
   android: {
     buildOptions: {
@@ -14,6 +15,12 @@ const config: CapacitorConfig = {
     // Allow viewport to adapt to device screen
     allowMixedContent: true,
     backgroundColor: '#0A0E1A',
+  },
+  ios: {
+    scheme: 'App',
+    backgroundColor: '#0A0E1A',
+    contentInset: 'automatic',
+    preferredContentMode: 'mobile',
   },
   plugins: {
     SplashScreen: {

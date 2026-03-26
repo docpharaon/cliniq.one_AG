@@ -7,6 +7,7 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://cliniq-one-ag-locum.vercel.app',
     androidScheme: 'https',
+    iosScheme: 'https',
     cleartext: false,
   },
   android: {
@@ -15,6 +16,12 @@ const config: CapacitorConfig = {
     },
     allowMixedContent: true,
     backgroundColor: '#0A0E1A',
+  },
+  ios: {
+    scheme: 'App',
+    backgroundColor: '#0A0E1A',
+    contentInset: 'automatic',
+    preferredContentMode: 'mobile',
   },
   plugins: {
     SplashScreen: {
