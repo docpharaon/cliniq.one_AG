@@ -37,6 +37,10 @@ workflows:
           cd apps/doctor-capacitor
           npx cap add ios || true
           npx cap sync ios
+      - name: Install CocoaPods
+        script: |
+          cd apps/doctor-capacitor/ios/App
+          pod install --repo-update
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -49,12 +53,6 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain initialize
-          app-store-connect certificates list \
-            --type IOS_DISTRIBUTION \
-            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
-            2>/dev/null || app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --save
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
@@ -71,7 +69,7 @@ workflows:
               --scheme "App"
           fi
     artifacts:
-      - apps/doctor-capacitor/build/ios/ipa/*.ipa
+      - apps/doctor-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
@@ -117,6 +115,10 @@ workflows:
           cd apps/admin-capacitor
           npx cap add ios || true
           npx cap sync ios
+      - name: Install CocoaPods
+        script: |
+          cd apps/admin-capacitor/ios/App
+          pod install --repo-update
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -129,12 +131,6 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain initialize
-          app-store-connect certificates list \
-            --type IOS_DISTRIBUTION \
-            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
-            2>/dev/null || app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --save
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
@@ -150,7 +146,7 @@ workflows:
               --scheme "App"
           fi
     artifacts:
-      - apps/admin-capacitor/build/ios/ipa/*.ipa
+      - apps/admin-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
@@ -198,6 +194,10 @@ workflows:
           cd apps/patient-capacitor
           npx cap add ios || true
           npx cap sync ios
+      - name: Install CocoaPods
+        script: |
+          cd apps/patient-capacitor/ios/App
+          pod install --repo-update
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -210,12 +210,6 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain initialize
-          app-store-connect certificates list \
-            --type IOS_DISTRIBUTION \
-            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
-            2>/dev/null || app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --save
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
@@ -231,7 +225,7 @@ workflows:
               --scheme "App"
           fi
     artifacts:
-      - apps/patient-capacitor/build/ios/ipa/*.ipa
+      - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
@@ -277,6 +271,10 @@ workflows:
           cd apps/locum-capacitor
           npx cap add ios || true
           npx cap sync ios
+      - name: Install CocoaPods
+        script: |
+          cd apps/locum-capacitor/ios/App
+          pod install --repo-update
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -289,12 +287,6 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain initialize
-          app-store-connect certificates list \
-            --type IOS_DISTRIBUTION \
-            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
-            2>/dev/null || app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --save
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
@@ -310,7 +302,7 @@ workflows:
               --scheme "App"
           fi
     artifacts:
-      - apps/locum-capacitor/build/ios/ipa/*.ipa
+      - apps/locum-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
