@@ -17,7 +17,7 @@ workflows:
     environment:
       xcode: latest
       node: 22
-      cocoapods: default
+
       groups:
         - supabase_credentials
     triggering:
@@ -39,10 +39,7 @@ workflows:
           cd apps/doctor-capacitor
           npx cap add ios || true
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/doctor-capacitor/ios/App
-          pod install
+
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.doctor" \
@@ -105,10 +102,7 @@ workflows:
           cd apps/admin-capacitor
           npx cap add ios || true
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/admin-capacitor/ios/App
-          pod install
+
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.admin" \
@@ -171,10 +165,7 @@ workflows:
           cd apps/patient-capacitor
           npx cap add ios || true
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/patient-capacitor/ios/App
-          pod install
+
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
@@ -237,10 +228,7 @@ workflows:
           cd apps/locum-capacitor
           npx cap add ios || true
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/locum-capacitor/ios/App
-          pod install
+
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.locum" \
