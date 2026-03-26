@@ -159,7 +159,7 @@ workflows:
         beta_groups:
           - Cliniq Testers
       slack:
-        channel: '#general'
+        channel: '#new-channel'
         notify_on_build_start: true
         notify:
           success: true
@@ -240,7 +240,7 @@ workflows:
         beta_groups:
           - Cliniq Testers
       slack:
-        channel: '#general'
+        channel: '#new-channel'
         notify_on_build_start: true
         notify:
           success: true
