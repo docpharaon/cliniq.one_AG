@@ -2,17 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
-
-function Particle() {
-    const style = {
-        left: `${Math.random() * 100}%`,
-        animationDuration: `${8 + Math.random() * 12}s`,
-        animationDelay: `${Math.random() * 8}s`,
-        width: `${2 + Math.random() * 3}px`,
-        height: `${2 + Math.random() * 3}px`,
-    };
-    return <div className="particle" style={style} />;
-}
+import { Shield, Globe, FileText, UserCheck } from 'lucide-react';
 
 export default function Hero() {
     const { t } = useI18n();
@@ -26,26 +16,34 @@ export default function Hero() {
         { val: 'hero.stat4_val', label: 'hero.stat4_label' },
     ];
 
+    const trustBadges = [
+        { icon: UserCheck, label: 'hero.trust_doctors' },
+        { icon: Globe, label: 'hero.trust_bilingual' },
+        { icon: FileText, label: 'hero.trust_prescription' },
+        { icon: Shield, label: 'hero.trust_privacy' },
+    ];
+
     return (
-        <section className="relative min-h-screen flex items-center hero-gradient overflow-hidden pt-24 pb-16">
+        <section className="relative min-h-screen flex items-center bg-white overflow-hidden pt-24 pb-16">
+            {/* Subtle background pattern */}
             <div className="absolute inset-0 pointer-events-none">
-                {mounted && Array.from({ length: 20 }).map((_, i) => <Particle key={i} />)}
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-accent/[0.03] rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-faded rounded-full blur-3xl translate-y-1/4 -translate-x-1/4" />
             </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-accent/5 rounded-full animate-spin-slow" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-accent/[0.03] rounded-full animate-spin-slow" style={{ animationDirection: 'reverse', animationDuration: '30s' }} />
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-                <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+                <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                    {/* Text Content */}
                     <div className="text-center lg:text-start">
-                        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-faded border border-accent/10 mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                            <span className="text-sm text-text-secondary">{t('hero.badge')}</span>
+                            <span className="text-sm text-accent font-medium">{t('hero.badge')}</span>
                         </div>
 
-                        <h1 className={`text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-6 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                            <span className="text-text-primary">{t('hero.h1_1')}</span><br />
+                        <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                            <span className="text-navy">{t('hero.h1_1')}</span><br />
                             <span className="gradient-text">{t('hero.h1_2')}</span><br />
-                            <span className="text-text-primary">{t('hero.h1_3')}</span>
+                            <span className="text-navy">{t('hero.h1_3')}</span>
                         </h1>
 
                         <p className={`text-lg text-text-secondary max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
@@ -53,44 +51,76 @@ export default function Hero() {
                         </p>
 
                         <div className={`flex flex-col sm:flex-row items-center lg:items-start gap-4 mb-10 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                            <a href="#download" className="px-8 py-4 bg-accent hover:bg-accent-dark text-bg-primary font-bold rounded-full text-lg transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] flex items-center gap-2">
-                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 2h14v2H5v-2z"/></svg>
-                                {t('hero.download')}
-                            </a>
-                            <a href="#tester-signup" className="px-8 py-4 border border-accent/30 hover:border-accent text-accent font-semibold rounded-full text-lg transition-all hover:bg-accent/5 flex items-center gap-2">
-                                {t('hero.tester')}
+                            <a href="#tester-signup" className="px-8 py-4 bg-accent hover:bg-accent-dark text-white font-bold rounded-full text-lg transition-all hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-2">
+                                {t('hero.cta_primary')}
                                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                            <a href="#how-it-works" className="px-8 py-4 border border-border hover:border-accent/30 text-text-secondary hover:text-accent font-semibold rounded-full text-lg transition-all flex items-center gap-2">
+                                {t('hero.cta_secondary')}
                             </a>
                         </div>
 
-                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                        {/* Trust Badges */}
+                        <div className={`flex flex-wrap justify-center lg:justify-start gap-3 mb-8 transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                            {trustBadges.map((badge) => {
+                                const Icon = badge.icon;
+                                return (
+                                    <div key={badge.label} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-secondary border border-border text-xs font-medium text-text-secondary">
+                                        <Icon size={14} className="text-accent" />
+                                        {t(badge.label)}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Healthcare Stats */}
+                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 transition-all duration-700 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                             {stats.map((s) => (
-                                <div key={s.val} className="glass rounded-xl p-3 text-center">
-                                    <div className="text-xl font-bold gradient-text">{t(s.val)}</div>
+                                <div key={s.val} className="card-shadow rounded-xl p-3 text-center">
+                                    <div className="text-xl font-bold text-accent">{t(s.val)}</div>
                                     <div className="text-[11px] text-text-muted mt-0.5">{t(s.label)}</div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className={`relative flex items-center justify-center transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'}`}>
-                        <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-blue/10 to-purple/10 rounded-full blur-3xl scale-75" />
-                        <div className="relative animate-float">
-                            <img src="/hero-mockup.png" alt="cliniq.one AI Medical Consultation" className="w-full max-w-md mx-auto drop-shadow-2xl" />
-                            <div className="absolute -top-4 -right-4 sm:top-2 sm:right-0 glass-strong rounded-2xl p-3 animate-pulse-glow">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">🤖</span>
-                                    <div>
-                                        <div className="text-xs font-bold text-accent">{t('hero.gpt_title')}</div>
-                                        <div className="text-[10px] text-text-muted">{t('hero.gpt_sub')}</div>
+                    {/* Doctor Images */}
+                    <div className={`relative flex flex-col items-center justify-center gap-6 transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'}`}>
+                        {/* Brand Logo */}
+                        <img
+                            src="/cliniq-logo-full.png"
+                            alt="Cliniq.One — عيادتك الأولية"
+                            className="w-64 sm:w-72 h-auto object-contain"
+                        />
+
+                        <div className="relative w-full max-w-lg mx-auto">
+                            {/* Main doctor image */}
+                            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-border/50">
+                                <img
+                                    src="/doctors-team.jpg"
+                                    alt="Licensed doctors at cliniq.one"
+                                    className="w-full h-[420px] sm:h-[480px] object-cover object-top"
+                                />
+                                {/* Overlay badge */}
+                                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-border/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-accent-faded flex items-center justify-center">
+                                            <UserCheck size={20} className="text-accent" />
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-bold text-navy">{t('hero.overlay_title')}</div>
+                                            <div className="text-xs text-text-muted">{t('hero.overlay_sub')}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="absolute -bottom-2 -left-4 sm:bottom-8 sm:left-0 glass-strong rounded-2xl p-3">
+
+                            {/* Safety badge */}
+                            <div className="absolute -top-3 -right-3 sm:top-4 sm:-right-6 bg-white rounded-2xl p-3 shadow-lg border border-border/50">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xl">🛡️</span>
+                                    <Shield size={20} className="text-accent" />
                                     <div>
-                                        <div className="text-xs font-bold text-text-primary">{t('hero.safety_title')}</div>
+                                        <div className="text-xs font-bold text-navy">{t('hero.safety_title')}</div>
                                         <div className="text-[10px] text-text-muted">{t('hero.safety_sub')}</div>
                                     </div>
                                 </div>
@@ -99,8 +129,6 @@ export default function Hero() {
                     </div>
                 </div>
             </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-bg-primary to-transparent" />
         </section>
     );
 }

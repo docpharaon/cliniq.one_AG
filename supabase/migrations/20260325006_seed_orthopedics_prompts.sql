@@ -4,6 +4,41 @@
 -- and registers them in a new prompt sequence: "Orthopedics Intake Flow"
 -- ══════════════════════════════════════════════════════════════════
 
+-- Ensure prerequisite tables exist (idempotent)
+CREATE TABLE IF NOT EXISTS public.ai_prompts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    specialty TEXT NOT NULL DEFAULT 'general',
+    prompt_type TEXT NOT NULL DEFAULT 'system',
+    content TEXT NOT NULL DEFAULT '',
+    is_active BOOLEAN DEFAULT true,
+    version INT DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.prompt_sequences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.prompt_sequence_nodes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sequence_id UUID NOT NULL REFERENCES public.prompt_sequences(id) ON DELETE CASCADE,
+    step_key TEXT NOT NULL,
+    label TEXT NOT NULL,
+    emoji TEXT DEFAULT '📋',
+    prompt_id UUID REFERENCES public.ai_prompts(id) ON DELETE SET NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    parent_node_id UUID REFERENCES public.prompt_sequence_nodes(id) ON DELETE SET NULL,
+    pathway_condition TEXT,
+    gender_condition TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 
 -- ═══════════════════════════════════════════════════
 -- ORTHOPEDICS GREETING — Warm, body-pain-sensitive

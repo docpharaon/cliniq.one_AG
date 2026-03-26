@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
+import { MessageSquare, ClipboardCheck, ArrowRightLeft, UserCheck } from 'lucide-react';
 
 export default function HowItWorks() {
     const { t } = useI18n();
@@ -8,17 +9,14 @@ export default function HowItWorks() {
     const steps = [
         {
             num: '01',
-            emoji: '💬',
+            icon: MessageSquare,
             title: 'how.s1_title',
             desc: 'how.s1_desc',
             detail: 'how.s1_detail',
-            color: 'from-teal-500/20 to-teal-500/5',
-            borderColor: 'border-teal-500/30',
-            dotColor: 'bg-teal-400',
             illustration: (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-bg-tertiary/50 border border-border text-sm">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-bg-tertiary border border-border text-sm">
                     <span className="text-accent">●</span>
-                    <span className="text-text-muted">
+                    <span className="text-text-muted italic text-xs">
                         &quot;I have a rash on my arm and headache since yesterday...&quot;
                     </span>
                 </div>
@@ -26,18 +24,15 @@ export default function HowItWorks() {
         },
         {
             num: '02',
-            emoji: '🤖',
+            icon: ClipboardCheck,
             title: 'how.s2_title',
             desc: 'how.s2_desc',
             detail: 'how.s2_detail',
-            color: 'from-blue-500/20 to-blue-500/5',
-            borderColor: 'border-blue-500/30',
-            dotColor: 'bg-blue-400',
             illustration: (
                 <div className="space-y-2">
                     {['History of Present Illness', 'Review of Systems', 'Medications & Allergies'].map((label, i) => (
                         <div key={label} className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${i < 2 ? 'border-accent text-accent bg-accent/10' : 'border-text-muted text-text-muted'}`}>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${i < 2 ? 'border-accent text-accent bg-accent-faded' : 'border-text-muted text-text-muted'}`}>
                                 {i < 2 ? '✓' : ' '}
                             </div>
                             <span className={`text-xs ${i < 2 ? 'text-text-secondary' : 'text-text-muted'}`}>{label}</span>
@@ -48,17 +43,14 @@ export default function HowItWorks() {
         },
         {
             num: '03',
-            emoji: '🔀',
+            icon: ArrowRightLeft,
             title: 'how.s3_title',
             desc: 'how.s3_desc',
             detail: 'how.s3_detail',
-            color: 'from-purple-500/20 to-purple-500/5',
-            borderColor: 'border-purple/30',
-            dotColor: 'bg-purple',
             illustration: (
                 <div className="flex items-center gap-2 flex-wrap">
                     {['Dermatology', 'Family Medicine'].map((spec) => (
-                        <span key={spec} className="px-3 py-1.5 rounded-lg bg-purple-faded text-purple text-xs font-medium border border-purple/20">
+                        <span key={spec} className="px-3 py-1.5 rounded-lg bg-accent-faded text-accent text-xs font-medium border border-accent/10">
                             {spec}
                         </span>
                     ))}
@@ -68,13 +60,10 @@ export default function HowItWorks() {
         },
         {
             num: '04',
-            emoji: '👨‍⚕️',
+            icon: UserCheck,
             title: 'how.s4_title',
             desc: 'how.s4_desc',
             detail: 'how.s4_detail',
-            color: 'from-emerald-500/20 to-emerald-500/5',
-            borderColor: 'border-emerald-500/30',
-            dotColor: 'bg-emerald-400',
             illustration: (
                 <div className="space-y-1.5">
                     {['📋 Diagnosis', '💊 Treatment Plan', '📝 e-Prescription'].map((item) => (
@@ -88,61 +77,45 @@ export default function HowItWorks() {
     ];
 
     return (
-        <section id="how-it-works" className="py-24 sm:py-32 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/[0.02] to-transparent pointer-events-none" />
-            <div className="max-w-6xl mx-auto px-6 relative z-10">
+        <section id="how-it-works" className="py-24 sm:py-32 section-alt">
+            <div className="max-w-6xl mx-auto px-6">
                 <div className="text-center mb-20 reveal">
-                    <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-blue-faded text-blue mb-4">{t('how.tag')}</span>
-                    <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+                    <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-blue-faded text-blue border border-blue/10 mb-4">{t('how.tag')}</span>
+                    <h2 className="text-4xl sm:text-5xl font-bold text-navy mb-4">
                         {t('how.h2_1')} <span className="gradient-text">cliniq.one</span> {t('how.h2_2')}
                     </h2>
                     <p className="text-text-secondary max-w-xl mx-auto">{t('how.sub')}</p>
                 </div>
 
-                <div className="relative">
-                    {/* Vertical timeline line */}
-                    <div className="absolute left-6 sm:left-1/2 sm:-translate-x-px top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-500/40 via-blue-500/40 via-50% to-emerald-500/40 hidden sm:block" />
+                {/* Steps grid */}
+                <div className="grid sm:grid-cols-2 gap-6">
+                    {steps.map((step) => {
+                        const Icon = step.icon;
+                        return (
+                            <div key={step.num} className="reveal card-shadow-hover rounded-2xl p-7 sm:p-8 relative overflow-hidden">
+                                {/* Step number watermark */}
+                                <div className="absolute top-4 right-6 text-6xl font-black text-accent/[0.06] select-none">{step.num}</div>
 
-                    <div className="space-y-8 sm:space-y-16">
-                        {steps.map((step, i) => (
-                            <div key={step.num} className={`reveal flex flex-col sm:flex-row items-start gap-6 sm:gap-10 ${i % 2 === 1 ? 'sm:flex-row-reverse' : ''}`}>
-                                <div className="flex-1 sm:w-1/2">
-                                    <div className={`glass-strong rounded-2xl p-7 sm:p-8 hover:glow-teal transition-all duration-500 relative overflow-hidden`}>
-                                        {/* Gradient accent bar at top */}
-                                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${step.color}`} />
-
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <span className="text-3xl">{step.emoji}</span>
-                                            <div>
-                                                <span className="text-accent font-mono text-sm">{t('how.step')} {step.num}</span>
-                                                <h3 className="text-xl font-bold">{t(step.title)}</h3>
-                                            </div>
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-accent-faded flex items-center justify-center">
+                                            <Icon size={22} className="text-accent" />
                                         </div>
-                                        <p className="text-text-secondary mb-3 leading-relaxed">{t(step.desc)}</p>
-                                        <p className="text-text-muted text-sm italic mb-5">{t(step.detail)}</p>
-
-                                        {/* Visual illustration */}
-                                        <div className={`mt-4 pt-4 border-t border-border/50`}>
-                                            {step.illustration}
+                                        <div>
+                                            <span className="text-accent font-semibold text-sm">{t('how.step')} {step.num}</span>
+                                            <h3 className="text-lg font-bold text-navy">{t(step.title)}</h3>
                                         </div>
                                     </div>
-                                </div>
+                                    <p className="text-text-secondary mb-3 leading-relaxed text-sm">{t(step.desc)}</p>
+                                    <p className="text-text-muted text-xs italic mb-5">{t(step.detail)}</p>
 
-                                {/* Timeline dot */}
-                                <div className="hidden sm:flex flex-col items-center shrink-0 relative z-10">
-                                    <div className={`w-12 h-12 rounded-full glass-strong flex items-center justify-center shadow-lg border ${step.borderColor}`}>
-                                        <span className="text-accent font-bold text-sm">{step.num}</span>
+                                    <div className="pt-4 border-t border-border">
+                                        {step.illustration}
                                     </div>
-                                    {i < steps.length - 1 && (
-                                        <div className="w-px h-8 bg-gradient-to-b from-accent/20 to-transparent mt-2 sm:hidden" />
-                                    )}
                                 </div>
-
-                                {/* Spacer for alternating layout */}
-                                <div className="hidden sm:block flex-1 sm:w-1/2" />
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
             </div>
         </section>

@@ -13,6 +13,7 @@ env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID_ADMIN: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
   VERCEL_PROJECT_ID_DOCTOR_WEB: ${{ secrets.VERCEL_PROJECT_ID_DOCTOR_WEB }}
+  VERCEL_PROJECT_ID_LOCUM_WEB: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
 
 jobs:
   deploy-supabase:
@@ -75,6 +76,35 @@ jobs:
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: apps/doctor-web
 
+  deploy-locum-web:
+    name: Deploy Locum Web
+    needs: deploy-supabase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+      - name: Pull Vercel env
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/doctor-web
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/doctor-web
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/doctor-web
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
+
   deploy-edge-functions:
     name: Deploy Edge Functions
     needs: deploy-supabase
@@ -87,9 +117,11 @@ jobs:
       - name: Deploy all edge functions
         run: |
           supabase functions deploy ai-intake --linked
+          supabase functions deploy approve-tester --linked
           supabase functions deploy delete-account --linked
           supabase functions deploy kyc-token --linked
           supabase functions deploy kyc-webhook --linked
+          supabase functions deploy register-tester --linked
           supabase functions deploy send-notification --linked
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -9,10 +9,9 @@ export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
 
     const NAV_LINKS = [
-        { key: 'nav.about', href: '#about' },
+        { key: 'nav.doctors', href: '#doctors' },
         { key: 'nav.howItWorks', href: '#how-it-works' },
-        { key: 'nav.availability', href: '#app-availability' },
-        { key: 'nav.story', href: '#story' },
+        { key: 'nav.about', href: '#about' },
         { key: 'nav.safety', href: '#safety' },
         { key: 'nav.download', href: '#download' },
     ];
@@ -26,39 +25,39 @@ export default function Header() {
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                scrolled ? 'glass-strong py-3' : 'bg-transparent py-5'
+                scrolled ? 'header-scrolled py-3' : 'bg-white/80 backdrop-blur-sm py-5'
             }`}
         >
             <nav className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 {/* Logo */}
                 <a href="#" className="flex items-center gap-2.5 group">
-                    <img src="/cliniq-logo.png" alt="cliniq.one" className="h-9 w-9 object-contain group-hover:scale-110 transition-transform" />
+                    <img src="/cliniq-logo.png" alt="cliniq.one" className="h-9 w-9 object-contain group-hover:scale-105 transition-transform" />
                     <span className="text-xl font-bold">
                         <span className="text-accent">cliniq</span>
-                        <span className="text-text-primary">.one</span>
+                        <span className="text-navy">.one</span>
                     </span>
                 </a>
 
                 {/* Desktop Nav */}
                 <div className="hidden md:flex items-center gap-8">
                     {NAV_LINKS.map((link) => (
-                        <a key={link.href} href={link.href} className="text-sm text-text-secondary hover:text-accent transition-colors">
+                        <a key={link.href} href={link.href} className="text-sm text-text-secondary hover:text-accent transition-colors font-medium">
                             {t(link.key)}
                         </a>
                     ))}
                     {/* Language toggle */}
                     <button
                         onClick={toggleLocale}
-                        className="px-3 py-1.5 rounded-full glass text-sm font-medium text-accent hover:bg-accent/10 transition-all"
+                        className="px-3 py-1.5 rounded-full border border-border text-sm font-medium text-text-secondary hover:text-accent hover:border-accent/30 transition-all"
                         aria-label="Toggle language"
                     >
                         {locale === 'en' ? 'العربية' : 'English'}
                     </button>
                     <a
                         href="#tester-signup"
-                        className="px-5 py-2.5 bg-accent hover:bg-accent-dark text-bg-primary font-semibold text-sm rounded-full transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(45,212,191,0.3)]"
+                        className="px-5 py-2.5 bg-accent hover:bg-accent-dark text-white font-semibold text-sm rounded-full transition-all hover:scale-105 shadow-sm"
                     >
-                        {t('nav.tester')}
+                        {t('nav.consultation')}
                     </a>
                 </div>
 
@@ -72,21 +71,21 @@ export default function Header() {
 
             {/* Mobile Menu */}
             {menuOpen && (
-                <div className="md:hidden glass-strong mt-2 mx-4 rounded-2xl p-6 animate-fade-in-down">
+                <div className="md:hidden mobile-menu mt-2 mx-4 rounded-2xl p-6 animate-fade-in-down">
                     <div className="flex flex-col gap-4">
                         {NAV_LINKS.map((link) => (
-                            <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)} className="text-text-secondary hover:text-accent transition-colors py-2">
+                            <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)} className="text-text-secondary hover:text-accent transition-colors py-2 font-medium">
                                 {t(link.key)}
                             </a>
                         ))}
                         <button
                             onClick={() => { toggleLocale(); setMenuOpen(false); }}
-                            className="text-start text-accent py-2"
+                            className="text-start text-accent py-2 font-medium"
                         >
                             {locale === 'en' ? '🌐 العربية' : '🌐 English'}
                         </button>
-                        <a href="#tester-signup" onClick={() => setMenuOpen(false)} className="mt-2 px-5 py-3 bg-accent text-bg-primary font-semibold text-center rounded-full">
-                            {t('nav.tester')}
+                        <a href="#tester-signup" onClick={() => setMenuOpen(false)} className="mt-2 px-5 py-3 bg-accent text-white font-semibold text-center rounded-full shadow-sm">
+                            {t('nav.consultation')}
                         </a>
                     </div>
                 </div>

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'cliniq.one Locum',
   webDir: 'www',
   server: {
-    url: 'https://cliniq-one-ag-doctor.vercel.app',
+    url: 'https://cliniq-one-ag-locum.vercel.app',
     androidScheme: 'https',
     cleartext: false,
   },

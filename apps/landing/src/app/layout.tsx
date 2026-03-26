@@ -9,13 +9,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-    title: 'cliniq.one — AI-Powered Telemedicine for the GCC',
+    title: 'cliniq.one — Online Medical Consultations with Licensed Doctors',
     description:
-        'Experience the future of healthcare. cliniq.one connects patients with licensed doctors through AI-driven medical interviews, structured clinical reports, and e-prescriptions — all from your phone.',
+        'Consult licensed doctors online from KSA & UAE. Describe your symptoms, receive a structured medical review, diagnosis, and e-prescription — all from your phone. Arabic & English.',
     openGraph: {
-        title: 'cliniq.one — AI-Powered Telemedicine',
+        title: 'cliniq.one — Online Medical Consultations with Licensed Doctors',
         description:
-            'AI-driven medical intake, licensed doctor consultations, e-prescriptions — all from your phone.',
+            'Consult licensed doctors online. Structured medical reviews, e-prescriptions, and multi-specialty care — safe, bilingual, and privacy-first.',
         type: 'website',
         url: 'https://cliniq.one',
     },

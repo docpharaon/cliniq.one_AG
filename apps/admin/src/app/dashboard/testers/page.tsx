@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardShell from '@/components/DashboardShell';
 import { supabaseAdmin } from '@/lib/supabase';
-import { FlaskConical, Check, X, Loader2, RefreshCw, Mail, ExternalLink, FileText, Linkedin, Phone, ChevronDown, ChevronUp } from 'lucide-react';
+import { FlaskConical, Check, X, Loader2, RefreshCw, Mail, ExternalLink, FileText, Linkedin, Phone, ChevronDown, ChevronUp, Shield, Key, Clock, RotateCw } from 'lucide-react';
 
 interface Tester {
     id: string;
@@ -15,7 +15,7 @@ interface Tester {
     download_token: string;
     reviewed_at: string | null;
     created_at: string;
-    // New fields
+    // Role-specific fields
     country: string | null;
     license_type: string | null;
     license_number: string | null;
@@ -26,10 +26,18 @@ interface Tester {
     organization: string | null;
     preferred_call_time: string | null;
     motivation: string | null;
+    // Credential fields
+    assigned_role: string | null;
+    auth_user_id: string | null;
+    login_email: string | null;
+    credentials_expire_at: string | null;
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const PLATFORM_ROLES = ['Patient', 'Doctor', 'Locum', 'Admin'] as const;
+type PlatformRole = typeof PLATFORM_ROLES[number];
 
 const countryLabel = (code: string | null) => {
     if (code === 'SA') return '🇸🇦 KSA';
@@ -44,6 +52,12 @@ export default function TestersPage() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
+    // Role selection modal state
+    const [approveModal, setApproveModal] = useState<{ tester: Tester; selectedRole: PlatformRole } | null>(null);
+
+    // Current admin role (to gate Admin option)
+    const [currentUserRole, setCurrentUserRole] = useState<string>('admin');
+
     const fetchTesters = useCallback(async () => {
         setLoading(true);
         const supabase = supabaseAdmin;
@@ -56,16 +70,43 @@ export default function TestersPage() {
         setLoading(false);
     }, []);
 
+    // Fetch current user role to determine if superadmin
+    useEffect(() => {
+        (async () => {
+            const supabase = supabaseAdmin;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
+                if (data) setCurrentUserRole(data.role);
+            }
+        })();
+    }, []);
+
     useEffect(() => { fetchTesters(); }, [fetchTesters]);
 
-    const handleAction = async (tester: Tester, action: 'approved' | 'rejected') => {
+    const openApproveModal = (tester: Tester) => {
+        // Default role suggestion based on tester's application role
+        let defaultRole: PlatformRole = 'Patient';
+        if (tester.role === 'Doctor' || tester.role === 'Both') defaultRole = 'Doctor';
+        else if (tester.role === 'Investor') defaultRole = 'Patient'; // Investors get patient access to explore the platform
+        setApproveModal({ tester, selectedRole: defaultRole });
+    };
+
+    const handleApprove = async () => {
+        if (!approveModal) return;
+        const { tester, selectedRole } = approveModal;
+
         setActionLoading(tester.id);
+        setApproveModal(null);
+
         try {
             const supabase = supabaseAdmin;
+
+            // Update status in DB
             const { error } = await supabase
                 .from('tester_signups')
                 .update({
-                    status: action,
+                    status: 'approved',
                     reviewed_at: new Date().toISOString(),
                     reviewed_by: 'admin',
                 })
@@ -73,31 +114,87 @@ export default function TestersPage() {
 
             if (error) throw error;
 
-            // If approving, trigger the approval email via edge function
-            if (action === 'approved') {
-                try {
-                    await fetch(`${SUPABASE_URL}/functions/v1/approve-tester`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                            'apikey': SUPABASE_ANON_KEY,
-                        },
-                        body: JSON.stringify({
-                            tester_id: tester.id,
-                            name: tester.name,
-                            email: tester.email,
-                            download_token: tester.download_token,
-                        }),
-                    });
-                } catch (emailErr) {
-                    console.warn('Approval email failed:', emailErr);
+            // Call approve-tester edge function with assigned_role
+            try {
+                const resp = await fetch(`${SUPABASE_URL}/functions/v1/approve-tester`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
+                    body: JSON.stringify({
+                        tester_id: tester.id,
+                        name: tester.name,
+                        email: tester.email,
+                        download_token: tester.download_token,
+                        assigned_role: selectedRole,
+                    }),
+                });
+
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    console.warn('Approval function error:', errText);
                 }
+            } catch (emailErr) {
+                console.warn('Approval email failed:', emailErr);
             }
 
             await fetchTesters();
         } catch (err) {
-            console.error('Action failed:', err);
+            console.error('Approve action failed:', err);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleReject = async (tester: Tester) => {
+        setActionLoading(tester.id);
+        try {
+            const supabase = supabaseAdmin;
+            const { error } = await supabase
+                .from('tester_signups')
+                .update({
+                    status: 'rejected',
+                    reviewed_at: new Date().toISOString(),
+                    reviewed_by: 'admin',
+                })
+                .eq('id', tester.id);
+
+            if (error) throw error;
+            await fetchTesters();
+        } catch (err) {
+            console.error('Reject action failed:', err);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleResendCredentials = async (tester: Tester) => {
+        if (!tester.assigned_role) return;
+        setActionLoading(tester.id);
+        try {
+            const resp = await fetch(`${SUPABASE_URL}/functions/v1/approve-tester`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'apikey': SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({
+                    tester_id: tester.id,
+                    name: tester.name,
+                    email: tester.email,
+                    download_token: tester.download_token,
+                    assigned_role: tester.assigned_role,
+                }),
+            });
+
+            if (!resp.ok) {
+                console.warn('Resend credentials failed:', await resp.text());
+            }
+        } catch (err) {
+            console.warn('Resend credentials error:', err);
         } finally {
             setActionLoading(null);
         }
@@ -150,6 +247,27 @@ export default function TestersPage() {
                 {emoji[role] || '🧪'} {role}
             </span>
         );
+    };
+
+    const assignedRoleBadge = (role: string | null) => {
+        if (!role) return null;
+        const styles: Record<string, string> = {
+            Patient: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+            Doctor: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+            Locum: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+            Admin: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+        };
+        const emoji: Record<string, string> = { Patient: '🧑‍🤝‍🧑', Doctor: '👨‍⚕️', Locum: '🩺', Admin: '🛡️' };
+        return (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${styles[role] || 'bg-gray-500/15 text-gray-400 border-gray-500/30'}`}>
+                {emoji[role] || '🧪'} {role}
+            </span>
+        );
+    };
+
+    const isCredentialExpired = (expiresAt: string | null) => {
+        if (!expiresAt) return false;
+        return new Date(expiresAt) < new Date();
     };
 
     const pendingCount = testers.filter(t => t.status === 'pending').length;
@@ -238,7 +356,8 @@ export default function TestersPage() {
                                     <tr className="border-b border-accent/10">
                                         <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Name</th>
                                         <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Email</th>
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Role</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Applied As</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Assigned</th>
                                         <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider hidden md:table-cell">Credentials</th>
                                         <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Date</th>
                                         <th className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
@@ -265,46 +384,33 @@ export default function TestersPage() {
                                                     </a>
                                                 </td>
                                                 <td className="px-5 py-4">{roleBadge(t.role)}</td>
+                                                <td className="px-5 py-4">
+                                                    {t.assigned_role ? assignedRoleBadge(t.assigned_role) : <span className="text-xs text-text-muted">—</span>}
+                                                </td>
                                                 <td className="px-5 py-4 hidden md:table-cell">
                                                     <div className="flex items-center gap-2">
-                                                        {/* Doctor credentials summary */}
-                                                        {(t.role === 'Doctor' || t.role === 'Both') && (
-                                                            <>
-                                                                {t.country && <span className="text-xs text-text-muted">{countryLabel(t.country)}</span>}
-                                                                {t.license_type && <span className="px-1.5 py-0.5 rounded text-[10px] bg-teal-500/10 text-teal-400 border border-teal-500/20">{t.license_type}</span>}
-                                                                {t.credential_file_path && (
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); viewCredential(t); }}
-                                                                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors"
-                                                                    >
-                                                                        <FileText className="w-3 h-3" /> View
-                                                                    </button>
-                                                                )}
-                                                            </>
+                                                        {t.status === 'approved' && t.credentials_expire_at ? (
+                                                            <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border ${isCredentialExpired(t.credentials_expire_at)
+                                                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                                }`}>
+                                                                <Clock className="w-3 h-3" />
+                                                                {isCredentialExpired(t.credentials_expire_at) ? 'Expired' : `Until ${new Date(t.credentials_expire_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`}
+                                                            </span>
+                                                        ) : t.status === 'approved' ? (
+                                                            <span className="text-xs text-text-muted">Legacy</span>
+                                                        ) : (
+                                                            <span className="text-xs text-text-muted">—</span>
                                                         )}
-                                                        {/* Investor summary */}
-                                                        {t.role === 'Investor' && (
-                                                            <>
-                                                                {t.linkedin_url && (
-                                                                    <a
-                                                                        href={t.linkedin_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        onClick={e => e.stopPropagation()}
-                                                                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-                                                                    >
-                                                                        <Linkedin className="w-3 h-3" /> LinkedIn
-                                                                    </a>
-                                                                )}
-                                                                {t.preferred_call_time && (
-                                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                                                        <Phone className="w-3 h-3" /> Call
-                                                                    </span>
-                                                                )}
-                                                            </>
+                                                        {/* Doctor file credentials summary */}
+                                                        {(t.role === 'Doctor' || t.role === 'Both') && t.credential_file_path && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); viewCredential(t); }}
+                                                                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors"
+                                                            >
+                                                                <FileText className="w-3 h-3" /> File
+                                                            </button>
                                                         )}
-                                                        {/* Patient: nothing special in summary */}
-                                                        {t.role === 'Patient' && <span className="text-xs text-text-muted">—</span>}
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-4 text-sm text-text-muted">
@@ -315,7 +421,7 @@ export default function TestersPage() {
                                                     {t.status === 'pending' ? (
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button
-                                                                onClick={() => handleAction(t, 'approved')}
+                                                                onClick={() => openApproveModal(t)}
                                                                 disabled={actionLoading === t.id}
                                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-medium transition-all border border-emerald-500/20 disabled:opacity-50"
                                                             >
@@ -323,13 +429,29 @@ export default function TestersPage() {
                                                                 Approve
                                                             </button>
                                                             <button
-                                                                onClick={() => handleAction(t, 'rejected')}
+                                                                onClick={() => handleReject(t)}
                                                                 disabled={actionLoading === t.id}
                                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-medium transition-all border border-red-500/20 disabled:opacity-50"
                                                             >
                                                                 <X className="w-3.5 h-3.5" />
                                                                 Reject
                                                             </button>
+                                                        </div>
+                                                    ) : t.status === 'approved' ? (
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => handleResendCredentials(t)}
+                                                                disabled={actionLoading === t.id}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent text-xs font-medium transition-all border border-accent/20 disabled:opacity-50"
+                                                            >
+                                                                {actionLoading === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
+                                                                Resend
+                                                            </button>
+                                                            <span className="text-xs text-text-muted">
+                                                                {t.reviewed_at
+                                                                    ? new Date(t.reviewed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                                                                    : '—'}
+                                                            </span>
                                                         </div>
                                                     ) : (
                                                         <span className="text-xs text-text-muted">
@@ -344,10 +466,37 @@ export default function TestersPage() {
                                             {/* ── Expanded Detail Row ── */}
                                             {expandedId === t.id && (
                                                 <tr key={`${t.id}-detail`}>
-                                                    <td colSpan={7} className="px-5 py-4 bg-bg-tertiary/30 border-b border-accent/5">
+                                                    <td colSpan={8} className="px-5 py-4 bg-bg-tertiary/30 border-b border-accent/5">
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 max-w-4xl">
                                                             {/* Common */}
                                                             {t.message && <DetailRow label="Message" value={t.message} />}
+
+                                                            {/* Credential info */}
+                                                            {t.assigned_role && (
+                                                                <div className="flex items-start gap-3 py-2">
+                                                                    <span className="text-xs text-text-muted w-28 shrink-0 pt-0.5">Platform Role</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {assignedRoleBadge(t.assigned_role)}
+                                                                        {t.auth_user_id && (
+                                                                            <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                                                <Key className="w-3 h-3" /> Auth Created
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {t.credentials_expire_at && (
+                                                                <div className="flex items-start gap-3 py-2">
+                                                                    <span className="text-xs text-text-muted w-28 shrink-0 pt-0.5">Expires</span>
+                                                                    <span className={`text-sm font-medium ${isCredentialExpired(t.credentials_expire_at) ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                                        {new Date(t.credentials_expire_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                        {isCredentialExpired(t.credentials_expire_at) && ' (Expired)'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            {t.login_email && <DetailRow label="Login Email" value={t.login_email} />}
 
                                                             {/* Doctor details */}
                                                             {(t.role === 'Doctor' || t.role === 'Both') && (
@@ -404,6 +553,97 @@ export default function TestersPage() {
                     </div>
                 )}
             </div>
+
+            {/* ── Role Selection Modal ── */}
+            {approveModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setApproveModal(null)}>
+                    <div
+                        className="glass rounded-2xl p-6 w-full max-w-md mx-4 border border-accent/20 shadow-2xl"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                                <Shield className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-text-primary">Approve Tester</h2>
+                                <p className="text-sm text-text-secondary">
+                                    Assign a platform role for <strong>{approveModal.tester.name}</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-text-muted mb-3">
+                            Applied as: {roleBadge(approveModal.tester.role)}
+                        </p>
+
+                        <div className="space-y-2 mb-6">
+                            {PLATFORM_ROLES.map(role => {
+                                // Only superadmin can assign Admin role
+                                const disabled = role === 'Admin' && currentUserRole !== 'superadmin';
+
+                                return (
+                                    <button
+                                        key={role}
+                                        disabled={disabled}
+                                        onClick={() => setApproveModal({ ...approveModal, selectedRole: role })}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${approveModal.selectedRole === role
+                                            ? 'border-accent bg-accent/10 ring-1 ring-accent/30'
+                                            : disabled
+                                                ? 'border-accent/5 opacity-40 cursor-not-allowed'
+                                                : 'border-accent/10 hover:border-accent/30 hover:bg-accent/[0.03]'
+                                            }`}
+                                    >
+                                        <span className="text-lg">
+                                            {{ Patient: '🧑‍🤝‍🧑', Doctor: '👨‍⚕️', Locum: '🩺', Admin: '🛡️' }[role]}
+                                        </span>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-text-primary">{role}</p>
+                                            <p className="text-xs text-text-muted">
+                                                {{
+                                                    Patient: 'Access to patient app with consultation features',
+                                                    Doctor: 'Full doctor dashboard with case management',
+                                                    Locum: 'Doctor access with locum onboarding pre-approved',
+                                                    Admin: 'Admin panel access (superadmin only)',
+                                                }[role]}
+                                            </p>
+                                        </div>
+                                        {approveModal.selectedRole === role && (
+                                            <Check className="w-5 h-5 text-accent shrink-0" />
+                                        )}
+                                        {disabled && (
+                                            <span className="text-[10px] text-text-muted shrink-0">🔒 Superadmin</span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/5 border border-accent/10 mb-6">
+                            <Key className="w-4 h-4 text-accent shrink-0" />
+                            <p className="text-xs text-text-secondary">
+                                A temporary password will be auto-generated and emailed to <strong>{approveModal.tester.email}</strong>.
+                                Credentials are valid for <strong>15 days</strong>.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setApproveModal(null)}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-accent/5 hover:bg-accent/10 text-text-secondary text-sm font-medium transition-all border border-accent/10"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleApprove}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-sm font-bold transition-all border border-emerald-500/20"
+                            >
+                                ✅ Approve as {approveModal.selectedRole}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </DashboardShell>
     );
 }

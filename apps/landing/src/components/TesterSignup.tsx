@@ -31,7 +31,6 @@ export default function TesterSignup() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Form state
     const [role, setRole] = useState('');
     const [country, setCountry] = useState('');
     const [fileName, setFileName] = useState('');
@@ -76,14 +75,12 @@ export default function TesterSignup() {
             message: (data.get('message') as string) || null,
         };
 
-        // Doctor / Both fields
         if (selectedRole === 'Doctor' || selectedRole === 'Both') {
             payload.country = data.get('country') as string;
             payload.license_type = data.get('license_type') as string;
             payload.license_number = (data.get('license_number') as string) || null;
             payload.specialty = (data.get('specialty') as string) || null;
 
-            // File upload
             const file = fileRef.current?.files?.[0];
             if (file) {
                 try {
@@ -94,7 +91,6 @@ export default function TesterSignup() {
             }
         }
 
-        // Investor fields
         if (selectedRole === 'Investor') {
             payload.linkedin_url = data.get('linkedin_url') as string;
             payload.organization = (data.get('organization') as string) || null;
@@ -102,7 +98,6 @@ export default function TesterSignup() {
             payload.preferred_call_time = (data.get('preferred_call_time') as string) || null;
         }
 
-        // Patient motivation
         if (selectedRole === 'Patient') {
             payload.motivation = (data.get('motivation') as string) || null;
         }
@@ -128,7 +123,6 @@ export default function TesterSignup() {
         }
     };
 
-    // License types by country
     const licenseTypes = country === 'SA'
         ? [{ value: 'SCFHS', label: t('signup.license_scfhs') }]
         : country === 'AE'
@@ -139,25 +133,24 @@ export default function TesterSignup() {
             ]
             : [];
 
-    const inputClass = 'w-full px-4 py-3 rounded-xl bg-bg-tertiary border border-border focus:border-accent focus:outline-none text-text-primary placeholder:text-text-muted transition-colors';
+    const inputClass = 'w-full px-4 py-3 rounded-xl bg-white border border-border focus:border-accent focus:outline-none text-text-primary placeholder:text-text-muted transition-colors';
     const labelClass = 'block text-sm font-medium text-text-secondary mb-2';
 
     return (
         <section id="tester-signup" className="py-24 sm:py-32">
             <div className="max-w-3xl mx-auto px-6">
-                <div className="reveal glass-strong rounded-3xl p-8 sm:p-12 glow-teal-strong">
+                <div className="reveal card-shadow rounded-3xl p-8 sm:p-12 border-t-4 border-t-accent">
                     {!submitted ? (
                         <>
                             <div className="text-center mb-10">
-                                <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-accent-faded text-accent mb-4">{t('signup.tag')}</span>
-                                <h2 className="text-3xl sm:text-4xl font-bold mb-3">
+                                <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-accent-faded text-accent border border-accent/10 mb-4">{t('signup.tag')}</span>
+                                <h2 className="text-3xl sm:text-4xl font-bold text-navy mb-3">
                                     {t('signup.h2_1')} <span className="gradient-text">{t('signup.h2_2')}</span>
                                 </h2>
                                 <p className="text-text-secondary">{t('signup.sub')}</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-5">
-                                {/* ── Base Info ── */}
                                 <div className="grid sm:grid-cols-2 gap-5">
                                     <div>
                                         <label htmlFor="name" className={labelClass}>{t('signup.name')}</label>
@@ -187,13 +180,11 @@ export default function TesterSignup() {
                                     </select>
                                 </div>
 
-                                {/* ── Role-Specific Sections ── */}
-
                                 {/* PATIENT */}
                                 {role === 'Patient' && (
-                                    <div className="space-y-4 p-5 rounded-2xl bg-accent/[0.04] border border-accent/10 animate-fadeIn">
+                                    <div className="space-y-4 p-5 rounded-2xl bg-accent-faded/60 border border-accent/10 animate-fadeIn">
                                         <div className="flex items-center gap-2 text-sm text-accent font-medium mb-1">
-                                            <span className="text-lg">🧑‍🤝‍🧑</span> {t('signup.patient_section_title')}
+                                            🧑‍🤝‍🧑 {t('signup.patient_section_title')}
                                         </div>
                                         <p className="text-xs text-text-muted">{t('signup.patient_info')}</p>
                                         <div>
@@ -205,9 +196,9 @@ export default function TesterSignup() {
 
                                 {/* DOCTOR / BOTH */}
                                 {(role === 'Doctor' || role === 'Both') && (
-                                    <div className="space-y-4 p-5 rounded-2xl bg-accent/[0.04] border border-accent/10 animate-fadeIn">
+                                    <div className="space-y-4 p-5 rounded-2xl bg-accent-faded/60 border border-accent/10 animate-fadeIn">
                                         <div className="flex items-center gap-2 text-sm text-accent font-medium mb-1">
-                                            <span className="text-lg">👨‍⚕️</span> {t('signup.doctor_section_title')}
+                                            👨‍⚕️ {t('signup.doctor_section_title')}
                                         </div>
 
                                         <div className="grid sm:grid-cols-2 gap-4">
@@ -256,11 +247,10 @@ export default function TesterSignup() {
                                             </div>
                                         </div>
 
-                                        {/* File Upload */}
                                         <div>
                                             <label className={labelClass}>{t('signup.credential_upload')}</label>
                                             <div
-                                                className="relative flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-border hover:border-accent/50 bg-bg-tertiary/50 transition-colors cursor-pointer group"
+                                                className="relative flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-border hover:border-accent/40 bg-white transition-colors cursor-pointer group"
                                                 onClick={() => fileRef.current?.click()}
                                             >
                                                 <input
@@ -288,7 +278,7 @@ export default function TesterSignup() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/[0.06] border border-accent/15">
+                                        <div className="flex items-start gap-2 p-3 rounded-lg bg-accent-faded border border-accent/10">
                                             <span className="text-sm mt-0.5">ℹ️</span>
                                             <p className="text-xs text-text-muted">{t('signup.doctor_note')}</p>
                                         </div>
@@ -297,9 +287,9 @@ export default function TesterSignup() {
 
                                 {/* INVESTOR */}
                                 {role === 'Investor' && (
-                                    <div className="space-y-4 p-5 rounded-2xl bg-accent/[0.04] border border-accent/10 animate-fadeIn">
+                                    <div className="space-y-4 p-5 rounded-2xl bg-accent-faded/60 border border-accent/10 animate-fadeIn">
                                         <div className="flex items-center gap-2 text-sm text-accent font-medium mb-1">
-                                            <span className="text-lg">💼</span> {t('signup.investor_section_title')}
+                                            💼 {t('signup.investor_section_title')}
                                         </div>
 
                                         <div>
@@ -338,21 +328,21 @@ export default function TesterSignup() {
                                             />
                                         </div>
 
-                                        <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/[0.06] border border-accent/15">
+                                        <div className="flex items-start gap-2 p-3 rounded-lg bg-accent-faded border border-accent/10">
                                             <span className="text-sm mt-0.5">ℹ️</span>
                                             <p className="text-xs text-text-muted">{t('signup.investor_note')}</p>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* ── Message ── */}
+                                {/* Message */}
                                 <div>
                                     <label htmlFor="message" className={labelClass}>{t('signup.message')} <span className="text-text-muted">{t('signup.optional')}</span></label>
                                     <textarea id="message" name="message" rows={3} placeholder={t('signup.message_ph')} className={`${inputClass} resize-none`} />
                                 </div>
 
                                 {error && (
-                                    <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                                    <div className="px-4 py-3 rounded-xl bg-error/5 border border-error/20 text-error text-sm">
                                         ⚠️ {error}
                                     </div>
                                 )}
@@ -360,7 +350,7 @@ export default function TesterSignup() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full py-4 bg-accent hover:bg-accent-dark text-bg-primary font-bold rounded-xl text-lg transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                    className="w-full py-4 bg-accent hover:bg-accent-dark text-white font-bold rounded-xl text-lg transition-all hover:scale-[1.02] shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
                                     {loading ? t('signup.sending') : t('signup.submit')}
                                 </button>
@@ -371,12 +361,12 @@ export default function TesterSignup() {
                     ) : (
                         <div className="text-center py-10">
                             <div className="text-6xl mb-6">🎉</div>
-                            <h3 className="text-2xl font-bold mb-3">{t('signup.thanks')}</h3>
+                            <h3 className="text-2xl font-bold text-navy mb-3">{t('signup.thanks')}</h3>
                             <p className="text-text-secondary mb-6">
                                 {t('signup.thanks_msg')}{' '}
                                 <a href="mailto:admin@cliniq.one" className="text-accent hover:underline">admin@cliniq.one</a>
                             </p>
-                            <button onClick={() => { setSubmitted(false); setRole(''); setCountry(''); setFileName(''); }} className="px-6 py-3 border border-accent/30 hover:border-accent text-accent rounded-full text-sm font-medium transition-all">
+                            <button onClick={() => { setSubmitted(false); setRole(''); setCountry(''); setFileName(''); }} className="px-6 py-3 border border-accent/20 hover:border-accent text-accent rounded-full text-sm font-medium transition-all hover:bg-accent-faded">
                                 {t('signup.another')}
                             </button>
                         </div>

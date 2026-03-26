@@ -13,6 +13,7 @@ on:
           - doctor
           - admin
           - patient
+          - locum
   push:
     branches: [main]
     paths:
@@ -22,6 +23,7 @@ on:
       - 'apps/doctor-capacitor/**'
       - 'apps/admin-capacitor/**'
       - 'apps/patient-capacitor/**'
+      - 'apps/locum-capacitor/**'
 
 env:
   NODE_VERSION: '20'
@@ -164,4 +166,51 @@ jobs:
         with:
           name: patient-apk-${{ github.sha }}
           path: apps/patient-capacitor/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  # ─── Build Locum APK ──────────────────────────
+  build-locum:
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.app == 'all' || inputs.app == 'locum') || github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    name: 🔄 Locum APK
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build doctor-web (static export for locum)
+        working-directory: apps/doctor-web
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_MODE: locum
+
+      - name: Sync Capacitor
+        working-directory: apps/locum-capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        working-directory: apps/locum-capacitor/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: locum-apk-${{ github.sha }}
+          path: apps/locum-capacitor/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
