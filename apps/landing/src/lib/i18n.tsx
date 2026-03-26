@@ -48,6 +48,7 @@ const translations: Record<string, Record<Locale, string>> = {
     'hero.overlay_sub': { en: 'Every case reviewed by a licensed physician', ar: 'كل حالة يراجعها طبيب مرخّص' },
     'hero.safety_title': { en: '19 Safety Checks', ar: '19 فحص أمان' },
     'hero.safety_sub': { en: 'Multi-layered protection', ar: 'حماية متعددة الطبقات' },
+    'hero.scroll_hint': { en: 'Scroll for more', ar: 'اسحب للمزيد' },
 
     // ─── TRUST BAR ───
     'trust.doctors': { en: 'Doctor Reviewed', ar: 'مراجعة من طبيب' },

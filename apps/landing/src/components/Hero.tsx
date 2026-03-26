@@ -1,13 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Shield, Globe, FileText, UserCheck } from 'lucide-react';
 
 export default function Hero() {
     const { t } = useI18n();
     const [mounted, setMounted] = useState(false);
+    const [showScrollHint, setShowScrollHint] = useState(true);
     useEffect(() => setMounted(true), []);
+
+    // Auto-hide scroll indicator once user scrolls
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 100) {
+                setShowScrollHint(false);
+            }
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollDown = useCallback(() => {
+        window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+    }, []);
 
     const stats = [
         { val: 'hero.stat1_val', label: 'hero.stat1_label' },
@@ -129,6 +145,30 @@ export default function Hero() {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile scroll-down nudge */}
+            {showScrollHint && (
+                <button
+                    onClick={scrollDown}
+                    aria-label="Scroll down for more"
+                    className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 lg:hidden transition-all duration-700 delay-700 cursor-pointer ${
+                        mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                    }`}
+                >
+                    <span className="text-xs font-medium text-text-secondary tracking-wide animate-pulse">
+                        {t('hero.scroll_hint')}
+                    </span>
+                    <svg
+                        className="w-6 h-6 text-accent scroll-bounce"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            )}
         </section>
     );
 }
