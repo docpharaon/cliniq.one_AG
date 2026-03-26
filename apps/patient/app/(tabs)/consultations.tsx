@@ -92,13 +92,13 @@ function generateReportText(consultation: Consultation, lang?: string): string {
     return lines.join('\n');
 }
 
-function handleDownloadReport(consultation: Consultation, lang?: string) {
+async function handleDownloadReport(consultation: Consultation, lang?: string) {
     if (!consultation.report) { Alert.alert('No Report', 'Report data is not available.'); return; }
     if (Platform.OS === 'web') {
         // Use PDF generation on web
         try {
-            const { downloadPatientPdf } = require('../../lib/generatePatientPdf');
-            const success = downloadPatientPdf(consultation, lang);
+            const { downloadPatientPdf } = await import('../../lib/generatePatientPdf');
+            const success = await downloadPatientPdf(consultation, lang);
             if (!success) {
                 Alert.alert('Error', 'Failed to generate PDF report.');
             }
@@ -126,8 +126,8 @@ async function handleShareReport(consultation: Consultation, lang?: string) {
     if (Platform.OS === 'web') {
         // Try PDF blob for sharing
         try {
-            const { getPatientPdfBlob } = require('../../lib/generatePatientPdf');
-            const blob = getPatientPdfBlob(consultation, lang);
+            const { getPatientPdfBlob } = await import('../../lib/generatePatientPdf');
+            const blob = await getPatientPdfBlob(consultation, lang);
             if (blob && g.navigator?.share) {
                 const file = new (g.File)([blob], `cliniq-report-${consultation.id.slice(0, 8)}.pdf`, { type: 'application/pdf' });
                 await g.navigator.share({ title: 'Medical Report', files: [file] });

@@ -7,9 +7,30 @@
  * On native, falls back to text-based report.
  */
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// jsPDF uses AMD require() in its node bundle which crashes Metro web bundler.
+// Lazy-load at runtime to avoid static analysis issues.
+let _jsPDF: typeof import('jspdf').default | null = null;
+let _autoTable: typeof import('jspdf-autotable').default | null = null;
+
+async function getJsPDF() {
+  if (!_jsPDF) {
+    const mod = await import('jspdf');
+    _jsPDF = mod.default;
+  }
+  return _jsPDF;
+}
+
 import type { Consultation, PrescriptionMedication } from '@cliniqone/types';
+
+async function getAutoTable() {
+  if (!_autoTable) {
+    const mod = await import('jspdf-autotable');
+    _autoTable = mod.default;
+  }
+  return _autoTable;
+}
+
+
 
 // ── Colors ──────────────────────────────────
 const TEAL          = [13, 148, 136];
@@ -49,7 +70,9 @@ function generateVerificationCode(consultationId: string, patientId: string, cre
     return `VER-${code}`;
 }
 
-export function generatePatientPdf(consultation: Consultation): jsPDF {
+export async function generatePatientPdf(consultation: Consultation) {
+    const jsPDF = await getJsPDF();
+    const autoTable = await getAutoTable();
     const report = consultation.report as Record<string, any> | null;
     if (!report) throw new Error('No report available');
 
@@ -67,7 +90,7 @@ export function generatePatientPdf(consultation: Consultation): jsPDF {
         hour: '2-digit', minute: '2-digit',
     });
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF!({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     let y = MARGIN_TOP;
 
     // ── Helpers ──────────────────────────────
@@ -212,7 +235,7 @@ export function generatePatientPdf(consultation: Consultation): jsPDF {
         sectionHeader('PRESCRIPTION');
         checkPageBreak(10 + meds.length * 8);
 
-        autoTable(doc, {
+        autoTable!(doc, {
             startY: y,
             margin: { left: MARGIN_LEFT, right: MARGIN_RIGHT },
             head: [['#', 'Medication', 'Dose', 'Frequency', 'Duration', 'Route']],
@@ -345,9 +368,9 @@ export function generatePatientPdf(consultation: Consultation): jsPDF {
 /**
  * Generate and download PDF on web, or return text for native.
  */
-export function downloadPatientPdf(consultation: Consultation, _lang?: string): boolean {
+export async function downloadPatientPdf(consultation: Consultation, _lang?: string): Promise<boolean> {
     try {
-        const doc = generatePatientPdf(consultation);
+        const doc = await generatePatientPdf(consultation);
         const caseId = consultation.id.slice(0, 8).toLowerCase();
         doc.save(`cliniq-report-${caseId}.pdf`);
         return true;
@@ -359,9 +382,9 @@ export function downloadPatientPdf(consultation: Consultation, _lang?: string): 
 /**
  * Generate PDF blob for sharing on web.
  */
-export function getPatientPdfBlob(consultation: Consultation, _lang?: string): Blob | null {
+export async function getPatientPdfBlob(consultation: Consultation, _lang?: string): Promise<Blob | null> {
     try {
-        const doc = generatePatientPdf(consultation);
+        const doc = await generatePatientPdf(consultation);
         return doc.output('blob');
     } catch {
         return null;
