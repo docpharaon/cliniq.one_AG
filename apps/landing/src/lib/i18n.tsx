@@ -284,7 +284,7 @@ const translations: Record<string, Record<Locale, string>> = {
     'signup.h2_2': { en: 'Tester', ar: 'كمختبِر' },
     'signup.sub': { en: 'Help shape the future of telemedicine in the GCC. Join our tester program and get early access to cliniq.one.', ar: 'ساهم في تطوير مستقبل الطب عن بُعد في الخليج. انضم لبرنامج التجربة واحصل على وصول مبكر لـ cliniq.one.' },
     'signup.name': { en: 'Full Name', ar: 'الاسم الكامل' },
-    'signup.name_ph': { en: 'Dr. John Smith', ar: 'Dr. John Smith' },
+    'signup.name_ph': { en: 'Dr. John Smith', ar: 'د. أحمد محمد' },
     'signup.email': { en: 'Email Address', ar: 'البريد الإلكتروني' },
     'signup.email_ph': { en: 'you@example.com', ar: 'you@example.com' },
     'signup.role': { en: "I'm interested as a...", ar: 'أنا مهتم بصفتي...' },
