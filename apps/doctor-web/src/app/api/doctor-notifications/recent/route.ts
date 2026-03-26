@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const dynamic = 'force-dynamic';
+
+function getSupabase() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+}
 
 /**
  * GET /api/doctor-notifications/recent?since=ISO&doctorId=UUID
@@ -16,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     if (!doctorId) return NextResponse.json([], { status: 400 });
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('doctor_notifications')
         .select('id, type, title, message, created_at')
         .eq('doctor_id', doctorId)
