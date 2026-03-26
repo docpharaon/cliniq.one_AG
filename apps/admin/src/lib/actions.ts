@@ -708,3 +708,12 @@ export async function doSendNotificationToUsers(userIds: string[], title: string
 export async function doSearchUsersForNotification(search: string, role?: 'patient' | 'doctor') {
     return searchUsersForNotification(search, role);
 }
+
+// ── Audit Log ─────────────────────────────
+// Stub: audit_log table not yet created — returns empty data to unblock builds
+
+export async function fetchAuditLog(page = 1, perPage = 20, search?: string) {
+    // TODO: implement once audit_log table is created
+    void page; void perPage; void search;
+    return { data: [], error: null };
+}
