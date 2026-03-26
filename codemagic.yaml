@@ -29,7 +29,7 @@ workflows:
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm ci --legacy-peer-deps
       - name: Build doctor-web
         script: |
           cd apps/doctor-web
@@ -97,7 +97,7 @@ workflows:
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm ci --legacy-peer-deps
       - name: Build admin
         script: |
           cd apps/admin
@@ -165,7 +165,7 @@ workflows:
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm ci --legacy-peer-deps
       - name: Build patient-web
         script: |
           cd apps/patient
@@ -233,7 +233,7 @@ workflows:
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm ci --legacy-peer-deps
       - name: Build doctor-web in locum mode
         script: |
           cd apps/doctor-web
