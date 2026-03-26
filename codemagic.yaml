@@ -41,9 +41,7 @@ workflows:
             npx cap add ios
           fi
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/doctor-capacitor/ios/App
+          cd ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -109,9 +107,7 @@ workflows:
             npx cap add ios
           fi
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/admin-capacitor/ios/App
+          cd ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -177,9 +173,7 @@ workflows:
             npx cap add ios
           fi
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/patient-capacitor/ios/App
+          cd ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -245,9 +239,7 @@ workflows:
             npx cap add ios
           fi
           npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd apps/locum-capacitor/ios/App
+          cd ios/App
           pod install
       - name: Set up code signing
         script: |
