@@ -16,7 +16,7 @@ workflows:
       app_store_connect: codemagic
     environment:
       xcode: latest
-      node: 20
+      node: 22
       cocoapods: default
       groups:
         - supabase_credentials
@@ -84,7 +84,7 @@ workflows:
       app_store_connect: codemagic
     environment:
       xcode: latest
-      node: 20
+      node: 22
       cocoapods: default
       groups:
         - supabase_credentials
@@ -152,7 +152,7 @@ workflows:
       app_store_connect: codemagic
     environment:
       xcode: latest
-      node: 20
+      node: 22
       cocoapods: default
       groups:
         - supabase_credentials
@@ -220,7 +220,7 @@ workflows:
       app_store_connect: codemagic
     environment:
       xcode: latest
-      node: 20
+      node: 22
       cocoapods: default
       groups:
         - supabase_credentials
