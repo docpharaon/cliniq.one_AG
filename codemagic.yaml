@@ -1,9 +1,8 @@
 # ────────────────────────────────────────────────────────────
 # Codemagic CI/CD — iOS Builds for cliniq.one Capacitor Apps
 # ────────────────────────────────────────────────────────────
-# Doctor, Admin, Locum are webview wrappers (server.url → Vercel).
-#   They need a placeholder www/ dir for Capacitor scaffolding.
-# Patient bundles a local Expo web export.
+# All 4 apps are webview wrappers (server.url → Vercel).
+# They need a placeholder www/ dir for Capacitor scaffolding.
 # ────────────────────────────────────────────────────────────
 
 workflows:
@@ -17,7 +16,6 @@ workflows:
     environment:
       xcode: latest
       node: 22
-
       groups:
         - supabase_credentials
     triggering:
@@ -39,7 +37,12 @@ workflows:
           cd apps/doctor-capacitor
           npx cap add ios || true
           npx cap sync ios
-
+      - name: Debug - list iOS project structure
+        script: |
+          echo "=== iOS project structure ==="
+          ls -la apps/doctor-capacitor/ios/App/ || echo "ios/App not found"
+          echo "=== Looking for xcworkspace ==="
+          find apps/doctor-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.doctor" \
@@ -57,9 +60,16 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/doctor-capacitor
-          xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+          # Try xcworkspace first, fall back to xcodeproj
+          if [ -d "ios/App/App.xcworkspace" ]; then
+            xcode-project build-ipa \
+              --workspace "ios/App/App.xcworkspace" \
+              --scheme "App"
+          else
+            xcode-project build-ipa \
+              --project "ios/App/App.xcodeproj" \
+              --scheme "App"
+          fi
     artifacts:
       - apps/doctor-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -80,7 +90,6 @@ workflows:
     environment:
       xcode: latest
       node: 22
-      cocoapods: default
       groups:
         - supabase_credentials
     triggering:
@@ -102,7 +111,12 @@ workflows:
           cd apps/admin-capacitor
           npx cap add ios || true
           npx cap sync ios
-
+      - name: Debug - list iOS project structure
+        script: |
+          echo "=== iOS project structure ==="
+          ls -la apps/admin-capacitor/ios/App/ || echo "ios/App not found"
+          echo "=== Looking for xcworkspace ==="
+          find apps/admin-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.admin" \
@@ -120,9 +134,15 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/admin-capacitor
-          xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+          if [ -d "ios/App/App.xcworkspace" ]; then
+            xcode-project build-ipa \
+              --workspace "ios/App/App.xcworkspace" \
+              --scheme "App"
+          else
+            xcode-project build-ipa \
+              --project "ios/App/App.xcodeproj" \
+              --scheme "App"
+          fi
     artifacts:
       - apps/admin-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -134,6 +154,8 @@ workflows:
           - Cliniq Testers
 
   # ─── PATIENT iOS ────────────────────────────────────────────
+  # Patient now also uses server.url approach (loads from Vercel)
+  # This avoids the jspdf Metro bundler crash during expo export
   patient-ios:
     name: Patient iOS
     instance_type: mac_mini_m2
@@ -143,7 +165,6 @@ workflows:
     environment:
       xcode: latest
       node: 22
-      cocoapods: default
       groups:
         - supabase_credentials
     triggering:
@@ -156,16 +177,21 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build patient-web
+      - name: Create placeholder webDir
         script: |
-          cd apps/patient
-          npx expo export --platform web
+          mkdir -p apps/patient/dist
+          echo '<html><body>Loading...</body></html>' > apps/patient/dist/index.html
       - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
           npx cap add ios || true
           npx cap sync ios
-
+      - name: Debug - list iOS project structure
+        script: |
+          echo "=== iOS project structure ==="
+          ls -la apps/patient-capacitor/ios/App/ || echo "ios/App not found"
+          echo "=== Looking for xcworkspace ==="
+          find apps/patient-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
@@ -183,9 +209,15 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/patient-capacitor
-          xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+          if [ -d "ios/App/App.xcworkspace" ]; then
+            xcode-project build-ipa \
+              --workspace "ios/App/App.xcworkspace" \
+              --scheme "App"
+          else
+            xcode-project build-ipa \
+              --project "ios/App/App.xcodeproj" \
+              --scheme "App"
+          fi
     artifacts:
       - apps/patient-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -206,7 +238,6 @@ workflows:
     environment:
       xcode: latest
       node: 22
-      cocoapods: default
       groups:
         - supabase_credentials
     triggering:
@@ -228,7 +259,12 @@ workflows:
           cd apps/locum-capacitor
           npx cap add ios || true
           npx cap sync ios
-
+      - name: Debug - list iOS project structure
+        script: |
+          echo "=== iOS project structure ==="
+          ls -la apps/locum-capacitor/ios/App/ || echo "ios/App not found"
+          echo "=== Looking for xcworkspace ==="
+          find apps/locum-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "com.cliniqone.locum" \
@@ -246,9 +282,15 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/locum-capacitor
-          xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+          if [ -d "ios/App/App.xcworkspace" ]; then
+            xcode-project build-ipa \
+              --workspace "ios/App/App.xcworkspace" \
+              --scheme "App"
+          else
+            xcode-project build-ipa \
+              --project "ios/App/App.xcodeproj" \
+              --scheme "App"
+          fi
     artifacts:
       - apps/locum-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
