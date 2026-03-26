@@ -22,9 +22,8 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: main
+        - pattern: disabled
           include: true
-      cancel_previous_builds: true
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
@@ -98,7 +97,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: main
+        - pattern: disabled
           include: true
       cancel_previous_builds: true
     scripts:
@@ -250,7 +249,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: main
+        - pattern: disabled
           include: true
       cancel_previous_builds: true
     scripts:
