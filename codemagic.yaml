@@ -59,15 +59,15 @@ workflows:
           xcode-project use-profiles
       - name: Build IPA
         script: |
-          cd apps/doctor-capacitor
+          cd apps/doctor-capacitor/ios/App
           # Try xcworkspace first, fall back to xcodeproj
-          if [ -d "ios/App/App.xcworkspace" ]; then
+          if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
-              --workspace "ios/App/App.xcworkspace" \
+              --workspace "App.xcworkspace" \
               --scheme "App"
           else
             xcode-project build-ipa \
-              --project "ios/App/App.xcodeproj" \
+              --project "App.xcodeproj" \
               --scheme "App"
           fi
     artifacts:
@@ -133,14 +133,14 @@ workflows:
           xcode-project use-profiles
       - name: Build IPA
         script: |
-          cd apps/admin-capacitor
-          if [ -d "ios/App/App.xcworkspace" ]; then
+          cd apps/admin-capacitor/ios/App
+          if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
-              --workspace "ios/App/App.xcworkspace" \
+              --workspace "App.xcworkspace" \
               --scheme "App"
           else
             xcode-project build-ipa \
-              --project "ios/App/App.xcodeproj" \
+              --project "App.xcodeproj" \
               --scheme "App"
           fi
     artifacts:
@@ -208,14 +208,14 @@ workflows:
           xcode-project use-profiles
       - name: Build IPA
         script: |
-          cd apps/patient-capacitor
-          if [ -d "ios/App/App.xcworkspace" ]; then
+          cd apps/patient-capacitor/ios/App
+          if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
-              --workspace "ios/App/App.xcworkspace" \
+              --workspace "App.xcworkspace" \
               --scheme "App"
           else
             xcode-project build-ipa \
-              --project "ios/App/App.xcodeproj" \
+              --project "App.xcodeproj" \
               --scheme "App"
           fi
     artifacts:
@@ -281,14 +281,14 @@ workflows:
           xcode-project use-profiles
       - name: Build IPA
         script: |
-          cd apps/locum-capacitor
-          if [ -d "ios/App/App.xcworkspace" ]; then
+          cd apps/locum-capacitor/ios/App
+          if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
-              --workspace "ios/App/App.xcworkspace" \
+              --workspace "App.xcworkspace" \
               --scheme "App"
           else
             xcode-project build-ipa \
-              --project "ios/App/App.xcodeproj" \
+              --project "App.xcodeproj" \
               --scheme "App"
           fi
     artifacts:
