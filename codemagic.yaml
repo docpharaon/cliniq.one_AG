@@ -3,80 +3,30 @@
 # ────────────────────────────────────────────────────────────
 # Docs: https://docs.codemagic.io/yaml/yaml-getting-started/
 #
-# Required Codemagic environment variables (set in Codemagic UI):
-#   APP_STORE_CONNECT_ISSUER_ID   — App Store Connect API Issuer ID
-#   APP_STORE_CONNECT_KEY_ID      — App Store Connect API Key ID
-#   APP_STORE_CONNECT_PRIVATE_KEY — App Store Connect API Private Key (.p8 contents)
-#   CERTIFICATE_PRIVATE_KEY       — iOS Distribution Certificate private key (PEM)
-#   NEXT_PUBLIC_SUPABASE_URL      — Supabase project URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY — Supabase anon key
-#   EXPO_PUBLIC_SUPABASE_URL      — (for patient app) Supabase project URL
-#   EXPO_PUBLIC_SUPABASE_ANON_KEY — (for patient app) Supabase anon key
+# Required Codemagic environment variable groups (set in Codemagic UI):
+#   Group: app_store_credentials
+#     APP_STORE_CONNECT_ISSUER_ID
+#     APP_STORE_CONNECT_KEY_ID
+#     APP_STORE_CONNECT_PRIVATE_KEY (.p8 contents)
+#   Group: supabase_credentials
+#     NEXT_PUBLIC_SUPABASE_URL
+#     NEXT_PUBLIC_SUPABASE_ANON_KEY
+#     EXPO_PUBLIC_SUPABASE_URL       (for patient app)
+#     EXPO_PUBLIC_SUPABASE_ANON_KEY  (for patient app)
 # ────────────────────────────────────────────────────────────
-
-definitions:
-  environment: &ios_env
-    xcode: latest
-    node: 20
-    cocoapods: default
-  
-  ios_signing: &ios_signing
-    ios_signing:
-      distribution_type: app_store
-      bundle_identifier_pattern: com.cliniqone.*
-
-  scripts:
-    - &install_deps
-      name: Install dependencies
-      script: npm ci
-
-    - &cap_add_ios
-      name: Add iOS platform if missing
-      script: |
-        if [ ! -d "ios" ]; then
-          npx cap add ios
-        fi
-
-    - &cap_sync_ios
-      name: Sync Capacitor iOS
-      script: npx cap sync ios
-
-    - &install_cocoapods
-      name: Install CocoaPods
-      script: |
-        cd ios/App
-        pod install
-
-    - &build_ipa
-      name: Build iOS IPA
-      script: |
-        xcode-project build-ipa \
-          --workspace "ios/App/App.xcworkspace" \
-          --scheme "App" \
-          --archive-flags="-destination 'generic/platform=iOS'"
-
-  artifacts: &ios_artifacts
-    - build/ios/ipa/*.ipa
-    - /tmp/xcodebuild_logs/*.log
-    - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-
-  publishing: &ios_publishing
-    app_store_connect:
-      auth: integration
-      submit_to_testflight: true
-      beta_groups:
-        - "Cliniq Testers"
 
 # ─── DOCTOR iOS ─────────────────────────────────────────────
 workflows:
   doctor-ios:
-    name: 🩺 Doctor iOS
+    name: Doctor iOS
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
       app_store_connect: codemagic
     environment:
-      <<: *ios_env
+      xcode: latest
+      node: 20
+      cocoapods: default
       groups:
         - app_store_credentials
         - supabase_credentials
@@ -91,15 +41,13 @@ workflows:
           include: true
       cancel_previous_builds: true
     scripts:
-      - *install_deps
-      - name: Build doctor-web (static export)
+      - name: Install dependencies
+        script: npm ci
+      - name: Build doctor-web
         script: |
           cd apps/doctor-web
           npm run build
-        environment:
-          NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
-      - name: Add & sync iOS platform
+      - name: Add and sync iOS platform
         script: |
           cd apps/doctor-capacitor
           if [ ! -d "ios" ]; then
@@ -120,17 +68,23 @@ workflows:
       - apps/doctor-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
-      <<: *ios_publishing
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Cliniq Testers
 
-# ─── ADMIN iOS ──────────────────────────────────────────────
+  # ─── ADMIN iOS ──────────────────────────────────────────────
   admin-ios:
-    name: 🛡️ Admin iOS
+    name: Admin iOS
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
       app_store_connect: codemagic
     environment:
-      <<: *ios_env
+      xcode: latest
+      node: 20
+      cocoapods: default
       groups:
         - app_store_credentials
         - supabase_credentials
@@ -145,15 +99,13 @@ workflows:
           include: true
       cancel_previous_builds: true
     scripts:
-      - *install_deps
-      - name: Build admin (static export)
+      - name: Install dependencies
+        script: npm ci
+      - name: Build admin
         script: |
           cd apps/admin
           npm run build
-        environment:
-          NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
-      - name: Add & sync iOS platform
+      - name: Add and sync iOS platform
         script: |
           cd apps/admin-capacitor
           if [ ! -d "ios" ]; then
@@ -174,17 +126,23 @@ workflows:
       - apps/admin-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
-      <<: *ios_publishing
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Cliniq Testers
 
-# ─── PATIENT iOS ────────────────────────────────────────────
+  # ─── PATIENT iOS ────────────────────────────────────────────
   patient-ios:
-    name: 📱 Patient iOS
+    name: Patient iOS
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
       app_store_connect: codemagic
     environment:
-      <<: *ios_env
+      xcode: latest
+      node: 20
+      cocoapods: default
       groups:
         - app_store_credentials
         - supabase_credentials
@@ -199,15 +157,13 @@ workflows:
           include: true
       cancel_previous_builds: true
     scripts:
-      - *install_deps
-      - name: Build patient-web (Expo static export)
+      - name: Install dependencies
+        script: npm ci
+      - name: Build patient-web
         script: |
           cd apps/patient
           npx expo export --platform web
-        environment:
-          EXPO_PUBLIC_SUPABASE_URL: $EXPO_PUBLIC_SUPABASE_URL
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: $EXPO_PUBLIC_SUPABASE_ANON_KEY
-      - name: Add & sync iOS platform
+      - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
           if [ ! -d "ios" ]; then
@@ -228,17 +184,23 @@ workflows:
       - apps/patient-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
-      <<: *ios_publishing
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Cliniq Testers
 
-# ─── LOCUM iOS ──────────────────────────────────────────────
+  # ─── LOCUM iOS ──────────────────────────────────────────────
   locum-ios:
-    name: 🔄 Locum iOS
+    name: Locum iOS
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
       app_store_connect: codemagic
     environment:
-      <<: *ios_env
+      xcode: latest
+      node: 20
+      cocoapods: default
       groups:
         - app_store_credentials
         - supabase_credentials
@@ -253,15 +215,13 @@ workflows:
           include: true
       cancel_previous_builds: true
     scripts:
-      - *install_deps
-      - name: Build doctor-web (locum mode static export)
+      - name: Install dependencies
+        script: npm ci
+      - name: Build doctor-web in locum mode
         script: |
           cd apps/doctor-web
           NEXT_PUBLIC_APP_MODE=locum npm run build
-        environment:
-          NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
-      - name: Add & sync iOS platform
+      - name: Add and sync iOS platform
         script: |
           cd apps/locum-capacitor
           if [ ! -d "ios" ]; then
@@ -282,4 +242,8 @@ workflows:
       - apps/locum-capacitor/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
-      <<: *ios_publishing
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Cliniq Testers
