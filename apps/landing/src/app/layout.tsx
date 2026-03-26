@@ -9,15 +9,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-    title: 'cliniq.one — Online Medical Consultations with Licensed Doctors',
+    title: 'cliniq.one — استشارات طبية أونلاين مع أطباء مرخّصين',
     description:
-        'Consult licensed doctors online from KSA & UAE. Describe your symptoms, receive a structured medical review, diagnosis, and e-prescription — all from your phone. Arabic & English.',
+        'استشر أطباء مرخّصين أونلاين من السعودية والإمارات. صِف أعراضك واحصل على تقييم طبي، تشخيص، ووصفة إلكترونية — كل ذلك من هاتفك.',
     openGraph: {
-        title: 'cliniq.one — Online Medical Consultations with Licensed Doctors',
+        title: 'cliniq.one — استشارات طبية أونلاين مع أطباء مرخّصين',
         description:
-            'Consult licensed doctors online. Structured medical reviews, e-prescriptions, and multi-specialty care — safe, bilingual, and privacy-first.',
+            'استشر أطباء مرخّصين أونلاين. تقييم طبي منظّم، وصفات إلكترونية، ورعاية متعددة التخصصات — آمنة وثنائية اللغة.',
         type: 'website',
         url: 'https://cliniq.one',
+        siteName: 'cliniq.one',
+        locale: 'ar_SA',
+        images: [
+            {
+                url: 'https://cliniq.one/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: 'cliniq.one — استشارات طبية أونلاين مع أطباء مرخّصين',
+            },
+        ],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'cliniq.one — استشارات طبية أونلاين مع أطباء مرخّصين',
+        description:
+            'استشر أطباء مرخّصين أونلاين. تقييم طبي منظّم، وصفات إلكترونية، ورعاية متعددة التخصصات.',
+        images: ['https://cliniq.one/og-image.png'],
     },
 };
 
