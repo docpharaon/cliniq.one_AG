@@ -297,10 +297,10 @@ export default function TesterSignup() {
                                             <input
                                                 id="linkedin_url"
                                                 name="linkedin_url"
-                                                type="url"
+                                                type="text"
                                                 required
                                                 placeholder={t('signup.linkedin_ph')}
-                                                pattern="https://([a-z]{2,3}\.)?linkedin\.com/.*"
+                                                pattern="https?://([\w-]+\.)*linkedin\.com/.*"
                                                 title={t('signup.linkedin_title')}
                                                 className={inputClass}
                                             />
