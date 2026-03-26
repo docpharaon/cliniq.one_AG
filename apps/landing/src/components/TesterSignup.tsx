@@ -300,7 +300,7 @@ export default function TesterSignup() {
                                                 type="url"
                                                 required
                                                 placeholder={t('signup.linkedin_ph')}
-                                                pattern="https://(www\.)?linkedin\.com/.*"
+                                                pattern="https://([a-z]{2,3}\.)?linkedin\.com/.*"
                                                 title={t('signup.linkedin_title')}
                                                 className={inputClass}
                                             />
