@@ -1,9 +1,9 @@
 # ────────────────────────────────────────────────────────────
 # Codemagic CI/CD — iOS Builds for cliniq.one Capacitor Apps
 # ────────────────────────────────────────────────────────────
-# Required env var groups (set in Codemagic UI):
-#   supabase_credentials: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-#                         EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY
+# Doctor, Admin, Locum are webview wrappers (server.url → Vercel).
+#   They need a placeholder www/ dir for Capacitor scaffolding.
+# Patient bundles a local Expo web export.
 # ────────────────────────────────────────────────────────────
 
 workflows:
@@ -30,18 +30,18 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor-web
+      - name: Create placeholder webDir
         script: |
-          cd apps/doctor-web
-          npm run build
+          mkdir -p apps/doctor-capacitor/www
+          echo '<html><body>Loading...</body></html>' > apps/doctor-capacitor/www/index.html
       - name: Add and sync iOS platform
         script: |
           cd apps/doctor-capacitor
-          if [ ! -d "ios" ]; then
-            npx cap add ios
-          fi
+          npx cap add ios || true
           npx cap sync ios
-          cd ios/App
+      - name: Install CocoaPods
+        script: |
+          cd apps/doctor-capacitor/ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -96,18 +96,18 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build admin
+      - name: Create placeholder webDir
         script: |
-          cd apps/admin
-          npm run build
+          mkdir -p apps/admin-capacitor/www
+          echo '<html><body>Loading...</body></html>' > apps/admin-capacitor/www/index.html
       - name: Add and sync iOS platform
         script: |
           cd apps/admin-capacitor
-          if [ ! -d "ios" ]; then
-            npx cap add ios
-          fi
+          npx cap add ios || true
           npx cap sync ios
-          cd ios/App
+      - name: Install CocoaPods
+        script: |
+          cd apps/admin-capacitor/ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -169,11 +169,11 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
-          if [ ! -d "ios" ]; then
-            npx cap add ios
-          fi
+          npx cap add ios || true
           npx cap sync ios
-          cd ios/App
+      - name: Install CocoaPods
+        script: |
+          cd apps/patient-capacitor/ios/App
           pod install
       - name: Set up code signing
         script: |
@@ -228,18 +228,18 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor-web in locum mode
+      - name: Create placeholder webDir
         script: |
-          cd apps/doctor-web
-          NEXT_PUBLIC_APP_MODE=locum npm run build
+          mkdir -p apps/locum-capacitor/www
+          echo '<html><body>Loading...</body></html>' > apps/locum-capacitor/www/index.html
       - name: Add and sync iOS platform
         script: |
           cd apps/locum-capacitor
-          if [ ! -d "ios" ]; then
-            npx cap add ios
-          fi
+          npx cap add ios || true
           npx cap sync ios
-          cd ios/App
+      - name: Install CocoaPods
+        script: |
+          cd apps/locum-capacitor/ios/App
           pod install
       - name: Set up code signing
         script: |
