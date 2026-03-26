@@ -35,13 +35,12 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/doctor-capacitor
-          npm install --legacy-peer-deps
           echo "=== cap CLI version ==="
-          ./node_modules/.bin/cap --version
+          ../../node_modules/.bin/cap --version
           echo "=== Running cap add ios ==="
-          ./node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           echo "=== Running cap sync ios ==="
-          ./node_modules/.bin/cap sync ios
+          ../../node_modules/.bin/cap sync ios
           echo "=== Verifying Podfile exists ==="
           ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
       - name: Install CocoaPods
@@ -120,13 +119,12 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/admin-capacitor
-          npm install --legacy-peer-deps
           echo "=== cap CLI version ==="
-          ./node_modules/.bin/cap --version
+          ../../node_modules/.bin/cap --version
           echo "=== Running cap add ios ==="
-          ./node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           echo "=== Running cap sync ios ==="
-          ./node_modules/.bin/cap sync ios
+          ../../node_modules/.bin/cap sync ios
           echo "=== Verifying Podfile exists ==="
           ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
       - name: Install CocoaPods
@@ -206,13 +204,12 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
-          npm install --legacy-peer-deps
           echo "=== cap CLI version ==="
-          ./node_modules/.bin/cap --version
+          ../../node_modules/.bin/cap --version
           echo "=== Running cap add ios ==="
-          ./node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           echo "=== Running cap sync ios ==="
-          ./node_modules/.bin/cap sync ios
+          ../../node_modules/.bin/cap sync ios
           echo "=== Verifying Podfile exists ==="
           ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
       - name: Install CocoaPods
@@ -290,13 +287,12 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/locum-capacitor
-          npm install --legacy-peer-deps
           echo "=== cap CLI version ==="
-          ./node_modules/.bin/cap --version
+          ../../node_modules/.bin/cap --version
           echo "=== Running cap add ios ==="
-          ./node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           echo "=== Running cap sync ios ==="
-          ./node_modules/.bin/cap sync ios
+          ../../node_modules/.bin/cap sync ios
           echo "=== Verifying Podfile exists ==="
           ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
       - name: Install CocoaPods
