@@ -79,6 +79,12 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Cliniq Testers
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
 
   # ─── ADMIN iOS ──────────────────────────────────────────────
   admin-ios:
@@ -152,6 +158,12 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Cliniq Testers
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
 
   # ─── PATIENT iOS ────────────────────────────────────────────
   # Patient now also uses server.url approach (loads from Vercel)
@@ -227,6 +239,12 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Cliniq Testers
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
 
   # ─── LOCUM iOS ──────────────────────────────────────────────
   locum-ios:
@@ -300,3 +318,9 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Cliniq Testers
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
