@@ -35,18 +35,10 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/doctor-capacitor
-          echo "=== cap CLI version ==="
-          ../../node_modules/.bin/cap --version
-          echo "=== Running cap add ios ==="
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
-          echo "=== Running cap sync ios ==="
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying Podfile exists ==="
-          ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
-      - name: Install CocoaPods
-        script: |
-          cd apps/doctor-capacitor/ios/App
-          pod install --repo-update
+          echo "=== Verifying xcworkspace exists ==="
+          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -119,18 +111,10 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/admin-capacitor
-          echo "=== cap CLI version ==="
-          ../../node_modules/.bin/cap --version
-          echo "=== Running cap add ios ==="
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
-          echo "=== Running cap sync ios ==="
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying Podfile exists ==="
-          ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
-      - name: Install CocoaPods
-        script: |
-          cd apps/admin-capacitor/ios/App
-          pod install --repo-update
+          echo "=== Verifying xcworkspace exists ==="
+          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -204,18 +188,10 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
-          echo "=== cap CLI version ==="
-          ../../node_modules/.bin/cap --version
-          echo "=== Running cap add ios ==="
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
-          echo "=== Running cap sync ios ==="
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying Podfile exists ==="
-          ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
-      - name: Install CocoaPods
-        script: |
-          cd apps/patient-capacitor/ios/App
-          pod install --repo-update
+          echo "=== Verifying xcworkspace exists ==="
+          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -287,18 +263,10 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/locum-capacitor
-          echo "=== cap CLI version ==="
-          ../../node_modules/.bin/cap --version
-          echo "=== Running cap add ios ==="
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
-          echo "=== Running cap sync ios ==="
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying Podfile exists ==="
-          ls -la ios/App/Podfile || (echo "ERROR: Podfile not generated!" && exit 1)
-      - name: Install CocoaPods
-        script: |
-          cd apps/locum-capacitor/ios/App
-          pod install --repo-update
+          echo "=== Verifying xcworkspace exists ==="
+          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
