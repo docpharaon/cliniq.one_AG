@@ -1,22 +1,13 @@
 # ────────────────────────────────────────────────────────────
 # Codemagic CI/CD — iOS Builds for cliniq.one Capacitor Apps
 # ────────────────────────────────────────────────────────────
-# Docs: https://docs.codemagic.io/yaml/yaml-getting-started/
-#
-# Required Codemagic environment variable groups (set in Codemagic UI):
-#   Group: app_store_credentials
-#     APP_STORE_CONNECT_ISSUER_ID
-#     APP_STORE_CONNECT_KEY_ID
-#     APP_STORE_CONNECT_PRIVATE_KEY (.p8 contents)
-#   Group: supabase_credentials
-#     NEXT_PUBLIC_SUPABASE_URL
-#     NEXT_PUBLIC_SUPABASE_ANON_KEY
-#     EXPO_PUBLIC_SUPABASE_URL       (for patient app)
-#     EXPO_PUBLIC_SUPABASE_ANON_KEY  (for patient app)
+# Required env var groups (set in Codemagic UI):
+#   supabase_credentials: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#                         EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY
 # ────────────────────────────────────────────────────────────
 
-# ─── DOCTOR iOS ─────────────────────────────────────────────
 workflows:
+  # ─── DOCTOR iOS ─────────────────────────────────────────────
   doctor-ios:
     name: Doctor iOS
     instance_type: mac_mini_m2
@@ -28,11 +19,7 @@ workflows:
       node: 20
       cocoapods: default
       groups:
-        - app_store_credentials
         - supabase_credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.cliniqone.doctor
     triggering:
       events:
         - push
@@ -58,6 +45,20 @@ workflows:
         script: |
           cd apps/doctor-capacitor/ios/App
           pod install
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "com.cliniqone.doctor" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          app-store-connect certificates list \
+            --type IOS_DISTRIBUTION \
+            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
+            2>/dev/null || app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --save
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd apps/doctor-capacitor
@@ -86,11 +87,7 @@ workflows:
       node: 20
       cocoapods: default
       groups:
-        - app_store_credentials
         - supabase_credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.cliniqone.admin
     triggering:
       events:
         - push
@@ -116,6 +113,20 @@ workflows:
         script: |
           cd apps/admin-capacitor/ios/App
           pod install
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "com.cliniqone.admin" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          app-store-connect certificates list \
+            --type IOS_DISTRIBUTION \
+            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
+            2>/dev/null || app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --save
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd apps/admin-capacitor
@@ -144,11 +155,7 @@ workflows:
       node: 20
       cocoapods: default
       groups:
-        - app_store_credentials
         - supabase_credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.cliniqone.patient.cap
     triggering:
       events:
         - push
@@ -174,6 +181,20 @@ workflows:
         script: |
           cd apps/patient-capacitor/ios/App
           pod install
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          app-store-connect certificates list \
+            --type IOS_DISTRIBUTION \
+            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
+            2>/dev/null || app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --save
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd apps/patient-capacitor
@@ -202,11 +223,7 @@ workflows:
       node: 20
       cocoapods: default
       groups:
-        - app_store_credentials
         - supabase_credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.cliniqone.locum
     triggering:
       events:
         - push
@@ -232,6 +249,20 @@ workflows:
         script: |
           cd apps/locum-capacitor/ios/App
           pod install
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "com.cliniqone.locum" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          app-store-connect certificates list \
+            --type IOS_DISTRIBUTION \
+            --certificate-key=@file:${HOME}/Library/MobileDevice/Certificates/*.p12 \
+            2>/dev/null || app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --save
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd apps/locum-capacitor
