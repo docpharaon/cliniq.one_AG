@@ -56,6 +56,10 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
+          # cap sync generates projects with Automatic signing; force Manual
+          # so xcode-project use-profiles can inject the provisioning profile
+          find apps/doctor-capacitor/ios -name "project.pbxproj" \
+            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -145,6 +149,8 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
+          find apps/admin-capacitor/ios -name "project.pbxproj" \
+            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -234,6 +240,8 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
+          find apps/patient-capacitor/ios -name "project.pbxproj" \
+            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -268,6 +276,177 @@ workflows:
           - Cliniq Testers
       slack:
         channel: '#new-channel'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
+
+  # ─── DOCTOR Android ─────────────────────────────────────────
+  doctor-android:
+    name: Doctor Android
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 17
+      groups:
+        - supabase_credentials
+        - android_signing  # optional — APK built unsigned if absent
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci --legacy-peer-deps
+      - name: Build doctor-web (static export)
+        script: |
+          cd apps/doctor-web
+          CAPACITOR_BUILD=1 npx next build
+          echo "=== doctor-web/out contents ==="
+          ls -la out/ | head -20
+      - name: Add and sync Android platform
+        script: |
+          cd apps/doctor-capacitor
+          ../../node_modules/.bin/cap add android 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap sync android
+      - name: Build APK
+        script: |
+          cd apps/doctor-capacitor/android
+          if [ -n "$CM_KEYSTORE" ]; then
+            echo "$CM_KEYSTORE" | base64 --decode > /tmp/keystore.jks
+            export CM_KEYSTORE_PATH=/tmp/keystore.jks
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
+              -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$CM_KEY_PASSWORD"
+          else
+            echo "No keystore found — building unsigned APK"
+            ./gradlew assembleRelease
+          fi
+    artifacts:
+      - apps/doctor-capacitor/android/app/build/outputs/apk/**/*.apk
+    publishing:
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
+
+  # ─── ADMIN Android ──────────────────────────────────────────
+  admin-android:
+    name: Admin Android
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 17
+      groups:
+        - supabase_credentials
+        - android_signing
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci --legacy-peer-deps
+      - name: Build admin (static export)
+        script: |
+          cd apps/admin
+          CAPACITOR_BUILD=1 npx next build
+          echo "=== admin/out contents ==="
+          ls -la out/ | head -20
+      - name: Add and sync Android platform
+        script: |
+          cd apps/admin-capacitor
+          ../../node_modules/.bin/cap add android 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap sync android
+      - name: Build APK
+        script: |
+          cd apps/admin-capacitor/android
+          if [ -n "$CM_KEYSTORE" ]; then
+            echo "$CM_KEYSTORE" | base64 --decode > /tmp/keystore.jks
+            export CM_KEYSTORE_PATH=/tmp/keystore.jks
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
+              -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$CM_KEY_PASSWORD"
+          else
+            echo "No keystore found — building unsigned APK"
+            ./gradlew assembleRelease
+          fi
+    artifacts:
+      - apps/admin-capacitor/android/app/build/outputs/apk/**/*.apk
+    publishing:
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
+
+  # ─── PATIENT Android ────────────────────────────────────────
+  patient-android:
+    name: Patient Android
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 17
+      groups:
+        - supabase_credentials
+        - android_signing
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci --legacy-peer-deps
+      - name: Build patient web (Expo export)
+        script: |
+          cd apps/patient
+          npx expo export --platform web
+          echo "=== patient/dist contents ==="
+          ls -la dist/ | head -20
+      - name: Add and sync Android platform
+        script: |
+          cd apps/patient-capacitor
+          ../../node_modules/.bin/cap add android 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap sync android
+      - name: Build APK
+        script: |
+          cd apps/patient-capacitor/android
+          if [ -n "$CM_KEYSTORE" ]; then
+            echo "$CM_KEYSTORE" | base64 --decode > /tmp/keystore.jks
+            export CM_KEYSTORE_PATH=/tmp/keystore.jks
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
+              -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$CM_KEY_PASSWORD"
+          else
+            echo "No keystore found — building unsigned APK"
+            ./gradlew assembleRelease
+          fi
+    artifacts:
+      - apps/patient-capacitor/android/app/build/outputs/apk/**/*.apk
+    publishing:
+      slack:
+        channel: '#general'
         notify_on_build_start: true
         notify:
           success: true
@@ -323,6 +502,8 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
+          find apps/locum-capacitor/ios -name "project.pbxproj" \
+            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -355,6 +536,63 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Cliniq Testers
+      slack:
+        channel: '#general'
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
+
+  # ─── LOCUM Android ──────────────────────────────────────────
+  locum-android:
+    name: Locum Android
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 17
+      groups:
+        - supabase_credentials
+        - android_signing
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci --legacy-peer-deps
+      - name: Build doctor-web for locum (static export)
+        script: |
+          cd apps/doctor-web
+          CAPACITOR_BUILD=1 npx next build
+          echo "=== doctor-web/out contents (for locum) ==="
+          ls -la out/ | head -20
+      - name: Add and sync Android platform
+        script: |
+          cd apps/locum-capacitor
+          ../../node_modules/.bin/cap add android 2>&1 || echo "cap add finished (may already exist)"
+          ../../node_modules/.bin/cap sync android
+      - name: Build APK
+        script: |
+          cd apps/locum-capacitor/android
+          if [ -n "$CM_KEYSTORE" ]; then
+            echo "$CM_KEYSTORE" | base64 --decode > /tmp/keystore.jks
+            export CM_KEYSTORE_PATH=/tmp/keystore.jks
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
+              -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$CM_KEY_PASSWORD"
+          else
+            echo "No keystore found — building unsigned APK"
+            ./gradlew assembleRelease
+          fi
+    artifacts:
+      - apps/locum-capacitor/android/app/build/outputs/apk/**/*.apk
+    publishing:
       slack:
         channel: '#general'
         notify_on_build_start: true
