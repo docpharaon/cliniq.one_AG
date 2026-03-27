@@ -168,6 +168,9 @@ workflows:
     environment:
       xcode: latest
       node: 22
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.cliniqone.patient.cap
       groups:
         - supabase_credentials
     triggering:
@@ -199,10 +202,10 @@ workflows:
           find apps/patient-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
+          keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
             --type IOS_APP_STORE \
             --create
-          keychain initialize
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
