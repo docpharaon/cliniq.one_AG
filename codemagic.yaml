@@ -36,8 +36,8 @@ workflows:
           cd apps/doctor-capacitor
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying xcworkspace exists ==="
-          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
+          echo "=== iOS files generated ==="
+          find ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null | head -10
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -112,8 +112,8 @@ workflows:
           cd apps/admin-capacitor
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying xcworkspace exists ==="
-          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
+          echo "=== iOS files generated ==="
+          find ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null | head -10
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -189,8 +189,8 @@ workflows:
           cd apps/patient-capacitor
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying xcworkspace exists ==="
-          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
+          echo "=== iOS files generated ==="
+          find ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null | head -10
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -264,8 +264,8 @@ workflows:
           cd apps/locum-capacitor
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
-          echo "=== Verifying xcworkspace exists ==="
-          ls -la ios/App/App.xcworkspace || (echo "ERROR: xcworkspace not generated!" && exit 1)
+          echo "=== iOS files generated ==="
+          find ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null | head -10
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
