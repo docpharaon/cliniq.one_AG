@@ -56,10 +56,23 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          # cap sync generates projects with Automatic signing; force Manual
-          # so xcode-project use-profiles can inject the provisioning profile
-          find apps/doctor-capacitor/ios -name "project.pbxproj" \
-            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
+
+          # Extract provisioning profile UUID + Team ID directly from the file
+          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
+          security cms -D -i "$PP_PATH" > /tmp/pp.plist
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/pp.plist)
+          echo "Profile UUID: $PP_UUID  Team ID: $TEAM_ID"
+          printf '%s' "$PP_UUID" > /tmp/pp_uuid.txt
+          printf '%s' "$TEAM_ID" > /tmp/team_id.txt
+
+          # Patch pbxproj: Manual signing + inject Team ID
+          find apps/doctor-capacitor/ios -name "project.pbxproj" | while read pbxf; do
+            perl -i -pe "s/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g; s/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = $TEAM_ID;/g;" "$pbxf"
+            echo "Patched: $pbxf"
+          done
+
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -74,14 +87,19 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/doctor-capacitor/ios/App
+          PP_UUID=$(cat /tmp/pp_uuid.txt)
+          TEAM_ID=$(cat /tmp/team_id.txt)
+          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           else
             xcode-project build-ipa \
               --project "App.xcodeproj" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           fi
     artifacts:
       - apps/doctor-capacitor/ios/App/build/ios/ipa/*.ipa
@@ -149,8 +167,21 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          find apps/admin-capacitor/ios -name "project.pbxproj" \
-            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
+
+          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
+          security cms -D -i "$PP_PATH" > /tmp/pp.plist
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/pp.plist)
+          echo "Profile UUID: $PP_UUID  Team ID: $TEAM_ID"
+          printf '%s' "$PP_UUID" > /tmp/pp_uuid.txt
+          printf '%s' "$TEAM_ID" > /tmp/team_id.txt
+
+          find apps/admin-capacitor/ios -name "project.pbxproj" | while read pbxf; do
+            perl -i -pe "s/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g; s/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = $TEAM_ID;/g;" "$pbxf"
+            echo "Patched: $pbxf"
+          done
+
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -165,14 +196,19 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/admin-capacitor/ios/App
+          PP_UUID=$(cat /tmp/pp_uuid.txt)
+          TEAM_ID=$(cat /tmp/team_id.txt)
+          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           else
             xcode-project build-ipa \
               --project "App.xcodeproj" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           fi
     artifacts:
       - apps/admin-capacitor/ios/App/build/ios/ipa/*.ipa
@@ -240,8 +276,21 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          find apps/patient-capacitor/ios -name "project.pbxproj" \
-            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
+
+          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
+          security cms -D -i "$PP_PATH" > /tmp/pp.plist
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/pp.plist)
+          echo "Profile UUID: $PP_UUID  Team ID: $TEAM_ID"
+          printf '%s' "$PP_UUID" > /tmp/pp_uuid.txt
+          printf '%s' "$TEAM_ID" > /tmp/team_id.txt
+
+          find apps/patient-capacitor/ios -name "project.pbxproj" | while read pbxf; do
+            perl -i -pe "s/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g; s/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = $TEAM_ID;/g;" "$pbxf"
+            echo "Patched: $pbxf"
+          done
+
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -256,14 +305,19 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/patient-capacitor/ios/App
+          PP_UUID=$(cat /tmp/pp_uuid.txt)
+          TEAM_ID=$(cat /tmp/team_id.txt)
+          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           else
             xcode-project build-ipa \
               --project "App.xcodeproj" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           fi
     artifacts:
       - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
@@ -502,8 +556,21 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          find apps/locum-capacitor/ios -name "project.pbxproj" \
-            -exec sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' {} \;
+
+          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
+          security cms -D -i "$PP_PATH" > /tmp/pp.plist
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/pp.plist)
+          echo "Profile UUID: $PP_UUID  Team ID: $TEAM_ID"
+          printf '%s' "$PP_UUID" > /tmp/pp_uuid.txt
+          printf '%s' "$TEAM_ID" > /tmp/team_id.txt
+
+          find apps/locum-capacitor/ios -name "project.pbxproj" | while read pbxf; do
+            perl -i -pe "s/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g; s/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = $TEAM_ID;/g;" "$pbxf"
+            echo "Patched: $pbxf"
+          done
+
           xcode-project use-profiles
       - name: Patch Info.plist
         script: |
@@ -518,14 +585,19 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/locum-capacitor/ios/App
+          PP_UUID=$(cat /tmp/pp_uuid.txt)
+          TEAM_ID=$(cat /tmp/team_id.txt)
+          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           else
             xcode-project build-ipa \
               --project "App.xcodeproj" \
-              --scheme "App"
+              --scheme "App" \
+              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
           fi
     artifacts:
       - apps/locum-capacitor/ios/App/build/ios/ipa/*.ipa
