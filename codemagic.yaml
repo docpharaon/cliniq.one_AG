@@ -58,7 +58,7 @@ workflows:
           keychain add-certificates
 
           # Extract provisioning profile UUID + Team ID directly from the file
-          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          PP_PATH=$(find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
           security cms -D -i "$PP_PATH" > /tmp/pp.plist
           PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
@@ -168,7 +168,7 @@ workflows:
             --create
           keychain add-certificates
 
-          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          PP_PATH=$(find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
           security cms -D -i "$PP_PATH" > /tmp/pp.plist
           PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
@@ -277,7 +277,7 @@ workflows:
             --create
           keychain add-certificates
 
-          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          PP_PATH=$(find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
           security cms -D -i "$PP_PATH" > /tmp/pp.plist
           PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
@@ -557,7 +557,7 @@ workflows:
             --create
           keychain add-certificates
 
-          PP_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
+          PP_PATH=$(find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PP_PATH" ]; then echo "ERROR: No provisioning profile found after fetch"; exit 1; fi
           security cms -D -i "$PP_PATH" > /tmp/pp.plist
           PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist)
