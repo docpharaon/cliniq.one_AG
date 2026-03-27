@@ -170,7 +170,6 @@ workflows:
       node: 22
       groups:
         - supabase_credentials
-        - app_store_credentials
     triggering:
       events:
         - push
