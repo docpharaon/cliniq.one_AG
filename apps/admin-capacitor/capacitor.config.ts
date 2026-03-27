@@ -3,12 +3,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.cliniqone.admin',
   appName: 'cliniq.one Admin',
-  webDir: 'www',
+  webDir: '../admin/out',
   server: {
-    url: 'https://cliniq-one-ag-admin.vercel.app',
     androidScheme: 'https',
     iosScheme: 'https',
-    cleartext: false,
   },
   android: {
     buildOptions: {

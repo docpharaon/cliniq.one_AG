@@ -5,10 +5,8 @@ const config: CapacitorConfig = {
   appName: 'cliniq.one',
   webDir: '../patient/dist',
   server: {
-    url: 'https://cliniq-one-ag-patient.vercel.app',
     androidScheme: 'https',
     iosScheme: 'https',
-    cleartext: false,
   },
   android: {
     buildOptions: {

@@ -3,12 +3,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.cliniqone.locum',
   appName: 'cliniq.one Locum',
-  webDir: 'www',
+  webDir: '../doctor-web/out',
   server: {
-    url: 'https://cliniq-one-ag-locum.vercel.app',
     androidScheme: 'https',
     iosScheme: 'https',
-    cleartext: false,
   },
   android: {
     buildOptions: {

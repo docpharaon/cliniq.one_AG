@@ -1,8 +1,8 @@
 # ────────────────────────────────────────────────────────────
 # Codemagic CI/CD — iOS Builds for cliniq.one Capacitor Apps
 # ────────────────────────────────────────────────────────────
-# All 4 apps are webview wrappers (server.url → Vercel).
-# They need a placeholder www/ dir for Capacitor scaffolding.
+# Each app builds its web source first, then bundles it into
+# the native binary via `cap sync`. No server.url dependency.
 # ────────────────────────────────────────────────────────────
 
 workflows:
@@ -28,10 +28,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Create placeholder webDir
+      - name: Build doctor-web (static export)
         script: |
-          mkdir -p apps/doctor-capacitor/www
-          echo '<html><body>Loading...</body></html>' > apps/doctor-capacitor/www/index.html
+          cd apps/doctor-web
+          CAPACITOR_BUILD=1 npx next build
+          echo "=== doctor-web/out contents ==="
+          ls -la out/ | head -20
       - name: Add and sync iOS platform
         script: |
           cd apps/doctor-capacitor
@@ -55,10 +57,19 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
+      - name: Patch Info.plist
+        script: |
+          PLIST="apps/doctor-capacitor/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
+          echo "=== Patched Info.plist ==="
+          cat "$PLIST"
       - name: Build IPA
         script: |
           cd apps/doctor-capacitor/ios/App
-          # Try xcworkspace first, fall back to xcodeproj
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
@@ -106,10 +117,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Create placeholder webDir
+      - name: Build admin (static export)
         script: |
-          mkdir -p apps/admin-capacitor/www
-          echo '<html><body>Loading...</body></html>' > apps/admin-capacitor/www/index.html
+          cd apps/admin
+          CAPACITOR_BUILD=1 npx next build
+          echo "=== admin/out contents ==="
+          ls -la out/ | head -20
       - name: Add and sync iOS platform
         script: |
           cd apps/admin-capacitor
@@ -133,6 +146,16 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
+      - name: Patch Info.plist
+        script: |
+          PLIST="apps/admin-capacitor/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
+          echo "=== Patched Info.plist ==="
+          cat "$PLIST"
       - name: Build IPA
         script: |
           cd apps/admin-capacitor/ios/App
@@ -162,8 +185,6 @@ workflows:
           failure: true
 
   # ─── PATIENT iOS ────────────────────────────────────────────
-  # Patient now also uses server.url approach (loads from Vercel)
-  # This avoids the jspdf Metro bundler crash during expo export
   patient-ios:
     name: Patient iOS
     instance_type: mac_mini_m2
@@ -185,10 +206,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Create placeholder webDir
+      - name: Build patient web (Expo export)
         script: |
-          mkdir -p apps/patient/dist
-          echo '<html><body>Loading...</body></html>' > apps/patient/dist/index.html
+          cd apps/patient
+          npx expo export --platform web
+          echo "=== patient/dist contents ==="
+          ls -la dist/ | head -20
       - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
@@ -204,16 +227,24 @@ workflows:
           find apps/patient-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
-          # Generate certificate key on the Mac build machine
           openssl genrsa -out /tmp/cert_key.pem 2048
           export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
-          # Fetch or create distribution certificate and provisioning profile
           keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
           xcode-project use-profiles
+      - name: Patch Info.plist
+        script: |
+          PLIST="apps/patient-capacitor/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
+          echo "=== Patched Info.plist ==="
+          cat "$PLIST"
       - name: Build IPA
         script: |
           cd apps/patient-capacitor/ios/App
@@ -264,10 +295,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Create placeholder webDir
+      - name: Build doctor-web for locum (static export)
         script: |
-          mkdir -p apps/locum-capacitor/www
-          echo '<html><body>Loading...</body></html>' > apps/locum-capacitor/www/index.html
+          cd apps/doctor-web
+          CAPACITOR_BUILD=1 npx next build
+          echo "=== doctor-web/out contents (for locum) ==="
+          ls -la out/ | head -20
       - name: Add and sync iOS platform
         script: |
           cd apps/locum-capacitor
@@ -291,6 +324,16 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
+      - name: Patch Info.plist
+        script: |
+          PLIST="apps/locum-capacitor/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
+          echo "=== Patched Info.plist ==="
+          cat "$PLIST"
       - name: Build IPA
         script: |
           cd apps/locum-capacitor/ios/App
