@@ -22,8 +22,9 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: disabled
+        - pattern: main
           include: true
+      cancel_previous_builds: true
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
@@ -46,10 +47,12 @@ workflows:
           find apps/doctor-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
+          keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.doctor" \
             --type IOS_APP_STORE \
             --create
-          keychain initialize
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
@@ -97,7 +100,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: disabled
+        - pattern: main
           include: true
       cancel_previous_builds: true
     scripts:
@@ -122,10 +125,12 @@ workflows:
           find apps/admin-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
+          keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.admin" \
             --type IOS_APP_STORE \
             --create
-          keychain initialize
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
@@ -253,7 +258,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: disabled
+        - pattern: main
           include: true
       cancel_previous_builds: true
     scripts:
@@ -278,10 +283,12 @@ workflows:
           find apps/locum-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
+          keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.locum" \
             --type IOS_APP_STORE \
             --create
-          keychain initialize
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
