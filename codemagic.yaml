@@ -37,20 +37,35 @@ workflows:
           ../../node_modules/.bin/cap sync ios
           ../../node_modules/.bin/cap copy ios
 
-          # Ensure web assets and config files exist
+          # Force-copy web assets to ios/App/App/public
           APP_DIR="ios/App/App"
-          if [ ! -d "$APP_DIR/public" ]; then
-            echo "public/ missing after sync, copying manually"
-            cp -R ../doctor-web/out "$APP_DIR/public"
-          fi
-          echo "=== public/ contents ==="
-          ls -la "$APP_DIR/public/" | head -10
+          WEB_SRC="$CLONE_DIR/apps/doctor-web/out"
+          if [ -z "$CLONE_DIR" ]; then WEB_SRC="$(pwd)/../doctor-web/out"; fi
 
+          echo "=== Web source: $WEB_SRC ==="
+          ls -la "$WEB_SRC/" 2>/dev/null | head -5 || echo "WARNING: web source not found at $WEB_SRC"
+
+          rm -rf "$APP_DIR/public"
+          mkdir -p "$APP_DIR/public"
+          cp -R "$WEB_SRC"/* "$APP_DIR/public/" 2>/dev/null || cp -R "$WEB_SRC"/. "$APP_DIR/public/" 2>/dev/null || true
+          
+          # Verify public has content
+          FILE_COUNT=$(find "$APP_DIR/public" -type f 2>/dev/null | wc -l)
+          echo "public/ has $FILE_COUNT files"
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: public/ is empty! Listing possible locations..."
+            ls -la ../doctor-web/ 2>/dev/null || true
+            ls -la ../doctor-web/out/ 2>/dev/null || true
+            exit 1
+          fi
+
+          # Ensure capacitor.config.json exists
           if [ ! -f "$APP_DIR/capacitor.config.json" ]; then
             echo "Creating capacitor.config.json"
             echo '{"appId":"com.cliniqone.doctor","appName":"cliniq.one Doctor","webDir":"public","server":{"androidScheme":"https","iosScheme":"https"}}' > "$APP_DIR/capacitor.config.json"
           fi
 
+          # Ensure config.xml exists
           if [ ! -f "$APP_DIR/config.xml" ]; then
             echo "Creating stub config.xml"
             echo '<?xml version="1.0" encoding="UTF-8"?><widget id="com.cliniqone.doctor" version="1.0.0"><name>cliniq.one Doctor</name></widget>' > "$APP_DIR/config.xml"
