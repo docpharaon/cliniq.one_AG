@@ -35,8 +35,29 @@ workflows:
           cd apps/doctor-capacitor
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
-          echo "=== iOS files generated ==="
-          find ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null | head -10
+          ../../node_modules/.bin/cap copy ios
+
+          # Ensure web assets and config files exist
+          APP_DIR="ios/App/App"
+          if [ ! -d "$APP_DIR/public" ]; then
+            echo "public/ missing after sync, copying manually"
+            cp -R ../doctor-web/out "$APP_DIR/public"
+          fi
+          echo "=== public/ contents ==="
+          ls -la "$APP_DIR/public/" | head -10
+
+          if [ ! -f "$APP_DIR/capacitor.config.json" ]; then
+            echo "Creating capacitor.config.json"
+            echo '{"appId":"com.cliniqone.doctor","appName":"cliniq.one Doctor","webDir":"public","server":{"androidScheme":"https","iosScheme":"https"}}' > "$APP_DIR/capacitor.config.json"
+          fi
+
+          if [ ! -f "$APP_DIR/config.xml" ]; then
+            echo "Creating stub config.xml"
+            echo '<?xml version="1.0" encoding="UTF-8"?><widget id="com.cliniqone.doctor" version="1.0.0"><name>cliniq.one Doctor</name></widget>' > "$APP_DIR/config.xml"
+          fi
+
+          echo "=== iOS App contents ==="
+          ls -la "$APP_DIR/"
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
@@ -83,19 +104,14 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/doctor-capacitor/ios/App
-          PP_UUID=$(cat /tmp/pp_uuid.txt)
-          TEAM_ID=$(cat /tmp/team_id.txt)
-          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
-              --scheme "App" \
-              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
+              --scheme "App"
           else
             xcode-project build-ipa \
               --project "App.xcodeproj" \
-              --scheme "App" \
-              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
+              --scheme "App"
           fi
     artifacts:
       - apps/doctor-capacitor/ios/App/build/ios/ipa/*.ipa
