@@ -230,7 +230,6 @@ workflows:
       node: 22
       groups:
         - supabase_credentials
-        - ios_signing
     triggering:
       events:
         - push
@@ -262,6 +261,8 @@ workflows:
           find apps/patient-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
           keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
             --type IOS_APP_STORE \
