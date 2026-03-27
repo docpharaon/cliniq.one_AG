@@ -251,8 +251,31 @@ workflows:
           cd apps/patient-capacitor
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
-          echo "=== iOS files generated ==="
-          find ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null | head -10
+          ../../node_modules/.bin/cap copy ios
+
+          # Ensure web assets are in ios/App/App/public
+          APP_DIR="ios/App/App"
+          if [ ! -d "$APP_DIR/public" ]; then
+            echo "public/ missing after sync, copying manually from webDir"
+            cp -R ../patient/dist "$APP_DIR/public"
+          fi
+          echo "=== public/ contents ==="
+          ls -la "$APP_DIR/public/" | head -10
+
+          # Ensure capacitor.config.json exists
+          if [ ! -f "$APP_DIR/capacitor.config.json" ]; then
+            echo "Creating capacitor.config.json"
+            echo '{"appId":"com.cliniqone.patient.cap","appName":"cliniq.one","webDir":"public","server":{"androidScheme":"https","iosScheme":"https"}}' > "$APP_DIR/capacitor.config.json"
+          fi
+
+          # Ensure config.xml exists (Xcode project references it)
+          if [ ! -f "$APP_DIR/config.xml" ]; then
+            echo "Creating stub config.xml"
+            echo '<?xml version="1.0" encoding="UTF-8"?><widget id="com.cliniqone.patient.cap" version="1.0.0"><name>cliniq.one</name></widget>' > "$APP_DIR/config.xml"
+          fi
+
+          echo "=== iOS App contents ==="
+          ls -la "$APP_DIR/"
       - name: Debug - list iOS project structure
         script: |
           echo "=== iOS project structure ==="
