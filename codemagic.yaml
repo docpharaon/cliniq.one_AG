@@ -19,11 +19,7 @@ workflows:
       groups:
         - supabase_credentials
     triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
+      events: []
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
@@ -130,11 +126,7 @@ workflows:
       groups:
         - supabase_credentials
     triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
+      events: []
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
@@ -238,6 +230,7 @@ workflows:
       node: 22
       groups:
         - supabase_credentials
+        - ios_signing
     triggering:
       events:
         - push
@@ -269,8 +262,6 @@ workflows:
           find apps/patient-capacitor/ios -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || echo "No xcode projects found"
       - name: Set up code signing
         script: |
-          openssl genrsa -out /tmp/cert_key.pem 2048
-          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
           keychain initialize
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
             --type IOS_APP_STORE \
@@ -305,19 +296,14 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/patient-capacitor/ios/App
-          PP_UUID=$(cat /tmp/pp_uuid.txt)
-          TEAM_ID=$(cat /tmp/team_id.txt)
-          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
           if [ -d "App.xcworkspace" ]; then
             xcode-project build-ipa \
               --workspace "App.xcworkspace" \
-              --scheme "App" \
-              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
+              --scheme "App"
           else
             xcode-project build-ipa \
               --project "App.xcodeproj" \
-              --scheme "App" \
-              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
+              --scheme "App"
           fi
     artifacts:
       - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
@@ -519,11 +505,7 @@ workflows:
       groups:
         - supabase_credentials
     triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
+      events: []
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
