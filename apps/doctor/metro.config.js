@@ -16,4 +16,7 @@ config.resolver.nodeModulesPaths = [
     path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// Support video assets (mp4)
+config.resolver.assetExts = [...(config.resolver.assetExts || []), 'mp4'];
+
 module.exports = config;

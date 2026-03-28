@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build:web": "cd ../doctor-web && set CAPACITOR_BUILD=1 && npx next build",
+    "build:web": "cd ../doctor && npx expo export --platform web",
     "cap:sync": "npx cap sync",
     "cap:build": "cd android && .\\gradlew.bat assembleRelease",
     "cap:build:aab": "cd android && .\\gradlew.bat bundleRelease",
