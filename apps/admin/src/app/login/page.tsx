@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import SplashScreen from '@/components/SplashScreen';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { createBrowserSupabase } from '@/lib/supabase';
@@ -11,7 +12,15 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [checkingOAuth, setCheckingOAuth] = useState(false);
+    const [showSplash, setShowSplash] = useState(false);
     const router = useRouter();
+
+    // Show splash only once per session
+    useEffect(() => {
+        if (!sessionStorage.getItem('admin_splash_shown')) {
+            setShowSplash(true);
+        }
+    }, []);
 
     // Handle OAuth callback (hash tokens)
     useEffect(() => {
@@ -151,6 +160,13 @@ export default function LoginPage() {
     const isDisabled = loading || checkingOAuth;
 
     return (
+        <>
+        {showSplash && (
+            <SplashScreen onComplete={() => {
+                sessionStorage.setItem('admin_splash_shown', '1');
+                setShowSplash(false);
+            }} />
+        )}
         <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Logo / Branding */}
@@ -285,5 +301,6 @@ export default function LoginPage() {
                 </p>
             </div>
         </div>
+        </>
     );
 }

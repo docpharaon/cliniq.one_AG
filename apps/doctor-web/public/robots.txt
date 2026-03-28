@@ -1,3 +1,0 @@
-# cliniq.one Doctor Portal — Private application, do not index
-User-agent: *
-Disallow: /
