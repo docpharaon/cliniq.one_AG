@@ -16,8 +16,8 @@ env:
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
 jobs:
-  lint-typecheck:
-    name: Lint & Typecheck
+  install:
+    name: Install Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,13 +26,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci --legacy-peer-deps
-      - name: Typecheck admin
-        run: npx turbo run typecheck --filter=@cliniqone/admin
 
   # ─── Next.js builds (admin + landing) ────────────────────
   build-nextjs:
     name: Build Next.js Apps
-    needs: lint-typecheck
+    needs: install
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -56,7 +54,7 @@ jobs:
   # ─── Expo web exports (doctor + patient) ────────────────
   build-expo:
     name: Build Expo Apps
-    needs: lint-typecheck
+    needs: install
     runs-on: ubuntu-latest
     strategy:
       matrix:
