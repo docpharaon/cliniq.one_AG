@@ -163,7 +163,7 @@ export async function acceptLegalTerms() {
  * Creates a user profile in public.users if one doesn't exist.
  * @param role - The role to assign if creating a new profile (default: 'patient')
  */
-export async function signInWithGoogle(idToken: string, displayName?: string | null, role: 'patient' | 'doctor' | 'admin' = 'patient') {
+export async function signInWithGoogle(idToken: string, displayName?: string | null, role: 'patient' | 'doctor' | 'admin' | 'superadmin' = 'patient') {
     const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
@@ -205,7 +205,7 @@ export async function signInWithGoogle(idToken: string, displayName?: string | n
  * Creates a user profile in public.users if one doesn't exist.
  * @param role - The role to assign if creating a new profile (default: 'patient')
  */
-export async function signInWithApple(idToken: string, displayName?: string | null, nonce?: string, role: 'patient' | 'doctor' | 'admin' = 'patient') {
+export async function signInWithApple(idToken: string, displayName?: string | null, nonce?: string, role: 'patient' | 'doctor' | 'admin' | 'superadmin' = 'patient') {
     const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: idToken,

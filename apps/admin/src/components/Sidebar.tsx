@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useSidebar } from './SidebarContext';
+import { useAdminAuth } from './AdminAuthProvider';
 
 const mainNav = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -41,7 +42,7 @@ const mainNav = [
     { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
 ];
 
-type NavItem = { label: string; href: string; icon: LucideIcon };
+type NavItem = { label: string; href: string; icon: LucideIcon; superadminOnly?: boolean };
 
 const managementGroups: { title: string; items: NavItem[] }[] = [
     {
@@ -49,19 +50,19 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
         items: [
             { label: 'Interventions', href: '/dashboard/interventions', icon: ClipboardList },
             { label: 'ICD Codes', href: '/dashboard/icd-codes', icon: FileText },
-            { label: 'Protocol Alerts', href: '/dashboard/protocols', icon: ShieldAlert },
+            { label: 'Protocol Alerts', href: '/dashboard/protocols', icon: ShieldAlert, superadminOnly: true },
             { label: 'Error Reports', href: '/dashboard/errors', icon: AlertTriangle },
         ],
     },
     {
         title: 'Operations',
         items: [
-            { label: 'Testers', href: '/dashboard/testers', icon: FlaskConical },
-            { label: 'HR Management', href: '/dashboard/hr', icon: UserCog },
+            { label: 'Testers', href: '/dashboard/testers', icon: FlaskConical, superadminOnly: true },
+            { label: 'HR Management', href: '/dashboard/hr', icon: UserCog, superadminOnly: true },
             { label: 'Scheduling', href: '/dashboard/scheduling', icon: CalendarDays },
             { label: 'Send Notification', href: '/dashboard/notifications', icon: Bell },
-            { label: 'AI', href: '/dashboard/ai', icon: Bot },
-            { label: 'ID Verification', href: '/dashboard/kyc', icon: Fingerprint },
+            { label: 'AI', href: '/dashboard/ai', icon: Bot, superadminOnly: true },
+            { label: 'ID Verification', href: '/dashboard/kyc', icon: Fingerprint, superadminOnly: true },
         ],
     },
     {
@@ -74,8 +75,8 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
     {
         title: 'Finance',
         items: [
-            { label: 'Pricing', href: '/dashboard/pricing', icon: DollarSign },
-            { label: 'Tokens', href: '/dashboard/tokens', icon: Coins },
+            { label: 'Pricing', href: '/dashboard/pricing', icon: DollarSign, superadminOnly: true },
+            { label: 'Tokens', href: '/dashboard/tokens', icon: Coins, superadminOnly: true },
         ],
     },
 ];
@@ -83,6 +84,13 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
 export default function Sidebar() {
     const pathname = usePathname();
     const { collapsed, toggleCollapsed, mobileOpen, closeMobile, isMobile } = useSidebar();
+    const { isSuperadmin, role, signOut } = useAdminAuth();
+
+    // Filter management groups based on role
+    const filteredGroups = managementGroups.map(group => ({
+        ...group,
+        items: group.items.filter(item => !item.superadminOnly || isSuperadmin),
+    })).filter(group => group.items.length > 0);
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
         const map: Record<string, boolean> = {};
         managementGroups.forEach(g => { map[g.title] = true; });
@@ -158,7 +166,7 @@ export default function Sidebar() {
                         Management
                     </p>
                 )}
-                {managementGroups.map((group) => {
+                {filteredGroups.map((group) => {
                     const isExpanded = expandedGroups[group.title] ?? true;
                     const hasActive = group.items.some(i => isActive(i.href));
 
@@ -187,12 +195,25 @@ export default function Sidebar() {
 
                 <div className="my-4 border-t border-[rgba(45,212,191,0.15)]" />
 
-                {renderNavLink({ label: 'Settings', href: '/dashboard/settings', icon: Settings }, isActive('/dashboard/settings'))}
+                {isSuperadmin && renderNavLink({ label: 'Settings', href: '/dashboard/settings', icon: Settings }, isActive('/dashboard/settings'))}
             </nav>
 
             {/* Footer */}
             <div className="px-3 py-4 border-t border-accent/20">
-                <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-text-muted hover:bg-error-faded hover:text-error transition-all duration-200">
+                {role && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 mb-2">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isSuperadmin ? 'bg-purple-500' : 'bg-accent'}`} />
+                        {(showLabels || isMobile) && (
+                            <span className="text-[11px] uppercase tracking-wider font-semibold text-text-muted">
+                                {isSuperadmin ? 'MomenCrafts' : 'Admin'}
+                            </span>
+                        )}
+                    </div>
+                )}
+                <button
+                    onClick={signOut}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-text-muted hover:bg-error-faded hover:text-error transition-all duration-200"
+                >
                     <LogOut className="w-5 h-5 flex-shrink-0" />
                     {(showLabels || isMobile) && <span className="text-[15px]">Logout</span>}
                 </button>

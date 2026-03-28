@@ -2,7 +2,7 @@
 // User / Patient
 // ──────────────────────────────────────────
 
-export type UserRole = 'patient' | 'doctor' | 'admin';
+export type UserRole = 'patient' | 'doctor' | 'admin' | 'superadmin';
 export type UserStatus = 'active' | 'inactive' | 'blocked' | 'pending';
 export type Gender = 'male' | 'female' | 'prefer_not_to_say';
 export type KycStatus = 'not_started' | 'pending' | 'approved' | 'rejected' | 'resubmission_requested' | 'exempt';
