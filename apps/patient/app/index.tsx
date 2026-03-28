@@ -53,5 +53,11 @@ export default function Index() {
         return <Redirect href="/(auth)/legal" />;
     }
 
+    // Onboarding gate: if profile is incomplete, send to personal-details
+    const profileComplete = !!(user?.gender && user?.country && user?.year_of_birth);
+    if (user && !profileComplete) {
+        return <Redirect href="/(auth)/personal-details" />;
+    }
+
     return <Redirect href="/(tabs)" />;
 }
