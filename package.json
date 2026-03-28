@@ -7,10 +7,9 @@
   ],
   "scripts": {
     "dev:patient": "cd apps/patient && npx expo start",
-    "dev:patient-lite": "cd apps/patient-lite && npx expo start",
     "dev:doctor": "cd apps/doctor && npx expo start",
     "dev:admin": "cd apps/admin && npm run dev",
-    "dev:doctor-web": "cd apps/doctor-web && npm run dev",
+    "dev:landing": "cd apps/landing && npm run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

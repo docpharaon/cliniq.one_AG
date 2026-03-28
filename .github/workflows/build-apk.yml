@@ -13,17 +13,16 @@ on:
           - doctor
           - admin
           - patient
-          - locum
   push:
     branches: [main]
     paths:
-      - 'apps/doctor-web/**'
+      - 'apps/doctor/**'
       - 'apps/admin/**'
       - 'apps/patient/**'
       - 'apps/doctor-capacitor/**'
       - 'apps/admin-capacitor/**'
       - 'apps/patient-capacitor/**'
-      - 'apps/locum-capacitor/**'
+      - 'packages/**'
 
 env:
   NODE_VERSION: '20'
@@ -52,14 +51,14 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
-      - name: Build doctor-web (static export)
-        working-directory: apps/doctor-web
-        run: npm run build
+      - name: Build doctor web (Expo export)
+        working-directory: apps/doctor
+        run: npx expo export --platform web
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Sync Capacitor
         working-directory: apps/doctor-capacitor
@@ -98,7 +97,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build admin (static export)
         working-directory: apps/admin
@@ -144,7 +143,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build patient web (static export)
         working-directory: apps/patient
@@ -166,51 +165,4 @@ jobs:
         with:
           name: patient-apk-${{ github.sha }}
           path: apps/patient-capacitor/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 14
-
-  # ─── Build Locum APK ──────────────────────────
-  build-locum:
-    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.app == 'all' || inputs.app == 'locum') || github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-    name: 🔄 Locum APK
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build doctor-web (static export for locum)
-        working-directory: apps/doctor-web
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_APP_MODE: locum
-
-      - name: Sync Capacitor
-        working-directory: apps/locum-capacitor
-        run: npx cap sync android
-
-      - name: Build APK
-        working-directory: apps/locum-capacitor/android
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: locum-apk-${{ github.sha }}
-          path: apps/locum-capacitor/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
