@@ -85,6 +85,7 @@ export function middleware(request: NextRequest) {
             // Superadmin-only pages
             const superadminPaths = [
                 '/dashboard/settings',
+                '/dashboard/admins',
                 '/dashboard/ai',
                 '/dashboard/pricing',
                 '/dashboard/tokens',

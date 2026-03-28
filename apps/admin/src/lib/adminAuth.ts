@@ -38,6 +38,7 @@ export function isSuperadminRole(role: string | null): boolean {
  */
 export const SUPERADMIN_ONLY_PATHS = [
     '/dashboard/settings',
+    '/dashboard/admins',
     '/dashboard/ai',
     '/dashboard/pricing',
     '/dashboard/tokens',

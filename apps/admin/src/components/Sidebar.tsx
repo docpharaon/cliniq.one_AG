@@ -28,6 +28,7 @@ import {
     X,
     Lightbulb,
     FlaskConical,
+    Crown,
     type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -195,6 +196,7 @@ export default function Sidebar() {
 
                 <div className="my-4 border-t border-[rgba(45,212,191,0.15)]" />
 
+                {isSuperadmin && renderNavLink({ label: 'Admins', href: '/dashboard/admins', icon: Crown }, isActive('/dashboard/admins'))}
                 {isSuperadmin && renderNavLink({ label: 'Settings', href: '/dashboard/settings', icon: Settings }, isActive('/dashboard/settings'))}
             </nav>
 
