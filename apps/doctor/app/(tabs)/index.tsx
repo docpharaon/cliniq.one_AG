@@ -45,15 +45,38 @@ export default function DashboardScreen() {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                         <Text style={styles.greeting}>Welcome back,</Text>
-                        <Text style={styles.name}>{doctor?.display_name || 'Doctor'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.name}>{doctor?.display_name || 'Doctor'}</Text>
+                            {doctor?.doctor_type === 'locum' && (
+                                <View style={styles.locumBadge}>
+                                    <Text style={styles.locumBadgeText}>LOCUM</Text>
+                                </View>
+                            )}
+                        </View>
+                        {doctor?.sandbox_mode && (
+                            <Text style={styles.sandboxHint}>⚠️ Sandbox Mode</Text>
+                        )}
                     </View>
                     <View style={styles.statusBadge}>
                         <View style={[styles.statusDot, { backgroundColor: doctor?.is_accepting ? colors.success : colors.warning }]} />
                         <Text style={styles.statusText}>{doctor?.is_accepting ? 'Accepting' : 'Paused'}</Text>
                     </View>
                 </View>
+
+                {/* Locum credential expiry warning */}
+                {doctor?.doctor_type === 'locum' && doctor.credential_expires_at && (() => {
+                    const daysLeft = Math.ceil((new Date(doctor.credential_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    if (daysLeft <= 30) return (
+                        <View style={[styles.credentialWarning, daysLeft <= 7 && styles.credentialDanger]}>
+                            <Text style={styles.credentialText}>
+                                {daysLeft <= 0 ? '🔴 Credentials expired — contact admin' : `⚠️ Credentials expire in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`}
+                            </Text>
+                        </View>
+                    );
+                    return null;
+                })()}
 
                 {/* Stats Row */}
                 <View style={styles.statsRow}>
@@ -175,4 +198,10 @@ const styles = StyleSheet.create({
     emptyQueue: { alignItems: 'center', paddingVertical: 24 },
     emptyEmoji: { fontSize: 36, marginBottom: 8 },
     emptyText: { ...typography.body, color: colors.textTertiary },
+    locumBadge: { backgroundColor: '#6366F1', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+    locumBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+    sandboxHint: { ...typography.caption, color: colors.warning, marginTop: 2 },
+    credentialWarning: { backgroundColor: colors.warningFaded, borderWidth: 1, borderColor: colors.warning, borderRadius: 12, padding: 12, marginBottom: 16 },
+    credentialDanger: { backgroundColor: colors.errorFaded, borderColor: colors.error },
+    credentialText: { ...typography.bodySm, color: colors.textPrimary, textAlign: 'center' },
 });

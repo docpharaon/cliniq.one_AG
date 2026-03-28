@@ -6,7 +6,7 @@ import { supabase } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function PendingApprovalScreen() {
-    const { clear } = useAuthStore();
+    const { doctor, clear } = useAuthStore();
 
     async function handleLogout() {
         try {
@@ -56,9 +56,20 @@ export default function PendingApprovalScreen() {
                 {/* What happens next */}
                 <View style={styles.stepsCard}>
                     <Text style={styles.stepsTitle}>What Happens Next?</Text>
-                    <StepItem num="1" text="Admin reviews your credentials" done />
-                    <StepItem num="2" text="Account gets approved" />
-                    <StepItem num="3" text="You can start accepting consultations" />
+                    {doctor?.doctor_type === 'locum' ? (
+                        <>
+                            <StepItem num="1" text="Submit credentials & documents" done={doctor.onboarding_status !== 'documents_pending'} />
+                            <StepItem num="2" text="Admin reviews your application" done={doctor.onboarding_status === 'approved'} />
+                            <StepItem num="3" text="Complete sandbox training" done={!doctor.sandbox_mode && doctor.onboarding_status === 'approved'} />
+                            <StepItem num="4" text="Start accepting locum consultations" />
+                        </>
+                    ) : (
+                        <>
+                            <StepItem num="1" text="Admin reviews your credentials" done />
+                            <StepItem num="2" text="Account gets approved" />
+                            <StepItem num="3" text="You can start accepting consultations" />
+                        </>
+                    )}
                 </View>
 
                 {/* Actions */}
