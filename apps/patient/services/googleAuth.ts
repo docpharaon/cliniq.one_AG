@@ -34,6 +34,7 @@ export async function handleGoogleSignIn(): Promise<boolean> {
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin,
+                    queryParams: { prompt: 'select_account' },
                 },
             });
 
@@ -132,6 +133,7 @@ async function handleCapacitorGoogleOAuth(): Promise<boolean> {
             options: {
                 redirectTo: 'com.cliniqone.patient.cap://callback',
                 skipBrowserRedirect: true,
+                queryParams: { prompt: 'select_account' },
             },
         });
 
