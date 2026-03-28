@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.cliniqone.doctor',
   appName: 'cliniq.one Doctor',
-  webDir: '../doctor-web/out',
+  webDir: '../doctor/dist',
   server: {
     androidScheme: 'https',
     iosScheme: 'https',

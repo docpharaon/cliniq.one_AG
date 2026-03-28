@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@cliniqone/api';
-import { colors, typography } from '@cliniqone/ui';
+import { colors, typography, spacing, radius } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
+import { handleGoogleSignIn } from '../../services/googleAuth';
+import { handleAppleSignIn } from '../../services/appleAuth';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
     const [error, setError] = useState('');
 
     const handleLogin = async () => {
@@ -30,17 +33,23 @@ export default function LoginScreen() {
 
             // Re-initialize to fetch doctor profile
             await useAuthStore.getState().initialize();
-            const doctor = useAuthStore.getState().doctor;
+            const store = useAuthStore.getState();
 
-            if (!doctor) {
+            if (store.isNewRegistration) {
+                router.replace('/(auth)/pending-approval' as any);
+                return;
+            }
+
+            if (!store.doctor) {
                 setError('No doctor profile found for this account.');
                 await supabase.auth.signOut();
+                useAuthStore.getState().clear();
                 setLoading(false);
                 return;
             }
 
             // Force password change if flagged
-            if (doctor.must_change_password) {
+            if (store.doctor.must_change_password) {
                 router.replace('/(auth)/change-password' as any);
             } else {
                 router.replace('/(tabs)');
@@ -54,6 +63,36 @@ export default function LoginScreen() {
             setLoading(false);
         }
     };
+
+    const handleOAuth = async (provider: 'google' | 'apple') => {
+        setOauthLoading(provider);
+        setError('');
+
+        try {
+            const handler = provider === 'google' ? handleGoogleSignIn : handleAppleSignIn;
+            const success = await handler();
+
+            if (success) {
+                const store = useAuthStore.getState();
+
+                if (store.isNewRegistration || !store.doctor) {
+                    router.replace('/(auth)/pending-approval' as any);
+                } else if (store.doctor.status === 'pending') {
+                    router.replace('/(auth)/pending-approval' as any);
+                } else if (store.doctor.must_change_password) {
+                    router.replace('/(auth)/change-password' as any);
+                } else {
+                    router.replace('/(tabs)');
+                }
+            }
+        } catch (err: any) {
+            setError(err?.message || 'OAuth sign-in failed');
+        } finally {
+            setOauthLoading(null);
+        }
+    };
+
+    const isDisabled = loading || !!oauthLoading;
 
     return (
         <KeyboardAvoidingView
@@ -86,6 +125,7 @@ export default function LoginScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        editable={!isDisabled}
                     />
 
                     <Text style={styles.label}>Password</Text>
@@ -96,12 +136,13 @@ export default function LoginScreen() {
                         placeholder="Enter your password"
                         placeholderTextColor={colors.textTertiary}
                         secureTextEntry
+                        editable={!isDisabled}
                     />
 
                     <TouchableOpacity
-                        style={[styles.button, loading && styles.buttonDisabled]}
+                        style={[styles.button, isDisabled && styles.buttonDisabled]}
                         onPress={handleLogin}
-                        disabled={loading}
+                        disabled={isDisabled}
                     >
                         {loading ? (
                             <ActivityIndicator color={colors.bgPrimary} />
@@ -113,13 +154,54 @@ export default function LoginScreen() {
                     <TouchableOpacity
                         style={styles.forgotLink}
                         onPress={() => router.push('/(auth)/forgot-password')}
+                        disabled={isDisabled}
                     >
                         <Text style={styles.forgotText}>Forgot password?</Text>
+                    </TouchableOpacity>
+
+                    {/* Divider */}
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>or</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    {/* Google OAuth */}
+                    <TouchableOpacity
+                        style={[styles.oauthButton, isDisabled && styles.buttonDisabled]}
+                        onPress={() => handleOAuth('google')}
+                        disabled={isDisabled}
+                    >
+                        {oauthLoading === 'google' ? (
+                            <ActivityIndicator color={colors.textPrimary} />
+                        ) : (
+                            <>
+                                <Text style={styles.oauthIcon}>G</Text>
+                                <Text style={styles.oauthText}>Continue with Google</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Apple OAuth */}
+                    <TouchableOpacity
+                        style={[styles.oauthButton, styles.appleButton, isDisabled && styles.buttonDisabled]}
+                        onPress={() => handleOAuth('apple')}
+                        disabled={isDisabled}
+                    >
+                        {oauthLoading === 'apple' ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <>
+                                <Text style={styles.appleIcon}></Text>
+                                <Text style={styles.appleText}>Continue with Apple</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
 
                 <Text style={styles.footer}>
-                    Contact admin to register as a doctor
+                    New doctor? Sign in with Google or Apple to register.{'\n'}
+                    Admin approval required.
                 </Text>
             </View>
         </KeyboardAvoidingView>
@@ -202,6 +284,56 @@ const styles = StyleSheet.create({
         ...typography.caption,
         color: colors.accentTeal,
     },
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: spacing.xl,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: colors.border,
+    },
+    dividerText: {
+        ...typography.caption,
+        color: colors.textTertiary,
+        marginHorizontal: spacing.md,
+    },
+    oauthButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.md,
+        backgroundColor: colors.bgTertiary,
+        borderRadius: 12,
+        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginBottom: spacing.sm,
+    },
+    oauthIcon: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#4285F4',
+    },
+    oauthText: {
+        ...typography.body,
+        color: colors.textPrimary,
+        fontWeight: '600',
+    },
+    appleButton: {
+        backgroundColor: '#000',
+        borderColor: '#333',
+    },
+    appleIcon: {
+        fontSize: 20,
+        color: '#fff',
+    },
+    appleText: {
+        ...typography.body,
+        color: '#fff',
+        fontWeight: '600',
+    },
     errorBox: {
         backgroundColor: colors.errorFaded,
         borderRadius: 12,
@@ -216,5 +348,6 @@ const styles = StyleSheet.create({
         color: colors.textTertiary,
         textAlign: 'center',
         marginTop: 24,
+        lineHeight: 18,
     },
 });
