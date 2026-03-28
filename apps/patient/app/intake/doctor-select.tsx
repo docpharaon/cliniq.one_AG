@@ -77,7 +77,7 @@ export default function DoctorSelectScreen() {
 
     // ── Confirm selection ────────────────────
     function confirmDoctor(doc: DoctorResult, method: 'search' | 'code' | 'qr') {
-        setRequestedDoctor(doc.id, method, doc.consultation_fee_tokens ?? null);
+        setRequestedDoctor(doc.id, method, doc.consultation_fee_tokens ?? null, doc.specialty ?? null);
         toast(`Selected Dr. ${doc.display_name}`, 'success');
         router.back();
     }

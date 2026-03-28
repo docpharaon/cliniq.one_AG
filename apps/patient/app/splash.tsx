@@ -6,7 +6,9 @@ import {
     TouchableWithoutFeedback,
     Dimensions,
     Text,
+    Platform,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,15 +19,24 @@ const { width, height } = Dimensions.get('window');
 const SPLASH_DURATION = 3000; // 3 seconds
 
 // ─── Assets ──────────────────────────────────────────────────────
-const gifSource = require('../assets/splash-video01.gif');
+const bgVideoSource = require('../assets/splash-bg.mp4');
 const logoSource = require('../assets/logo.png');
 
 export default function SplashScreen() {
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const logoScale = useRef(new Animated.Value(0.8)).current;
     const logoOpacity = useRef(new Animated.Value(0)).current;
+    const bgOpacity = useRef(new Animated.Value(0)).current;
     const [isDismissing, setIsDismissing] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const onBgReady = () => {
+        Animated.timing(bgOpacity, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+        }).start();
+    };
 
     useEffect(() => {
         // Animate logo entrance
@@ -74,13 +85,34 @@ export default function SplashScreen() {
             <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
                 <StatusBar style="light" />
 
-                {/* GIF Background */}
-                <Image
-                    source={gifSource}
-                    style={styles.video}
-                    contentFit="cover"
-                    autoplay={true}
-                />
+                {/* Background video — fades in when loaded */}
+                <Animated.View style={[styles.video, { opacity: bgOpacity }]}>
+                    {Platform.OS === 'web' ? (
+                        <video
+                            src={bgVideoSource as any}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            onCanPlay={onBgReady}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover' as any,
+                            }}
+                        />
+                    ) : (
+                        <Video
+                            source={bgVideoSource}
+                            style={styles.video}
+                            resizeMode={ResizeMode.COVER}
+                            shouldPlay
+                            isLooping
+                            isMuted
+                            onLoad={onBgReady}
+                        />
+                    )}
+                </Animated.View>
 
                 {/* Dark overlay for better logo visibility */}
                 <View style={styles.overlay} />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { t, getLocale } from '@cliniqone/i18n';
 import { COUNTRIES } from '@cliniqone/config';
 import { useToast } from '../../components/ToastProvider';
+import { BackButton } from '../../components/BackButton';
 
 const GENDERS = [
     { key: 'male', labelKey: 'settings.genderMale' },
@@ -67,12 +68,14 @@ export default function EditProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Text style={styles.backText}>← {t('common.back')}</Text>
-                    </TouchableOpacity>
+                    <BackButton />
                     <Text style={styles.title}>👤 {t('profile.editProfile')}</Text>
                 </View>
 
@@ -139,6 +142,7 @@ export default function EditProfileScreen() {
                     />
                 </View>
             </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

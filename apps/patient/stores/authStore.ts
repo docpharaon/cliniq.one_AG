@@ -52,7 +52,86 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (prev) prev.unsubscribe();
 
         try {
-            // Get current session (with timeout protection)
+            // On web: if URL contains OAuth hash tokens (#access_token=...),
+            // parse them directly and call setSession() — this is synchronous and avoids
+            // racing against the safety timeout in _layout.tsx.
+            const _win = globalThis as any;
+            const isWeb = typeof _win.window !== 'undefined' && typeof _win.document !== 'undefined';
+            if (isWeb && _win.window.location.hash.includes('access_token')) {
+                console.log('[Auth] OAuth redirect detected — extracting tokens from URL hash...');
+
+                // Parse tokens from the hash fragment: #access_token=...&refresh_token=...
+                const hashPart = _win.window.location.hash.substring(1); // remove the #
+                const params = new URLSearchParams(hashPart);
+                const access_token = params.get('access_token');
+                const refresh_token = params.get('refresh_token');
+
+                // Clean the hash from the URL immediately to prevent re-processing
+                if (_win.window.history?.replaceState) {
+                    _win.window.history.replaceState(null, '', _win.window.location.pathname);
+                }
+
+                if (access_token && refresh_token) {
+                    try {
+                        // Set the session directly — no waiting needed
+                        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                            access_token,
+                            refresh_token,
+                        });
+
+                        if (sessionError) {
+                            console.error('[Auth] Failed to set OAuth session:', sessionError);
+                            // Fall through to normal flow
+                        } else if (sessionData.session) {
+                            console.log('[Auth] OAuth session established successfully');
+                            const oauthSession = sessionData.session;
+
+                            // Fetch user profile
+                            const { data: userData } = await safeFetch(
+                                () => supabase
+                                    .from('users')
+                                    .select('*')
+                                    .eq('id', oauthSession.user.id)
+                                    .single(),
+                                { timeout: 5000, retries: 1, label: 'fetchOAuthUser' },
+                            );
+                            set({ session: oauthSession, user: userData as User | null, isLoading: false, isReady: true });
+                            syncTokenToNative(oauthSession.access_token);
+
+                            // Register the ongoing listener
+                            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+                                set({ session: newSession });
+                                if (event === 'TOKEN_REFRESHED') {
+                                    if (newSession) syncTokenToNative(newSession.access_token);
+                                    return;
+                                }
+                                if (newSession) {
+                                    syncTokenToNative(newSession.access_token);
+                                    try {
+                                        const { data: ud } = await safeFetch(
+                                            () => supabase.from('users').select('*').eq('id', newSession.user.id).single(),
+                                            { timeout: 5000, retries: 0, label: 'authChangeUser' },
+                                        );
+                                        set({ user: ud as User | null });
+                                    } catch (err) {
+                                        console.warn('Failed to fetch user on auth change:', err);
+                                    }
+                                } else {
+                                    set({ user: null });
+                                    syncTokenToNative(null);
+                                }
+                            });
+                            set({ _authSubscription: subscription });
+                            return; // Done — OAuth session established
+                        }
+                    } catch (err) {
+                        console.error('[Auth] Error processing OAuth tokens:', err);
+                    }
+                }
+                // If tokens missing or error: fall through to normal flow
+            }
+
+            // Normal flow: Get current session (with timeout protection)
             const { data } = await safeFetch(
                 () => supabase.auth.getSession(),
                 { timeout: 5000, retries: 1, label: 'getSession' },
@@ -80,6 +159,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             // Listen for auth changes
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
                 set({ session: newSession });
+
+                // Token refresh: just update session, skip profile re-fetch
+                if (event === 'TOKEN_REFRESHED') {
+                    if (newSession) syncTokenToNative(newSession.access_token);
+                    return;
+                }
 
                 if (newSession) {
                     syncTokenToNative(newSession.access_token);

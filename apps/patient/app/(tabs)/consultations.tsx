@@ -8,6 +8,7 @@ import { t, toLocalNum, localDate } from '@cliniqone/i18n';
 import type { Consultation, ConsultationStatus } from '@cliniqone/types';
 import { useAuthStore } from '../../stores/authStore';
 import { useConsultations } from '../../hooks/useConsultations';
+import { FadeIn } from '../../components/FadeIn';
 
 const STATUS_FILTERS: { key: string; labelKey: string }[] = [
     { key: 'all', labelKey: 'consultations.filterAll' },
@@ -196,10 +197,13 @@ export default function ConsultationsScreen() {
                     />
                 }
             >
-                <Text style={styles.title}>{t('tabs.consultations')}</Text>
+                <FadeIn delay={0}>
+                <Text style={styles.title} accessibilityRole="header">{t('tabs.consultations')}</Text>
+                </FadeIn>
 
                 {/* Search Bar */}
-                <View style={styles.searchBar}>
+                <FadeIn delay={100}>
+                <View style={styles.searchBar} accessibilityLabel="Search consultations">
                     <Text style={styles.searchIcon}>🔍</Text>
                     <TextInput
                         style={styles.searchInput}
@@ -214,8 +218,10 @@ export default function ConsultationsScreen() {
                         </TouchableOpacity>
                     )}
                 </View>
+                </FadeIn>
 
                 {/* Filters + Sort */}
+                <FadeIn delay={200}>
                 <View style={styles.filtersRow}>
                     <View style={styles.filters}>
                         {STATUS_FILTERS.map((f) => (
@@ -223,6 +229,9 @@ export default function ConsultationsScreen() {
                                 key={f.key}
                                 style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
                                 onPress={() => setFilter(f.key)}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: filter === f.key }}
+                                accessibilityLabel={`Filter: ${t(f.labelKey)}`}
                             >
                                 <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
                                     {t(f.labelKey)}
@@ -239,6 +248,7 @@ export default function ConsultationsScreen() {
                         </Text>
                     </TouchableOpacity>
                 </View>
+                </FadeIn>
 
                 {/* List */}
                 {results.length === 0 ? (
@@ -261,6 +271,8 @@ export default function ConsultationsScreen() {
                                     pathname: '/consultation/[id]',
                                     params: { id: consultation.id },
                                 })}
+                                accessibilityLabel={`${consultation.specialty || 'General'} consultation: ${consultation.chief_complaint || ''}`}
+                                accessibilityRole="button"
                             >
                                 <View style={styles.consultHeader}>
                                     <View style={styles.consultSpecialty}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Image, Dimensions, TouchableOpacity, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,9 +18,12 @@ const VIDEO_HEIGHT = VIDEO_WIDTH * 1.4; // Portrait-friendly aspect ratio
 
 const titleLogoSource = require('../../assets/title-logo.png');
 const videoSource = require('../../assets/splash-video.mp4');
+const logoSource = require('../../assets/logo.png');
 
 export default function LandingScreen() {
     const [lang, setLang] = useState<'en' | 'ar'>(getLocale());
+    const [videoReady, setVideoReady] = useState(false);
+    const videoRef = useRef<any>(null);
 
     async function switchLanguage(target: 'en' | 'ar') {
         if (target === lang) return;
@@ -88,28 +91,51 @@ export default function LandingScreen() {
                 {/* Video Section */}
                 <View style={styles.videoSection}>
                     <View style={styles.videoContainer}>
+                        {/* Loading placeholder — prevents gray play icon */}
+                        {!videoReady && (
+                            <View style={styles.videoPlaceholder}>
+                                <Image
+                                    source={logoSource}
+                                    style={styles.placeholderLogo}
+                                    resizeMode="contain"
+                                />
+                                <View style={styles.videoLoadingDot} />
+                            </View>
+                        )}
                         {Platform.OS === 'web' ? (
                             <video
+                                ref={videoRef}
                                 src={videoSource as any}
                                 autoPlay
                                 loop
                                 muted
                                 playsInline
+                                onCanPlay={() => setVideoReady(true)}
+                                onLoadedData={() => setVideoReady(true)}
                                 style={{
                                     width: '100%',
                                     height: '100%',
                                     objectFit: 'cover' as any,
                                     borderRadius: 16,
+                                    opacity: videoReady ? 1 : 0,
+                                    transition: 'opacity 0.5s ease-in-out',
+                                    position: 'absolute' as any,
+                                    top: 0,
+                                    left: 0,
                                 }}
                             />
                         ) : (
                             <Video
                                 source={videoSource}
-                                style={styles.video}
+                                style={[
+                                    styles.video,
+                                    { opacity: videoReady ? 1 : 0 },
+                                ]}
                                 resizeMode={ResizeMode.COVER}
                                 shouldPlay
                                 isLooping
                                 isMuted
+                                onLoad={() => setVideoReady(true)}
                             />
                         )}
                     </View>
@@ -159,9 +185,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: spacing.lg,
         right: spacing.lg,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: colors.bgCard,
         borderWidth: 1,
         borderColor: colors.border,
@@ -169,7 +195,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     flagEmoji: {
-        fontSize: 18,
+        fontSize: 20,
     },
     scroll: {
         paddingHorizontal: spacing.xl,
@@ -191,15 +217,38 @@ const styles = StyleSheet.create({
         marginBottom: spacing['3xl'],
     },
     videoContainer: {
-        width: VIDEO_WIDTH,
+        width: '100%',
         height: VIDEO_HEIGHT,
         borderRadius: radius.xl,
         overflow: 'hidden',
         backgroundColor: colors.bgCard,
+        position: 'relative',
     },
     video: {
+        ...StyleSheet.absoluteFillObject,
         width: '100%',
         height: '100%',
+    },
+    videoPlaceholder: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: colors.bgCard,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 2,
+        borderRadius: radius.xl,
+    },
+    placeholderLogo: {
+        width: 80,
+        height: 80,
+        opacity: 0.4,
+        marginBottom: spacing.md,
+    },
+    videoLoadingDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.accentTeal,
+        opacity: 0.6,
     },
     section: {
         marginBottom: spacing['3xl'],

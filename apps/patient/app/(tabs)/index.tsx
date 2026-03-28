@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Button } from '@cliniqone/ui';
@@ -10,6 +10,8 @@ import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
 import { useConsultations } from '../../hooks/useConsultations';
 import { useHomeContent } from '../../hooks/useHomeContent';
 import { CONSULTATION_STATUS_LABELS } from '@cliniqone/config';
+import { DashboardSkeleton } from '../../components/Skeleton';
+import { FadeIn } from '../../components/FadeIn';
 import type { ConsultationStatus } from '@cliniqone/types';
 
 // ── Status colors ────────────────────────────────
@@ -142,17 +144,23 @@ export default function DashboardScreen() {
                     />
                 }
             >
-                {/* Greeting + Language Toggle */}
+                <FadeIn delay={0}>
                 <View style={styles.greetingRow}>
-                    <Text style={styles.greeting}>
+                    <Text style={styles.greeting} accessibilityRole="header">
                         {t('dashboard.greeting', { name })}
                     </Text>
-                    <TouchableOpacity style={styles.langToggle} onPress={toggleLanguage}>
+                    <TouchableOpacity
+                        style={styles.langToggle}
+                        onPress={toggleLanguage}
+                        accessibilityLabel={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+                        accessibilityRole="button"
+                    >
                         <Text style={styles.langToggleText}>
                             {lang === 'ar' ? '🇬🇧' : '🇸🇦'}
                         </Text>
                     </TouchableOpacity>
                 </View>
+                </FadeIn>
 
                 {/* Active Consultation Banner */}
                 {activeConsultation && activeConsultation.status !== 'inquiry_sent' && (
@@ -188,8 +196,9 @@ export default function DashboardScreen() {
                     </TouchableOpacity>
                 )}
 
+                <FadeIn delay={100}>
                 {/* Token Balance Card */}
-                <View style={styles.tokenCard}>
+                <View style={styles.tokenCard} accessibilityLabel={`Token balance: ${user?.tokens_balance ?? 0} tokens`}>
                     <View style={styles.tokenContent}>
                         <Text style={styles.tokenLabel}>{t('dashboard.tokenBalance')}</Text>
                         <View style={styles.tokenRow}>
@@ -197,13 +206,26 @@ export default function DashboardScreen() {
                             <Text style={styles.tokenUnit}>{t('tokens.tokensLabel')}</Text>
                         </View>
                     </View>
-                    <TouchableOpacity style={styles.buyBtn} onPress={() => setShowPurchase(true)}>
+                    <TouchableOpacity
+                        style={styles.buyBtn}
+                        onPress={() => setShowPurchase(true)}
+                        accessibilityLabel="Buy more tokens"
+                        accessibilityRole="button"
+                    >
                         <Text style={styles.buyBtnText}>+ {t('dashboard.buyTokens')}</Text>
                     </TouchableOpacity>
                 </View>
+                </FadeIn>
 
+                <FadeIn delay={200}>
                 {/* Start Consultation CTA */}
-                <TouchableOpacity style={styles.ctaCard} activeOpacity={0.85} onPress={() => router.push('/intake')}>
+                <TouchableOpacity
+                    style={styles.ctaCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push('/intake')}
+                    accessibilityLabel="Start a new consultation"
+                    accessibilityRole="button"
+                >
                     <View style={styles.ctaContent}>
                         <Text style={styles.ctaIcon}>🩺</Text>
                         <View>
@@ -213,8 +235,10 @@ export default function DashboardScreen() {
                     </View>
                     <Text style={styles.ctaArrow}>→</Text>
                 </TouchableOpacity>
+                </FadeIn>
 
                 {/* Quick Actions */}
+                <FadeIn delay={300}>
                 <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
                 <View style={styles.actionsGrid}>
                     {QUICK_ACTIONS.map((action, i) => (
@@ -223,18 +247,22 @@ export default function DashboardScreen() {
                             style={styles.actionCard}
                             onPress={() => handleQuickAction(action)}
                             activeOpacity={0.7}
+                            accessibilityLabel={t(action.labelKey)}
+                            accessibilityRole="button"
                         >
                             <Text style={styles.actionIcon}>{action.icon}</Text>
                             <Text style={styles.actionLabel}>{t(action.labelKey)}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
+                </FadeIn>
 
                 {/* Recent Consultations */}
+                <FadeIn delay={400}>
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>{t('dashboard.recentConsults')}</Text>
                     {isLoading ? (
-                        <ActivityIndicator color={colors.accentTeal} style={{ marginVertical: spacing.xl }} />
+                        <DashboardSkeleton />
                     ) : recentConsultations.length > 0 ? (
                         <View style={{ gap: spacing.sm }}>
                             {recentConsultations.map((c: any) => (
@@ -275,6 +303,7 @@ export default function DashboardScreen() {
                         </Card>
                     )}
                 </View>
+                </FadeIn>
 
                 {/* Health Tips (dynamic) */}
                 <Text style={styles.sectionTitle}>{t('dashboard.healthTips')}</Text>
@@ -354,16 +383,16 @@ const styles = StyleSheet.create({
     },
     langToggle: {
         backgroundColor: colors.bgCard,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.border,
     },
     langToggleText: {
-        fontSize: 18,
+        fontSize: 20,
     },
 
     // Active consultation banner

@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Button, Input } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { signIn, supabase, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { SECURITY } from '@cliniqone/config';
 import { handleGoogleSignIn } from '../../services/googleAuth';
+import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
+import { SocialLoginButton } from '../../components/SocialLoginButton';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -16,6 +19,7 @@ export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [appleLoading, setAppleLoading] = useState(false);
     const [error, setError] = useState('');
     const toast = useToast((s) => s.show);
 
@@ -74,6 +78,11 @@ export default function LoginScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
             <ScrollView
                 contentContainerStyle={styles.scroll}
                 keyboardShouldPersistTaps="handled"
@@ -115,7 +124,11 @@ export default function LoginScreen() {
                         returnKeyType="done"
                         onSubmitEditing={handleLogin}
                         rightIcon={
-                            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                            <Ionicons
+                                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                                size={20}
+                                color={colors.textTertiary}
+                            />
                         }
                         onRightIconPress={() => setShowPassword(!showPassword)}
                     />
@@ -143,16 +156,34 @@ export default function LoginScreen() {
                 {/* Social Login */}
                 <View style={styles.socialSection}>
                     <Text style={styles.orText}>{t('auth.continueWith')}</Text>
-                    <View style={styles.socialRow}>
-                        <TouchableOpacity
-                            style={[styles.socialButton, googleLoading && styles.socialButtonDisabled]}
-                            disabled={googleLoading}
+                    <View style={styles.socialColumn}>
+                        <SocialLoginButton
+                            provider="google"
+                            label="Continue with Google"
+                            loading={googleLoading}
+                            disabled={appleLoading}
                             onPress={async () => {
                                 setGoogleLoading(true);
                                 setError('');
                                 try {
                                     const success = await handleGoogleSignIn();
                                     if (success) {
+                                        // Role guard: verify this is a patient account
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        if (session) {
+                                            const { data: userData } = await supabase
+                                                .from('users')
+                                                .select('role')
+                                                .eq('id', session.user.id)
+                                                .single();
+                                            if (userData && userData.role !== 'patient') {
+                                                await supabase.auth.signOut();
+                                                const appName = userData.role === 'doctor' ? 'Doctor' : 'Admin';
+                                                setError(`This app is for patients only. Please use the ${appName} app.`);
+                                                setGoogleLoading(false);
+                                                return;
+                                            }
+                                        }
                                         router.replace('/');
                                     }
                                 } catch (err: any) {
@@ -161,29 +192,58 @@ export default function LoginScreen() {
                                     setGoogleLoading(false);
                                 }
                             }}
-                        >
-                            {googleLoading ? (
-                                <ActivityIndicator size="small" color={colors.textPrimary} />
-                            ) : (
-                                <Text style={styles.socialIcon}>G</Text>
-                            )}
-                            <Text style={styles.socialLabel}>{t('auth.google')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.socialButton, styles.socialButtonDisabled]} disabled>
-                            <Text style={styles.socialIcon}>🍎</Text>
-                            <Text style={styles.socialLabel}>{t('auth.apple')}</Text>
-                        </TouchableOpacity>
+                        />
+                        <SocialLoginButton
+                            provider="apple"
+                            label="Continue with Apple"
+                            loading={appleLoading}
+                            disabled={googleLoading}
+                            onPress={async () => {
+                                setAppleLoading(true);
+                                setError('');
+                                try {
+                                    const success = await handleAppleSignIn();
+                                    if (success) {
+                                        // Role guard: verify this is a patient account
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        if (session) {
+                                            const { data: userData } = await supabase
+                                                .from('users')
+                                                .select('role')
+                                                .eq('id', session.user.id)
+                                                .single();
+                                            if (userData && userData.role !== 'patient') {
+                                                await supabase.auth.signOut();
+                                                const appName = userData.role === 'doctor' ? 'Doctor' : 'Admin';
+                                                setError(`This app is for patients only. Please use the ${appName} app.`);
+                                                setAppleLoading(false);
+                                                return;
+                                            }
+                                        }
+                                        router.replace('/');
+                                    }
+                                } catch (err: any) {
+                                    setError(err?.message || 'Apple sign-in failed');
+                                } finally {
+                                    setAppleLoading(false);
+                                }
+                            }}
+                        />
                     </View>
                 </View>
 
                 {/* Sign Up */}
                 <View style={styles.signupRow}>
                     <Text style={styles.signupText}>{t('auth.noAccount')} </Text>
-                    <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+                    <TouchableOpacity
+                        onPress={() => router.push('/(auth)/signup')}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
                         <Text style={styles.signupLink}>{t('auth.signUp')}</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -228,9 +288,6 @@ const styles = StyleSheet.create({
     form: {
         marginBottom: spacing['2xl'],
     },
-    eyeIcon: {
-        fontSize: 18,
-    },
     optionsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -243,9 +300,9 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     checkbox: {
-        width: 18,
-        height: 18,
-        borderRadius: 4,
+        width: 24,
+        height: 24,
+        borderRadius: 6,
         borderWidth: 1.5,
         borderColor: colors.textTertiary,
     },
@@ -267,30 +324,8 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: spacing.lg,
     },
-    socialRow: {
-        flexDirection: 'row',
+    socialColumn: {
         gap: spacing.md,
-    },
-    socialButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.bgCard,
-        padding: spacing.md,
-        borderRadius: radius.lg,
-        gap: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    socialIcon: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    socialLabel: {
-        ...typography.buttonSm,
-        color: colors.textPrimary,
     },
     signupRow: {
         flexDirection: 'row',
@@ -304,8 +339,5 @@ const styles = StyleSheet.create({
         ...typography.body,
         color: colors.accentTeal,
         fontWeight: '600',
-    },
-    socialButtonDisabled: {
-        opacity: 0.5,
     },
 });

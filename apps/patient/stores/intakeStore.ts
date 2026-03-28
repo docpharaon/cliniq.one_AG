@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import type { SectionId, SequenceNode } from '../services/aiService';
 
+// ── Specialty → Pathway Mapping ─────────────────
+// When a patient selects a doctor with one of these specialties,
+// the intake flow forces the corresponding pathway (skipping AI detection).
+export const SPECIALTY_PATHWAY_MAP: Record<string, string> = {
+    psychiatry: 'psychiatry_general',
+    orthopedics: 'orthopedics_general',
+};
+
 // ── Chat Message Type ───────────────────────────
 export interface ChatMessage {
     id: string;
@@ -79,6 +87,7 @@ interface IntakeState {
     requestedDoctorId: string | null;
     doctorSelectionMethod: 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null;
     requestedDoctorFee: number | null;
+    requestedDoctorSpecialty: string | null;
 
     // ── Actions ─────────────────────────────────
     setSessionId: (id: string | null) => void;
@@ -100,7 +109,7 @@ interface IntakeState {
     setPatientAddendum: (addendum: string) => void;
     setMedications: (meds: string[]) => void;
     setAllergies: (allergies: string[]) => void;
-    setRequestedDoctor: (doctorId: string | null, method: 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null, fee?: number | null) => void;
+    setRequestedDoctor: (doctorId: string | null, method: 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null, fee?: number | null, specialty?: string | null) => void;
 
     // Error/retry actions
     setAiError: (errorType: 'timeout' | 'error', failedMessage: string | null) => void;
@@ -141,6 +150,7 @@ const initialState = {
     requestedDoctorId: null as string | null,
     doctorSelectionMethod: null as 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null,
     requestedDoctorFee: null as number | null,
+    requestedDoctorSpecialty: null as string | null,
 };
 
 export const useIntakeStore = create<IntakeState>((set) => ({
@@ -170,7 +180,7 @@ export const useIntakeStore = create<IntakeState>((set) => ({
     setPatientAddendum: (patientAddendum) => set({ patientAddendum }),
     setMedications: (medications) => set({ medications }),
     setAllergies: (allergies) => set({ allergies }),
-    setRequestedDoctor: (requestedDoctorId, doctorSelectionMethod, requestedDoctorFee = null) => set({ requestedDoctorId, doctorSelectionMethod, requestedDoctorFee }),
+    setRequestedDoctor: (requestedDoctorId, doctorSelectionMethod, requestedDoctorFee = null, requestedDoctorSpecialty = null) => set({ requestedDoctorId, doctorSelectionMethod, requestedDoctorFee, requestedDoctorSpecialty }),
 
     // Error/retry
     setAiError: (aiErrorType, lastFailedMessage) => set({ aiErrorType, lastFailedMessage, isAiTyping: false }),

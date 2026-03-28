@@ -161,8 +161,9 @@ export async function acceptLegalTerms() {
 /**
  * Sign in with Google ID token (from @react-native-google-signin).
  * Creates a user profile in public.users if one doesn't exist.
+ * @param role - The role to assign if creating a new profile (default: 'patient')
  */
-export async function signInWithGoogle(idToken: string, displayName?: string | null) {
+export async function signInWithGoogle(idToken: string, displayName?: string | null, role: 'patient' | 'doctor' | 'admin' = 'patient') {
     const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
@@ -185,14 +186,57 @@ export async function signInWithGoogle(idToken: string, displayName?: string | n
                 id: data.user.id,
                 email: data.user.email,
                 nickname,
-                role: 'patient',
+                role,
                 status: 'active',
-                tokens_balance: 100, // Welcome bonus
+                tokens_balance: role === 'patient' ? 100 : 0, // Welcome bonus for patients only
                 language: 'en',
                 onboarding_completed: false,
             });
         } catch (err) {
             console.warn('Profile insert for OAuth user skipped:', err);
+        }
+    }
+
+    return data;
+}
+
+/**
+ * Sign in with Apple ID token (from expo-apple-authentication or ASAuthorizationController).
+ * Creates a user profile in public.users if one doesn't exist.
+ * @param role - The role to assign if creating a new profile (default: 'patient')
+ */
+export async function signInWithApple(idToken: string, displayName?: string | null, nonce?: string, role: 'patient' | 'doctor' | 'admin' = 'patient') {
+    const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: idToken,
+        nonce,
+    });
+
+    if (error) throw error;
+    if (!data.user) throw new Error('Apple sign-in failed');
+
+    // Check if user profile exists — if not, create one (first-time OAuth user)
+    const { data: existingProfile } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+    if (!existingProfile) {
+        try {
+            const nickname = displayName || data.user.email?.split('@')[0] || 'User';
+            await supabase.from('users').insert({
+                id: data.user.id,
+                email: data.user.email,
+                nickname,
+                role,
+                status: 'active',
+                tokens_balance: role === 'patient' ? 100 : 0, // Welcome bonus for patients only
+                language: 'en',
+                onboarding_completed: false,
+            });
+        } catch (err) {
+            console.warn('Profile insert for Apple user skipped:', err);
         }
     }
 

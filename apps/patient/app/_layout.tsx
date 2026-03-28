@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, Platform } from 'react-native';
+import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -28,6 +29,16 @@ const queryClient = new QueryClient({
 const PHONE_WIDTH = 393;
 const PHONE_HEIGHT = 852;
 const isWeb = Platform.OS === 'web';
+
+// Smoother transitions: fade on web (avoids gray play-button flash), slide on native
+const webTransition: NativeStackNavigationOptions = {
+    animation: 'fade',
+    animationDuration: 250,
+};
+const nativeTransition: NativeStackNavigationOptions = {
+    animation: 'slide_from_right',
+};
+const defaultTransition = isWeb ? webTransition : nativeTransition;
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
     if (!isWeb) return <>{children}</>;
@@ -96,15 +107,24 @@ function AppInner() {
             screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.bgPrimary },
-                animation: 'slide_from_right',
+                ...defaultTransition,
             }}
         >
             <Stack.Screen
                 name="splash"
-                options={{ animation: 'fade' }}
+                options={{ animation: 'fade', animationDuration: 400 }}
             />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+                name="(auth)"
+                options={{ animation: 'fade', animationDuration: 300 }}
+            />
+            <Stack.Screen
+                name="(tabs)"
+                options={{ animation: 'fade', animationDuration: 300 }}
+            />
+            <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+            <Stack.Screen name="intake" />
+            <Stack.Screen name="consultation" />
         </Stack>
     );
 }
@@ -114,20 +134,47 @@ export default function RootLayout() {
     const [localeReady, setLocaleReady] = useState(false);
 
     useEffect(() => {
-        // Safety timeout — never block the app for more than 6 seconds
+        // Safety timeout — never block the app for too long
+        // On OAuth redirects: allow more time for Supabase to exchange tokens
+        const _g = globalThis as any;
+        const hasOAuthHash = typeof _g.window !== 'undefined' && _g.window.location?.hash?.includes('access_token');
+        const safetyMs = hasOAuthHash ? 15000 : 6000; // 15s for OAuth, 6s normal
+
         const safetyTimer = setTimeout(() => {
             console.warn('[RootLayout] Safety timeout — forcing init complete');
             setLocaleReady(true);
             if (!useAuthStore.getState().isReady) {
                 useAuthStore.setState({ isReady: true, isLoading: false });
             }
-        }, 6000);
+        }, safetyMs);
 
         initLocale()
             .then(() => setLocaleReady(true))
             .catch(() => setLocaleReady(true));
         
         initialize().catch(() => {});
+
+        // On web: inject CSS to suppress default browser video play button
+        if (isWeb) {
+            const doc = (globalThis as any).document;
+            if (doc) {
+                const style = doc.createElement('style');
+                style.textContent = `
+                    video::-webkit-media-controls-panel,
+                    video::-webkit-media-controls-play-button,
+                    video::-webkit-media-controls-start-playback-button,
+                    video::-webkit-media-controls-overlay-play-button,
+                    video::-webkit-media-controls {
+                        display: none !important;
+                        -webkit-appearance: none !important;
+                        opacity: 0 !important;
+                    }
+                    video::-moz-media-controls { display: none !important; }
+                    video { pointer-events: none; }
+                `;
+                doc.head.appendChild(style);
+            }
+        }
 
         return () => clearTimeout(safetyTimer);
     }, []);

@@ -1,14 +1,18 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Button, Input } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { signUp, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { SECURITY, COUNTRIES } from '@cliniqone/config';
 import { handleGoogleSignIn } from '../../services/googleAuth';
+import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
+import { SocialLoginButton } from '../../components/SocialLoginButton';
+import { BackButton } from '../../components/BackButton';
 
 export default function SignupScreen() {
     const [nickname, setNickname] = useState('');
@@ -21,6 +25,7 @@ export default function SignupScreen() {
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [appleLoading, setAppleLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const toast = useToast((s) => s.show);
 
@@ -75,6 +80,11 @@ export default function SignupScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
             <ScrollView
                 contentContainerStyle={styles.scroll}
                 keyboardShouldPersistTaps="handled"
@@ -82,9 +92,7 @@ export default function SignupScreen() {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Text style={styles.backText}>← {t('common.back')}</Text>
-                    </TouchableOpacity>
+                    <BackButton />
                     <Text style={styles.title}>{t('auth.createAccount')}</Text>
                     <Text style={styles.subtitle}>{t('registration.stepOf', { current: '1', total: '3' })}: {t('registration.step1Title')}</Text>
                     <View style={styles.progressBar}>
@@ -94,32 +102,49 @@ export default function SignupScreen() {
 
                 <Text style={styles.sectionLabel}>👋 {t('registration.letsGetStarted')}</Text>
 
-                {/* Google Sign-In */}
-                <TouchableOpacity
-                    style={[styles.googleButton, googleLoading && { opacity: 0.5 }]}
-                    disabled={googleLoading}
-                    onPress={async () => {
-                        setGoogleLoading(true);
-                        setErrors({});
-                        try {
-                            const success = await handleGoogleSignIn();
-                            if (success) {
-                                router.replace('/');
+                {/* Social Sign-In */}
+                <View style={styles.socialColumn}>
+                    <SocialLoginButton
+                        provider="google"
+                        label="Continue with Google"
+                        loading={googleLoading}
+                        disabled={appleLoading}
+                        onPress={async () => {
+                            setGoogleLoading(true);
+                            setErrors({});
+                            try {
+                                const success = await handleGoogleSignIn();
+                                if (success) {
+                                    router.replace('/');
+                                }
+                            } catch (err: any) {
+                                setErrors({ general: err?.message || 'Google sign-in failed' });
+                            } finally {
+                                setGoogleLoading(false);
                             }
-                        } catch (err: any) {
-                            setErrors({ general: err?.message || 'Google sign-in failed' });
-                        } finally {
-                            setGoogleLoading(false);
-                        }
-                    }}
-                >
-                    {googleLoading ? (
-                        <ActivityIndicator size="small" color={colors.textPrimary} />
-                    ) : (
-                        <Text style={styles.googleIcon}>G</Text>
-                    )}
-                    <Text style={styles.googleLabel}>Continue with Google</Text>
-                </TouchableOpacity>
+                        }}
+                    />
+                    <SocialLoginButton
+                        provider="apple"
+                        label="Continue with Apple"
+                        loading={appleLoading}
+                        disabled={googleLoading}
+                        onPress={async () => {
+                            setAppleLoading(true);
+                            setErrors({});
+                            try {
+                                const success = await handleAppleSignIn();
+                                if (success) {
+                                    router.replace('/');
+                                }
+                            } catch (err: any) {
+                                setErrors({ general: err?.message || 'Apple sign-in failed' });
+                            } finally {
+                                setAppleLoading(false);
+                            }
+                        }}
+                    />
+                </View>
 
                 {/* Divider */}
                 <View style={styles.divider}>
@@ -180,7 +205,11 @@ export default function SignupScreen() {
                     required
                     autoComplete="new-password"
                     rightIcon={
-                        <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                        <Ionicons
+                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                            size={20}
+                            color={colors.textTertiary}
+                        />
                     }
                     onRightIconPress={() => setShowPassword(!showPassword)}
                 />
@@ -250,6 +279,7 @@ export default function SignupScreen() {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -282,7 +312,6 @@ const styles = StyleSheet.create({
     countryPicker: { justifyContent: 'center', backgroundColor: colors.bgTertiary, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, marginBottom: spacing.lg, marginTop: spacing.xl },
     countryCode: { ...typography.body, color: colors.textPrimary },
     phoneInput: { flex: 1 },
-    eyeIcon: { fontSize: 18 },
     strengthSection: { marginTop: -spacing.sm, marginBottom: spacing.lg },
     strengthBar: { height: 4, backgroundColor: colors.bgTertiary, borderRadius: 2 },
     strengthFill: { height: 4, borderRadius: 2 },
@@ -292,7 +321,7 @@ const styles = StyleSheet.create({
     checkIcon: { fontSize: 12 },
     checkLabel: { ...typography.bodySm },
     termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, marginBottom: spacing.xl, marginTop: spacing.sm },
-    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.textTertiary, justifyContent: 'center', alignItems: 'center' },
+    checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: colors.textTertiary, justifyContent: 'center', alignItems: 'center' },
     checkboxChecked: { backgroundColor: colors.accentTeal, borderColor: colors.accentTeal },
     checkmark: { color: colors.textInverse, fontSize: 14, fontWeight: '700' },
     termsText: { ...typography.bodySm, color: colors.textSecondary, flex: 1 },
@@ -300,20 +329,10 @@ const styles = StyleSheet.create({
     loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
     loginText: { ...typography.body, color: colors.textSecondary },
     loginLink: { ...typography.body, color: colors.accentTeal, fontWeight: '600' },
-    googleButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.bgCard,
-        padding: spacing.md,
-        borderRadius: radius.lg,
-        gap: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.border,
+    socialColumn: {
+        gap: spacing.md,
         marginBottom: spacing.lg,
     },
-    googleIcon: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
-    googleLabel: { ...typography.buttonSm, color: colors.textPrimary },
     divider: {
         flexDirection: 'row',
         alignItems: 'center',

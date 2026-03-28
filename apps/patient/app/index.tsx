@@ -33,8 +33,10 @@ export default function Index() {
         supabase.auth.signOut().then(() => clear());
     }, [isWrongRole]);
 
-    // Show splash on first launch
-    if (!splashShown) {
+    // Show splash on first launch (skip on OAuth redirect)
+    const _w = globalThis as any;
+    const isOAuthReturn = typeof _w.window !== 'undefined' && _w.window.location?.hash?.includes('access_token');
+    if (!splashShown && !isOAuthReturn) {
         return <Redirect href="/splash" />;
     }
 

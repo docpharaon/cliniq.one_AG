@@ -8,10 +8,10 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t, getLocale } from '@cliniqone/i18n';
-import { useIntakeStore, ChatMessage, buildSnapshot } from '../../stores/intakeStore';
+import { useIntakeStore, ChatMessage, buildSnapshot, SPECIALTY_PATHWAY_MAP } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import {
-    fetchDefaultSequence, chatSection, analyzeQA,
+    fetchDefaultSequence, fetchSequenceBySpecialty, chatSection, analyzeQA,
     checkChatbotEnabled, fetchProtocolConfig, logProtocolEvent,
     fetchChatbotVersion,
     SequenceNode, INTERVIEW_SECTIONS, SectionId,
@@ -157,6 +157,7 @@ export default function AIChatScreen() {
         isAiTyping, gibberishCount,
         sequenceNodes, currentNodeIndex, activePathway,
         sessionId, aiErrorType, lastFailedMessage,
+        requestedDoctorSpecialty,
         addMessage, setProgress, setAiTyping,
         addProtocolFlag, addQA, setAiSummary,
         setMedications, setAllergies, addPhoto,
@@ -341,8 +342,15 @@ export default function AIChatScreen() {
                 return;
             }
 
-            // 1. Fetch the active sequence from admin config
-            const nodes = await fetchDefaultSequence();
+            // 1. Determine if we have a forced pathway from doctor specialty
+            const forcedPathway = requestedDoctorSpecialty
+                ? SPECIALTY_PATHWAY_MAP[requestedDoctorSpecialty] ?? null
+                : null;
+
+            // 2. Fetch the right sequence — specialty-specific if forced, default otherwise
+            const nodes = forcedPathway && requestedDoctorSpecialty
+                ? await fetchSequenceBySpecialty(requestedDoctorSpecialty)
+                : await fetchDefaultSequence();
 
             if (!nodes || nodes.length === 0) {
                 // Fallback: no sequence configured, show error
@@ -359,8 +367,13 @@ export default function AIChatScreen() {
 
             setSequenceNodes(nodes);
 
-            // 2. Start with the first node (should be "greeting")
-            const initial = getApplicableNodes(nodes, null, user?.gender);
+            // 3. If forced pathway, pre-set it and filter nodes immediately
+            if (forcedPathway) {
+                setActivePathway(forcedPathway);
+            }
+
+            // 4. Start with the first node (should be "greeting")
+            const initial = getApplicableNodes(nodes, forcedPathway, user?.gender);
             setApplicableNodes(initial);
             setCurrentNodeIndex(0);
 
@@ -562,6 +575,14 @@ export default function AIChatScreen() {
                 }
             }
 
+            // Build patient context when pathway is forced (doctor-selected specialty)
+            // On the first message after greeting, set the context from the patient's complaint
+            if (useIntakeStore.getState().activePathway && !patientContext) {
+                const forcedPw = useIntakeStore.getState().activePathway;
+                const newCtx = `Chief complaint: ${msgText}\nPathway: ${forcedPw}`;
+                setPatientContext(newCtx);
+            }
+
             // Build system prompt — server-side via chatSection
             // KEY: Send only sectionHistory (per-section isolation) + patientContext
             const aiResult = await chatSection({
@@ -605,9 +626,10 @@ export default function AIChatScreen() {
             setSectionHistory(updatedSectionHistory);
 
             // Build patient context from chief complaint after pathway
-            // Check for pathway detection
+            // Check for pathway detection (skip if pathway already forced by doctor specialty)
             const pathwayMatch = aiResponse.match(/\[PATHWAY:(\w+)\]/);
-            if (pathwayMatch) {
+            const existingForcedPathway = useIntakeStore.getState().activePathway;
+            if (pathwayMatch && !existingForcedPathway) {
                 const pathway = pathwayMatch[1];
                 setActivePathway(pathway);
 

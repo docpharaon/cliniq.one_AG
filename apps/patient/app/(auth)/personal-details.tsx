@@ -10,6 +10,7 @@ import { COUNTRIES } from '@cliniqone/config';
 import type { Gender } from '@cliniqone/types';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
+import { BackButton } from '../../components/BackButton';
 
 // ── City data per country ────────────────────
 const CITIES: Record<string, string[]> = {
@@ -148,9 +149,7 @@ export default function PersonalDetailsScreen() {
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Text style={styles.backText}>← {t('common.back')}</Text>
-                    </TouchableOpacity>
+                    <BackButton />
                     <Text style={styles.title}>{t('registration.step3Title')}</Text>
                     <Text style={styles.subtitle}>
                         {t('registration.stepOf', { current: '3', total: '3' })}: {t('registration.step3Title')}

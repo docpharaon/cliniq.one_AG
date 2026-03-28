@@ -154,6 +154,7 @@
     "tabs": {
         "home": "Home",
         "consultations": "Consultations",
+        "notifications": "Alerts",
         "wallet": "Wallet",
         "profile": "Profile"
     },

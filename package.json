@@ -31,5 +31,8 @@
   "packageManager": "npm@10.0.0",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "expo-haptics": "~14.0.1"
   }
 }

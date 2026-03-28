@@ -133,6 +133,63 @@ export default function LoginPage() {
                             Forgot password?
                         </a>
                     </div>
+
+                    {/* Social Login Divider */}
+                    <div className="flex items-center gap-3 mt-6 mb-4">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-text-muted">or continue with</span>
+                        <div className="flex-1 h-px bg-border" />
+                    </div>
+
+                    {/* OAuth Buttons */}
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            disabled={loading}
+                            onClick={async () => {
+                                setError('');
+                                setLoading(true);
+                                try {
+                                    const supabase = createBrowserSupabase();
+                                    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                                        provider: 'google',
+                                        options: { redirectTo: window.location.origin + '/login' },
+                                    });
+                                    if (oauthError) throw oauthError;
+                                } catch (err: any) {
+                                    setError(err?.message || 'Google sign-in failed');
+                                    setLoading(false);
+                                }
+                            }}
+                            className="flex-1 py-3 rounded-xl bg-bg-elevated border border-border text-text-primary text-sm font-semibold hover:bg-bg-elevated/80 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                            <span className="text-base font-bold">G</span>
+                            Google
+                        </button>
+                        <button
+                            type="button"
+                            disabled={loading}
+                            onClick={async () => {
+                                setError('');
+                                setLoading(true);
+                                try {
+                                    const supabase = createBrowserSupabase();
+                                    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                                        provider: 'apple',
+                                        options: { redirectTo: window.location.origin + '/login' },
+                                    });
+                                    if (oauthError) throw oauthError;
+                                } catch (err: any) {
+                                    setError(err?.message || 'Apple sign-in failed');
+                                    setLoading(false);
+                                }
+                            }}
+                            className="flex-1 py-3 rounded-xl bg-bg-elevated border border-border text-text-primary text-sm font-semibold hover:bg-bg-elevated/80 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                            <span className="text-base">🍎</span>
+                            Apple
+                        </button>
+                    </div>
                 </div>
 
                 <p className="text-center text-text-muted text-xs mt-6">

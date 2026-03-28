@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Input } from '@cliniqone/ui';
@@ -7,6 +7,7 @@ import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { resetPassword, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { useToast } from '../../components/ToastProvider';
+import { BackButton } from '../../components/BackButton';
 
 export default function ForgotPasswordScreen() {
     const params = useLocalSearchParams<{ email?: string }>();
@@ -67,12 +68,14 @@ export default function ForgotPasswordScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Text style={styles.backText}>← {t('common.back')}</Text>
-                    </TouchableOpacity>
+                    <BackButton />
                     <Text style={styles.title}>{t('forgotPassword.title')}</Text>
                     <Text style={styles.subtitle}>{t('forgotPassword.subtitle')}</Text>
                 </View>
@@ -111,6 +114,7 @@ export default function ForgotPasswordScreen() {
                     <Text style={styles.loginText}>{t('forgotPassword.backToLogin')}</Text>
                 </TouchableOpacity>
             </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

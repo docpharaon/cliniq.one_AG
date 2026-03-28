@@ -304,6 +304,34 @@ export async function fetchDefaultSequence(): Promise<SequenceNode[]> {
     }
 }
 
+// ── Fetch Sequence by Specialty ──────────────────
+// Used when a patient pre-selects a doctor with a mapped specialty (e.g. orthopedics, psychiatry).
+// Falls back to the default sequence if none found.
+export async function fetchSequenceBySpecialty(specialty: string): Promise<SequenceNode[]> {
+    try {
+        const { data: seq, error } = await supabase
+            .from('prompt_sequences')
+            .select('id')
+            .eq('specialty', specialty)
+            .limit(1)
+            .maybeSingle();
+
+        if (error || !seq) {
+            console.warn(`No sequence found for specialty "${specialty}", falling back to default`);
+            return fetchDefaultSequence();
+        }
+
+        const nodes = await fetchSequenceNodes(seq.id);
+        if (nodes.length === 0) {
+            return fetchDefaultSequence();
+        }
+        return nodes;
+    } catch (err) {
+        console.error('Failed to fetch sequence by specialty:', err);
+        return fetchDefaultSequence();
+    }
+}
+
 async function fetchSequenceNodes(sequenceId: string): Promise<SequenceNode[]> {
     const { data: nodes, error } = await safeFetch(
         () => supabase

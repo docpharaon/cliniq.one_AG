@@ -1,10 +1,11 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
+import { BackButton } from '../../components/BackButton';
 import { PhotoUpload } from '../../components/PhotoUpload';
 
 const MIN_LENGTH = 10;
@@ -22,12 +23,14 @@ export default function ComplaintScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Text style={styles.backText}>← {t('common.back')}</Text>
-                    </TouchableOpacity>
+                    <BackButton />
                     <View style={styles.progressBar}>
                         <View style={[styles.progressFill, { width: '15%' }]} />
                     </View>
@@ -85,6 +88,7 @@ export default function ComplaintScreen() {
                     </Text>
                 )}
             </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
