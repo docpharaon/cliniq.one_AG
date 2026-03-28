@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingV
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Input } from '@cliniqone/ui';
+import { Button, Input, SocialLoginButton } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { signIn, supabase, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
@@ -11,7 +11,6 @@ import { SECURITY } from '@cliniqone/config';
 import { handleGoogleSignIn } from '../../services/googleAuth';
 import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
-import { SocialLoginButton } from '../../components/SocialLoginButton';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');

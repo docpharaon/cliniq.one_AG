@@ -27,6 +27,7 @@ export default function SplashScreen() {
     const logoScale = useRef(new Animated.Value(0.8)).current;
     const logoOpacity = useRef(new Animated.Value(0)).current;
     const bgOpacity = useRef(new Animated.Value(0)).current;
+    const badgeOpacity = useRef(new Animated.Value(0)).current;
     const [isDismissing, setIsDismissing] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,7 +53,14 @@ export default function SplashScreen() {
                 duration: 800,
                 useNativeDriver: true,
             }),
-        ]).start();
+        ]).start(() => {
+            // After logo appears, fade in the "Doctor Portal" badge
+            Animated.timing(badgeOpacity, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }).start();
+        });
 
         // Auto-dismiss after splash duration
         timerRef.current = setTimeout(() => {
@@ -142,6 +150,15 @@ export default function SplashScreen() {
                     )}
                 </Animated.View>
 
+                {/* Doctor Portal badge — fades in after logo */}
+                <Animated.View style={[styles.portalBadge, { opacity: badgeOpacity }]}>
+                    <View style={styles.portalBadgeInner}>
+                        <View style={styles.badgeDot} />
+                        <Text style={styles.portalText}>DOCTOR PORTAL</Text>
+                        <View style={styles.badgeDot} />
+                    </View>
+                </Animated.View>
+
                 {/* Crafted by */}
                 <Animated.View style={[styles.craftedContainer, { opacity: logoOpacity }]}>
                     <View style={styles.craftedLine} />
@@ -213,6 +230,34 @@ const styles = StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.7)',
         letterSpacing: 4,
         textTransform: 'uppercase',
+    },
+    portalBadge: {
+        zIndex: 2,
+        marginTop: 20,
+    },
+    portalBadgeInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 212, 170, 0.3)',
+        backgroundColor: 'rgba(0, 212, 170, 0.08)',
+    },
+    badgeDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#00D4AA',
+        opacity: 0.6,
+    },
+    portalText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: 'rgba(0, 212, 170, 0.85)',
+        letterSpacing: 4,
+        marginHorizontal: 10,
     },
     skipHint: {
         position: 'absolute',

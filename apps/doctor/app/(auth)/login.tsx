@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@cliniqone/api';
-import { colors, typography, spacing, radius } from '@cliniqone/ui';
+import { colors, typography, spacing, radius, SocialLoginButton } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { handleGoogleSignIn } from '../../services/googleAuth';
 import { handleAppleSignIn } from '../../services/appleAuth';
+
+const logoSource = require('../../assets/logo.png');
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const [appleLoading, setAppleLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleLogin = async () => {
@@ -64,35 +67,36 @@ export default function LoginScreen() {
         }
     };
 
+    const handleOAuthSuccess = () => {
+        const store = useAuthStore.getState();
+        if (store.isNewRegistration || !store.doctor) {
+            router.replace('/(auth)/pending-approval' as any);
+        } else if (store.doctor.status === 'pending') {
+            router.replace('/(auth)/pending-approval' as any);
+        } else if (store.doctor.must_change_password) {
+            router.replace('/(auth)/change-password' as any);
+        } else {
+            router.replace('/(tabs)');
+        }
+    };
+
     const handleOAuth = async (provider: 'google' | 'apple') => {
-        setOauthLoading(provider);
+        const setLoaderFn = provider === 'google' ? setGoogleLoading : setAppleLoading;
+        setLoaderFn(true);
         setError('');
 
         try {
             const handler = provider === 'google' ? handleGoogleSignIn : handleAppleSignIn;
             const success = await handler();
-
-            if (success) {
-                const store = useAuthStore.getState();
-
-                if (store.isNewRegistration || !store.doctor) {
-                    router.replace('/(auth)/pending-approval' as any);
-                } else if (store.doctor.status === 'pending') {
-                    router.replace('/(auth)/pending-approval' as any);
-                } else if (store.doctor.must_change_password) {
-                    router.replace('/(auth)/change-password' as any);
-                } else {
-                    router.replace('/(tabs)');
-                }
-            }
+            if (success) handleOAuthSuccess();
         } catch (err: any) {
             setError(err?.message || 'OAuth sign-in failed');
         } finally {
-            setOauthLoading(null);
+            setLoaderFn(false);
         }
     };
 
-    const isDisabled = loading || !!oauthLoading;
+    const isDisabled = loading || googleLoading || appleLoading;
 
     return (
         <KeyboardAvoidingView
@@ -102,7 +106,7 @@ export default function LoginScreen() {
             <View style={styles.content}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.logo}>🩺</Text>
+                    <Image source={logoSource} style={styles.logo} resizeMode="contain" />
                     <Text style={styles.title}>cliniq.one</Text>
                     <Text style={styles.subtitle}>Doctor Panel</Text>
                 </View>
@@ -167,36 +171,22 @@ export default function LoginScreen() {
                     </View>
 
                     {/* Google OAuth */}
-                    <TouchableOpacity
-                        style={[styles.oauthButton, isDisabled && styles.buttonDisabled]}
+                    <SocialLoginButton
+                        provider="google"
+                        label="Continue with Google"
+                        loading={googleLoading}
+                        disabled={appleLoading || loading}
                         onPress={() => handleOAuth('google')}
-                        disabled={isDisabled}
-                    >
-                        {oauthLoading === 'google' ? (
-                            <ActivityIndicator color={colors.textPrimary} />
-                        ) : (
-                            <>
-                                <Text style={styles.oauthIcon}>G</Text>
-                                <Text style={styles.oauthText}>Continue with Google</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
+                    />
 
                     {/* Apple OAuth */}
-                    <TouchableOpacity
-                        style={[styles.oauthButton, styles.appleButton, isDisabled && styles.buttonDisabled]}
+                    <SocialLoginButton
+                        provider="apple"
+                        label="Continue with Apple"
+                        loading={appleLoading}
+                        disabled={googleLoading || loading}
                         onPress={() => handleOAuth('apple')}
-                        disabled={isDisabled}
-                    >
-                        {oauthLoading === 'apple' ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <>
-                                <Text style={styles.appleIcon}></Text>
-                                <Text style={styles.appleText}>Continue with Apple</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
+                    />
                 </View>
 
                 <Text style={styles.footer}>
@@ -223,7 +213,8 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     logo: {
-        fontSize: 56,
+        width: 80,
+        height: 80,
         marginBottom: 12,
     },
     title: {
@@ -299,41 +290,7 @@ const styles = StyleSheet.create({
         color: colors.textTertiary,
         marginHorizontal: spacing.md,
     },
-    oauthButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: spacing.md,
-        backgroundColor: colors.bgTertiary,
-        borderRadius: 12,
-        paddingVertical: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.sm,
-    },
-    oauthIcon: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#4285F4',
-    },
-    oauthText: {
-        ...typography.body,
-        color: colors.textPrimary,
-        fontWeight: '600',
-    },
-    appleButton: {
-        backgroundColor: '#000',
-        borderColor: '#333',
-    },
-    appleIcon: {
-        fontSize: 20,
-        color: '#fff',
-    },
-    appleText: {
-        ...typography.body,
-        color: '#fff',
-        fontWeight: '600',
-    },
+
     errorBox: {
         backgroundColor: colors.errorFaded,
         borderRadius: 12,
