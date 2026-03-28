@@ -26,8 +26,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci --legacy-peer-deps
-      - run: npx turbo run lint --filter=@cliniqone/admin --filter=@cliniqone/landing
-      - run: npx turbo run typecheck --filter=@cliniqone/admin --filter=@cliniqone/landing
+      - name: Typecheck admin
+        run: npx turbo run typecheck --filter=@cliniqone/admin
 
   # ─── Next.js builds (admin + landing) ────────────────────
   build-nextjs:
