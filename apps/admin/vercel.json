@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && npm run build -- --filter=admin",
+  "buildCommand": "cd ../.. && npm run build -- --filter=@cliniqone/admin",
   "installCommand": "cd ../.. && npm install --legacy-peer-deps",
   "framework": "nextjs",
   "outputDirectory": ".next"
