@@ -29,20 +29,21 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
 
-  build:
-    name: Build
+  # ─── Next.js builds (admin + landing) ────────────────────
+  build-nextjs:
+    name: Build Next.js Apps
     needs: lint-typecheck
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [admin, doctor-web]
+        app: [admin, landing]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Build ${{ matrix.app }}
         run: cd apps/${{ matrix.app }} && npm run build
       - name: Upload build artifact
@@ -52,9 +53,31 @@ jobs:
           path: apps/${{ matrix.app }}/.next
           retention-days: 1
 
+  # ─── Expo web exports (doctor + patient) ────────────────
+  build-expo:
+    name: Build Expo Apps
+    needs: lint-typecheck
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [doctor, patient]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Export ${{ matrix.app }} web
+        run: cd apps/${{ matrix.app }} && npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+  # ─── E2E tests (admin only — Next.js server required) ──
   e2e:
     name: E2E Tests
-    needs: build
+    needs: build-nextjs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +85,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Download admin build
@@ -70,17 +93,11 @@ jobs:
         with:
           name: admin-build
           path: apps/admin/.next
-      - name: Download doctor-web build
-        uses: actions/download-artifact@v4
-        with:
-          name: doctor-web-build
-          path: apps/doctor-web/.next
-      - name: Start servers & run tests
+      - name: Start server & run tests
         run: |
           cd apps/admin && npm run start &
-          cd apps/doctor-web && npm run start -- -p 3002 &
           sleep 10
-          npm run test:e2e -- --project=admin-panel --project=doctor-web
+          npm run test:e2e -- --project=admin-panel
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()

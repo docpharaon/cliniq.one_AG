@@ -1,4 +1,4 @@
-name: Deploy — Web Apps + Supabase
+name: Deploy — All Web Apps + Supabase
 
 on:
   push:
@@ -11,11 +11,9 @@ concurrency:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID_ADMIN: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
-  VERCEL_PROJECT_ID_DOCTOR_WEB: ${{ secrets.VERCEL_PROJECT_ID_DOCTOR_WEB }}
-  VERCEL_PROJECT_ID_LOCUM_WEB: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
 
 jobs:
+  # ─── Supabase Migrations ──────────────────────────────────
   deploy-supabase:
     name: Deploy Supabase Migrations
     runs-on: ubuntu-latest
@@ -30,17 +28,46 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
+  # ─── Landing Page (cliniq.one) ─────────────────────────────
+  deploy-landing:
+    name: Deploy Landing Page
+    needs: deploy-supabase
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LANDING }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+      - name: Pull Vercel env
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/landing
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/landing
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/landing
+
+  # ─── Admin Panel (admin.cliniq.one) ────────────────────────
   deploy-admin:
     name: Deploy Admin Panel
     needs: deploy-supabase
     runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
       - name: Pull Vercel env
@@ -53,58 +80,77 @@ jobs:
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: apps/admin
 
-  deploy-doctor-web:
-    name: Deploy Doctor Web
+  # ─── Doctor Portal (doctor.cliniq.one) ─────────────────────
+  # Expo React Native app → static web export → Vercel static deploy
+  deploy-doctor:
+    name: Deploy Doctor Portal
     needs: deploy-supabase
     runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DOCTOR }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
+      - name: Export Expo web build
+        run: npx expo export --platform web
+        working-directory: apps/doctor
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Prepare Vercel static deploy
+        run: |
+          # Copy the SPA rewrite config into dist for Vercel
+          cp apps/doctor/vercel-deploy.json apps/doctor/dist/vercel.json
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
-      - name: Pull Vercel env
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: apps/doctor-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: apps/doctor-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: apps/doctor-web
+      - name: Deploy static site to Vercel
+        run: |
+          vercel deploy apps/doctor/dist \
+            --prod \
+            --yes \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=cliniq-doctor-web
 
-  deploy-locum-web:
-    name: Deploy Locum Web
+  # ─── Patient Portal (patient.cliniq.one) ───────────────────
+  # Expo React Native app → static web export → Vercel static deploy
+  deploy-patient:
+    name: Deploy Patient Portal
     needs: deploy-supabase
     runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PATIENT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
+      - name: Export Expo web build
+        run: npx expo export --platform web
+        working-directory: apps/patient
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Prepare Vercel static deploy
+        run: |
+          # Copy the SPA rewrite config into dist for Vercel
+          cp apps/patient/vercel-deploy.json apps/patient/dist/vercel.json
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
-      - name: Pull Vercel env
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: apps/doctor-web
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: apps/doctor-web
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: apps/doctor-web
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOCUM_WEB }}
+      - name: Deploy static site to Vercel
+        run: |
+          vercel deploy apps/patient/dist \
+            --prod \
+            --yes \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=cliniq-patient-web
 
+  # ─── Edge Functions ────────────────────────────────────────
   deploy-edge-functions:
     name: Deploy Edge Functions
     needs: deploy-supabase
