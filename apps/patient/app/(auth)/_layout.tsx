@@ -18,7 +18,7 @@ export default function AuthLayout() {
             <Stack.Screen name="login" />
             <Stack.Screen name="signup" />
             <Stack.Screen name="verify-email" />
-            <Stack.Screen name="personal-details" />
+            <Stack.Screen name="personal-details" options={{ gestureEnabled: false }} />
             <Stack.Screen name="forgot-password" />
             <Stack.Screen name="legal" />
             <Stack.Screen name="welcome" options={{ animation: 'fade' }} />

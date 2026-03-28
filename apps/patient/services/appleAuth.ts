@@ -34,13 +34,14 @@ export async function handleAppleSignIn(): Promise<boolean> {
                 provider: 'apple',
                 options: {
                     redirectTo: (globalThis as any).window?.location?.origin,
+                    queryParams: { prompt: 'consent' },
                 },
             });
 
             if (error) throw error;
             return true;
         } catch (error: any) {
-            console.error('Apple OAuth error:', error);
+            console.error('[OAuth] Apple OAuth error:', error);
             if (Platform.OS === 'web') {
                 (globalThis as any).alert?.('Apple Sign-In failed: ' + (error?.message || 'Unknown error'));
             } else {
@@ -95,7 +96,7 @@ export async function handleAppleSignIn(): Promise<boolean> {
             return false;
         }
 
-        console.error('Apple Sign-In error:', error);
+        console.error('[OAuth] Apple Sign-In error:', error);
         Alert.alert('Sign-In Failed', error?.message || 'An unexpected error occurred. Please try again.');
         return false;
     }
@@ -105,12 +106,23 @@ export async function handleAppleSignIn(): Promise<boolean> {
  * Capacitor-specific Apple OAuth flow:
  * 1. Get the OAuth URL from Supabase (skipBrowserRedirect)
  * 2. Open in system browser via Capacitor Browser plugin
- * 3. Listen for deep-link callback with tokens
+ * 3. Listen for deep-link callback OR browserFinished event
  * 4. Set the Supabase session manually
+ *
+ * Chrome Custom Tabs on Android cannot redirect to custom URL schemes
+ * (com.cliniqone.patient.cap://), so we use a dual strategy:
+ *   A) Deep link listener (works if OS handles the custom scheme)
+ *   B) browserFinished listener — when user returns from browser,
+ *      check if Supabase session was set via the PKCE/cookie flow
  */
 async function handleCapacitorAppleOAuth(): Promise<boolean> {
     const Cap = (globalThis as any).Capacitor;
     const Plugins = Cap?.Plugins;
+
+    console.log('[OAuth] Starting Capacitor Apple OAuth flow');
+    console.log('[OAuth] Capacitor detected:', !!Cap);
+    console.log('[OAuth] Browser plugin:', !!Plugins?.Browser);
+    console.log('[OAuth] App plugin:', !!Plugins?.App);
 
     try {
         // Get OAuth URL without auto-redirecting the WebView
@@ -119,51 +131,66 @@ async function handleCapacitorAppleOAuth(): Promise<boolean> {
             options: {
                 redirectTo: 'com.cliniqone.patient.cap://callback',
                 skipBrowserRedirect: true,
+                queryParams: { prompt: 'consent' },
             },
         });
 
-        if (error) throw error;
+        if (error) {
+            console.error('[OAuth] Error getting Apple OAuth URL:', error);
+            throw error;
+        }
         if (!data?.url) throw new Error('No OAuth URL received');
+
+        console.log('[OAuth] Got Apple OAuth URL, opening browser...');
+        console.log('[OAuth] URL:', data.url.substring(0, 100) + '...');
 
         // Open the OAuth URL in the system browser
         if (Plugins?.Browser) {
-            await Plugins.Browser.open({ url: data.url });
+            await Plugins.Browser.open({ url: data.url, presentationStyle: 'popover' });
         } else {
             (globalThis as any).window?.open?.(data.url, '_blank');
         }
 
-        // Wait for the deep-link callback
+        // Wait for auth to complete via one of two mechanisms
         return new Promise<boolean>((resolve) => {
+            let resolved = false;
+            const safeResolve = (value: boolean) => {
+                if (resolved) return;
+                resolved = true;
+                cleanup();
+                resolve(value);
+            };
+
             // Safety timeout — don't hang forever
             const timeout = setTimeout(() => {
-                cleanup();
-                resolve(false);
-            }, 120_000); // 2 minute timeout
+                console.log('[OAuth] Timeout reached, resolving false');
+                safeResolve(false);
+            }, 120_000);
 
-            let listenerHandle: any = null;
+            let deepLinkHandle: any = null;
+            let browserFinishedHandle: any = null;
 
             function cleanup() {
                 clearTimeout(timeout);
-                listenerHandle?.remove?.();
+                deepLinkHandle?.remove?.();
+                browserFinishedHandle?.remove?.();
             }
 
-            // Listen for the deep link return
+            // Strategy A: Listen for deep link return
             if (Plugins?.App) {
-                listenerHandle = Plugins.App.addListener('appUrlOpen', async (event: { url: string }) => {
+                deepLinkHandle = Plugins.App.addListener('appUrlOpen', async (event: { url: string }) => {
                     const url = event.url;
+                    console.log('[OAuth] Deep link received:', url);
                     if (!url.includes('callback')) return;
-
-                    cleanup();
 
                     // Close the browser
                     try { await Plugins.Browser?.close(); } catch (_) { /* ignore */ }
 
                     try {
-                        // Extract tokens from hash fragment
-                        // URL: com.cliniqone.patient.cap://callback#access_token=...&refresh_token=...
                         const hashPart = url.split('#')[1];
                         if (!hashPart) {
-                            resolve(false);
+                            console.error('[OAuth] No hash fragment in callback URL');
+                            safeResolve(false);
                             return;
                         }
 
@@ -172,38 +199,67 @@ async function handleCapacitorAppleOAuth(): Promise<boolean> {
                         const refresh_token = params.get('refresh_token');
 
                         if (access_token && refresh_token) {
+                            console.log('[OAuth] Tokens found in deep link, setting session...');
                             const { error: sessionError } = await supabase.auth.setSession({
                                 access_token,
                                 refresh_token,
                             });
 
                             if (sessionError) {
-                                console.error('Session error:', sessionError);
-                                resolve(false);
+                                console.error('[OAuth] Session error:', sessionError);
+                                safeResolve(false);
                                 return;
                             }
 
-                            // Re-initialize auth store
                             await useAuthStore.getState().initialize();
-                            resolve(true);
+                            console.log('[OAuth] Session set successfully via deep link');
+                            safeResolve(true);
                         } else {
-                            console.error('Missing tokens in callback URL');
-                            resolve(false);
+                            console.error('[OAuth] Missing tokens in callback URL');
+                            safeResolve(false);
                         }
                     } catch (err) {
-                        console.error('Error processing Apple OAuth callback:', err);
-                        resolve(false);
+                        console.error('[OAuth] Error processing deep link:', err);
+                        safeResolve(false);
                     }
                 });
-            } else {
-                // No App plugin — can't listen for deep links
-                clearTimeout(timeout);
-                console.error('Capacitor App plugin not available');
-                resolve(false);
+            }
+
+            // Strategy B: Listen for browser close (for when deep links don't work)
+            // When user completes OAuth and browser closes, check Supabase session
+            if (Plugins?.Browser) {
+                browserFinishedHandle = Plugins.Browser.addListener('browserFinished', async () => {
+                    console.log('[OAuth] Browser finished/closed, checking for session...');
+
+                    // Short delay to allow any pending redirects
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    try {
+                        // Check if the session was somehow established
+                        const { data: sessionData } = await supabase.auth.getSession();
+                        if (sessionData?.session) {
+                            console.log('[OAuth] Session found after browser close!');
+                            await useAuthStore.getState().initialize();
+                            safeResolve(true);
+                        } else {
+                            console.log('[OAuth] No session found after browser close');
+                            safeResolve(false);
+                        }
+                    } catch (err) {
+                        console.error('[OAuth] Error checking session after browser close:', err);
+                        safeResolve(false);
+                    }
+                });
+            }
+
+            // If neither plugin available, resolve immediately
+            if (!Plugins?.App && !Plugins?.Browser) {
+                console.error('[OAuth] Neither App nor Browser plugin available');
+                safeResolve(false);
             }
         });
     } catch (error: any) {
-        console.error('Capacitor Apple OAuth error:', error);
+        console.error('[OAuth] Capacitor Apple OAuth error:', error);
         (globalThis as any).alert?.('Apple Sign-In failed: ' + (error?.message || 'Unknown error'));
         return false;
     }

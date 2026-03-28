@@ -5,10 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@cliniqone/ui';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { supabase, safeFetch } from '@cliniqone/api';
+import { useAuthStore } from '../../stores/authStore';
 import { t } from '@cliniqone/i18n';
 import { COUNTRIES } from '@cliniqone/config';
 import type { Gender } from '@cliniqone/types';
-import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
 
@@ -38,6 +38,11 @@ const YEARS = Array.from({ length: currentYear - 1924 - 12 }, (_, i) => currentY
 type InsuranceChoice = 'yes' | 'no' | null;
 
 export default function PersonalDetailsScreen() {
+    const { user, clear } = useAuthStore();
+
+    // Mandatory mode: user is logged in but profile is incomplete (e.g. OAuth signup)
+    const isMandatory = !!(user && (!user.gender || !user.country || !user.year_of_birth));
+
     const [yearOfBirth, setYearOfBirth] = useState<number | null>(null);
     const [gender, setGender] = useState<Gender | null>(null);
     const [country, setCountry] = useState<string | null>(null);
@@ -49,6 +54,7 @@ export default function PersonalDetailsScreen() {
     const [whatsappNotif, setWhatsappNotif] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formError, setFormError] = useState('');
+    const [loggingOut, setLoggingOut] = useState(false);
     const toast = useToast((s) => s.show);
 
     // ── Sections open/closed ─────────────────
@@ -144,15 +150,40 @@ export default function PersonalDetailsScreen() {
         }
     }
 
+    async function handleLogout() {
+        setLoggingOut(true);
+        try {
+            await supabase.auth.signOut();
+            clear();
+            router.replace('/(auth)/landing');
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            setLoggingOut(false);
+        }
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <BackButton />
-                    <Text style={styles.title}>{t('registration.step3Title')}</Text>
+                    {isMandatory ? (
+                        /* Mandatory onboarding: no back button, show logout option */
+                        <TouchableOpacity onPress={handleLogout} disabled={loggingOut} style={styles.logoutLink}>
+                            <Text style={styles.logoutText}>{loggingOut ? '...' : `← ${t('common.logout') || 'Log out'}`}</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <BackButton />
+                    )}
+                    <Text style={styles.title}>
+                        {isMandatory ? (t('registration.completeProfile') || 'Complete Your Profile') : t('registration.step3Title')}
+                    </Text>
                     <Text style={styles.subtitle}>
-                        {t('registration.stepOf', { current: '3', total: '3' })}: {t('registration.step3Title')}
+                        {isMandatory
+                            ? (t('registration.completeProfileHint') || 'Please fill in your details to continue')
+                            : `${t('registration.stepOf', { current: '3', total: '3' })}: ${t('registration.step3Title')}`
+                        }
                     </Text>
                     <View style={styles.progressBar}>
                         <View style={[styles.progressFill, { width: '100%' }]} />
@@ -353,6 +384,8 @@ const styles = StyleSheet.create({
     backText: { ...typography.body, color: colors.accentTeal },
     title: { ...typography.h2, color: colors.textPrimary },
     subtitle: { ...typography.bodySm, color: colors.textSecondary, marginTop: spacing.xs },
+    logoutLink: { marginBottom: spacing.md },
+    logoutText: { ...typography.body, color: colors.textTertiary },
     progressBar: { height: 4, backgroundColor: colors.bgTertiary, borderRadius: 2, marginTop: spacing.md },
     progressFill: { height: 4, backgroundColor: colors.success, borderRadius: 2 },
     sectionLabel: { ...typography.h4, color: colors.textPrimary, marginBottom: spacing.xs },

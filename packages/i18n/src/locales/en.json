@@ -107,7 +107,9 @@
         "smsNotif": "SMS notifications",
         "whatsappNotif": "WhatsApp notifications",
         "completeReg": "Complete Registration",
-        "completing": "Creating your account..."
+        "completing": "Creating your account...",
+        "completeProfile": "Complete Your Profile",
+        "completeProfileHint": "Please fill in your details to continue"
     },
     "welcome": {
         "title": "Welcome to cliniq.one!",
