@@ -47,7 +47,7 @@
   --radius-full: 9999px;
 
   /* ─── Font Family ─── */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-arabic), 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ─── Base Styles ─── */
@@ -63,6 +63,16 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+}
+
+/* ─── RTL / Arabic adjustments ─── */
+[dir="rtl"] body {
+  text-align: right;
+}
+
+[dir="ltr"] body {
+  font-family: 'Inter', var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
 }
 
 /* ─── Scrollbar ─── */

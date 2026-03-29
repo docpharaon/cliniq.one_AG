@@ -1,11 +1,18 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Noto_Sans_Arabic } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({
     subsets: ['latin'],
     variable: '--font-inter',
     display: 'swap',
+});
+
+const notoArabic = Noto_Sans_Arabic({
+    subsets: ['arabic'],
+    variable: '--font-arabic',
+    display: 'swap',
+    weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -44,8 +51,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en">
-            <body className={`${inter.variable} antialiased`}>
+        <html lang="ar" dir="rtl">
+            <body className={`${inter.variable} ${notoArabic.variable} antialiased`}>
                 {children}
             </body>
         </html>

@@ -377,7 +377,7 @@ const translations: Record<string, Record<Locale, string>> = {
 const I18nContext = createContext<I18nContextType | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-    const [locale, setLocale] = useState<Locale>('en');
+    const [locale, setLocale] = useState<Locale>('ar');
 
     const toggleLocale = useCallback(() => {
         setLocale((prev) => (prev === 'en' ? 'ar' : 'en'));
