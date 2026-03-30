@@ -130,18 +130,80 @@ export interface AIEntities {
 
 // ── Doctor Report (JSONB report) ─────────────
 
-export interface ConsultationReport {
-    diagnosis?: string;
+export type WarningSeverity = 'emergency' | 'urgent' | 'monitor';
+export type DifferentialLikelihood = 'most_likely' | 'possible' | 'less_likely' | 'unlikely';
+export type SeverityLabel = 'mild' | 'moderate' | 'severe';
+
+export interface SeverityAssessment {
+    pruritus_vas?: number;                     // 0-10 Visual Analog Scale
+    bsa_percentage?: number;                   // 0-100 Body Surface Area
+    iga_score?: number;                        // 0-5 Investigator Global Assessment
+    easi_score?: number;                       // EASI-lite score
+    severity_label?: SeverityLabel;
+}
+
+export interface RankedDifferential {
+    diagnosis: string;
     icd10?: string;
+    likelihood: DifferentialLikelihood;
+    reasoning: string;
+}
+
+export interface PrioritizedWarningSign {
+    symptom: string;
+    symptom_ar?: string;
+    level: WarningSeverity;
+    action: string;
+    action_ar?: string;
+}
+
+export interface ConsultationReport {
+    // ─── Core Clinical ───
+    diagnosis?: string;
+    diagnosis_ar?: string;
+    icd10?: string;
+    snomed_ct?: string;
     treatment_plan?: string;
+    treatment_plan_ar?: string;
     patient_education?: string;
+    patient_education_ar?: string;
     follow_up?: string;
+    follow_up_ar?: string;
     follow_up_timeframe?: string;
     referral_notes?: string;
+
+    // ─── Clinical Quality ───
+    severity_assessment?: SeverityAssessment;
+    clinical_reasoning?: string;
+    clinical_reasoning_ar?: string;
+    ai_confidence?: number;                    // 0-100 percentage
+    differential_diagnoses?: RankedDifferential[];
+    treatment_rationale?: string;
+    treatment_rationale_ar?: string;
+    step_down_plan?: string;
+    step_down_plan_ar?: string;
+    escalation_protocol?: string;
+    escalation_protocol_ar?: string;
+
+    // ─── Safety ───
+    warning_signs?: string[] | string;
+    warning_signs_ar?: string;
+    warning_signs_priority?: PrioritizedWarningSign[];
+
+    // ─── Non-pharmacologic ───
+    non_pharmacologic?: string;
+    non_pharmacologic_ar?: string;
+
+    // ─── Legal / Consent ───
+    telemedicine_consent_note?: string;
+    telemedicine_consent_note_ar?: string;
+
     [key: string]: unknown;
 }
 
 // ── Prescription (JSONB prescription) ────────
+
+export type MedicationType = 'rx' | 'otc';
 
 export interface PrescriptionMedication {
     name: string;
@@ -152,6 +214,15 @@ export interface PrescriptionMedication {
     route?: string;
     instructions?: string;
     notes?: string;
+    // ─── Classification ───
+    medication_type?: MedicationType;
+    potency_class?: string;
+    // ─── Refill ───
+    refill_eligible?: boolean;
+    refill_count?: number;
+    refill_reason_blocked?: string;
+    // ─── Safety ───
+    warnings?: string[];
 }
 
 export interface Prescription {
@@ -188,6 +259,7 @@ export interface Consultation {
 // ──────────────────────────────────────────
 
 export type DoctorInquiryStatus = 'pending' | 'answered' | 'expired' | 'cancelled';
+export type DoctorInquiryRequestType = 'text' | 'skin_photo' | 'medication_photo' | 'document_photo';
 
 export interface DoctorInquiry {
     id: string;
@@ -195,6 +267,7 @@ export interface DoctorInquiry {
     doctor_id: string;
     question_text: string;
     ai_improved_text: string | null;
+    request_type: DoctorInquiryRequestType;
     response_summary: Record<string, unknown> | null;
     chat_history: { role: string; content: string }[] | null;
     status: DoctorInquiryStatus;

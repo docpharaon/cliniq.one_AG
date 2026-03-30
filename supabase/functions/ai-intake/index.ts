@@ -194,6 +194,30 @@ async function getGlobalGuard(mode: 'draft' | 'active' = 'active'): Promise<stri
     }
 }
 
+// ── Get admin-configurable prompt by type (cached 60s) ──
+// Used by verify-medication and analyze-drug-label actions
+// so admins can modify the AI protocol from the dashboard.
+const _promptTypeCache: Record<string, { content: string | null; ts: number }> = {};
+async function getPromptByType(promptType: string): Promise<string | null> {
+    const cached = _promptTypeCache[promptType];
+    if (cached && Date.now() - cached.ts < 60_000) return cached.content;
+    try {
+        const { data } = await supabaseAdmin
+            .from('ai_prompts')
+            .select('content')
+            .eq('prompt_type', promptType)
+            .eq('is_active', true)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+
+        const content = data?.[0]?.content ?? null;
+        _promptTypeCache[promptType] = { content, ts: Date.now() };
+        return content;
+    } catch {
+        return null;
+    }
+}
+
 // ── Get prompt content by ID (respecting mode) ──
 async function getPromptById(promptId: string, mode: 'draft' | 'active' = 'active'): Promise<{ content: string; version: number } | null> {
     try {
@@ -267,7 +291,7 @@ function truncateHistory(
 const VALID_SHORT = new Set([
     'no', 'yes', 'ok', 'hi', 'ya', 'na', 'idk', 'lol', 'ugh', 'ah', 'oh',
     'none', 'nope', 'yep', 'sure', 'fine', 'good', 'bad', 'pain', 'ache',
-    '1','2','3','4','5','6','7','8','9','10',
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
     // Common Arabic transliterations
     'la', 'aiwa', 'naam', 'mafi',
     // Medical terms
@@ -309,7 +333,7 @@ function detectGibberish(text: string): { isGibberish: boolean; reason?: string 
     }
 
     // 4. Random character pattern — no common bigrams
-    const commonBigrams = ['th','he','in','er','an','re','on','at','en','nd','ti','es','or','te','of','ed','is','it','al','ar','st','to','nt','ng','se','ha','as','ou','io','le','ve','co','me','de','hi','ri','ro','ic','ne','ea','ra','ce','li','ch','ll','be','ma','si','om','ur'];
+    const commonBigrams = ['th', 'he', 'in', 'er', 'an', 're', 'on', 'at', 'en', 'nd', 'ti', 'es', 'or', 'te', 'of', 'ed', 'is', 'it', 'al', 'ar', 'st', 'to', 'nt', 'ng', 'se', 'ha', 'as', 'ou', 'io', 'le', 've', 'co', 'me', 'de', 'hi', 'ri', 'ro', 'ic', 'ne', 'ea', 'ra', 'ce', 'li', 'ch', 'll', 'be', 'ma', 'si', 'om', 'ur'];
     const lower = alphaOnly.toLowerCase();
     if (alphaOnly.length > 6) {
         const hasBigram = commonBigrams.some(bg => lower.includes(bg));
@@ -857,6 +881,163 @@ serve(async (req: Request) => {
                     promptVersion,
                     chatbotVersion,
                 };
+                break;
+            }
+            case 'verify-medication': {
+                // FIG_53 — AI-powered medication verification with therapeutic range validation
+                // Admin-configurable: check ai_prompts for prompt_type='medication_verify'
+                const medications = params.medications || [];
+                const language = params.language || 'en';
+
+                if (!medications.length) {
+                    return new Response(
+                        JSON.stringify({ error: 'medications array is required' }),
+                        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                    );
+                }
+
+                // Try admin-configured prompt first, fall back to built-in
+                const adminVerifyPrompt = await getPromptByType('medication_verify');
+                const verifySystem = adminVerifyPrompt || `You are a clinical pharmacology AI for cliniq.one. Verify each medication the patient reported.
+
+For each medication, determine:
+1. Whether the drug name is a real, recognizable medication
+2. Whether the stated dosage falls within the normal therapeutic range
+3. The standard therapeutic range for this medication
+4. Common indications (what it's typically used for)
+
+Respond in JSON:
+{
+  "verifications": [
+    {
+      "name": string,
+      "genericName": string | null,
+      "statedDosage": string,
+      "status": "verified" | "needs_confirmation" | "unrecognized",
+      "statusReason": string,
+      "therapeuticRange": string | null,
+      "commonIndications": string[],
+      "dailyDoseStatus": string,
+      "confidence": number
+    }
+  ]
+}
+
+Rules:
+- "verified" = drug name recognized AND dosage within therapeutic range
+- "needs_confirmation" = drug recognized BUT dosage unusual OR indication unclear
+- "unrecognized" = drug name not recognized as a known medication
+- Language: ${language === 'ar' ? 'Arabic' : 'English'} for statusReason and commonIndications`;
+
+                const medsText = medications.map((m: { name: string; dosage?: string }, i: number) =>
+                    `${i + 1}. ${m.name}${m.dosage ? ` ${m.dosage}` : ''}`
+                ).join('\n');
+
+                const verifyResult = await callOpenAI(verifySystem, `Patient-reported medications:\n${medsText}`, 1000);
+                result = safeJsonParse(verifyResult, { verifications: [] });
+                break;
+            }
+            case 'analyze-drug-label': {
+                // FIG_55 — Vision API: OCR drug label photo and cross-validate
+                // EPHEMERAL: Image is base64, forwarded to OpenAI, never stored
+                // Admin-configurable: check ai_prompts for prompt_type='drug_label_analysis'
+                const imageBase64 = params.imageBase64;
+                const statedMedication = params.statedMedication || '';
+                const statedDosage = params.statedDosage || '';
+                const language = params.language || 'en';
+
+                if (!imageBase64) {
+                    return new Response(
+                        JSON.stringify({ error: 'imageBase64 is required' }),
+                        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                    );
+                }
+
+                const config = await getConfig();
+
+                // Try admin-configured prompt first, fall back to built-in
+                const adminLabelPrompt = await getPromptByType('drug_label_analysis');
+                const labelSystem = adminLabelPrompt || `You are a pharmaceutical label OCR AI for cliniq.one. Extract medication information from the drug label photo and cross-validate against what the patient stated.
+
+Respond in JSON:
+{
+  "extracted": {
+    "drugName": string,
+    "dosage": string,
+    "form": string,
+    "manufacturer": string,
+    "batchNumber": string | null,
+    "expiryDate": string | null,
+    "additionalInfo": string | null
+  },
+  "crossValidation": {
+    "nameMatch": boolean,
+    "dosageMatch": boolean,
+    "overallMatch": "match" | "partial_match" | "mismatch" | "unable_to_read",
+    "discrepancies": string[]
+  },
+  "confidence": number,
+  "processingNote": string
+}
+
+Rules:
+- Extract ALL visible text from the label
+- Compare extracted drug name against patient-stated: "${statedMedication}"
+- Compare extracted dosage against patient-stated: "${statedDosage}"
+- Confidence 0-100: how readable/clear the label was
+- If label is blurry or unreadable, set overallMatch to "unable_to_read"
+- Language for processingNote: ${language === 'ar' ? 'Arabic' : 'English'}`;
+
+                // Vision API call — multimodal content array
+                const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: config.model,
+                        temperature: 0.1,
+                        max_tokens: 800,
+                        response_format: { type: 'json_object' },
+                        messages: [
+                            {
+                                role: 'system',
+                                content: labelSystem,
+                            },
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: `Extract medication details from this drug label photo. The patient stated they take: "${statedMedication}${statedDosage ? ` ${statedDosage}` : ''}"`,
+                                    },
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: `data:image/jpeg;base64,${imageBase64}`,
+                                            detail: 'high',
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    }),
+                });
+
+                if (!visionRes.ok) {
+                    const errText = await visionRes.text();
+                    throw new Error(`OpenAI Vision error: ${visionRes.status} ${errText}`);
+                }
+
+                const visionData = await visionRes.json();
+                const visionContent = visionData.choices?.[0]?.message?.content || '{}';
+                result = safeJsonParse(visionContent, {
+                    extracted: { drugName: '', dosage: '', form: '', manufacturer: '' },
+                    crossValidation: { nameMatch: false, dosageMatch: false, overallMatch: 'unable_to_read', discrepancies: [] },
+                    confidence: 0,
+                    processingNote: 'Failed to analyze label',
+                });
                 break;
             }
             case 'improve-inquiry': {

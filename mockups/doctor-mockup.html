@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+<html lang="en" dir="ltr">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>cliniq.one — Doctor App Mockup</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+<style>
+
+:root{--bg:#FFFFFF;--bg2:#F5F8FA;--bg3:#EDF2F7;--card:#FFFFFF;--elev:#FFFFFF;--acc:#1A8A9E;--accd:#157A8C;--accl:#2BA3B8;--accf:var(--border);--blue:#3B82F6;--bluef:rgba(59,130,246,0.15);--purple:#9B72CF;--purplef:rgba(155,114,207,0.15);--txt:#1E293B;--txts:#64748B;--txtm:#94A3B8;--ok:#059669;--okf:rgba(34,197,94,0.15);--warn:#D97706;--warnf:rgba(245,158,11,0.15);--err:#DC2626;--errf:rgba(239,68,68,0.15);--bdr:#DEE5ED;--r:10px;--rx:18px;--r2:24px;--f:'Inter','Noto Sans Arabic',system-ui,sans-serif;}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+
+html,body{height:100%;background:#F0F4F8;color:var(--txt);font-family:var(--f);-webkit-font-smoothing:antialiased;overflow:hidden;}
+
+html[dir="rtl"]{direction:rtl;}
+
+html[dir="rtl"] .flip{transform:scaleX(-1);}
+
+
+
+/* iPhone Frame */
+
+.iphone-outer{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:860px;background:linear-gradient(145deg,#e8edf2,#d1d8e0);border-radius:56px;padding:14px;box-shadow:0 0 0 2px rgba(0,0,0,0.05),0 20px 60px rgba(0,0,0,0.12),inset 0 2px 0 rgba(255,255,255,0.4);}
+
+.iphone-bezel{width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:var(--bg);}
+
+.iphone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;z-index:9998;display:flex;align-items:center;justify-content:center;gap:8px;}
+
+.iphone-notch::before{content:'';width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#333,#111);}
+
+.iphone-notch::after{content:'';width:40px;height:4px;border-radius:2px;background:#222;}
+
+.iphone-status{position:absolute;top:0;left:0;right:0;height:34px;z-index:9997;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:600;color:var(--txt);}
+
+.iphone-status .time{font-weight:700;}
+
+.iphone-status .icons{display:flex;gap:4px;font-size:11px;}
+
+.iphone-home-indicator{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(0,0,0,0.15);z-index:9998;}
+
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+
+.glass{background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+
+.wm{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#EF4444,#F97316);color:#fff;text-align:center;font-size:10px;font-weight:700;padding:2px;letter-spacing:2px;text-transform:uppercase;}
+
+.scr{display:none;position:absolute;inset:0;top:34px;bottom:24px;overflow-y:auto;overflow-x:hidden;}
+
+.scr.active{display:flex;flex-direction:column;animation:slideUp 0.4s ease;}
+
+.frame{width:100%;height:100%;position:relative;overflow:hidden;background:var(--bg);}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+@keyframes splashLogo{0%{opacity:0;transform:scale(0.6)}60%{opacity:1;transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+
+@keyframes splashVideoFade{from{opacity:0}to{opacity:1}}
+
+@keyframes pglow{0%,100%{box-shadow:0 0 20px var(--border)}50%{box-shadow:0 0 40px rgba(26,138,158,0.25)}}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;transition:all 0.2s;font-family:var(--f);}
+
+.btn-p{background:linear-gradient(135deg,var(--acc),var(--accd));color:var(--bg);}
+
+.btn-o{background:transparent;border:2px solid var(--acc);color:var(--acc);}
+
+.btn-g{background:#fff;color:#333;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+
+.btn-a{background:#000;color:#fff;border:1px solid #333;}
+
+.inp{padding:14px 16px;border-radius:10px;border:1px solid var(--bdr);background:var(--bg3);color:var(--txt);font-size:15px;font-family:var(--f);outline:none;width:100%;}
+
+.inp:focus{border-color:var(--acc);}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+
+.card{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:var(--rx);padding:16px;transition:all 0.2s;}
+
+.tab-bar{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:8px 0 24px;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--bdr);z-index:100;}
+
+.tab-i{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px;cursor:pointer;opacity:0.5;transition:all 0.2s;}
+
+.tab-i.active{opacity:1;}.tab-i .ti{font-size:22px;}.tab-i .tl{font-size:10px;font-weight:600;color:var(--txts);}.tab-i.active .tl{color:var(--acc);}
+
+.ts{display:none;flex-direction:column;}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wm"><span class="mi" style="font-size:12px">warning</span> MOCKUP DEMO — NOT FOR PRODUCTION <span class="mi" style="font-size:12px">warning</span></div>
+
+<div class="iphone-outer">
+
+<div class="iphone-bezel">
+
+<div class="iphone-notch"></div>
+
+<div class="iphone-status"><span class="time">4:43 PM</span><span class="icons"><span class="mi" style="font-size:11px">signal_cellular_alt</span> <span class="mi" style="font-size:11px">wifi</span> <span class="mi" style="font-size:11px">battery_full</span></span></div>
+
+<div class="frame" id="app">
+
+
+
+<!-- SPLASH -->
+
+<div class="scr active" id="scr-splash" style="background:#0A0E1A;align-items:center;justify-content:center;overflow:hidden;" onclick="setTimeout(()=>goScreen('scr-login'),300)">
+
+<video autoplay loop muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;animation:splashVideoFade 1.5s ease 0.3s forwards;z-index:0;"><source src="assets/splash-bg.mp4" type="video/mp4"></video>
+
+<div style="position:absolute;inset:0;background:rgba(10,14,26,0.45);z-index:1;"></div>
+
+<div style="z-index:2;animation:splashLogo 1s ease-out;text-align:center;">
+
+<img src="assets/logo.png" alt="Cliniq.One" style="width:160px;height:160px;filter:drop-shadow(0 0 30px rgba(45,212,191,0.4));">
+
+<div style="margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:8px 20px;border-radius:20px;border:1px solid var(--border);background:rgba(45,212,191,0.08);animation:fadeIn 0.6s ease 0.8s both;">
+
+<div style="width:4px;height:4px;border-radius:50%;background:rgba(45,212,191,0.6);"></div>
+
+<span style="font-size:13px;font-weight:600;color:rgba(45,212,191,0.85);letter-spacing:4px;" data-en="DOCTOR PORTAL" data-ar="بوابة الطبيب">DOCTOR PORTAL</span>
+
+<div style="width:4px;height:4px;border-radius:50%;background:rgba(45,212,191,0.6);"></div>
+
+</div>
+
+</div>
+
+<div style="position:absolute;bottom:100px;text-align:center;z-index:2;">
+
+<div style="width:30px;height:1px;background:var(--border);margin:0 auto 10px;"></div>
+
+<p style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;font-weight:300;">Crafted by</p>
+
+<p style="font-size:12px;color:rgba(255,255,255,0.45);letter-spacing:3px;text-transform:uppercase;font-weight:500;">momen pharaon</p>
+
+</div>
+
+<div style="position:absolute;bottom:60px;z-index:2;">
+
+<p style="font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:1px;cursor:pointer;" data-en="Tap to skip" data-ar="اضغط للتخطي">Tap to skip</p>
+
+</div>
+
+</div>
+
+
+
+<!-- LOGIN -->
+
+<div class="scr" id="scr-login">
+
+<div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:center;background:radial-gradient(ellipse at 50% 20%,rgba(45,212,191,0.06),transparent 60%);">
+
+<div style="text-align:center;margin-bottom:40px;">
+
+<img src="assets/title-logo.png" alt="Cliniq.One" style="width:180px;height:auto;margin:0 auto 16px;display:block;">
+
+<h1 style="font-size:26px;font-weight:800;" data-en="Doctor Login" data-ar="دخول الطبيب">Doctor Login</h1>
+
+<p style="color:var(--txtm);font-size:14px;margin-top:4px;" data-en="Sign in to your physician account" data-ar="سجّل دخولك لحساب الطبيب">Sign in to your physician account</p>
+
+<div style="display:inline-flex;padding:4px 12px;border-radius:20px;background:var(--purplef);color:var(--purple);font-size:11px;font-weight:700;margin-top:8px;"><span class="mi">medical_services</span> RBAC: Doctor Role</div>
+
+</div>
+
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+<div style="display:flex;flex-direction:column;gap:6px;"><label style="font-size:13px;font-weight:600;color:var(--txts);" data-en="Email" data-ar="البريد الإلكتروني">Email</label><input class="inp" value="dr.sarah@kfmc.med.sa"></div>
+
+<div style="display:flex;flex-direction:column;gap:6px;"><label style="font-size:13px;font-weight:600;color:var(--txts);" data-en="Password" data-ar="كلمة المرور">Password</label><input class="inp" type="password" value="••••••••"></div>
+
+<button class="btn btn-p" onclick="show('scr-home')" data-en="Sign In" data-ar="تسجيل الدخول">Sign In</button>
+
+<div style="display:flex;align-items:center;gap:12px;margin:4px 0;"><div style="flex:1;height:1px;background:var(--bdr);"></div><span style="color:var(--txtm);font-size:12px;">or</span><div style="flex:1;height:1px;background:var(--bdr);"></div></div>
+
+<button class="btn btn-g" onclick="show('scr-home')"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span data-en="Continue with Google" data-ar="المتابعة عبر جوجل">Continue with Google</span></button>
+
+<button class="btn btn-a" onclick="show('scr-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg><span data-en="Continue with Apple" data-ar="المتابعة عبر أبل">Continue with Apple</span></button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- HOME -->
+
+<div class="scr" id="scr-home">
+
+<div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+
+<div><p style="font-size:13px;color:var(--txtm);" data-en="Good afternoon" data-ar="مساء الخير">Good afternoon</p><h2 style="font-size:22px;font-weight:800;" data-en="Dr. Sarah" data-ar="د. سارة">Dr. Sarah</h2></div>
+
+<div style="display:flex;gap:8px;">
+
+<button id="lang-btn" onclick="toggleLang()" style="background:var(--bg3);border:1px solid var(--bdr);width:42px;height:42px;border-radius:12px;font-size:20px;cursor:pointer;">AR</button>
+
+<div style="width:42px;height:42px;border-radius:12px;background:var(--okf);display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid rgba(34,197,94,0.3);"><span style="animation:pulse 2s infinite;"><span class="mi" style="font-size:12px;color:var(--ok)">circle</span></span></div>
+
+</div>
+
+</div>
+
+<div style="flex:1;overflow-y:auto;padding-bottom:72px;">
+
+<!-- DASHBOARD TAB -->
+
+<div class="ts" id="ts-dash" style="display:flex;padding:16px 20px;gap:14px;">
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
+
+<div class="card" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--acc);">5</p><p style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="In Queue" data-ar="في الانتظار">In Queue</p></div>
+
+<div class="card" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--ok);">12</p><p style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="Today" data-ar="اليوم">Today</p></div>
+
+<div class="card" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--warn);"><span class="mi">star</span> 4.8</p><p style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="Rating" data-ar="التقييم">Rating</p></div>
+
+<div class="card" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--purple);">156</p><p style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="Tokens Earned" data-ar="وحدات الرصيد المكتسبة">Tokens Earned</p></div>
+
+</div>
+
+<div style="padding:14px;background:var(--accf);border:1px solid var(--border);border-radius:var(--rx);display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;" onclick="stab('queue')">
+
+<div style="width:10px;height:10px;border-radius:50%;background:var(--acc);animation:pulse 2s infinite;"></div>
+
+<div style="flex:1;"><p style="font-size:13px;font-weight:700;color:var(--acc);" data-en="5 patients waiting" data-ar="٥ مرضى في الانتظار">5 patients waiting</p></div>
+
+<span style="color:var(--acc);font-size:18px;" class="flip">→</span>
+
+</div>
+
+<div style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg3);border-radius:10px;width:100%;">
+
+<span style="font-size:14px;" data-en="Accepting patients" data-ar="قبول المرضى">Accepting patients</span>
+
+<div style="margin-left:auto;width:44px;height:24px;border-radius:12px;background:var(--ok);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div>
+
+</div>
+
+<h3 style="font-size:15px;font-weight:700;width:100%;" data-en="Recent Activity" data-ar="النشاط الأخير">Recent Activity</h3>
+
+<div class="card" style="width:100%;padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">assignment</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Report submitted — #1247</p><p style="font-size:11px;color:var(--txtm);">10 min ago</p></div></div>
+
+<div class="card" style="width:100%;padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">science</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Interventions ordered — CBC, Biopsy</p><p style="font-size:11px;color:var(--txtm);">25 min ago</p></div></div>
+
+<div class="card" style="width:100%;padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">medical_services</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Case #1250 claimed</p><p style="font-size:11px;color:var(--txtm);">1 hour ago</p></div></div>
+
+</div>
+
+
+
+<!-- QUEUE TAB -->
+
+<div class="ts" id="ts-queue" style="padding:16px 20px;gap:10px;">
+
+<h3 style="font-size:18px;font-weight:800;width:100%;" data-en="Patient Queue" data-ar="قائمة المرضى">Patient Queue</h3>
+
+<div style="display:flex;gap:6px;width:100%;overflow-x:auto;padding-bottom:4px;">
+
+<button style="padding:6px 14px;border-radius:20px;border:1px solid var(--acc);background:var(--accf);color:var(--acc);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--f);">All (5)</button>
+
+<button style="padding:6px 14px;border-radius:20px;border:1px solid var(--bdr);background:transparent;color:var(--txtm);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);">Pending</button>
+
+<button style="padding:6px 14px;border-radius:20px;border:1px solid var(--bdr);background:transparent;color:var(--txtm);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);">My Cases</button>
+
+</div>
+
+<div class="card" style="width:100%;cursor:pointer;" onclick="show('scr-case')">
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><p style="font-size:14px;font-weight:700;">#1250 — Skin rash</p><span class="badge" style="background:var(--errf);color:var(--err);"><span class="mi" style="font-size:12px;color:var(--err)">circle</span> Urgent</span></div>
+
+<p style="font-size:12px;color:var(--txts);">Ahmed K. • Male, 34 • 5 min ago</p>
+
+<p style="font-size:11px;color:var(--txtm);margin-top:4px;">Dermatology • AI Score: 92%</p>
+
+<button class="btn btn-p" style="margin-top:10px;padding:10px;font-size:13px;width:100%;" data-en="Claim Case" data-ar="قبول الحالة">Claim Case</button>
+
+</div>
+
+<div class="card" style="width:100%;">
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><p style="font-size:14px;font-weight:700;">#1251 — Persistent cough</p><span class="badge" style="background:var(--warnf);color:var(--warn);"><span class="mi" style="font-size:12px;color:var(--warn)">circle</span> Standard</span></div>
+
+<p style="font-size:12px;color:var(--txts);">Fatima M. • Female, 28 • 22 min ago</p>
+
+<p style="font-size:11px;color:var(--txtm);margin-top:4px;">Family Medicine • AI Score: 87%</p>
+
+<button class="btn btn-o" style="margin-top:10px;padding:10px;font-size:13px;width:100%;" data-en="View Details" data-ar="عرض التفاصيل">View Details</button>
+
+</div>
+
+<div class="card" style="width:100%;">
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><p style="font-size:14px;font-weight:700;">#1252 — Knee pain</p><span class="badge" style="background:var(--warnf);color:var(--warn);"><span class="mi" style="font-size:12px;color:var(--warn)">circle</span> Standard</span></div>
+
+<p style="font-size:12px;color:var(--txts);">Omar H. • Male, 45 • 1 hr ago</p>
+
+<p style="font-size:11px;color:var(--txtm);margin-top:4px;">Orthopedics • AI Score: 89%</p>
+
+<button class="btn btn-o" style="margin-top:10px;padding:10px;font-size:13px;width:100%;">View Details</button>
+
+</div>
+
+<div class="card" style="width:100%;">
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><p style="font-size:14px;font-weight:700;">#1253 — Headaches</p><span class="badge" style="background:var(--bluef);color:var(--blue);"><span class="mi" style="font-size:12px;color:var(--blue)">circle</span> Low</span></div>
+
+<p style="font-size:12px;color:var(--txts);">Noura S. • Female, 31 • 2 hrs ago</p>
+
+<p style="font-size:11px;color:var(--txtm);margin-top:4px;">Neurology • AI Score: 78%</p>
+
+<button class="btn btn-o" style="margin-top:10px;padding:10px;font-size:13px;width:100%;">View Details</button>
+
+</div>
+
+<div class="card" style="width:100%;">
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><p style="font-size:14px;font-weight:700;">#1254 — Back pain</p><span class="badge" style="background:var(--bluef);color:var(--blue);"><span class="mi" style="font-size:12px;color:var(--blue)">circle</span> Low</span></div>
+
+<p style="font-size:12px;color:var(--txts);">Khalid R. • Male, 52 • 3 hrs ago</p>
+
+<p style="font-size:11px;color:var(--txtm);margin-top:4px;">Orthopedics • AI Score: 81%</p>
+
+<button class="btn btn-o" style="margin-top:10px;padding:10px;font-size:13px;width:100%;">View Details</button>
+
+</div>
+
+</div>
+
+
+
+<!-- ANALYTICS TAB -->
+
+<div class="ts" id="ts-analytics" style="padding:16px 20px;gap:14px;">
+
+<h3 style="font-size:18px;font-weight:800;width:100%;" data-en="Analytics" data-ar="التحليلات">Analytics</h3>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
+
+<div class="card" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">This Week</p><p style="font-size:28px;font-weight:900;color:var(--acc);">47</p><p style="font-size:10px;color:var(--ok);">↑ 23%</p></div>
+
+<div class="card" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">This Month</p><p style="font-size:28px;font-weight:900;color:var(--blue);">189</p><p style="font-size:10px;color:var(--ok);">↑ 15%</p></div>
+
+<div class="card" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Avg Rating</p><p style="font-size:28px;font-weight:900;color:var(--warn);">4.8★</p><p style="font-size:10px;color:var(--txts);">47 reviews</p></div>
+
+<div class="card" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Avg Time</p><p style="font-size:28px;font-weight:900;color:var(--purple);">18m</p><p style="font-size:10px;color:var(--ok);">↓ 5%</p></div>
+
+</div>
+
+<div class="card" style="width:100%;"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:12px;" data-en="Weekly Performance" data-ar="الأداء الأسبوعي">Weekly Performance</h4><div style="display:flex;align-items:flex-end;gap:8px;height:120px;">
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:50px;"></div><span style="font-size:10px;color:var(--txtm);">Mon</span></div>
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:80px;"></div><span style="font-size:10px;color:var(--txtm);">Tue</span></div>
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:65px;"></div><span style="font-size:10px;color:var(--txtm);">Wed</span></div>
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--acc);border-radius:6px 6px 0 0;height:100px;"></div><span style="font-size:10px;color:var(--acc);font-weight:700;">Thu</span></div>
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:45px;"></div><span style="font-size:10px;color:var(--txtm);">Fri</span></div>
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:30px;"></div><span style="font-size:10px;color:var(--txtm);">Sat</span></div>
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:20px;"></div><span style="font-size:10px;color:var(--txtm);">Sun</span></div>
+
+</div></div>
+
+<div class="card" style="width:100%;"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;" data-en="Earnings" data-ar="الأرباح">Earnings</h4>
+
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr);"><span style="font-size:13px;">This Week</span><span style="font-size:13px;font-weight:700;color:var(--ok);">47 tokens</span></div>
+
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr);"><span style="font-size:13px;">This Month</span><span style="font-size:13px;font-weight:700;color:var(--ok);">156 tokens</span></div>
+
+<div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="font-size:13px;">All Time</span><span style="font-size:13px;font-weight:700;color:var(--ok);">1,240 tokens</span></div>
+
+</div>
+
+</div>
+
+
+
+<!-- PROFILE TAB -->
+
+<div class="ts" id="ts-profile" style="padding:16px 20px;gap:14px;">
+
+<div style="text-align:center;padding:20px 0;width:100%;">
+
+<div style="width:80px;height:80px;margin:0 auto 12px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--accd));display:flex;align-items:center;justify-content:center;font-size:32px;border:3px solid var(--border);"><span class="mi">medical_services</span></div>
+
+<h3 style="font-size:20px;font-weight:800;">Dr. Sarah Al-Rashid</h3>
+
+<p style="font-size:13px;color:var(--txtm);">Dermatology</p>
+
+<p style="font-size:12px;color:var(--txtm);">KFMC — King Fahad Medical City</p>
+
+<div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+
+<span class="badge" style="background:var(--okf);color:var(--ok);"><span class="mi">check_circle</span> Active</span>
+
+<span class="badge" style="background:var(--accf);color:var(--acc);">SCFHS Verified</span>
+
+</div>
+
+</div>
+
+<div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;"><span><span class="mi">mail</span></span><span style="flex:1;font-size:13px;">dr.sarah@kfmc.med.sa</span></div>
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;"><span><span class="mi">call</span></span><span style="flex:1;font-size:13px;">+966 5XX XXX XXX</span></div>
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;"><span><span class="mi">local_hospital</span></span><span style="flex:1;font-size:13px;" data-en="12 years experience" data-ar="١٢ سنة خبرة">12 years experience</span></div>
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;"><span><span class="mi">language</span></span><span style="flex:1;font-size:13px;" data-en="Languages: Arabic, English" data-ar="اللغات: العربية، الإنجليزية">Languages: Arabic, English</span></div>
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleLang()"><span>AR</span><span style="flex:1;font-size:13px;" data-en="Language" data-ar="اللغة">Language</span><span style="color:var(--acc);font-size:12px;font-weight:600;" data-en="English" data-ar="العربية">English</span></div>
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;"><span><span class="mi">lock</span></span><span style="flex:1;font-size:13px;" data-en="Change Password" data-ar="تغيير كلمة المرور">Change Password</span></div>
+
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;"><span><span class="mi">settings</span></span><span style="flex:1;font-size:13px;" data-en="Daily Limit: 10 cases" data-ar="الحد اليومي: ١٠ حالات">Daily Limit: 10 cases</span></div>
+
+</div>
+
+<button class="btn btn-o" style="width:100%;" onclick="show('scr-login')" data-en="Sign Out" data-ar="تسجيل الخروج">Sign Out</button>
+
+</div>
+
+</div>
+
+<div class="tab-bar">
+
+<div class="tab-i active" data-tab="dash" onclick="stab('dash')"><span class="ti"><span class="mi">home</span></span><span class="tl" data-en="Home" data-ar="الرئيسية">Home</span></div>
+
+<div class="tab-i" data-tab="queue" onclick="stab('queue')"><span class="ti"><span class="mi">assignment</span></span><span class="tl" data-en="Queue" data-ar="الانتظار">Queue</span></div>
+
+<div class="tab-i" data-tab="analytics" onclick="stab('analytics')"><span class="ti"><span class="mi">dashboard</span></span><span class="tl" data-en="Analytics" data-ar="التحليلات">Analytics</span></div>
+
+<div class="tab-i" data-tab="profile" onclick="stab('profile')"><span class="ti"><span class="mi">person</span></span><span class="tl" data-en="Profile" data-ar="الملف">Profile</span></div>
+
+</div>
+
+</div>
+
+
+
+<!-- CASE DETAIL -->
+
+<div class="scr" id="scr-case" style="flex-direction:column;">
+
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bdr);background:var(--bg2);">
+
+<button onclick="show('scr-home')" style="background:var(--bg3);border:none;color:var(--txt);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip">â†</button>
+
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="Case #1250" data-ar="حالة #١٢٥٠">Case #1250</p><p style="font-size:11px;color:var(--acc);">Ahmed K. • Dermatology</p></div>
+
+<span class="badge" style="background:var(--errf);color:var(--err);"><span class="mi" style="font-size:12px;color:var(--err)">circle</span> Urgent</span>
+
+</div>
+
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px;"><span class="mi">assignment</span> AI Clinical Summary</h4>
+
+<div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--txts);line-height:1.6;">
+
+<p><b style="color:var(--txt);">Chief Complaint:</b> Bilateral arm rash × 2 weeks</p>
+
+<p><b style="color:var(--txt);">HPI:</b> Pruritic (7/10), nocturnal, spreading unilateral→bilateral</p>
+
+<p><b style="color:var(--txt);">PMH:</b> Childhood eczema</p>
+
+<p><b style="color:var(--txt);">Medications:</b> Cetirizine PO</p>
+
+<p><b style="color:var(--txt);">Allergies:</b> NKDA</p>
+
+<p><b style="color:var(--txt);">Family Hx:</b> Mother — psoriasis</p>
+
+<p><b style="color:var(--txt);">Social Hx:</b> Non-smoker, moderate stress</p>
+
+<p><b style="color:var(--txt);">ROS:</b> Negative</p>
+
+</div></div>
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px;"><span class="mi">photo_camera</span> Patient Photos</h4>
+
+<div style="display:flex;gap:8px;"><img src="assets/skin-rash-closeup.png" alt="Close-up of skin rash" style="width:100px;height:100px;border-radius:12px;object-fit:cover;border:2px solid var(--border);"><img src="assets/skin-rash-wide.png" alt="Wide view of bilateral rash" style="width:100px;height:100px;border-radius:12px;object-fit:cover;border:2px solid var(--border);"></div></div>
+
+<div style="display:flex;gap:8px;">
+
+<button class="btn btn-p" style="flex:1;padding:12px;font-size:13px;" onclick="show('scr-respond')" data-en="Write Response" data-ar="كتابة الرد">Write Response</button>
+
+<button class="btn btn-o" style="flex:1;padding:12px;font-size:13px;" onclick="show('scr-interventions')" data-en="Order Tests" data-ar="طلب فحوصات">Order Tests</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- RESPOND -->
+
+<div class="scr" id="scr-respond" style="flex-direction:column;">
+
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bdr);background:var(--bg2);">
+
+<button onclick="show('scr-case')" style="background:var(--bg3);border:none;color:var(--txt);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip">â†</button>
+
+<p style="font-size:15px;font-weight:700;" data-en="Clinical Response" data-ar="الاستجابة السريرية">Clinical Response</p>
+
+</div>
+
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+<!-- S1: Assessment -->
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">biotech</span> Section 1: Clinical Assessment</h4>
+
+<div style="display:flex;flex-direction:column;gap:8px;">
+
+<div><label style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="Primary Diagnosis" data-ar="التشخيص الرئيسي">Primary Diagnosis</label><input class="inp" value="Contact Dermatitis (L25.1)" style="margin-top:4px;"></div>
+
+<div><label style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="ICD-10 Code" data-ar="رمز ICD-10">ICD-10 Code</label><input class="inp" value="L25.1" style="margin-top:4px;"></div>
+
+<div><label style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="Differential Diagnosis" data-ar="التشخيص التفريقي">Differential Diagnosis</label><input class="inp" value="Atopic dermatitis, Psoriasis, Fungal infection" style="margin-top:4px;"></div>
+
+</div></div>
+
+<!-- S2: Treatment -->
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">medication</span> Section 2: Treatment Plan</h4>
+
+<div style="display:flex;flex-direction:column;gap:8px;">
+
+<div style="padding:10px;background:var(--bg3);border-radius:8px;"><p style="font-size:13px;font-weight:600;">Betamethasone 0.1% Cream</p><p style="font-size:11px;color:var(--txtm);">30g — BID × 2 weeks</p></div>
+
+<div style="padding:10px;background:var(--bg3);border-radius:8px;"><p style="font-size:13px;font-weight:600;">Cetirizine 10mg</p><p style="font-size:11px;color:var(--txtm);">QHS — continue</p></div>
+
+<div style="padding:10px;background:var(--bg3);border-radius:8px;"><p style="font-size:13px;font-weight:600;">CeraVe Moisturizer</p><p style="font-size:11px;color:var(--txtm);">After bathing — ongoing</p></div>
+
+<button style="padding:8px;background:var(--accf);border:1px dashed var(--border);color:var(--acc);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);">+ Add Medication</button>
+
+</div></div>
+
+<!-- S3: Education -->
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">menu_book</span> Section 3: Patient Education</h4>
+
+<textarea class="inp" rows="3" style="resize:none;">Contact dermatitis is skin inflammation caused by allergens or irritants. Improvement expected within 1-2 weeks. Cool compresses help. Avoid hot showers, wear cotton clothing.</textarea></div>
+
+<!-- S4: Warning Signs -->
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--err);margin-bottom:10px;"><span class="mi">emergency</span> Section 4: Warning Signs</h4>
+
+<div style="display:flex;flex-wrap:wrap;gap:6px;">
+
+<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--err);"> Fever >38.5°C</label>
+
+<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--err);"> Rapid spread</label>
+
+<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--err);"> Difficulty breathing</label>
+
+<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--err);"> Worsening despite TX</label>
+
+</div>
+
+<div style="margin-top:8px;"><label style="font-size:11px;color:var(--txtm);font-weight:600;" data-en="Follow-up" data-ar="المتابعة">Follow-up</label><input class="inp" value="Return in 2 weeks if no improvement" style="margin-top:4px;"></div>
+
+</div>
+
+<!-- S5: Notes -->
+
+<div class="card"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">edit_note</span> Section 5: Additional Notes</h4>
+
+<textarea class="inp" rows="2" style="resize:none;">Family history of psoriasis — consider patch testing if no improvement. Monitor for secondary infection.</textarea></div>
+
+<!-- S6: Interventions -->
+
+<div class="card" onclick="show('scr-interventions')" style="cursor:pointer;"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px;"><span class="mi">science</span> Section 6: Suggest Interventions</h4>
+
+<p style="font-size:12px;color:var(--txts);" data-en="Tap to open intervention catalog and order tests" data-ar="اضغط لفتح كتالوج الإجراءات وطلب الفحوصات">Tap to open intervention catalog and order tests</p>
+
+<div style="display:flex;gap:6px;margin-top:8px;">
+
+<span class="badge" style="background:var(--accf);color:var(--acc);">CBC ✓</span>
+
+<span class="badge" style="background:var(--accf);color:var(--acc);">Skin Biopsy ✓</span>
+
+<span class="badge" style="background:var(--accf);color:var(--acc);">Follow-up ✓</span>
+
+</div></div>
+
+<!-- S7: Request Additional Information (Photo Request) -->
+<div class="card" style="border:1px solid var(--warn);">
+<h4 style="font-size:13px;font-weight:700;color:var(--warn);margin-bottom:10px;"><span class="mi">search</span> Request Additional Information</h4>
+<p style="font-size:10px;color:var(--txtm);font-weight:600;margin-bottom:6px;">QUICK REQUESTS</p>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+<span style="padding:6px 12px;border-radius:16px;border:1.5px solid var(--warn);background:var(--warnf);font-size:11px;font-weight:700;color:var(--warn);cursor:pointer;">&#x1F4F8; Request Skin Photo</span>
+<span style="padding:6px 12px;border-radius:16px;border:1.5px solid var(--bdr);background:var(--bg3);font-size:11px;font-weight:600;color:var(--txts);cursor:pointer;">&#128138; Request Drug Label</span>
+<span style="padding:6px 12px;border-radius:16px;border:1.5px solid var(--bdr);background:var(--bg3);font-size:11px;font-weight:600;color:var(--txts);cursor:pointer;">&#128172; Text Question</span>
+</div>
+<p style="font-size:10px;color:var(--txtm);font-weight:600;margin-bottom:4px;">YOUR QUESTION TO THE PATIENT</p>
+<textarea class="inp" rows="2" style="resize:none;font-size:12px;">Please provide a clear photo of the affected skin area for better clinical assessment.</textarea>
+<div style="display:flex;gap:6px;margin-top:8px;">
+<button style="flex:1;padding:8px;background:var(--accf);border:1px dashed var(--bdr);color:var(--acc);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);"><span class="mi" style="font-size:14px">auto_awesome</span> Improve with AI</button>
+<button style="flex:1;padding:8px;background:var(--warn);border:none;color:white;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--f);"><span class="mi" style="font-size:14px">send</span> Send Inquiry</button>
+</div>
+</div>
+<button class="btn btn-p" style="width:100%;" onclick="show('scr-home')" data-en="Submit Report" data-ar="&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1578;&#1602;&#1585;&#1610;&#1585;">Submit Report</button>
+
+</div>
+
+</div>
+
+
+
+<!-- INTERVENTIONS -->
+
+<div class="scr" id="scr-interventions" style="flex-direction:column;">
+
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bdr);background:var(--bg2);">
+
+<button onclick="show('scr-respond')" style="background:var(--bg3);border:none;color:var(--txt);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip">â†</button>
+
+<p style="font-size:15px;font-weight:700;" data-en="Dermatology Interventions" data-ar="إجراءات الجلدية">Dermatology Interventions</p>
+
+</div>
+
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+<h4 style="font-size:14px;font-weight:700;color:var(--acc);" data-en="Lab Tests" data-ar="فحوصات مخبرية"><span class="mi">science</span> Lab Tests</h4>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Skin Biopsy</p><p style="font-size:11px;color:var(--txtm);">Dermatopathology — 450 SAR</p></div></label>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Patch Testing</p><p style="font-size:11px;color:var(--txtm);">Allergy — 600 SAR</p></div></label>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">CBC</p><p style="font-size:11px;color:var(--txtm);">Hematology — 80 SAR</p></div></label>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">IgE Total</p><p style="font-size:11px;color:var(--txtm);">Immunology — 120 SAR</p></div></label>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Fungal Culture</p><p style="font-size:11px;color:var(--txtm);">Microbiology — 180 SAR</p></div></label>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">ANA</p><p style="font-size:11px;color:var(--txtm);">Immunology — 200 SAR</p></div></label>
+
+<h4 style="font-size:14px;font-weight:700;color:var(--acc);" data-en="Imaging" data-ar="تصوير"><span class="mi">search</span> Imaging</h4>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Dermoscopy</p><p style="font-size:11px;color:var(--txtm);">Dermatoscopy — 200 SAR</p></div></label>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Wood's Lamp</p><p style="font-size:11px;color:var(--txtm);">Dermatoscopy — 150 SAR</p></div></label>
+
+<h4 style="font-size:14px;font-weight:700;color:var(--acc);" data-en="Therapy" data-ar="علاج"><span class="mi">vaccines</span> Therapy</h4>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Phototherapy (UV)</p><p style="font-size:11px;color:var(--txtm);">Light Therapy — 250 SAR</p></div></label>
+
+<h4 style="font-size:14px;font-weight:700;color:var(--acc);" data-en="Follow-up" data-ar="متابعة"><span class="mi">calendar_month</span> Follow-up</h4>
+
+<label class="card" style="padding:12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--acc);margin-top:3px;"><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Follow-up Visit</p><p style="font-size:11px;color:var(--txtm);">Follow-up — 150 SAR</p></div></label>
+
+<div style="padding:14px;background:var(--bg3);border-radius:10px;text-align:center;position:sticky;bottom:0;">
+
+<p style="font-size:12px;color:var(--txtm);" data-en="Total" data-ar="المجموع">Total</p>
+
+<p style="font-size:24px;font-weight:800;color:var(--acc);">680 <span style="font-size:14px;color:var(--txtm);">SAR</span></p>
+
+<button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="show('scr-respond')" data-en="Confirm Orders" data-ar="تأكيد الطلبات">Confirm Orders</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+</div><!-- end frame -->
+
+<div class="iphone-home-indicator"></div>
+
+</div><!-- end iphone-bezel -->
+
+</div><!-- end iphone-outer -->
+
+
+
+<script>
+
+let lang='en';
+
+function show(id){
+
+  document.querySelectorAll('.scr.active').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(-10px)';s.style.transition='opacity 0.25s,transform 0.25s';});
+
+  setTimeout(()=>{document.querySelectorAll('.scr').forEach(s=>{s.classList.remove('active');s.style.opacity='';s.style.transform='';s.style.transition='';});const e=document.getElementById(id);if(e){e.classList.add('active');e.scrollTop=0;}},250);
+
+}
+
+const goScreen=show;
+
+setTimeout(()=>show('scr-login'),3000);
+
+function stab(t){document.querySelectorAll('.ts').forEach(s=>s.style.display='none');const e=document.getElementById('ts-'+t);if(e)e.style.display='flex';document.querySelectorAll('.tab-i').forEach(i=>i.classList.toggle('active',i.dataset.tab===t));}
+
+const w2i={'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
+
+const i2w={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+
+function toIndian(s){return String(s).replace(/[0-9]/g,d=>w2i[d]);}
+
+function toWestern(s){return String(s).replace(/[٠-٩]/g,d=>i2w[d]);}
+
+function convertNums(node,fn){if(node.nodeType===3){if(/[\d٠-٩]/.test(node.textContent))node.textContent=fn(node.textContent);return;}if(node.nodeName==='SCRIPT'||node.nodeName==='STYLE'||node.classList?.contains('mi'))return;node.childNodes.forEach(c=>convertNums(c,fn));}
+
+function toggleLang(){lang=lang==='en'?'ar':'en';document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.documentElement.lang=lang;document.querySelectorAll('[data-en]').forEach(e=>{e.textContent=e.getAttribute('data-'+lang)||e.textContent;});const b=document.getElementById('lang-btn');if(b)b.textContent=lang==='ar'?'EN':'AR';convertNums(document.getElementById('app'),lang==='ar'?toIndian:toWestern);}
+
+// Deep-link URL parameter support for fast figure capture
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  const targetScreen=params.get('screen');
+  const targetTab=params.get('tab');
+  const targetLang=params.get('lang');
+  if(targetScreen||targetTab||targetLang){
+    // Skip splash immediately
+    setTimeout(()=>{
+      if(targetScreen){show(targetScreen);}
+      else if(targetTab){show('scr-home');setTimeout(()=>stab(targetTab),300);}
+      else{show('scr-home');}
+      if(targetLang==='ar'){setTimeout(()=>toggleLang(),500);}
+    },100);
+  }
+})();
+
+</script>
+
+</body>
+
+</html>
+

@@ -7,6 +7,24 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t } from '@cliniqone/i18n';
 import { useToast } from './ToastProvider';
+import { useIntakeStore } from '../stores/intakeStore';
+
+// ── Body location options ────────────────────────
+const BODY_LOCATIONS = [
+    { key: 'face', en: 'Face', ar: 'الوجه', emoji: '😶' },
+    { key: 'scalp', en: 'Scalp', ar: 'فروة الرأس', emoji: '🧑' },
+    { key: 'neck', en: 'Neck', ar: 'الرقبة', emoji: '🦴' },
+    { key: 'chest', en: 'Chest', ar: 'الصدر', emoji: '🦴' },
+    { key: 'back', en: 'Back', ar: 'الظهر', emoji: '🦴' },
+    { key: 'abdomen', en: 'Abdomen', ar: 'البطن', emoji: '🦴' },
+    { key: 'arms', en: 'Arms', ar: 'الذراعين', emoji: '💪' },
+    { key: 'hands', en: 'Hands', ar: 'اليدين', emoji: '✋' },
+    { key: 'legs', en: 'Legs', ar: 'الساقين', emoji: '🦵' },
+    { key: 'feet', en: 'Feet', ar: 'القدمين', emoji: '🦶' },
+    { key: 'groin', en: 'Groin area', ar: 'المنطقة الإربية', emoji: '🦴' },
+    { key: 'nails', en: 'Nails', ar: 'الأظافر', emoji: '💅' },
+    { key: 'other', en: 'Other', ar: 'أخرى', emoji: '📌' },
+];
 
 // ── Types ────────────────────────────────────────
 interface SkinPhotoCaptureProps {
@@ -41,7 +59,10 @@ export function SkinPhotoCapture({
     const [photos, setPhotos] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
     const [showWebOptions, setShowWebOptions] = useState(false);
+    const [selectedLocations, setSelectedLocations] = useState<Record<number, string>>({});
+    const [editingLocationIdx, setEditingLocationIdx] = useState<number | null>(null);
     const toast = useToast((s) => s.show);
+    const setPhotoBodyLocation = useIntakeStore((s) => s.setPhotoBodyLocation);
 
     // ── Camera / Gallery ─────────────────────────
     const takePhoto = useCallback(async () => {
@@ -115,8 +136,14 @@ export function SkinPhotoCapture({
     }, []);
 
     const handleDone = useCallback(() => {
+        // Store body locations in the intake store before completing
+        photos.forEach((uri, idx) => {
+            if (selectedLocations[idx]) {
+                setPhotoBodyLocation(uri, selectedLocations[idx]);
+            }
+        });
         onComplete(photos);
-    }, [photos, onComplete]);
+    }, [photos, selectedLocations, setPhotoBodyLocation, onComplete]);
 
     // ── Step: Offer ──────────────────────────────
     if (step === 'offer') {
@@ -223,9 +250,50 @@ export function SkinPhotoCapture({
                             >
                                 <Text style={styles.removeText}>✕</Text>
                             </TouchableOpacity>
+                            {/* Body location badge */}
+                            <TouchableOpacity
+                                style={[styles.locationBadge, selectedLocations[idx] ? styles.locationBadgeSet : null]}
+                                onPress={() => setEditingLocationIdx(editingLocationIdx === idx ? null : idx)}
+                            >
+                                <Text style={styles.locationBadgeText}>
+                                    {selectedLocations[idx]
+                                        ? BODY_LOCATIONS.find(l => l.key === selectedLocations[idx])?.emoji + ' ' +
+                                          BODY_LOCATIONS.find(l => l.key === selectedLocations[idx])?.en
+                                        : '📍 Location?'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     ))}
                 </ScrollView>
+            )}
+
+            {/* Body location picker (shown below gallery) */}
+            {editingLocationIdx !== null && (
+                <View style={styles.locationPicker}>
+                    <Text style={styles.locationPickerTitle}>📍 Select body location for photo {(editingLocationIdx ?? 0) + 1}:</Text>
+                    <View style={styles.locationGrid}>
+                        {BODY_LOCATIONS.map(loc => (
+                            <TouchableOpacity
+                                key={loc.key}
+                                style={[
+                                    styles.locationChip,
+                                    selectedLocations[editingLocationIdx] === loc.key && styles.locationChipActive,
+                                ]}
+                                onPress={() => {
+                                    setSelectedLocations(prev => ({ ...prev, [editingLocationIdx!]: loc.key }));
+                                    setEditingLocationIdx(null);
+                                }}
+                            >
+                                <Text style={[
+                                    styles.locationChipText,
+                                    selectedLocations[editingLocationIdx] === loc.key && styles.locationChipTextActive,
+                                ]}>
+                                    {loc.emoji} {loc.en}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
             )}
 
             {/* Add photo button */}
@@ -492,4 +560,67 @@ const styles = StyleSheet.create({
         alignItems: 'center' as const,
     },
     webOptionCancelText: { ...typography.bodySm, color: colors.textTertiary },
+
+    // Body location picker
+    locationBadge: {
+        position: 'absolute' as const,
+        bottom: -4,
+        left: 0,
+        right: 0,
+        backgroundColor: colors.bgTertiary,
+        borderRadius: 8,
+        paddingVertical: 2,
+        paddingHorizontal: 4,
+        alignItems: 'center' as const,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    locationBadgeSet: {
+        backgroundColor: colors.accentTealFaded,
+        borderColor: colors.accentTeal,
+    },
+    locationBadgeText: {
+        ...typography.caption,
+        fontSize: 9,
+        color: colors.textSecondary,
+        fontWeight: '600' as const,
+    },
+    locationPicker: {
+        backgroundColor: colors.bgTertiary,
+        borderRadius: radius.md,
+        padding: spacing.md,
+        marginBottom: spacing.md,
+    },
+    locationPickerTitle: {
+        ...typography.caption,
+        color: colors.textSecondary,
+        fontWeight: '600' as const,
+        marginBottom: spacing.sm,
+    },
+    locationGrid: {
+        flexDirection: 'row' as const,
+        flexWrap: 'wrap' as const,
+        gap: 6,
+    },
+    locationChip: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.bgSecondary,
+    },
+    locationChipActive: {
+        borderColor: colors.accentTeal,
+        backgroundColor: colors.accentTealFaded,
+    },
+    locationChipText: {
+        ...typography.caption,
+        fontSize: 11,
+        color: colors.textSecondary,
+    },
+    locationChipTextActive: {
+        color: colors.accentTeal,
+        fontWeight: '700' as const,
+    },
 });

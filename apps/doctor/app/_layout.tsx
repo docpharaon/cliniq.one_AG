@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
-import { colors } from '@cliniqone/ui';
+import { colors, ThemeProvider } from '@cliniqone/ui';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const queryClient = new QueryClient({
@@ -25,31 +25,35 @@ export default function RootLayout() {
 
     if (!isReady) {
         return (
-            <View style={styles.loading}>
-                <ActivityIndicator size="large" color={colors.accentTeal} />
-                <StatusBar style="light" />
-            </View>
+            <ThemeProvider>
+                <View style={styles.loading}>
+                    <ActivityIndicator size="large" color={colors.accentTeal} />
+                    <StatusBar style="dark" />
+                </View>
+            </ThemeProvider>
         );
     }
 
     return (
-        <ErrorBoundary>
-            <QueryClientProvider client={queryClient}>
-                <Stack
-                    screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor: colors.bgPrimary },
-                        animation: 'slide_from_right',
-                    }}
-                >
-                    <Stack.Screen name="splash" options={{ animation: 'fade' }} />
-                    <Stack.Screen name="(auth)" />
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="consultation" />
-                </Stack>
-                <StatusBar style="light" />
-            </QueryClientProvider>
-        </ErrorBoundary>
+        <ThemeProvider>
+            <ErrorBoundary>
+                <QueryClientProvider client={queryClient}>
+                    <Stack
+                        screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor: colors.bgPrimary },
+                            animation: 'slide_from_right',
+                        }}
+                    >
+                        <Stack.Screen name="splash" options={{ animation: 'fade' }} />
+                        <Stack.Screen name="(auth)" />
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen name="consultation" />
+                    </Stack>
+                    <StatusBar style="dark" />
+                </QueryClientProvider>
+            </ErrorBoundary>
+        </ThemeProvider>
     );
 }
 

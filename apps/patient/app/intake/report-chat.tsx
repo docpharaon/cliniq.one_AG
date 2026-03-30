@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     },
     categoryItemSelected: {
         borderColor: colors.accentTeal,
-        backgroundColor: 'rgba(45, 212, 191, 0.08)',
+        backgroundColor: colors.accentTealFaded,
     },
     radio: {
         width: 20, height: 20, borderRadius: 10,
@@ -296,12 +296,12 @@ const styles = StyleSheet.create({
 
     // Info box
     infoBox: {
-        backgroundColor: 'rgba(45, 212, 191, 0.08)',
+        backgroundColor: colors.accentTealFaded,
         borderRadius: radius.md,
         padding: spacing.md,
         marginTop: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(45, 212, 191, 0.2)',
+        borderColor: colors.borderFocused,
     },
     infoText: {
         ...typography.caption,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.lg,
     },
     submitDisabled: { opacity: 0.5 },
-    submitText: { ...typography.button, color: '#0A0E1A', fontWeight: '700' },
+    submitText: { ...typography.button, color: colors.textInverse, fontWeight: '700' },
 
     // Confirmation
     confirmationBox: {

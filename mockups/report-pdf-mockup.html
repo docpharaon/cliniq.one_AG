@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cliniq.one — Consultation Report PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font: 'Inter', 'Noto Sans Arabic', -apple-system, sans-serif;
+  --accent: #2DD4BF;
+  --accent-dark: #14B8A6;
+  --blue: #3B82F6;
+  --purple: #9B72CF;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --text-primary: #1E293B;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border: #E2E8F0;
+  --bg-light: #F8FAFC;
+  --bg-section: #F1F5F9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: #CBD5E1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  gap: 24px;
+}
+
+html[dir="rtl"] { direction: rtl; }
+html[dir="rtl"] .flip-rtl { transform: scaleX(-1); }
+
+/* ═══ TOOLBAR ═══ */
+.toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  color: white;
+  font-size: 13px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.toolbar button {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+.toolbar button:hover { background: rgba(255,255,255,0.15); }
+.toolbar button.active { background: var(--accent); color: #0F172A; border-color: var(--accent); }
+.toolbar .logo { font-weight: 800; color: var(--accent); letter-spacing: 0.5px; }
+.demo-banner {
+  background: linear-gradient(90deg, #F97316, #EF4444, #F97316);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-align: center;
+  padding: 3px;
+  position: fixed;
+  top: 46px;
+  left: 0;
+  right: 0;
+  z-index: 101;
+}
+
+/* ═══ PAGE ═══ */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  margin-top: 64px;
+}
+
+@media print {
+  body { background: white; padding: 0; }
+  .toolbar, .demo-banner, .page-break-label { display: none !important; }
+  .page { box-shadow: none; margin: 0; width: 100%; }
+}
+
+/* ═══ HEADER ═══ */
+.report-header {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F4F4A 100%);
+  color: white;
+  padding: 28px 32px 24px;
+  position: relative;
+  overflow: hidden;
+}
+.report-header::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(45,212,191,0.12), transparent 70%);
+  border-radius: 50%;
+}
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header-brand img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+.header-brand .brand-text {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+.header-brand .brand-text span { color: var(--accent); }
+.header-meta {
+  text-align: right;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.6;
+}
+html[dir="rtl"] .header-meta { text-align: left; }
+.header-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  position: relative;
+  z-index: 1;
+}
+.header-subtitle {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+  position: relative;
+  z-index: 1;
+}
+.case-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: rgba(45,212,191,0.15);
+  border: 1px solid rgba(45,212,191,0.3);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══ CONTENT ═══ */
+.report-body { padding: 24px 32px 32px; }
+
+.section {
+  margin-bottom: 20px;
+}
+.section-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent-dark);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title .mi {
+  font-family: 'Material Symbols Rounded';
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+}
+
+/* Patient Info Grid */
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.patient-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.patient-grid .field-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.patient-grid .field-value {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Content */
+.text-block {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.text-block b { color: var(--text-primary); }
+
+/* Diagnosis Box */
+.diagnosis-box {
+  background: linear-gradient(135deg, rgba(45,212,191,0.06), rgba(59,130,246,0.04));
+  border: 1.5px solid rgba(45,212,191,0.2);
+  border-radius: 10px;
+  padding: 14px;
+}
+.diagnosis-primary {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.diagnosis-icd {
+  font-size: 11px;
+  color: var(--accent-dark);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.differentials {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.differentials h5 {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.diff-list {
+  list-style: none;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+.diff-list li::before {
+  content: '•';
+  color: var(--accent);
+  margin-right: 6px;
+  font-weight: 800;
+}
+html[dir="rtl"] .diff-list li::before {
+  margin-right: 0;
+  margin-left: 6px;
+}
+
+/* ROS Chips */
+.ros-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ros-chip {
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.ros-neg { background: #ECFDF5; color: #059669; }
+.ros-pos { background: #FEF2F2; color: #DC2626; }
+
+/* Rx Table */
+.rx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.rx-table thead {
+  background: var(--bg-section);
+}
+.rx-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1.5px solid var(--border);
+}
+html[dir="rtl"] .rx-table th { text-align: right; }
+.rx-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.rx-table tr:last-child td { border-bottom: none; }
+.rx-name { font-weight: 700; color: var(--text-primary); }
+.rx-type {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.rx-rx { background: #DBEAFE; color: #2563EB; }
+.rx-otc { background: #FEF3C7; color: #D97706; }
+.rx-warning {
+  font-size: 10px;
+  color: var(--warning);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.rx-warning .mi { font-size: 12px; }
+.refill-badge {
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.refill-yes { background: #DCFCE7; color: #166534; }
+.refill-no { background: #FEE2E2; color: #991B1B; }
+.refill-na { background: #F1F5F9; color: #64748B; }
+
+/* Education List */
+.education-list {
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 2;
+}
+.education-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.education-list .num {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+/* Red Flags */
+.red-flags {
+  background: #FEF2F2;
+  border: 1.5px solid rgba(239,68,68,0.2);
+  border-radius: 8px;
+  padding: 12px;
+}
+.red-flags-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--error);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.red-flags-title .mi {
+  font-family: 'Material Symbols Rounded';
+  font-size: 14px;
+}
+.red-flags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.red-flag-chip {
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rf-emergency { background: #FEE2E2; border: 1px solid #FECACA; color: #991B1B; }
+.rf-urgent { background: #FFF7ED; border: 1px solid #FED7AA; color: #9A3412; }
+.rf-monitor { background: #FEF9C3; border: 1px solid #FDE68A; color: #854D0E; }
+
+/* Severity Gauge */
+.severity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+.severity-card {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+.severity-card .sv-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.severity-card .sv-value {
+  font-size: 18px;
+  font-weight: 900;
+  margin: 4px 0 2px;
+}
+.severity-card .sv-desc {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+  padding: 8px 0;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: var(--border);
+  z-index: 0;
+}
+html[dir="rtl"] .timeline::before {
+  left: 20px;
+  right: 20px;
+}
+.tl-node {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.tl-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: white;
+  margin-bottom: 6px;
+}
+.tl-dot-past { border-color: var(--accent); background: var(--accent); }
+.tl-dot-current { border-color: var(--blue); background: white; box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
+.tl-dot-future { border-color: var(--border); }
+.tl-label { font-size: 10px; font-weight: 700; text-align: center; }
+.tl-date { font-size: 9px; color: var(--text-muted); text-align: center; }
+
+/* AI Confidence */
+.ai-confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+  border: 1px solid #93C5FD;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #1D4ED8;
+}
+.confidence-bar {
+  width: 60px;
+  height: 6px;
+  background: #BFDBFE;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #3B82F6, #2563EB);
+}
+
+/* Treatment Rationale */
+.rationale-box {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #0C4A6E;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.rationale-box b { color: #075985; }
+
+/* Step-down plan */
+.stepdown-box {
+  background: #FEFCE8;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #713F12;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+/* Consent Note */
+.consent-note {
+  background: #F5F3FF;
+  border: 1px solid #DDD6FE;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 10px;
+  color: #5B21B6;
+  line-height: 1.6;
+}
+
+/* Recommended badge */
+.rec-badge {
+  font-size: 8px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.rec-recommended { background: #DCFCE7; color: #166534; }
+.rec-optional { background: #F1F5F9; color: #64748B; }
+
+/* Photo annotation */
+.photo-card {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.photo-card .photo-bg {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #FECACA, #FCA5A5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photo-card .photo-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  font-size: 8px;
+  font-weight: 600;
+  padding: 3px 6px;
+  text-align: center;
+}
+.photo-card .photo-zoom {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+}
+
+/* Follow-up */
+.followup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.followup-card {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.followup-card .fc-icon {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.followup-card .fc-title { font-size: 11px; font-weight: 700; }
+.followup-card .fc-detail { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.followup-card .fc-cost { font-size: 10px; color: var(--accent-dark); font-weight: 700; margin-top: 4px; }
+
+/* Signature */
+.signature-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 2px solid var(--text-primary);
+}
+.signature-left {}
+.signature-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent-dark);
+  font-style: italic;
+}
+.signature-detail {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.qr-code {
+  width: 64px;
+  height: 64px;
+  background: var(--text-primary);
+  border-radius: 4px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8,1fr);
+  grid-template-rows: repeat(8,1fr);
+  padding: 4px;
+  gap: 1px;
+}
+.qr-cell { border-radius: 1px; }
+.qr-on { background: white; }
+.qr-off { background: var(--text-primary); }
+.qr-label {
+  font-size: 8px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Footer */
+.report-footer {
+  background: var(--bg-section);
+  border-top: 1px solid var(--border);
+  padding: 12px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.footer-disclaimer {
+  max-width: 70%;
+  line-height: 1.5;
+}
+.footer-brand {
+  font-weight: 800;
+  color: var(--accent-dark);
+}
+
+/* MOH Badge */
+.moh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #15803D;
+  margin-top: 8px;
+}
+
+/* E-Prescription accent */
+.eprescription-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* Disposition */
+.disposition-box {
+  background: linear-gradient(135deg, #ECFDF5, #F0FDF4);
+  border: 1.5px solid #BBF7D0;
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.disposition-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.disposition-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: #059669;
+  margin: 4px 0;
+}
+.disposition-note {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOOLBAR ═══ -->
+<div class="toolbar">
+  <span class="logo">cliniq.one</span>
+  <span style="opacity:0.4">|</span>
+  <span data-en="Consultation Report PDF Preview" data-ar="معاينة تقرير الاستشارة PDF">Consultation Report PDF Preview</span>
+  <span style="opacity:0.4">|</span>
+  <button onclick="toggleLang()" id="lang-toggle">العربية</button>
+  <button onclick="window.print()" data-en="🖨️ Print / Save PDF" data-ar="🖨️ طباعة / حفظ PDF">🖨️ Print / Save PDF</button>
+</div>
+<div class="demo-banner">⚠ MOCKUP DEMO — NOT FOR PRODUCTION ⚠</div>
+
+<!-- ═══ PAGE 1 ═══ -->
+<div class="page" id="page1">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <div class="header-top">
+      <div class="header-brand">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(45,212,191,0.2);display:flex;align-items:center;justify-content:center;">
+          <span class="mi" style="font-family:'Material Symbols Rounded';font-size:22px;color:var(--accent)">local_hospital</span>
+        </div>
+        <div class="brand-text">cliniq<span>.one</span></div>
+      </div>
+      <div class="header-meta">
+        <span data-en="Teleconsultation Report" data-ar="تقرير الاستشارة عن بُعد">Teleconsultation Report</span><br>
+        <span data-en="Document ID:" data-ar="رمز الوثيقة:">Document ID:</span> <b>CQ-RPT-2026-001247</b><br>
+        <span data-en="Generated:" data-ar="تاريخ الإنشاء:">Generated:</span> Mar 28, 2026 — 4:08 PM AST
+      </div>
+    </div>
+    <div class="header-title" data-en="Clinical Case Report" data-ar="تقرير الحالة السريرية">Clinical Case Report</div>
+    <div class="header-subtitle" data-en="Dermatology Teleconsultation • Asynchronous Review" data-ar="استشارة جلدية عن بُعد • مراجعة غير متزامنة">Dermatology Teleconsultation • Asynchronous Review</div>
+    <div class="case-badge">
+      <span class="mi" style="font-family:'Material Symbols Rounded';font-size:14px;">verified</span>
+      <span data-en="CASE #CQ-2026-1247 • FINAL REPORT" data-ar="الحالة #CQ-2026-1247 • تقرير نهائي">CASE #CQ-2026-1247 • FINAL REPORT</span>
+    </div>
+  </div>
+
+  <div class="report-body">
+
+    <!-- ═══ ATTENDING PHYSICIAN ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">stethoscope</span> <span data-en="ATTENDING PHYSICIAN" data-ar="الطبيب المعالج">ATTENDING PHYSICIAN</span></div>
+      <div style="display:flex;align-items:center;gap:14px;background:var(--bg-light);border:1px solid var(--border);border-radius:8px;padding:12px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#0F4F4A,#14B8A6);display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:800;">SA</div>
+        <div style="flex:1;">
+          <p style="font-size:14px;font-weight:800;">Dr. Sarah Al-Rashid, MD, FAAD</p>
+          <p style="font-size:11px;color:var(--text-secondary);" data-en="Dermatology — Consultant, King Fahad Medical City" data-ar="الأمراض الجلدية — استشارية، مدينة الملك فهد الطبية">Dermatology — Consultant, King Fahad Medical City</p>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            <span style="font-size:9px;padding:2px 8px;border-radius:4px;background:#DBEAFE;color:#2563EB;font-weight:600;" data-en="Saudi License #DRM-18294" data-ar="ترخيص سعودي #DRM-18294">Saudi License #DRM-18294</span>
+            <span style="font-size:9px;padding:2px 8px;border-radius:4px;background:#ECFDF5;color:#059669;font-weight:600;" data-en="Board Certified" data-ar="معتمدة من البورد">Board Certified</span>
+            <span style="font-size:9px;padding:2px 8px;border-radius:4px;background:#FEF3C7;color:#D97706;font-weight:600;">⏱ 1h 24m</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PATIENT DEMOGRAPHICS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">person</span> <span data-en="PATIENT DEMOGRAPHICS" data-ar="بيانات المريض">PATIENT DEMOGRAPHICS</span></div>
+      <div class="patient-grid">
+        <div class="field"><span class="field-label" data-en="Full Name" data-ar="الاسم الكامل">Full Name</span><span class="field-value">Ahmed K.</span></div>
+        <div class="field"><span class="field-label" data-en="Age / Gender" data-ar="العمر / الجنس">Age / Gender</span><span class="field-value" data-en="28 yrs, Male" data-ar="٢٨ سنة، ذكر">28 yrs, Male</span></div>
+        <div class="field"><span class="field-label">MRN</span><span class="field-value">CQ-P-004182</span></div>
+        <div class="field"><span class="field-label" data-en="Blood Type" data-ar="فصيلة الدم">Blood Type</span><span class="field-value" data-en="A+ (self-reported)" data-ar="A+ (مُبلّغ ذاتياً)">A+ (self-reported)</span></div>
+        <div class="field"><span class="field-label" data-en="Country" data-ar="الدولة">Country</span><span class="field-value" data-en="Saudi Arabia" data-ar="المملكة العربية السعودية">Saudi Arabia</span></div>
+        <div class="field"><span class="field-label" data-en="City" data-ar="المدينة">City</span><span class="field-value" data-en="Riyadh" data-ar="الرياض">Riyadh</span></div>
+        <div class="field"><span class="field-label" data-en="Insurance" data-ar="التأمين">Insurance</span><span class="field-value" data-en="Bupa Arabia — Active" data-ar="بوبا العربية — نشط">Bupa Arabia — Active</span></div>
+        <div class="field"><span class="field-label" data-en="Consultation Date" data-ar="تاريخ الاستشارة">Consultation Date</span><span class="field-value">Mar 28, 2026</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ CHIEF COMPLAINT ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">chat_bubble</span> <span data-en="CHIEF COMPLAINT" data-ar="الشكوى الرئيسية">CHIEF COMPLAINT</span></div>
+      <p style="font-size:13px;font-weight:700;line-height:1.6;padding:10px;background:var(--bg-light);border-radius:6px;border-left:3px solid var(--accent);" data-en="Bilateral pruritic skin rash on upper extremities, 2-week duration, progressive" data-ar="طفح جلدي حاك ثنائي الجانب على الأطراف العلوية، مدته أسبوعان، متقدم">Bilateral pruritic skin rash on upper extremities, 2-week duration, progressive</p>
+    </div>
+
+    <!-- ═══ SEVERITY ASSESSMENT ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">speed</span> <span data-en="SEVERITY ASSESSMENT" data-ar="تقييم الشدة">SEVERITY ASSESSMENT</span></div>
+      <div class="severity-grid">
+        <div class="severity-card">
+          <div class="sv-label" data-en="Pruritus VAS" data-ar="مقياس الحكة">Pruritus VAS</div>
+          <div class="sv-value" style="color:var(--warning);">7/10</div>
+          <div class="sv-desc" data-en="Nocturnal exacerbation" data-ar="تفاقم ليلي">Nocturnal exacerbation</div>
+        </div>
+        <div class="severity-card">
+          <div class="sv-label" data-en="BSA Involvement" data-ar="نسبة المساحة المصابة">BSA Involvement</div>
+          <div class="sv-value" style="color:var(--blue);">~8%</div>
+          <div class="sv-desc" data-en="Bilateral forearms" data-ar="ساعدين ثنائي الجانب">Bilateral forearms</div>
+        </div>
+        <div class="severity-card">
+          <div class="sv-label" data-en="IGA Score" data-ar="درجة التقييم العالمي">IGA Score</div>
+          <div class="sv-value" style="color:#D97706;">3 <span style="font-size:10px;font-weight:600;color:var(--text-muted);">/5</span></div>
+          <div class="sv-desc" data-en="Moderate severity" data-ar="شدة متوسطة">Moderate severity</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ HISTORY OF PRESENT ILLNESS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">description</span> <span data-en="HISTORY OF PRESENT ILLNESS (HPI)" data-ar="تاريخ المرض الحالي">HISTORY OF PRESENT ILLNESS (HPI)</span></div>
+      <div class="text-block" data-en="A 28-year-old male presents with a 2-week history of pruritic, erythematous rash initially localized to the right forearm, which has progressively spread to involve both upper extremities. The patient rates itching severity as 7/10 (VAS), with notable nocturnal exacerbation. Estimated BSA involvement ~8%, IGA 3/5 (moderate). Likely plant-based contact exposure based on vesicular morphology and extensor distribution pattern, despite no confirmed trigger event recalled by the patient. The patient has been self-medicating with oral cetirizine with partial relief. No associated fever, arthralgias, or systemic symptoms reported. Denies new exposures to detergents, chemicals, or topical products." data-ar="يحضر ذكر يبلغ من العمر ٢٨ عاماً بتاريخ أسبوعين من طفح حمامي حاك موضعي مبدئياً على الساعد الأيمن، انتشر تدريجياً ليشمل كلا الطرفين العلويين. يقيّم المريض شدة الحكة بـ ٧/١٠ (مقياس بصري)، مع تفاقم ليلي ملحوظ. نسبة المساحة المصابة ~٨٪، درجة التقييم العالمي ٣/٥ (متوسطة). يُرجح التعرض لنبات بناءً على الشكل الحويصلي ونمط التوزيع على الأسطح الباسطة، رغم عدم تذكر المريض لحدث محفز محدد. يتعالج المريض ذاتياً بسيتيريزين فموي مع تحسن جزئي. لا حمى أو آلام مفصلية أو أعراض جهازية مصاحبة. ينفي التعرض الجديد لمنظفات أو كيماويات أو منتجات موضعية.">A 28-year-old male presents with a 2-week history of pruritic, erythematous rash initially localized to the right forearm, which has progressively spread to involve both upper extremities. The patient rates itching severity as 7/10 (VAS), with notable nocturnal exacerbation. Estimated BSA involvement ~8%, IGA 3/5 (moderate). Likely plant-based contact exposure based on vesicular morphology and extensor distribution pattern, despite no confirmed trigger event recalled by the patient. The patient has been self-medicating with oral cetirizine with partial relief. No associated fever, arthralgias, or systemic symptoms reported. Denies new exposures to detergents, chemicals, or topical products.</div>
+    </div>
+
+    <!-- ═══ PAST MEDICAL HISTORY ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">history</span> <span data-en="PAST MEDICAL &amp; SURGICAL HISTORY" data-ar="التاريخ الطبي والجراحي السابق">PAST MEDICAL &amp; SURGICAL HISTORY</span></div>
+      <div class="text-block">
+        <span data-en="• Childhood atopic dermatitis (resolved ~age 12)" data-ar="• التهاب الجلد التأتبي في الطفولة (شُفي ~عمر ١٢)">• Childhood atopic dermatitis (resolved ~age 12)</span><br>
+        <span data-en="• No surgical history" data-ar="• لا تاريخ جراحي">• No surgical history</span><br>
+        <span data-en="• No hospitalizations" data-ar="• لا إدخال للمستشفى">• No hospitalizations</span>
+      </div>
+    </div>
+
+    <!-- ═══ MEDS / ALLERGIES IN 2-COL ═══ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div class="section" style="margin-bottom:0;">
+        <div class="section-title"><span class="mi">medication</span> <span data-en="CURRENT MEDICATIONS" data-ar="الأدوية الحالية">CURRENT MEDICATIONS</span></div>
+        <div class="text-block">
+          <span data-en="• Cetirizine 10mg PO PRN" data-ar="• سيتيريزين ١٠ ملغ فموي عند الحاجة">• Cetirizine 10mg PO PRN</span><br>
+          <span data-en="• No other regular Rx" data-ar="• لا أدوية أخرى منتظمة">• No other regular Rx</span>
+        </div>
+      </div>
+      <div class="section" style="margin-bottom:0;">
+        <div class="section-title"><span class="mi">emergency</span> <span data-en="ALLERGIES" data-ar="الحساسيات">ALLERGIES</span></div>
+        <p style="font-size:14px;font-weight:800;color:var(--success);">NKDA</p>
+        <p style="font-size:11px;color:var(--text-muted);" data-en="No known drug or food allergies" data-ar="لا حساسيات معروفة للأدوية أو الأغذية">No known drug or food allergies</p>
+      </div>
+    </div>
+
+    <!-- ═══ FAMILY / SOCIAL HX ═══ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div class="section" style="margin-bottom:0;">
+        <div class="section-title"><span class="mi">family_restroom</span> <span data-en="FAMILY HISTORY" data-ar="التاريخ العائلي">FAMILY HISTORY</span></div>
+        <div class="text-block">
+          <span data-en="• Mother — Psoriasis" data-ar="• الأم — صدفية">• Mother — Psoriasis</span><br>
+          <span data-en="• Father — Hypertension" data-ar="• الأب — ارتفاع ضغط الدم">• Father — Hypertension</span><br>
+          <span data-en="• No family history of skin cancer" data-ar="• لا تاريخ عائلي لسرطان الجلد">• No family history of skin cancer</span>
+        </div>
+      </div>
+      <div class="section" style="margin-bottom:0;">
+        <div class="section-title"><span class="mi">groups</span> <span data-en="SOCIAL HISTORY" data-ar="التاريخ الاجتماعي">SOCIAL HISTORY</span></div>
+        <div class="text-block">
+          <span data-en="• Non-smoker, no alcohol" data-ar="• غير مدخن، لا كحول">• Non-smoker, no alcohol</span><br>
+          <span data-en="• Office worker" data-ar="• موظف مكتبي">• Office worker</span><br>
+          <span data-en="• Moderate psychosocial stress" data-ar="• ضغط نفسي اجتماعي متوسط">• Moderate psychosocial stress</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REVIEW OF SYSTEMS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">checklist</span> <span data-en="REVIEW OF SYSTEMS" data-ar="مراجعة الأجهزة">REVIEW OF SYSTEMS</span></div>
+      <div class="ros-grid">
+        <span class="ros-chip ros-neg" data-en="Constitutional ⊖" data-ar="دستوري ⊖">Constitutional ⊖</span>
+        <span class="ros-chip ros-neg">HEENT ⊖</span>
+        <span class="ros-chip ros-neg" data-en="Respiratory ⊖" data-ar="تنفسي ⊖">Respiratory ⊖</span>
+        <span class="ros-chip ros-neg" data-en="Cardiovascular ⊖" data-ar="قلبي وعائي ⊖">Cardiovascular ⊖</span>
+        <span class="ros-chip ros-neg" data-en="GI ⊖" data-ar="هضمي ⊖">GI ⊖</span>
+        <span class="ros-chip ros-neg" data-en="MSK ⊖" data-ar="عضلي هيكلي ⊖">MSK ⊖</span>
+        <span class="ros-chip ros-neg" data-en="Neuro ⊖" data-ar="عصبي ⊖">Neuro ⊖</span>
+        <span class="ros-chip ros-pos" data-en="Derm ⊕ (see HPI)" data-ar="جلدي ⊕ (انظر تاريخ المرض)">Derm ⊕ (see HPI)</span>
+      </div>
+    </div>
+
+    <!-- ═══ CLINICAL PHOTOGRAPHS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">photo_camera</span> <span data-en="CLINICAL PHOTOGRAPHS" data-ar="الصور السريرية">CLINICAL PHOTOGRAPHS</span></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div class="photo-card">
+          <div class="photo-bg"><span class="mi" style="font-family:'Material Symbols Rounded';font-size:36px;color:#B91C1C;">photo_camera</span></div>
+          <div class="photo-zoom"><span class="mi" style="font-family:'Material Symbols Rounded';font-size:12px;">zoom_in</span></div>
+          <div class="photo-label" data-en="Close-up: vesicular plaque" data-ar="مقرّبة: لويحة حويصلية">Close-up: vesicular plaque</div>
+        </div>
+        <div class="photo-card">
+          <div class="photo-bg"><span class="mi" style="font-family:'Material Symbols Rounded';font-size:36px;color:#B91C1C;">photo_camera</span></div>
+          <div class="photo-zoom"><span class="mi" style="font-family:'Material Symbols Rounded';font-size:12px;">zoom_in</span></div>
+          <div class="photo-label" data-en="Wide: bilateral distribution" data-ar="واسعة: توزيع ثنائي">Wide: bilateral distribution</div>
+        </div>
+        <div style="flex:1;font-size:11px;color:var(--text-secondary);line-height:1.7;padding-top:4px;">
+          <p data-en="Well-demarcated, erythematous, papulovesicular plaques on bilateral forearms. No exudate. No secondary infection noted." data-ar="لويحات حمامية حطاطية حويصلية محددة الحدود على الساعدين. لا إفرازات. لا عدوى ثانوية ملحوظة.">Well-demarcated, erythematous, papulovesicular plaques on bilateral forearms. No exudate. No secondary infection noted.</p>
+          <p style="margin-top:6px;font-size:10px;color:var(--text-muted);font-style:italic;" data-en="📸 2 photographs provided by patient during AI intake • coin reference included for scale" data-ar="📸 صورتان مقدمتان من المريض أثناء المقابلة بالذكاء الاصطناعي • مرجع عملة معدنية للمقياس">📸 2 photographs provided by patient during AI intake • coin reference included for scale</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ASSESSMENT & DIAGNOSIS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">biotech</span> <span data-en="ASSESSMENT &amp; DIAGNOSIS" data-ar="التقييم والتشخيص">ASSESSMENT &amp; DIAGNOSIS</span></div>
+      <div class="diagnosis-box">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <p class="diagnosis-primary" data-en="Contact Dermatitis, Subacute" data-ar="التهاب الجلد التماسي، تحت الحاد">Contact Dermatitis, Subacute</p>
+            <p class="diagnosis-icd">ICD-10: L25.1 — <span data-en="Unspecified contact dermatitis due to plants" data-ar="التهاب الجلد التماسي غير المحدد بسبب النباتات">Unspecified contact dermatitis due to plants</span></p>
+            <p style="font-size:10px;color:var(--text-muted);margin-top:2px;">SNOMED-CT: 40275004</p>
+          </div>
+          <div class="ai-confidence">
+            <span class="mi" style="font-family:'Material Symbols Rounded';font-size:14px;">psychology</span>
+            <span data-en="AI Confidence" data-ar="ثقة الذكاء الاصطناعي">AI Confidence</span>
+            <div class="confidence-bar"><div class="confidence-fill" style="width:85%;"></div></div>
+            <b>85%</b>
+          </div>
+        </div>
+        <p style="font-size:10px;color:var(--text-secondary);margin-top:6px;line-height:1.5;font-style:italic;" data-en="Clinical reasoning: Likely plant-based contact exposure based on vesicular morphology and extensor surface distribution pattern, despite unconfirmed trigger. Childhood atopic dermatitis history increases differential complexity." data-ar="الاستدلال السريري: يُرجح التعرض لنبات بناءً على الشكل الحويصلي ونمط التوزيع على الأسطح الباسطة، رغم عدم تأكيد المحفز. تاريخ التهاب الجلد التأتبي في الطفولة يزيد تعقيد التشخيص التفريقي.">Clinical reasoning: Likely plant-based contact exposure based on vesicular morphology and extensor surface distribution pattern, despite unconfirmed trigger. Childhood atopic dermatitis history increases differential complexity.</p>
+        <div class="differentials">
+          <h5 data-en="Ranked Differential Diagnoses" data-ar="التشخيصات التفريقية المرتبة">Ranked Differential Diagnoses</h5>
+          <ul class="diff-list">
+            <li data-en="1. Contact dermatitis (most likely) — vesicular pattern + extensor distribution consistent with plant allergen" data-ar="١. التهاب الجلد التماسي (الأرجح) — النمط الحويصلي + التوزيع الباسط متسق مع مسبب حساسية نباتي">1. Contact dermatitis (most likely) — vesicular pattern + extensor distribution consistent with plant allergen</li>
+            <li data-en="2. Atopic dermatitis — childhood history but atypical adult-onset presentation" data-ar="٢. التهاب الجلد التأتبي — تاريخ طفولة لكن ظهور غير نمطي في البالغين">2. Atopic dermatitis — childhood history but atypical adult-onset presentation</li>
+            <li data-en="3. Early psoriasis — FH positive (mother), morphology less classic for plaque psoriasis" data-ar="٣. صدفية مبكرة — تاريخ عائلي إيجابي (الأم)، الشكل أقل نمطية للصدفية اللويحية">3. Early psoriasis — FH positive (mother), morphology less classic for plaque psoriasis</li>
+            <li data-en="4. Tinea corporis — low likelihood, no central clearing or annular pattern" data-ar="٤. سعفة الجسم — احتمال منخفض، لا تصفية مركزية أو نمط حلقي">4. Tinea corporis — low likelihood, no central clearing or annular pattern</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TREATMENT PLAN / E-PRESCRIPTION ═══ -->
+    <div class="section">
+      <div class="eprescription-header">
+        <div class="section-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;"><span class="mi">medication</span> <span data-en="TREATMENT PLAN &amp; E-PRESCRIPTION" data-ar="خطة العلاج والوصفة الإلكترونية">TREATMENT PLAN &amp; E-PRESCRIPTION</span></div>
+      </div>
+      <!-- Treatment Rationale -->
+      <div class="rationale-box">
+        <b data-en="Clinical Rationale:" data-ar="المبرر السريري:">Clinical Rationale:</b>
+        <span data-en="Topical corticosteroid selected due to inflammatory morphology and moderate severity (IGA 3/5). High-potency agent chosen for trunk/extremity use given subacute presentation with active vesiculation. Antihistamine continued for symptomatic pruritus relief. Barrier repair emollient added to restore skin integrity and prevent relapse." data-ar="تم اختيار الكورتيكوستيرويد الموضعي بسبب الشكل الالتهابي والشدة المتوسطة (IGA ٣/٥). تم اختيار عامل عالي الفعالية للاستخدام على الجذع/الأطراف نظراً للعرض تحت الحاد مع تحويصل نشط. يُستمر في مضاد الهيستامين لتخفيف أعراض الحكة. أُضيف مرطب إصلاح الحاجز لاستعادة سلامة الجلد ومنع الانتكاس.">Topical corticosteroid selected due to inflammatory morphology and moderate severity (IGA 3/5). High-potency agent chosen for trunk/extremity use given subacute presentation with active vesiculation. Antihistamine continued for symptomatic pruritus relief. Barrier repair emollient added to restore skin integrity and prevent relapse.</span>
+      </div>
+      <table class="rx-table">
+        <thead>
+          <tr>
+            <th data-en="Medication" data-ar="الدواء">Medication</th>
+            <th data-en="Type" data-ar="النوع">Type</th>
+            <th data-en="Dosage & Instructions" data-ar="الجرعة والتعليمات">Dosage & Instructions</th>
+            <th data-en="Duration" data-ar="المدة">Duration</th>
+            <th data-en="Refill" data-ar="إعادة الصرف">Refill</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="rx-name">Betamethasone Valerate 0.1% Cream</span>
+              <div style="font-size:9px;color:#7C3AED;font-weight:700;margin-top:2px;" data-en="Class III — High Potency Corticosteroid" data-ar="الفئة الثالثة — كورتيكوستيرويد عالي الفعالية">Class III — High Potency Corticosteroid</div>
+              <div class="rx-warning"><span class="mi">warning</span> <span data-en="Avoid face/groin/axillae. Risk of skin atrophy with prolonged use (>14 days). Monitor for striae." data-ar="تجنب الوجه/الفخذ/الإبط. خطر ضمور الجلد مع الاستخدام المطول (>١٤ يوم). راقب ظهور السطور.">Avoid face/groin/axillae. Risk of skin atrophy with prolonged use (>14 days). Monitor for striae.</span></div>
+            </td>
+            <td><span class="rx-type rx-rx">Rx</span></td>
+            <td style="font-size:11px;" data-en="Apply thin layer to affected areas BID" data-ar="ضع طبقة رقيقة على المناطق المتأثرة مرتين يومياً">Apply thin layer to affected areas BID</td>
+            <td style="font-size:11px;" data-en="14 days" data-ar="١٤ يوم">14 days</td>
+            <td style="text-align:center;"><span class="refill-badge refill-no" data-en="✕ No" data-ar="✕ لا">✕ No</span><div style="font-size:8px;color:var(--text-muted);margin-top:2px;" data-en="Reassess first" data-ar="يتطلب إعادة تقييم">Reassess first</div></td>
+          </tr>
+          <tr>
+            <td><span class="rx-name">Cetirizine HCl 10mg Tablets</span></td>
+            <td><span class="rx-type rx-rx">Rx</span></td>
+            <td style="font-size:11px;" data-en="1 tablet PO at bedtime (continue current)" data-ar="قرص واحد فموي عند النوم (استمر على الحالي)">1 tablet PO at bedtime (continue current)</td>
+            <td style="font-size:11px;" data-en="30 days" data-ar="٣٠ يوم">30 days</td>
+            <td style="text-align:center;"><span class="refill-badge refill-yes" data-en="✓ Yes" data-ar="✓ نعم">✓ Yes</span><div style="font-size:8px;color:var(--text-muted);margin-top:2px;" data-en="Up to 3×" data-ar="حتى ٣ مرات">Up to 3×</div></td>
+          </tr>
+          <tr>
+            <td><span class="rx-name">CeraVe Moisturizing Cream</span><br><span style="font-size:10px;color:var(--text-muted);" data-en="(Ceramide-based emollient)" data-ar="(مرطب أساسه السيراميد)">(Ceramide-based emollient)</span></td>
+            <td><span class="rx-type rx-otc">OTC</span></td>
+            <td style="font-size:11px;" data-en="Apply generously to all affected areas TID, especially post-bathing" data-ar="ضع بسخاء على جميع المناطق المتأثرة ٣ مرات يومياً، خاصة بعد الاستحمام">Apply generously to all affected areas TID, especially post-bathing</td>
+            <td style="font-size:11px;" data-en="Ongoing" data-ar="مستمر">Ongoing</td>
+            <td style="text-align:center;"><span class="refill-badge refill-na" data-en="— N/A" data-ar="— لا ينطبق">— N/A</span><div style="font-size:8px;color:var(--text-muted);margin-top:2px;">OTC</div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="moh-badge"><span class="mi" style="font-family:'Material Symbols Rounded';font-size:14px;">verified_user</span> <span data-en="MOH-Compliant E-Prescription • Digitally Signed" data-ar="وصفة إلكترونية متوافقة مع وزارة الصحة • موقعة رقمياً">MOH-Compliant E-Prescription • Digitally Signed</span></div>
+      <!-- Step-down Plan -->
+      <div class="stepdown-box">
+        <b data-en="⬇ Step-Down Plan (post Day 14):" data-ar="⬇ خطة التخفيض (بعد اليوم ١٤):">⬇ Step-Down Plan (post Day 14):</b><br>
+        <span data-en="If improved → switch to low-potency steroid (Hydrocortisone 1% cream BID × 7 days), then emollient only. If not improved → escalate to in-person dermatology visit within 5 days and consider patch testing." data-ar="إذا تحسن → انتقل إلى كورتيكوستيرويد منخفض الفعالية (هيدروكورتيزون ١٪ كريم مرتين يومياً × ٧ أيام)، ثم مرطب فقط. إذا لم يتحسن → اذهب لزيارة جلدية حضورية خلال ٥ أيام وضع في الاعتبار اختبار الرقعة.">If improved → switch to low-potency steroid (Hydrocortisone 1% cream BID × 7 days), then emollient only. If not improved → escalate to in-person dermatology visit within 5 days and consider patch testing.</span>
+      </div>
+    </div>
+
+    <!-- ═══ PATIENT EDUCATION ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">school</span> <span data-en="PATIENT EDUCATION &amp; LIFESTYLE MODIFICATIONS" data-ar="تثقيف المريض وتعديلات نمط الحياة">PATIENT EDUCATION &amp; LIFESTYLE MODIFICATIONS</span></div>
+      <ul class="education-list">
+        <li><span class="num">1</span><span data-en="Avoid known irritants — harsh soaps, detergents, perfumed products" data-ar="تجنب المهيجات المعروفة — الصابون القاسي، المنظفات، المنتجات المعطرة"><b>Avoid known irritants</b> — harsh soaps, detergents, perfumed products</span></li>
+        <li><span class="num">2</span><span data-en="Bathing — lukewarm water only, limit to 10 minutes, pat dry gently" data-ar="الاستحمام — ماء فاتر فقط، حدد بـ ١٠ دقائق، جفف بلطف"><b>Bathing</b> — lukewarm water only, limit to 10 minutes, pat dry gently</span></li>
+        <li><span class="num">3</span><span data-en="Clothing — wear loose cotton garments, avoid wool/synthetic fabrics" data-ar="الملابس — ارتدِ ملابس قطنية فضفاضة، تجنب الصوف/الأقمشة الصناعية"><b>Clothing</b> — wear loose cotton garments, avoid wool/synthetic fabrics</span></li>
+        <li><span class="num">4</span><span data-en="Moisturize — apply within 3 minutes of bathing (\"soak and seal\")" data-ar="رطّب — ضع خلال ٣ دقائق من الاستحمام (\"انقع واغلق\")"><b>Moisturize</b> — apply within 3 minutes of bathing ("soak and seal")</span></li>
+        <li><span class="num">5</span><span data-en="Stress management — identifies stress as possible exacerbating factor" data-ar="إدارة التوتر — التوتر عامل مفاقم محتمل"><b>Stress management</b> — identifies stress as possible exacerbating factor</span></li>
+      </ul>
+    </div>
+
+    <!-- ═══ RED FLAGS — PRIORITY CODED ═══ -->
+    <div class="section">
+      <div class="red-flags">
+        <div class="red-flags-title"><span class="mi">warning</span> <span data-en="WARNING SIGNS — PRIORITIZED ACTION GUIDE" data-ar="علامات تحذيرية — دليل الإجراءات حسب الأولوية">WARNING SIGNS — PRIORITIZED ACTION GUIDE</span></div>
+        <div class="red-flags-list">
+          <span class="red-flag-chip rf-emergency" data-en="🔴 Fever >38.5°C + spreading rash → ER immediately" data-ar="🔴 حمى >٣٨.٥ + طفح منتشر → طوارئ فوراً">🔴 Fever >38.5°C + spreading rash → ER immediately</span>
+          <span class="red-flag-chip rf-emergency" data-en="🔴 Facial/periorbital involvement → ER" data-ar="🔴 إصابة الوجه/حول العين → طوارئ">🔴 Facial/periorbital involvement → ER</span>
+          <span class="red-flag-chip rf-urgent" data-en="🟠 Purulent discharge → Urgent clinic visit" data-ar="🟠 إفرازات صديدية → زيارة عاجلة للعيادة">🟠 Purulent discharge → Urgent clinic visit</span>
+          <span class="red-flag-chip rf-urgent" data-en="🟠 Rapid spread beyond arms → Contact doctor" data-ar="🟠 انتشار سريع خارج الذراعين → تواصل مع الطبيب">🟠 Rapid spread beyond arms → Contact doctor</span>
+          <span class="red-flag-chip rf-monitor" data-en="🟡 Not improving after 7 days → Send follow-up message" data-ar="🟡 لم يتحسن بعد ٧ أيام → أرسل رسالة متابعة">🟡 Not improving after 7 days → Send follow-up message</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CLINICAL TIMELINE ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">timeline</span> <span data-en="CLINICAL TIMELINE" data-ar="الجدول الزمني السريري">CLINICAL TIMELINE</span></div>
+      <div class="timeline">
+        <div class="tl-node">
+          <div class="tl-dot tl-dot-past"></div>
+          <div class="tl-label" data-en="Onset" data-ar="البداية">Onset</div>
+          <div class="tl-date">Mar 14</div>
+        </div>
+        <div class="tl-node">
+          <div class="tl-dot tl-dot-past"></div>
+          <div class="tl-label" data-en="Spread" data-ar="الانتشار">Spread</div>
+          <div class="tl-date" data-en="~Day 7" data-ar="~اليوم ٧">~Day 7</div>
+        </div>
+        <div class="tl-node">
+          <div class="tl-dot tl-dot-current"></div>
+          <div class="tl-label" style="color:var(--blue);" data-en="Consult" data-ar="الاستشارة">Consult</div>
+          <div class="tl-date">Mar 28</div>
+        </div>
+        <div class="tl-node">
+          <div class="tl-dot tl-dot-future"></div>
+          <div class="tl-label" data-en="Step-down" data-ar="تخفيض">Step-down</div>
+          <div class="tl-date">Apr 11</div>
+        </div>
+        <div class="tl-node">
+          <div class="tl-dot tl-dot-future"></div>
+          <div class="tl-label" data-en="Follow-up" data-ar="المتابعة">Follow-up</div>
+          <div class="tl-date">Apr 11</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ INVESTIGATIONS & FOLLOW-UP ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="mi">science</span> <span data-en="INVESTIGATIONS &amp; FOLLOW-UP ORDERS" data-ar="الفحوصات والمتابعة">INVESTIGATIONS &amp; FOLLOW-UP ORDERS</span></div>
+      <div class="followup-grid">
+        <div class="followup-card">
+          <div style="display:flex;justify-content:center;margin-bottom:4px;"><span class="rec-badge rec-optional" data-en="CONDITIONAL" data-ar="مشروط">CONDITIONAL</span></div>
+          <div class="fc-icon" style="background:#EFF6FF;color:#2563EB;"><span class="mi" style="font-family:'Material Symbols Rounded'">biotech</span></div>
+          <div class="fc-title" data-en="Punch Biopsy 4mm" data-ar="خزعة مثقبية ٤ ملم">Punch Biopsy 4mm</div>
+          <div class="fc-detail" data-en="R/O psoriasis vs dermatitis" data-ar="لاستبعاد الصدفية مقابل التهاب الجلد">R/O psoriasis vs dermatitis</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-top:2px;font-style:italic;" data-en="If no improvement in 2 weeks" data-ar="إذا لم يتحسن خلال أسبوعين">If no improvement in 2 weeks</div>
+          <div class="fc-cost">450 SAR</div>
+        </div>
+        <div class="followup-card">
+          <div style="display:flex;justify-content:center;margin-bottom:4px;"><span class="rec-badge rec-recommended" data-en="RECOMMENDED" data-ar="موصى به">RECOMMENDED</span></div>
+          <div class="fc-icon" style="background:#FEF3C7;color:#D97706;"><span class="mi" style="font-family:'Material Symbols Rounded'">bloodtype</span></div>
+          <div class="fc-title" data-en="CBC w/ Differential" data-ar="تعداد دم كامل مع التفريقي">CBC w/ Differential</div>
+          <div class="fc-detail" data-en="Eosinophilia screen — Mar 31" data-ar="فحص فرط الحمضات — ٣١ مارس">Eosinophilia screen — Mar 31</div>
+          <div class="fc-cost">80 SAR</div>
+        </div>
+        <div class="followup-card">
+          <div style="display:flex;justify-content:center;margin-bottom:4px;"><span class="rec-badge rec-recommended" data-en="RECOMMENDED" data-ar="موصى به">RECOMMENDED</span></div>
+          <div class="fc-icon" style="background:#ECFDF5;color:#059669;"><span class="mi" style="font-family:'Material Symbols Rounded'">calendar_month</span></div>
+          <div class="fc-title" data-en="Follow-up Teleconsult" data-ar="استشارة متابعة عن بُعد">Follow-up Teleconsult</div>
+          <div class="fc-detail" data-en="2-week reassessment — Apr 11" data-ar="إعادة تقييم بعد أسبوعين — ١١ أبريل">2-week reassessment — Apr 11</div>
+          <div class="fc-cost">150 SAR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ESCALATION LOGIC ═══ -->
+    <div class="section">
+      <div class="stepdown-box" style="background:#FFF1F2;border-color:#FECDD3;color:#881337;">
+        <b data-en="⚡ Escalation Protocol:" data-ar="⚡ بروتوكول التصعيد:">⚡ Escalation Protocol:</b><br>
+        <span data-en="If no clinical improvement within 5 days of starting treatment → escalate to in-person dermatology visit. If worsening at any point → seek urgent care. Automated follow-up reminder will be sent at Day 5 and Day 12 via the cliniq.one app." data-ar="إذا لم يكن هناك تحسن سريري خلال ٥ أيام من بدء العلاج → اذهب لزيارة جلدية حضورية. إذا ساءت الحالة في أي وقت → اطلب رعاية عاجلة. سيتم إرسال تذكير متابعة تلقائي في اليوم ٥ واليوم ١٢ عبر تطبيق cliniq.one.">If no clinical improvement within 5 days of starting treatment → escalate to in-person dermatology visit. If worsening at any point → seek urgent care. Automated follow-up reminder will be sent at Day 5 and Day 12 via the cliniq.one app.</span>
+      </div>
+    </div>
+
+    <!-- ═══ TELEMEDICINE CONSENT NOTE ═══ -->
+    <div class="section">
+      <div class="consent-note">
+        <b data-en="📋 Telemedicine Modality & Consent:" data-ar="📋 طريقة الطب عن بُعد والموافقة:">📋 Telemedicine Modality & Consent:</b><br>
+        <span data-en="This diagnosis was made via asynchronous teleconsultation based on patient-submitted photographs and AI-assisted medical history. Limitations of remote assessment have been disclosed to the patient. Patient consented to teleconsultation and image submission prior to intake. Physical examination was not performed; findings are based on visual assessment of submitted images only." data-ar="تم التشخيص عبر استشارة غير متزامنة عن بُعد بناءً على صور مقدمة من المريض وتاريخ طبي بمساعدة الذكاء الاصطناعي. تم إبلاغ المريض بقيود التقييم عن بُعد. وافق المريض على الاستشارة عن بُعد وتقديم الصور قبل المقابلة. لم يتم إجراء فحص بدني؛ النتائج مبنية على التقييم البصري للصور المقدمة فقط.">This diagnosis was made via asynchronous teleconsultation based on patient-submitted photographs and AI-assisted medical history. Limitations of remote assessment have been disclosed to the patient. Patient consented to teleconsultation and image submission prior to intake. Physical examination was not performed; findings are based on visual assessment of submitted images only.</span>
+      </div>
+    </div>
+
+    <!-- ═══ DISPOSITION ═══ -->
+    <div class="section">
+      <div class="disposition-box">
+        <p class="disposition-label" data-en="Disposition" data-ar="التصرف">Disposition</p>
+        <p class="disposition-value" data-en="Discharged — Outpatient Follow-up" data-ar="خرج — متابعة خارجية">Discharged — Outpatient Follow-up</p>
+        <p class="disposition-note" data-en="Prognosis: Good with adherence to topical regimen" data-ar="التوقعات: جيدة مع الالتزام بنظام العلاج الموضعي">Prognosis: Good with adherence to topical regimen</p>
+      </div>
+    </div>
+
+    <!-- ═══ SIGNATURE ═══ -->
+    <div class="signature-block">
+      <div class="signature-left">
+        <p style="font-size:10px;color:var(--text-muted);" data-en="Electronically signed by" data-ar="توقيع إلكتروني من">Electronically signed by</p>
+        <p class="signature-name">Dr. Sarah Al-Rashid, MD, FAAD</p>
+        <p class="signature-detail">
+          <span data-en="Saudi Medical License #DRM-18294" data-ar="ترخيص طبي سعودي #DRM-18294">Saudi Medical License #DRM-18294</span><br>
+          Mar 28, 2026 — 4:08 PM AST
+        </p>
+      </div>
+      <div class="qr-block">
+        <div class="qr-code">
+          <div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div>
+          <div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div>
+          <div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div>
+          <div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div>
+          <div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div>
+          <div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div>
+          <div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div>
+          <div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-off"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-on"></div><div class="qr-cell qr-off"></div>
+        </div>
+        <span class="qr-label" data-en="Scan to verify" data-ar="امسح للتحقق">Scan to verify</span>
+      </div>
+    </div>
+
+  </div><!-- /report-body -->
+
+  <!-- FOOTER -->
+  <div class="report-footer">
+    <div class="footer-disclaimer" data-en="This report is generated via the cliniq.one teleconsultation platform and constitutes a legal medical document. It is intended solely for the patient identified above and their treating physicians. Unauthorized distribution is prohibited." data-ar="هذا التقرير صادر عبر منصة cliniq.one للاستشارات عن بُعد ويُعد وثيقة طبية قانونية. هو مخصص حصرياً للمريض المذكور أعلاه وأطبائه المعالجين. يُحظر التوزيع غير المصرح به.">This report is generated via the cliniq.one teleconsultation platform and constitutes a legal medical document. It is intended solely for the patient identified above and their treating physicians. Unauthorized distribution is prohibited.</div>
+    <div style="text-align:right;">
+      <span class="footer-brand">cliniq.one</span><br>
+      <span data-en="Page 1 of 1" data-ar="صفحة ١ من ١">Page 1 of 1</span>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+let currentLang = 'en';
+
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'ar' : 'en';
+  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-en]').forEach(el => {
+    el.textContent = el.getAttribute('data-' + currentLang) || el.textContent;
+  });
+  const langBtn = document.getElementById('lang-toggle');
+  if (langBtn) langBtn.textContent = currentLang === 'ar' ? 'English' : 'العربية';
+}
+</script>
+</body>
+</html>

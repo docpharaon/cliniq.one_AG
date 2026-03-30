@@ -151,8 +151,8 @@ export default function AddDoctorModal({ onClose, onSaved }: Props) {
                 className="relative w-full max-w-[720px] max-h-[92vh] flex flex-col rounded-2xl overflow-hidden animate-scale-in"
                 style={{
                     pointerEvents: 'auto',
-                    background: 'linear-gradient(180deg, #131B2E 0%, #0A0E1A 100%)',
-                    border: '1px solid rgba(45, 212, 191, 0.2)',
+                    background: 'linear-gradient(180deg, #FFFFFF 0%, #F5F8FA 100%)',
+                    border: '1px solid var(--color-border)',
                     boxShadow: '0 24px 80px rgba(0, 0, 0, 0.6)',
                 }}
             >

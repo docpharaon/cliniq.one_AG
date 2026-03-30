@@ -3,13 +3,84 @@
  * 
  * Derived from the UI/UX Design Guide.
  * All apps share these tokens for visual consistency.
+ * 
+ * Light theme is the DEFAULT — aligned with the cliniq.one landing page
+ * for brand continuity and clinical readability.
+ * Dark theme is preserved for the opt-in toggle.
  */
 
 // ──────────────────────────────────────────
-// Colors — Dark Theme (Primary)
+// Colors — Light Theme (Default)
 // ──────────────────────────────────────────
 
-export const colors = {
+export const lightColors = {
+    // Backgrounds
+    bgPrimary: '#FFFFFF',
+    bgSecondary: '#F5F8FA',
+    bgTertiary: '#EDF2F7',
+    bgCard: '#FFFFFF',
+    bgElevated: '#FFFFFF',
+
+    // Accent — Teal (unified with landing page)
+    accentTeal: '#1A8A9E',
+    accentTealDark: '#157A8C',
+    accentTealLight: '#2BA3B8',
+    accentTealFaded: 'rgba(26, 138, 158, 0.08)',
+
+    // Accent — Blue
+    accentBlue: '#3B82F6',
+    accentBlueDark: '#2563EB',
+    accentBlueLight: '#60A5FA',
+    accentBlueFaded: 'rgba(59, 130, 246, 0.08)',
+
+    // Accent — Purple
+    purple: '#7C3AED',
+    purpleFaded: 'rgba(124, 58, 237, 0.08)',
+
+    // Accent — Pink
+    pink: '#B9568A',
+    pinkFaded: 'rgba(185, 86, 138, 0.08)',
+
+    // Accent — Gold
+    gold: '#D97706',
+    goldFaded: 'rgba(217, 119, 6, 0.08)',
+
+    // Text
+    textPrimary: '#1E293B',
+    textSecondary: '#64748B',
+    textTertiary: '#94A3B8',
+    textInverse: '#FFFFFF',
+
+    // Semantic
+    success: '#059669',
+    successFaded: 'rgba(5, 150, 105, 0.08)',
+    warning: '#D97706',
+    warningFaded: 'rgba(217, 119, 6, 0.08)',
+    error: '#DC2626',
+    errorFaded: 'rgba(220, 38, 38, 0.08)',
+    info: '#2563EB',
+    infoFaded: 'rgba(37, 99, 235, 0.08)',
+
+    // Borders
+    border: '#DEE5ED',
+    borderFocused: '#1A8A9E',
+    borderError: '#DC2626',
+
+    // Overlays
+    overlay: 'rgba(0, 0, 0, 0.4)',
+    overlayLight: 'rgba(0, 0, 0, 0.15)',
+
+    // White / Transparent
+    white: '#FFFFFF',
+    black: '#000000',
+    transparent: 'transparent',
+} as const;
+
+// ──────────────────────────────────────────
+// Colors — Dark Theme (Opt-in toggle)
+// ──────────────────────────────────────────
+
+export const darkColors = {
     // Backgrounds
     bgPrimary: '#0A0E1A',
     bgSecondary: '#111827',
@@ -72,6 +143,12 @@ export const colors = {
     transparent: 'transparent',
 } as const;
 
+// Type for color tokens — widened so both light and dark sets satisfy the same type
+export type ColorTokens = { readonly [K in keyof typeof lightColors]: string };
+
+// Default export — light theme
+export const colors: ColorTokens = lightColors;
+
 // ──────────────────────────────────────────
 // Spacing (8px grid)
 // ──────────────────────────────────────────
@@ -128,24 +205,24 @@ export const typography = {
 export const shadows = {
     card: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
     },
     elevated: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 4,
     },
     glow: (color: string) => ({
         shadowColor: color,
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.25,
         shadowRadius: 16,
-        elevation: 12,
+        elevation: 8,
     }),
 } as const;
 

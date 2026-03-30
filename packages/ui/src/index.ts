@@ -1,5 +1,11 @@
 // Design Tokens
-export { colors, spacing, radius, typography, shadows, animation } from './tokens';
+export { colors, lightColors, darkColors, spacing, radius, typography, shadows, animation } from './tokens';
+export type { ColorTokens } from './tokens';
+
+// Theme System
+export { ThemeProvider, useTheme } from './theme';
+export { useThemeStore } from './theme';
+export type { ThemeMode, ThemeState } from './theme';
 
 // Components
 export { Button } from './components/Button';

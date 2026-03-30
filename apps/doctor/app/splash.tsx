@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     textLogo: {
         fontSize: 48,
         fontWeight: '800',
-        color: '#00D4AA',
+        color: '#1A8A9E',
         letterSpacing: -1.5,
         textShadowColor: 'rgba(0, 212, 170, 0.4)',
         textShadowOffset: { width: 0, height: 0 },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     taglineLine: {
         width: 60,
         height: 2,
-        backgroundColor: '#00D4AA',
+        backgroundColor: '#1A8A9E',
         marginVertical: 14,
         borderRadius: 1,
         opacity: 0.6,
@@ -242,20 +242,20 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(0, 212, 170, 0.3)',
-        backgroundColor: 'rgba(0, 212, 170, 0.08)',
+        borderColor: 'rgba(26, 138, 158, 0.3)',
+        backgroundColor: 'rgba(26, 138, 158, 0.08)',
     },
     badgeDot: {
         width: 4,
         height: 4,
         borderRadius: 2,
-        backgroundColor: '#00D4AA',
+        backgroundColor: '#1A8A9E',
         opacity: 0.6,
     },
     portalText: {
         fontSize: 13,
         fontWeight: '600',
-        color: 'rgba(0, 212, 170, 0.85)',
+        color: 'rgba(26, 138, 158, 0.85)',
         letterSpacing: 4,
         marginHorizontal: 10,
     },
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     craftedLine: {
         width: 30,
         height: 1,
-        backgroundColor: 'rgba(0, 212, 170, 0.25)',
+        backgroundColor: 'rgba(26, 138, 158, 0.25)',
         marginBottom: 10,
     },
     craftedLabel: {

@@ -1,56 +1,56 @@
 @import "tailwindcss";
 
 @theme {
-  /* ─── Background Colors (unified with packages/ui tokens) ─── */
-  --color-bg-primary: #0A0E1A;
-  --color-bg-secondary: #111827;
-  --color-bg-tertiary: #1A2235;
-  --color-bg-card: rgba(30, 41, 59, 0.6);
-  --color-bg-elevated: rgba(36, 48, 68, 0.8);
+  /* ─── Background Colors (light — aligned with landing page) ─── */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F5F8FA;
+  --color-bg-tertiary: #EDF2F7;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
 
-  /* ─── Accent - Teal (unified) ─── */
-  --color-accent: #2DD4BF;
-  --color-accent-dark: #14B8A6;
-  --color-accent-light: #5EEAD4;
-  --color-accent-faded: rgba(45, 212, 191, 0.15);
+  /* ─── Accent - Teal (unified brand) ─── */
+  --color-accent: #1A8A9E;
+  --color-accent-dark: #157A8C;
+  --color-accent-light: #2BA3B8;
+  --color-accent-faded: rgba(26, 138, 158, 0.08);
 
   /* ─── Accent - Blue ─── */
   --color-blue: #3B82F6;
   --color-blue-dark: #2563EB;
   --color-blue-light: #60A5FA;
-  --color-blue-faded: rgba(59, 130, 246, 0.15);
+  --color-blue-faded: rgba(59, 130, 246, 0.08);
 
   /* ─── Accent - Purple ─── */
-  --color-purple: #9B72CF;
-  --color-purple-faded: rgba(155, 114, 207, 0.15);
+  --color-purple: #7C3AED;
+  --color-purple-faded: rgba(124, 58, 237, 0.08);
 
   /* ─── Accent - Pink ─── */
-  --color-pink: #C98BB9;
-  --color-pink-faded: rgba(201, 139, 185, 0.15);
+  --color-pink: #B9568A;
+  --color-pink-faded: rgba(185, 86, 138, 0.08);
 
   /* ─── Accent - Gold ─── */
-  --color-gold: #FFD700;
-  --color-gold-faded: rgba(255, 215, 0, 0.15);
+  --color-gold: #D97706;
+  --color-gold-faded: rgba(217, 119, 6, 0.08);
 
-  /* ─── Text Colors (unified with packages/ui tokens) ─── */
-  --color-text-primary: #F1F5F9;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted: #64748B;
-  --color-text-inverse: #0F172A;
+  /* ─── Text Colors (light) ─── */
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+  --color-text-inverse: #FFFFFF;
 
-  /* ─── Semantic (unified) ─── */
-  --color-success: #22C55E;
-  --color-success-faded: rgba(34, 197, 94, 0.15);
-  --color-warning: #F59E0B;
-  --color-warning-faded: rgba(245, 158, 11, 0.15);
-  --color-error: #EF4444;
-  --color-error-faded: rgba(239, 68, 68, 0.15);
-  --color-info: #3B82F6;
-  --color-info-faded: rgba(59, 130, 246, 0.15);
+  /* ─── Semantic (aligned with landing page) ─── */
+  --color-success: #059669;
+  --color-success-faded: rgba(5, 150, 105, 0.08);
+  --color-warning: #D97706;
+  --color-warning-faded: rgba(217, 119, 6, 0.08);
+  --color-error: #DC2626;
+  --color-error-faded: rgba(220, 38, 38, 0.08);
+  --color-info: #2563EB;
+  --color-info-faded: rgba(37, 99, 235, 0.08);
 
-  /* ─── Border (unified) ─── */
-  --color-border: #1E293B;
-  --color-border-focused: #2DD4BF;
+  /* ─── Border ─── */
+  --color-border: #DEE5ED;
+  --color-border-focused: #1A8A9E;
 
   /* ─── Border Radius ─── */
   --radius-sm: 6px;
@@ -66,7 +66,7 @@
 /* ─── Base Styles ─── */
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -84,16 +84,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(45, 212, 191, 0.3);
+  background: #CBD5E1;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(45, 212, 191, 0.5);
+  background: #94A3B8;
 }
 
 /* ─── Animations ─── */
@@ -163,20 +163,21 @@ body {
   animation: slideIn 0.3s ease forwards;
 }
 
-/* ─── Glass Effect ─── */
+/* ─── Card & Surface Effects (Light) ─── */
 .glass {
-  background: rgba(30, 41, 59, 0.6);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(45, 212, 191, 0.2);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .glass-premium {
-  background: rgba(26, 34, 53, 0.5);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid rgba(45, 212, 191, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.03);
 }
 
 /* ─── Mobile / Capacitor Utilities ─── */
@@ -196,4 +197,73 @@ body {
     align-items: center;
     justify-content: center;
   }
+}
+
+/* ══════════════════════════════════════════
+   Dark Theme Override (Phase 2 toggle)
+   Activated via: <html data-theme="dark">
+   ══════════════════════════════════════════ */
+[data-theme="dark"] {
+  --color-bg-primary: #0A0E1A;
+  --color-bg-secondary: #111827;
+  --color-bg-tertiary: #1A2235;
+  --color-bg-card: rgba(30, 41, 59, 0.6);
+  --color-bg-elevated: rgba(36, 48, 68, 0.8);
+
+  --color-accent: #2DD4BF;
+  --color-accent-dark: #14B8A6;
+  --color-accent-light: #5EEAD4;
+  --color-accent-faded: rgba(45, 212, 191, 0.15);
+
+  --color-blue: #3B82F6;
+  --color-blue-faded: rgba(59, 130, 246, 0.15);
+  --color-purple: #9B72CF;
+  --color-purple-faded: rgba(155, 114, 207, 0.15);
+  --color-pink: #C98BB9;
+  --color-pink-faded: rgba(201, 139, 185, 0.15);
+  --color-gold: #FFD700;
+  --color-gold-faded: rgba(255, 215, 0, 0.15);
+
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-text-inverse: #0F172A;
+
+  --color-success: #22C55E;
+  --color-success-faded: rgba(34, 197, 94, 0.15);
+  --color-warning: #F59E0B;
+  --color-warning-faded: rgba(245, 158, 11, 0.15);
+  --color-error: #EF4444;
+  --color-error-faded: rgba(239, 68, 68, 0.15);
+  --color-info: #3B82F6;
+  --color-info-faded: rgba(59, 130, 246, 0.15);
+
+  --color-border: #1E293B;
+  --color-border-focused: #2DD4BF;
+
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(45, 212, 191, 0.2);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .glass-premium {
+  background: rgba(26, 34, 53, 0.5);
+  border-color: rgba(45, 212, 191, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.3);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 191, 0.5);
 }

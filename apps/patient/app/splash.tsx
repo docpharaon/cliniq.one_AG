@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     textLogo: {
         fontSize: 48,
         fontWeight: '800',
-        color: '#00D4AA',
+        color: '#1A8A9E',
         letterSpacing: -1.5,
         textShadowColor: 'rgba(0, 212, 170, 0.4)',
         textShadowOffset: { width: 0, height: 0 },
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     taglineLine: {
         width: 60,
         height: 2,
-        backgroundColor: '#00D4AA',
+        backgroundColor: '#1A8A9E',
         marginVertical: 14,
         borderRadius: 1,
         opacity: 0.6,

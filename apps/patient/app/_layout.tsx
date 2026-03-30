@@ -8,7 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
-import { colors } from '@cliniqone/ui';
+import { colors, ThemeProvider } from '@cliniqone/ui';
 import { supabase } from '@cliniqone/api';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ToastProvider, useToast } from '../components/ToastProvider';
@@ -189,28 +189,32 @@ export default function RootLayout() {
     if (!isReady || !localeReady) {
         return (
             <SafeAreaProvider>
-                <PhoneFrame>
-                    <View style={styles.loading}>
-                        <View style={styles.loadingDot} />
-                        <StatusBar style="light" />
-                    </View>
-                </PhoneFrame>
+                <ThemeProvider>
+                    <PhoneFrame>
+                        <View style={styles.loading}>
+                            <View style={styles.loadingDot} />
+                            <StatusBar style="dark" />
+                        </View>
+                    </PhoneFrame>
+                </ThemeProvider>
             </SafeAreaProvider>
         );
     }
 
     return (
         <SafeAreaProvider>
-            <PhoneFrame>
-                <ErrorBoundary>
-                    <QueryClientProvider client={queryClient}>
-                        <ToastProvider>
-                            <AppInner />
-                            <StatusBar style="light" />
-                        </ToastProvider>
-                    </QueryClientProvider>
-                </ErrorBoundary>
-            </PhoneFrame>
+            <ThemeProvider>
+                <PhoneFrame>
+                    <ErrorBoundary>
+                        <QueryClientProvider client={queryClient}>
+                            <ToastProvider>
+                                <AppInner />
+                                <StatusBar style="dark" />
+                            </ToastProvider>
+                        </QueryClientProvider>
+                    </ErrorBoundary>
+                </PhoneFrame>
+            </ThemeProvider>
         </SafeAreaProvider>
     );
 }
@@ -235,7 +239,7 @@ const styles = StyleSheet.create({
 const webStyles = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: '#1a1a2e',
+        backgroundColor: '#F0F4F8',
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh' as any,
@@ -246,7 +250,7 @@ const webStyles = StyleSheet.create({
         backgroundColor: '#000',
         borderRadius: 44,
         borderWidth: 4,
-        borderColor: '#2a2a3e',
+        borderColor: '#CBD5E1',
         overflow: 'hidden',
         position: 'relative',
         // Shadow for depth
@@ -284,7 +288,7 @@ const webStyles = StyleSheet.create({
     homeIndicator: {
         width: 134,
         height: 5,
-        backgroundColor: 'rgba(255,255,255,0.3)',
+        backgroundColor: 'rgba(0,0,0,0.2)',
         borderRadius: 3,
     },
 });

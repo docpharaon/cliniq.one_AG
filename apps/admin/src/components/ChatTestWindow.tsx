@@ -1665,8 +1665,8 @@ export default function ChatTestWindow({
                 className="relative w-full max-w-[520px] h-full flex flex-col animate-slide-in-right"
                 style={{
                     pointerEvents: 'auto',
-                    background: 'linear-gradient(180deg, #0F172A 0%, #0A0E1A 100%)',
-                    borderLeft: '1px solid rgba(45, 212, 191, 0.2)',
+                    background: 'linear-gradient(180deg, #FFFFFF 0%, #F5F8FA 100%)',
+                    borderLeft: '1px solid var(--color-border)',
                     boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.5)',
                 }}
             >
@@ -1742,7 +1742,7 @@ export default function ChatTestWindow({
                             </div>
                             <div>
                                 <span className="text-text-muted">Pathway:</span>
-                                <span className="ml-1.5 font-semibold" style={{ color: detectedPathway ? '#2dd4bf' : '#64748b' }}>
+                                <span className="ml-1.5 font-semibold" style={{ color: detectedPathway ? 'var(--color-accent)' : '#64748b' }}>
                                     {detectedPathway
                                         ? detectedPathway === 'new_visit' ? '🆕 New Visit'
                                             : detectedPathway === 'follow_up' ? '🔄 Follow-up'
@@ -2132,7 +2132,7 @@ export default function ChatTestWindow({
 
                 {/* ── Report / Analysis Panel ───────────── */}
                 {showReportPanel && (
-                    <div className="absolute inset-0 z-20 flex flex-col" style={{ background: 'linear-gradient(180deg, #0F172A 0%, #0A0E1A 100%)' }}>
+                    <div className="absolute inset-0 z-20 flex flex-col" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #F5F8FA 100%)' }}>
                         {/* Panel Header */}
                         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                             <div className="flex items-center gap-2">

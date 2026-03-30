@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>cliniq.one — Admin Panel Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root{--bg:#FFFFFF;--bg2:#F5F8FA;--bg3:#EDF2F7;--card:#FFFFFF;--acc:#1A8A9E;--accd:#157A8C;--accf:var(--border);--blue:#3B82F6;--bf:rgba(59,130,246,0.15);--purple:#9B72CF;--pf:rgba(155,114,207,0.15);--txt:#1E293B;--txts:#64748B;--txtm:#94A3B8;--ok:#059669;--okf:rgba(34,197,94,0.15);--warn:#D97706;--wf:rgba(245,158,11,0.15);--err:#DC2626;--ef:rgba(239,68,68,0.15);--bdr:#DEE5ED;--f:'Inter','Noto Sans Arabic',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+html,body{height:100%;background:#F0F4F8;color:var(--txt);font-family:var(--f);-webkit-font-smoothing:antialiased;overflow:hidden;}
+html[dir="rtl"]{direction:rtl;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+.wm{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#EF4444,#F97316);color:#fff;text-align:center;font-size:10px;font-weight:700;padding:2px;letter-spacing:2px;text-transform:uppercase;}
+
+/* Samsung Galaxy Z Fold Frame (Unfolded - Landscape) */
+.fold-outer{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:1020px;height:720px;background:linear-gradient(145deg,#e8edf2,#d1d8e0);border-radius:36px;padding:10px;box-shadow:0 0 0 2px rgba(255,255,255,0.06),0 40px 100px rgba(0,0,0,0.6),0 0 80px rgba(45,212,191,0.04),inset 0 2px 0 rgba(255,255,255,0.05);}
+.fold-bezel{width:100%;height:100%;border-radius:28px;overflow:hidden;position:relative;background:var(--bg);display:flex;flex-direction:column;}
+/* Fold crease */
+.fold-crease{position:absolute;top:0;bottom:0;left:50%;width:2px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.06),rgba(255,255,255,0.03));z-index:9990;pointer-events:none;transform:translateX(-50%);}
+/* Samsung camera (under-display punch hole) */
+.fold-camera{position:absolute;top:10px;right:18px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#333,#111);border:1px solid rgba(255,255,255,0.1);z-index:9998;}
+/* Samsung status bar */
+.fold-status{position:absolute;top:0;left:0;right:0;height:26px;z-index:9997;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font-size:10px;font-weight:600;color:var(--txt);background:rgba(255,255,255,0.95);}
+.fold-status .time{font-weight:700;}
+.fold-status .icons{display:flex;gap:4px;font-size:10px;}
+.fold-frame{flex:1;display:flex;flex-direction:column;overflow:hidden;margin-top:26px;}
+.glass{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--bdr);border-radius:18px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.btn{padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;border:none;cursor:pointer;font-family:var(--f);transition:all 0.2s;}
+.btn-p{background:linear-gradient(135deg,var(--acc),var(--accd));color:var(--bg);}
+.btn-o{background:transparent;border:2px solid var(--acc);color:var(--acc);}
+.inp{padding:10px 14px;border-radius:8px;border:1px solid var(--bdr);background:var(--bg3);color:var(--txt);font-size:13px;font-family:var(--f);outline:none;width:100%;}
+.inp:focus{border-color:var(--acc);}
+
+/* Layout */
+/* Layout */
+.splash{position:absolute;inset:0;z-index:999;background:#0A0E1A;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.6s ease,transform 0.6s ease;overflow:hidden;}
+.splash.hide{opacity:0;transform:scale(1.05);pointer-events:none;}
+.login{position:absolute;inset:0;z-index:998;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(20px);transition:opacity 0.5s ease,transform 0.5s ease;}
+.login.visible{opacity:1;transform:translateY(0);}
+.login.hide{display:none;}
+.app{display:none;flex:1;overflow:hidden;opacity:0;transform:translateY(10px);transition:opacity 0.4s ease,transform 0.4s ease;}
+.app.show{display:flex;opacity:1;transform:translateY(0);}
+.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+html[dir="rtl"] .sidebar{border-right:none;border-left:1px solid var(--bdr);}
+.sidebar .logo{padding:20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bdr);}
+.sidebar .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:var(--txts);cursor:pointer;transition:all 0.15s;font-weight:500;}
+.sidebar .nav-item:hover{background:rgba(45,212,191,0.05);color:var(--txt);}
+.sidebar .nav-item.active{background:var(--accf);color:var(--acc);font-weight:700;border-right:3px solid var(--acc);}
+html[dir="rtl"] .sidebar .nav-item.active{border-right:none;border-left:3px solid var(--acc);}
+.sidebar .nav-section{padding:12px 20px 4px;font-size:10px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:1px;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bdr);background:var(--bg2);flex-shrink:0;}
+.content{flex:1;overflow-y:auto;padding:24px;}
+.page{display:none;}.page.active{display:block;}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes splashLogo{0%{opacity:0;transform:scale(0.6)}60%{opacity:1;transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+@keyframes splashVideoFade{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="wm"><span class="mi" style="font-size:12px">warning</span> MOCKUP DEMO — NOT FOR PRODUCTION <span class="mi" style="font-size:12px">warning</span></div>
+<div class="fold-outer">
+<div class="fold-bezel">
+<div class="fold-crease"></div>
+<div class="fold-camera"></div>
+<div class="fold-status"><span class="time">4:43 PM</span><span class="icons"><span class="mi" style="font-size:10px">signal_cellular_alt</span> <span class="mi" style="font-size:10px">wifi</span> <span class="mi" style="font-size:10px">battery_full</span></span></div>
+<div class="fold-frame">
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+<video autoplay loop muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;animation:splashVideoFade 1.5s ease 0.3s forwards;z-index:0;"><source src="assets/splash-bg.mp4" type="video/mp4"></video>
+<div style="position:absolute;inset:0;background:rgba(10,14,26,0.45);z-index:1;"></div>
+<div style="text-align:center;animation:splashLogo 1s ease-out;z-index:2;">
+<img src="assets/logo.png" alt="Cliniq.One" style="width:140px;height:140px;filter:drop-shadow(0 0 30px rgba(45,212,191,0.4));">
+<div style="margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:8px 20px;border-radius:20px;border:1px solid var(--border);background:rgba(45,212,191,0.08);animation:fadeIn 0.6s ease 0.8s both;">
+<div style="width:4px;height:4px;border-radius:50%;background:rgba(45,212,191,0.6);"></div>
+<span style="font-size:13px;font-weight:600;color:rgba(45,212,191,0.85);letter-spacing:4px;" data-en="ADMIN PANEL" data-ar="لوحة الإدارة">ADMIN PANEL</span>
+<div style="width:4px;height:4px;border-radius:50%;background:rgba(45,212,191,0.6);"></div>
+</div>
+</div>
+<div style="position:absolute;bottom:80px;text-align:center;z-index:2;">
+<div style="width:30px;height:1px;background:var(--border);margin:0 auto 10px;"></div>
+<p style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;font-weight:300;">Crafted by</p>
+<p style="font-size:12px;color:rgba(255,255,255,0.45);letter-spacing:3px;text-transform:uppercase;font-weight:500;">momen pharaon</p>
+</div>
+<div style="width:40px;height:40px;border:3px solid transparent;border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;margin-top:40px;z-index:2;"></div>
+</div>
+
+<!-- LOGIN -->
+<div class="login" id="loginPage">
+<div style="width:400px;padding:40px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="assets/title-logo.png" alt="Cliniq.One" style="width:180px;height:auto;margin:0 auto 12px;display:block;">
+<h1 style="font-size:24px;font-weight:800;" data-en="Admin Login" data-ar="دخول المسؤول">Admin Login</h1>
+<p style="color:var(--txtm);font-size:13px;margin-top:4px;">cliniq.one Administration</p>
+<div style="display:inline-flex;padding:4px 12px;border-radius:20px;background:var(--ef);color:var(--err);font-size:11px;font-weight:700;margin-top:8px;"><span class="mi">lock</span> RBAC: Super Admin</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;">
+<div><label style="font-size:12px;font-weight:600;color:var(--txts);display:block;margin-bottom:4px;">Email</label><input class="inp" value="admin@cliniq.one"></div>
+<div><label style="font-size:12px;font-weight:600;color:var(--txts);display:block;margin-bottom:4px;">Password</label><input class="inp" type="password" value="••••••••"></div>
+<button class="btn btn-p" style="width:100%;padding:14px;" onclick="doLogin()">Sign In</button>
+<button class="btn" style="width:100%;background:#fff;color:#333;padding:14px;" onclick="doLogin()"><svg width="16" height="16" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:8px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</button>
+</div>
+</div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appMain">
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+<div class="logo"><img src="assets/logo.png" alt="Cliniq.One" style="width:36px;height:36px;border-radius:10px;"><div><p style="font-size:14px;font-weight:800;">cliniq.one</p><p style="font-size:10px;color:var(--txtm);">Admin Panel</p></div></div>
+<div class="nav-section">Main</div>
+<div class="nav-item active" onclick="goPage('dashboard')"><span class="mi">dashboard</span> <span data-en="Dashboard" data-ar="لوحة المعلومات">Dashboard</span></div>
+<div class="nav-item" onclick="goPage('consultations')"><span class="mi">assignment</span> <span data-en="Consultations" data-ar="الاستشارات">Consultations</span></div>
+<div class="nav-item" onclick="goPage('doctors')"><span class="mi">medical_services</span> <span data-en="Doctors" data-ar="الأطباء">Doctors</span></div>
+<div class="nav-item" onclick="goPage('patients')"><span class="mi">person</span> <span data-en="Patients" data-ar="المرضى">Patients</span></div>
+<div class="nav-section">AI & Safety</div>
+<div class="nav-item" onclick="goPage('ai')"><span class="mi">smart_toy</span> <span data-en="AI Management" data-ar="إدارة الذكاء الاصطناعي">AI Management</span></div>
+<div class="nav-item" onclick="goPage('protocols')"><span class="mi">shield</span> <span data-en="Safety Protocols" data-ar="بروتوكولات السلامة">Safety Protocols</span></div>
+<div class="nav-section">Operations</div>
+<div class="nav-item" onclick="goPage('interventions')"><span class="mi">science</span> <span data-en="Interventions" data-ar="الإجراءات">Interventions</span></div>
+<div class="nav-item" onclick="goPage('scheduling')"><span class="mi">calendar_month</span> <span data-en="Scheduling" data-ar="الجدولة">Scheduling</span></div>
+<div class="nav-item" onclick="goPage('pricing')"><span class="mi">payments</span> <span data-en="Pricing" data-ar="التسعير">Pricing</span></div>
+<div class="nav-item" onclick="goPage('tokens')"><span class="mi">toll</span> <span data-en="Token Mgmt" data-ar="إدارة وحدات الرصيد">Token Mgmt</span></div>
+<div class="nav-item" onclick="goPage('kyc')"><span class="mi">id_card</span> <span data-en="KYC" data-ar="التحقق">KYC</span></div>
+<div class="nav-section">Content</div>
+<div class="nav-item" onclick="goPage('analytics')"><span class="mi">trending_up</span> <span data-en="Analytics" data-ar="التحليلات">Analytics</span></div>
+<div class="nav-item" onclick="goPage('news')"><span class="mi">newspaper</span> <span data-en="News" data-ar="الأخبار">News</span></div>
+<div class="nav-item" onclick="goPage('ads')"><span class="mi">campaign</span> <span data-en="Ads" data-ar="الإعلانات">Ads</span></div>
+<div class="nav-item" onclick="goPage('health')"><span class="mi">medication</span> <span data-en="Health Tips" data-ar="نصائح صحية">Health Tips</span></div>
+<div class="nav-section">System</div>
+<div class="nav-item" onclick="goPage('errors')"><span class="mi">bug_report</span> <span data-en="Errors" data-ar="الأخطاء">Errors</span></div>
+<div class="nav-item" onclick="goPage('audit')"><span class="mi">history</span> <span data-en="Audit Log" data-ar="سجل التدقيق">Audit Log</span></div>
+<div class="nav-item" onclick="goPage('settings')"><span class="mi">settings</span> <span data-en="Settings" data-ar="الإعدادات">Settings</span></div>
+<div class="nav-item" onclick="goPage('admins')"><span class="mi">group</span> <span data-en="Admins" data-ar="المسؤولين">Admins</span></div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+<div class="topbar">
+<h2 style="font-size:18px;font-weight:800;flex:1;" id="pageTitle" data-en="Dashboard" data-ar="لوحة المعلومات">Dashboard</h2>
+<button onclick="toggleLang()" style="background:var(--bg3);border:1px solid var(--bdr);padding:6px 14px;border-radius:8px;color:var(--txt);cursor:pointer;font-family:var(--f);font-size:13px;" id="langBtn">AR العربية</button>
+<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg3);border-radius:8px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></div><span style="font-size:12px;color:var(--txts);">admin@cliniq.one</span></div>
+</div>
+<div class="content" id="contentArea">
+<!-- PAGES INJECTED BY JS -->
+</div>
+</div>
+</div>
+
+<script>
+let lang='en';
+const titles={dashboard:'Dashboard',consultations:'Consultations',doctors:'Doctors',patients:'Patients',ai:'AI Management',protocols:'Safety Protocols',interventions:'Interventions',scheduling:'Scheduling',pricing:'Pricing',tokens:'Token Management',kyc:'KYC Verification',analytics:'Analytics',news:'News',ads:'Advertisements',health:'Health Tips',errors:'Error Reports',audit:'Audit Log',settings:'Settings',admins:'Admin Users'};
+const titlesAr={dashboard:'لوحة المعلومات',consultations:'الاستشارات',doctors:'الأطباء',patients:'المرضى',ai:'إدارة الذكاء الاصطناعي',protocols:'بروتوكولات السلامة',interventions:'الإجراءات',scheduling:'الجدولة',pricing:'التسعير',tokens:'إدارة وحدات الرصيد',kyc:'التحقق من الهوية',analytics:'التحليلات',news:'الأخبار',ads:'الإعلانات',health:'نصائح صحية',errors:'تقارير الأخطاء',audit:'سجل التدقيق',settings:'الإعدادات',admins:'المسؤولين'};
+
+// Splash -> Login (with animation)
+setTimeout(()=>{
+  document.getElementById('splash').classList.add('hide');
+  setTimeout(()=>document.getElementById('loginPage').classList.add('visible'),300);
+},2500);
+function doLogin(){document.getElementById('loginPage').classList.add('hide');const app=document.getElementById('appMain');app.classList.add('show');setTimeout(()=>{app.style.opacity='1';app.style.transform='translateY(0)';},50);goPage('dashboard');}
+
+const w2i={'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
+const i2w={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+function toIndian(s){return String(s).replace(/[0-9]/g,d=>w2i[d]);}
+function toWestern(s){return String(s).replace(/[٠-٩]/g,d=>i2w[d]);}
+function convertNums(node,fn){if(node.nodeType===3){if(/[\d٠-٩]/.test(node.textContent))node.textContent=fn(node.textContent);return;}if(node.nodeName==='SCRIPT'||node.nodeName==='STYLE'||node.classList?.contains('mi'))return;node.childNodes.forEach(c=>convertNums(c,fn));}
+function toggleLang(){lang=lang==='en'?'ar':'en';document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.getElementById('langBtn').textContent=lang==='ar'?'EN English':'AR العربية';document.querySelectorAll('[data-en]').forEach(e=>{e.textContent=e.getAttribute('data-'+lang)||e.textContent;});document.getElementById('pageTitle').textContent=(lang==='ar'?titlesAr:titles)[currentPage]||'';const root=document.querySelector('.fold-frame');if(root)convertNums(root,lang==='ar'?toIndian:toWestern);}
+
+let currentPage='dashboard';
+function goPage(p){
+currentPage=p;
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+event&&event.target&&event.target.closest('.nav-item')?.classList.add('active');
+document.getElementById('pageTitle').textContent=(lang==='ar'?titlesAr:titles)[p]||p;
+const area=document.getElementById('contentArea');
+area.style.opacity='0';area.style.transform='translateY(12px)';area.style.transition='opacity 0.2s,transform 0.2s';
+setTimeout(()=>{area.innerHTML=pages[p]||'<p>Coming soon</p>';area.style.opacity='1';area.style.transform='translateY(0)';if(lang==='ar')convertNums(area,toIndian);},200);
+}
+
+// ══════════════ PAGE CONTENT ══════════════
+const pages={};
+
+// DASHBOARD
+pages.dashboard=`
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;">
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--acc);">1,247</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Patients</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--blue);">8</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Doctors</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--purple);">12</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Active Consults</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--warn);">5,680</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Tokens</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--ok);">✓</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">System OK</p></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+<div class="glass" style="border-color:rgba(239,68,68,0.3);"><p style="font-size:13px;font-weight:700;color:var(--err);"><span class="mi" style="font-size:12px;color:var(--err)">circle</span> 2 unresolved protocol violations</p><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Emergency session #1249 — 1h ago</p></div>
+<div class="glass" style="border-color:rgba(245,158,11,0.3);"><p style="font-size:13px;font-weight:700;color:var(--warn);"><span class="mi" style="font-size:12px">warning</span> 5 consultations pending archive</p><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Data retention policy — 90 days</p></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+<div class="glass"><p style="font-size:11px;color:var(--txtm);font-weight:600;margin-bottom:8px;">System Health</p><div style="display:flex;gap:8px;"><span class="badge" style="background:var(--okf);color:var(--ok);">Supabase ✓</span><span class="badge" style="background:var(--okf);color:var(--ok);">OpenAI ✓</span><span class="badge" style="background:var(--okf);color:var(--ok);">Vercel ✓</span></div></div>
+<div class="glass"><p style="font-size:11px;color:var(--txtm);font-weight:600;margin-bottom:8px;">Quick Navigation</p><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-o" style="padding:6px 12px;font-size:11px;" onclick="goPage('doctors')">Doctors</button><button class="btn btn-o" style="padding:6px 12px;font-size:11px;" onclick="goPage('patients')">Patients</button><button class="btn btn-o" style="padding:6px 12px;font-size:11px;" onclick="goPage('ai')">AI Tools</button></div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+<div style="background:linear-gradient(135deg,rgba(155,114,207,0.2),rgba(59,130,246,0.2));padding:20px;border-radius:18px;border:1px solid rgba(155,114,207,0.2);cursor:pointer;text-align:center;" onclick="goPage('ai')"><span style="font-size:28px;"><span class="mi">smart_toy</span></span><p style="font-size:12px;font-weight:700;margin-top:6px;color:var(--purple);">AI Management</p></div>
+<div style="background:linear-gradient(135deg,rgba(34,197,94,0.2),var(--border));padding:20px;border-radius:18px;border:1px solid rgba(34,197,94,0.2);cursor:pointer;text-align:center;" onclick="goPage('pricing')"><span style="font-size:28px;"><span class="mi">payments</span></span><p style="font-size:12px;font-weight:700;margin-top:6px;color:var(--ok);">Pricing</p></div>
+<div style="background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(155,114,207,0.2));padding:20px;border-radius:18px;border:1px solid rgba(59,130,246,0.2);cursor:pointer;text-align:center;" onclick="goPage('interventions')"><span style="font-size:28px;"><span class="mi">science</span></span><p style="font-size:12px;font-weight:700;margin-top:6px;color:var(--blue);">Interventions</p></div>
+<div style="background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(239,68,68,0.2));padding:20px;border-radius:18px;border:1px solid rgba(245,158,11,0.2);cursor:pointer;text-align:center;" onclick="goPage('errors')"><span style="font-size:28px;"><span class="mi">bug_report</span></span><p style="font-size:12px;font-weight:700;margin-top:6px;color:var(--warn);">Errors</p></div>
+</div>
+<h3 style="font-size:15px;font-weight:700;margin-bottom:10px;">Recent Activity</h3>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div class="glass" style="padding:12px;display:flex;align-items:center;gap:10px;"><span style="color:var(--ok);"><span class="mi" style="font-size:12px;color:var(--ok)">circle</span></span><p style="font-size:13px;flex:1;">Dr. Al-Rashid submitted report for #1247</p><span style="font-size:11px;color:var(--txtm);">2m ago</span></div>
+<div class="glass" style="padding:12px;display:flex;align-items:center;gap:10px;"><span style="color:var(--blue);"><span class="mi" style="font-size:12px;color:var(--blue)">circle</span></span><p style="font-size:13px;flex:1;">New patient registration: Fatima M.</p><span style="font-size:11px;color:var(--txtm);">15m ago</span></div>
+<div class="glass" style="padding:12px;display:flex;align-items:center;gap:10px;"><span style="color:var(--err);"><span class="mi" style="font-size:12px;color:var(--err)">circle</span></span><p style="font-size:13px;flex:1;">Emergency protocol triggered — session #1249</p><span style="font-size:11px;color:var(--txtm);">1h ago</span></div>
+<div class="glass" style="padding:12px;display:flex;align-items:center;gap:10px;"><span style="color:var(--warn);"><span class="mi" style="font-size:12px;color:var(--warn)">circle</span></span><p style="font-size:13px;flex:1;">KYC submission pending review — Omar H.</p><span style="font-size:11px;color:var(--txtm);">2h ago</span></div>
+</div>`;
+
+pages.consultations=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3 style="font-size:16px;font-weight:700;">All Consultations</h3><div style="display:flex;gap:6px;"><button class="btn btn-o" style="padding:6px 12px;font-size:11px;">Export CSV</button></div></div>
+<div style="display:flex;gap:6px;margin-bottom:14px;"><button class="btn btn-p" style="padding:6px 14px;font-size:11px;">All (312)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Active (12)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Completed (287)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Cancelled (13)</button></div>
+<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="border-bottom:2px solid var(--bdr);color:var(--txtm);text-align:left;"><th style="padding:10px;">ID</th><th>Patient</th><th>Specialty</th><th>Doctor</th><th>Status</th><th>Date</th></tr></thead><tbody>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;">#1250</td><td>Ahmed K.</td><td>Dermatology</td><td>Dr. Al-Rashid</td><td><span class="badge" style="background:var(--ef);color:var(--err);">Active</span></td><td>Mar 29</td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;">#1249</td><td>Sara M.</td><td>Cardiology</td><td>—</td><td><span class="badge" style="background:var(--ef);color:var(--err);">Emergency</span></td><td>Mar 29</td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;">#1248</td><td>Khalid R.</td><td>Orthopedics</td><td>Dr. Hassan</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Report</span></td><td>Mar 28</td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;">#1247</td><td>Noura S.</td><td>Neurology</td><td>Dr. Mahmoud</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Completed</span></td><td>Mar 28</td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;">#1246</td><td>Omar H.</td><td>ENT</td><td>Dr. Al-Rashid</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Completed</span></td><td>Mar 27</td></tr>
+</tbody></table>`;
+
+pages.doctors=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>Registered Doctors (8)</h3><button class="btn btn-p" style="padding:8px 16px;font-size:12px;">+ Add Doctor</button></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:48px;height:48px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:20px;"><span class="mi">medical_services</span></div><div style="flex:1;"><p style="font-weight:700;">Dr. Sarah Al-Rashid</p><p style="font-size:11px;color:var(--txtm);">Dermatology • KFMC</p><div style="display:flex;gap:4px;margin-top:4px;"><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span><span class="badge" style="background:var(--accf);color:var(--acc);"><span class="mi">star</span> 4.8</span></div></div><div style="display:flex;flex-direction:column;gap:4px;"><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button><button class="btn" style="padding:4px 10px;font-size:10px;color:var(--err);border:1px solid var(--err);">Suspend</button></div></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:48px;height:48px;border-radius:50%;background:var(--bf);display:flex;align-items:center;justify-content:center;font-size:20px;"><span class="mi">medical_services</span></div><div style="flex:1;"><p style="font-weight:700;">Dr. Ahmed Hassan</p><p style="font-size:11px;color:var(--txtm);">Orthopedics • KSU</p><div style="display:flex;gap:4px;margin-top:4px;"><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span><span class="badge" style="background:var(--accf);color:var(--acc);"><span class="mi">star</span> 4.6</span></div></div><div style="display:flex;flex-direction:column;gap:4px;"><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:48px;height:48px;border-radius:50%;background:var(--pf);display:flex;align-items:center;justify-content:center;font-size:20px;"><span class="mi">medical_services</span></div><div style="flex:1;"><p style="font-weight:700;">Dr. Mona Al-Salem</p><p style="font-size:11px;color:var(--txtm);">Family Medicine</p><div style="display:flex;gap:4px;margin-top:4px;"><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span><span class="badge" style="background:var(--accf);color:var(--acc);"><span class="mi">star</span> 4.9</span></div></div><div style="display:flex;flex-direction:column;gap:4px;"><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:48px;height:48px;border-radius:50%;background:var(--wf);display:flex;align-items:center;justify-content:center;font-size:20px;"><span class="mi">medical_services</span></div><div style="flex:1;"><p style="font-weight:700;">Dr. Faisal Mahmoud</p><p style="font-size:11px;color:var(--txtm);">Neurology</p><div style="display:flex;gap:4px;margin-top:4px;"><span class="badge" style="background:var(--wf);color:var(--warn);">On Leave</span><span class="badge" style="background:var(--accf);color:var(--acc);"><span class="mi">star</span> 4.7</span></div></div><div style="display:flex;flex-direction:column;gap:4px;"><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div></div>
+</div>`;
+
+pages.patients=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>Patients (1,247)</h3><div style="display:flex;gap:6px;"><input class="inp" placeholder="Search patients..." style="width:240px;"><button class="btn btn-o" style="padding:8px 16px;font-size:12px;">Export</button></div></div>
+<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="border-bottom:2px solid var(--bdr);color:var(--txtm);text-align:left;"><th style="padding:10px;">Name</th><th>Email</th><th>Tokens</th><th>Consults</th><th>KYC</th><th>Status</th></tr></thead><tbody>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Ahmed K.</td><td>ahmed.k@email.com</td><td>47</td><td>3</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">✓</span></td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Fatima M.</td><td>fatima.m@email.com</td><td>12</td><td>1</td><td><span class="badge" style="background:var(--wf);color:var(--warn);">Pending</span></td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Omar H.</td><td>omar.h@email.com</td><td>5</td><td>2</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">✓</span></td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Noura S.</td><td>noura.s@email.com</td><td>0</td><td>1</td><td><span class="badge" style="background:var(--ef);color:var(--err);">Rejected</span></td><td><span class="badge" style="background:var(--ef);color:var(--err);">Suspended</span></td></tr>
+</tbody></table>`;
+
+pages.ai=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+<div class="glass"><p style="font-size:11px;color:var(--txtm);font-weight:600;margin-bottom:8px;">AI Model</p><p style="font-size:18px;font-weight:800;color:var(--acc);">GPT-4o</p><p style="font-size:11px;color:var(--ok);margin-top:4px;">✓ Connected — 99.8% uptime</p></div>
+<div class="glass"><p style="font-size:11px;color:var(--txtm);font-weight:600;margin-bottom:8px;">Today's Usage</p><p style="font-size:18px;font-weight:800;color:var(--blue);">1,240 tokens</p><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Budget: 5,000 / month</p></div>
+</div>
+<h4 style="font-size:14px;font-weight:700;margin-bottom:10px;">Prompt Templates</h4>
+<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+<div class="glass" style="padding:12px;"><div style="display:flex;justify-content:space-between;"><p style="font-weight:700;font-size:13px;">System Prompt — Intake</p><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div><p style="font-size:11px;color:var(--txtm);margin-top:4px;">You are a medical intake AI assistant...</p></div>
+<div class="glass" style="padding:12px;"><div style="display:flex;justify-content:space-between;"><p style="font-weight:700;font-size:13px;">System Prompt — Summary</p><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Generate a structured clinical summary...</p></div>
+</div>
+<h4 style="font-size:14px;font-weight:700;margin-bottom:10px;">Interview Sequences (Node Logic)</h4>
+<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:12px;">1</span><p style="font-size:13px;flex:1;">Greeting & Consent</p><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:12px;">2</span><p style="font-size:13px;flex:1;">Chief Complaint → Pathway Detection</p><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:12px;">3</span><p style="font-size:13px;flex:1;">HPI (pathway-specific questions)</p><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:12px;">4-8</span><p style="font-size:13px;flex:1;">PMH → Meds → Allergy → Family → Social</p><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:12px;">9</span><p style="font-size:13px;flex:1;">ROS (Review of Systems)</p><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--bf);display:flex;align-items:center;justify-content:center;font-size:12px;">10</span><p style="font-size:13px;flex:1;">Photo Capture (conditional)</p><span class="badge" style="background:var(--bf);color:var(--blue);">Conditional</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;"><span style="width:24px;height:24px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:12px;">11-12</span><p style="font-size:13px;flex:1;">Summary → Addendum & Confirm</p><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></div>
+</div>
+<h4 style="font-size:14px;font-weight:700;margin-bottom:10px;">Configuration</h4>
+<div class="glass" style="display:flex;flex-direction:column;gap:10px;">
+<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Max turn limit</span><input class="inp" value="50" style="width:80px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Temperature</span><input class="inp" value="0.3" style="width:80px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">Max tokens per response</span><input class="inp" value="500" style="width:80px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">AI Chatbot Enabled</span><div style="width:44px;height:24px;border-radius:12px;background:var(--ok);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div></div>
+</div>`;
+
+pages.protocols=`<h3 style="margin-bottom:14px;">Safety Protocols</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+<div class="glass" style="border-color:rgba(239,68,68,0.3);"><h4 style="font-size:14px;font-weight:700;color:var(--err);margin-bottom:8px;"><span class="mi">emergency</span> Protocol A — Emergency</h4><p style="font-size:12px;color:var(--txts);line-height:1.6;">Detects emergency keywords (chest pain, suicide, can't breathe). Immediately shows emergency numbers and pauses session.</p>
+<div style="margin-top:10px;"><p style="font-size:11px;color:var(--txtm);">Keywords:</p><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"><span class="badge" style="background:var(--ef);color:var(--err);font-size:10px;">chest pain</span><span class="badge" style="background:var(--ef);color:var(--err);font-size:10px;">can't breathe</span><span class="badge" style="background:var(--ef);color:var(--err);font-size:10px;">suicide</span><span class="badge" style="background:var(--ef);color:var(--err);font-size:10px;">heart attack</span><span class="badge" style="background:var(--ef);color:var(--err);font-size:10px;">overdose</span></div></div></div>
+<div class="glass" style="border-color:rgba(245,158,11,0.3);"><h4 style="font-size:14px;font-weight:700;color:var(--warn);margin-bottom:8px;"><span class="mi">smart_toy</span> Protocol I — Gibberish</h4><p style="font-size:12px;color:var(--txts);line-height:1.6;">Detects non-cooperative input: random characters, repeated patterns, low vowel ratio. 7-strike escalation system.</p>
+<div style="margin-top:10px;"><p style="font-size:11px;color:var(--txtm);">Escalation:</p><div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;font-size:11px;color:var(--txts);"><p>1-2: Silent count</p><p>3: <span class="mi" style="font-size:12px">warning</span> Warning shown</p><p>4: Silent count</p><p>5: <span class="mi" style="font-size:12px;color:#F97316">circle</span> 30s Cooldown</p><p>6: Silent count</p><p>7: <span class="mi" style="font-size:12px;color:var(--err)">circle</span> Session terminated</p></div></div></div>
+</div>
+<h4 style="font-size:14px;font-weight:700;margin-bottom:10px;">Recent Violations</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div class="glass" style="padding:12px;display:flex;align-items:center;gap:10px;"><span class="badge" style="background:var(--ef);color:var(--err);">Emergency</span><p style="font-size:13px;flex:1;">Session #1249 — Sara M. — "chest pain"</p><span style="font-size:11px;color:var(--txtm);">1h ago</span><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Review</button></div>
+<div class="glass" style="padding:12px;display:flex;align-items:center;gap:10px;"><span class="badge" style="background:var(--wf);color:var(--warn);">Gibberish</span><p style="font-size:13px;flex:1;">Session #1245 — User terminated at strike 7</p><span style="font-size:11px;color:var(--txtm);">5h ago</span><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Review</button></div>
+</div>`;
+pages.interventions=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>Intervention Catalog</h3><button class="btn btn-p" style="padding:8px 16px;font-size:12px;">+ Add Intervention</button></div>
+<div style="display:flex;gap:6px;margin-bottom:14px;"><button class="btn btn-p" style="padding:6px 14px;font-size:11px;">All (42)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Labs (18)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Imaging (12)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Therapy (8)</button><button class="btn btn-o" style="padding:6px 14px;font-size:11px;">Referrals (4)</button></div>
+<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="border-bottom:2px solid var(--bdr);color:var(--txtm);text-align:left;"><th style="padding:10px;">Name</th><th>Category</th><th>Specialty</th><th>Price (SAR)</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Skin Biopsy</td><td>Lab</td><td>Dermatology</td><td>450</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td><td><button class="btn btn-o" style="padding:2px 8px;font-size:10px;">Edit</button></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">CBC</td><td>Lab</td><td>General</td><td>80</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td><td><button class="btn btn-o" style="padding:2px 8px;font-size:10px;">Edit</button></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">MRI Brain</td><td>Imaging</td><td>Neurology</td><td>2,500</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td><td><button class="btn btn-o" style="padding:2px 8px;font-size:10px;">Edit</button></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Patch Testing</td><td>Lab</td><td>Dermatology</td><td>600</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td><td><button class="btn btn-o" style="padding:2px 8px;font-size:10px;">Edit</button></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Phototherapy</td><td>Therapy</td><td>Dermatology</td><td>250</td><td><span class="badge" style="background:var(--wf);color:var(--warn);">Draft</span></td><td><button class="btn btn-o" style="padding:2px 8px;font-size:10px;">Edit</button></td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:10px;font-weight:600;">Echocardiogram</td><td>Imaging</td><td>Cardiology</td><td>1,200</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span></td><td><button class="btn btn-o" style="padding:2px 8px;font-size:10px;">Edit</button></td></tr>
+</tbody></table>`;
+
+pages.scheduling=`<h3 style="margin-bottom:14px;">Scheduling Configuration</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">schedule</span> Operating Hours</h4>
+<div style="display:flex;flex-direction:column;gap:6px;">
+<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Sunday – Thursday</span><span style="color:var(--ok);">8:00 AM – 10:00 PM</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Friday</span><span style="color:var(--warn);">2:00 PM – 10:00 PM</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Saturday</span><span style="color:var(--ok);">8:00 AM – 10:00 PM</span></div>
+</div></div>
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">dashboard</span> Queue Settings</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Max queue size</span><input class="inp" value="20" style="width:60px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Auto-assign timeout</span><input class="inp" value="30 min" style="width:80px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>SLA response time</span><input class="inp" value="24 hrs" style="width:80px;text-align:center;"></div>
+</div></div></div>`;
+
+pages.pricing=`<h3 style="margin-bottom:14px;">Pricing & Token Configuration</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
+<div class="glass" style="text-align:center;border-color:rgba(59,130,246,0.3);"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Starter Pack</p><p style="font-size:32px;font-weight:900;color:var(--blue);margin:8px 0;">5</p><p style="font-size:11px;color:var(--txtm);">tokens</p><p style="font-size:18px;font-weight:800;color:var(--txt);margin-top:8px;">49 SAR</p><p style="font-size:11px;color:var(--ok);margin-top:4px;">9.80 SAR/token</p></div>
+<div class="glass" style="text-align:center;border-color:var(--border);"><p style="font-size:11px;color:var(--txtm);font-weight:600;"><span class="mi">diamond</span> Popular</p><p style="font-size:32px;font-weight:900;color:var(--acc);margin:8px 0;">12</p><p style="font-size:11px;color:var(--txtm);">tokens</p><p style="font-size:18px;font-weight:800;color:var(--txt);margin-top:8px;">99 SAR</p><p style="font-size:11px;color:var(--ok);margin-top:4px;">8.25 SAR/token</p></div>
+<div class="glass" style="text-align:center;border-color:rgba(155,114,207,0.3);"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Premium</p><p style="font-size:32px;font-weight:900;color:var(--purple);margin:8px 0;">30</p><p style="font-size:11px;color:var(--txtm);">tokens</p><p style="font-size:18px;font-weight:800;color:var(--txt);margin-top:8px;">199 SAR</p><p style="font-size:11px;color:var(--ok);margin-top:4px;">6.63 SAR/token</p></div>
+</div>
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;">Token Rules</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Consultation cost</span><input class="inp" value="3 tokens" style="width:100px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Doctor payout</span><input class="inp" value="2 tokens" style="width:100px;text-align:center;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Platform fee</span><input class="inp" value="1 token" style="width:100px;text-align:center;"></div>
+</div></div>`;
+
+pages.tokens=`<h3 style="margin-bottom:14px;">Token Management</h3>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--acc);">5,680</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Total Circulating</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--ok);">1,240</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Purchased Today</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--blue);">312</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Consumed Today</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--purple);">45.2K</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">SAR Revenue</p></div>
+</div>
+<h4 style="font-size:14px;font-weight:700;margin-bottom:10px;">Recent Transactions</h4>
+<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="border-bottom:2px solid var(--bdr);color:var(--txtm);text-align:left;"><th style="padding:8px;">User</th><th>Type</th><th>Amount</th><th>Balance</th><th>Date</th></tr></thead><tbody>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:8px;">Ahmed K.</td><td><span class="badge" style="background:var(--okf);color:var(--ok);">Purchase</span></td><td>+12</td><td>47</td><td>Mar 29</td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:8px;">Fatima M.</td><td><span class="badge" style="background:var(--ef);color:var(--err);">Consult</span></td><td>-3</td><td>9</td><td>Mar 29</td></tr>
+<tr style="border-bottom:1px solid var(--bdr);"><td style="padding:8px;">Dr. Al-Rashid</td><td><span class="badge" style="background:var(--accf);color:var(--acc);">Payout</span></td><td>+2</td><td>156</td><td>Mar 29</td></tr>
+</tbody></table>`;
+
+pages.kyc=`<h3 style="margin-bottom:14px;">KYC Verification Queue</h3>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--warn);">3</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Pending Review</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--ok);">1,189</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Approved</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--err);">5</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Rejected</p></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><span style="font-size:24px;"><span class="mi">id_card</span></span><div style="flex:1;"><p style="font-weight:700;">Omar H.</p><p style="font-size:11px;color:var(--txtm);">Submitted: National ID + Selfie • Mar 28</p></div><div style="display:flex;gap:6px;"><button class="btn btn-p" style="padding:6px 12px;font-size:11px;">Approve</button><button class="btn" style="padding:6px 12px;font-size:11px;color:var(--err);border:1px solid var(--err);">Reject</button></div></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><span style="font-size:24px;"><span class="mi">id_card</span></span><div style="flex:1;"><p style="font-weight:700;">Layla A.</p><p style="font-size:11px;color:var(--txtm);">Submitted: Iqama + Selfie • Mar 27</p></div><div style="display:flex;gap:6px;"><button class="btn btn-p" style="padding:6px 12px;font-size:11px;">Approve</button><button class="btn" style="padding:6px 12px;font-size:11px;color:var(--err);border:1px solid var(--err);">Reject</button></div></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><span style="font-size:24px;"><span class="mi">id_card</span></span><div style="flex:1;"><p style="font-weight:700;">Reem K.</p><p style="font-size:11px;color:var(--txtm);">Submitted: Passport + Selfie • Mar 27</p></div><div style="display:flex;gap:6px;"><button class="btn btn-p" style="padding:6px 12px;font-size:11px;">Approve</button><button class="btn" style="padding:6px 12px;font-size:11px;color:var(--err);border:1px solid var(--err);">Reject</button></div></div>
+</div>`;
+
+pages.analytics=`<h3 style="margin-bottom:14px;">Platform Analytics</h3>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+<div class="glass" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Daily Active Users</p><p style="font-size:28px;font-weight:900;color:var(--acc);">342</p><p style="font-size:10px;color:var(--ok);">↑ 12%</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Avg Session</p><p style="font-size:28px;font-weight:900;color:var(--blue);">8.4m</p><p style="font-size:10px;color:var(--ok);">↑ 5%</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">Completion Rate</p><p style="font-size:28px;font-weight:900;color:var(--ok);">94%</p><p style="font-size:10px;color:var(--ok);">↑ 2%</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:11px;color:var(--txtm);font-weight:600;">NPS Score</p><p style="font-size:28px;font-weight:900;color:var(--purple);">72</p><p style="font-size:10px;color:var(--ok);">↑ 4</p></div>
+</div>
+<div class="glass" style="margin-bottom:14px;"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:12px;">Consultations — Last 7 Days</h4><div style="display:flex;align-items:flex-end;gap:8px;height:120px;">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:45px;"></div><span style="font-size:10px;color:var(--txtm);">S</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:78px;"></div><span style="font-size:10px;color:var(--txtm);">M</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:92px;"></div><span style="font-size:10px;color:var(--txtm);">T</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:65px;"></div><span style="font-size:10px;color:var(--txtm);">W</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--acc);border-radius:6px 6px 0 0;height:110px;"></div><span style="font-size:10px;color:var(--acc);font-weight:700;">T</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:35px;"></div><span style="font-size:10px;color:var(--txtm);">F</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:var(--accf);border-radius:6px 6px 0 0;height:55px;"></div><span style="font-size:10px;color:var(--txtm);">S</span></div>
+</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px;">Top Specialties</h4><div style="display:flex;flex-direction:column;gap:6px;font-size:13px;"><div style="display:flex;justify-content:space-between;"><span>Dermatology</span><span style="color:var(--acc);font-weight:700;">34%</span></div><div style="display:flex;justify-content:space-between;"><span>Family Medicine</span><span style="color:var(--blue);font-weight:700;">22%</span></div><div style="display:flex;justify-content:space-between;"><span>Orthopedics</span><span style="color:var(--purple);font-weight:700;">18%</span></div><div style="display:flex;justify-content:space-between;"><span>Neurology</span><span style="color:var(--warn);font-weight:700;">14%</span></div></div></div>
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px;">Revenue This Month</h4><p style="font-size:28px;font-weight:900;color:var(--ok);">45,200 SAR</p><p style="font-size:11px;color:var(--ok);margin-top:4px;">↑ 18% vs last month</p></div>
+</div>`;
+
+pages.news=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>News & Announcements</h3><button class="btn btn-p" style="padding:8px 16px;font-size:12px;">+ New Article</button></div>
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div class="glass" style="display:flex;gap:14px;"><div style="width:80px;height:80px;border-radius:12px;background:linear-gradient(135deg,var(--accf),var(--bf));display:flex;align-items:center;justify-content:center;font-size:32px;"><span class="mi">campaign</span></div><div style="flex:1;"><p style="font-weight:700;">Cliniq.one Launches in Riyadh</p><p style="font-size:12px;color:var(--txts);margin-top:4px;">AI-powered telemedicine platform now available for patients across KSA...</p><div style="display:flex;gap:8px;margin-top:6px;"><span class="badge" style="background:var(--okf);color:var(--ok);">Published</span><span style="font-size:11px;color:var(--txtm);">Mar 25, 2026</span></div></div></div>
+<div class="glass" style="display:flex;gap:14px;"><div style="width:80px;height:80px;border-radius:12px;background:linear-gradient(135deg,var(--pf),var(--bf));display:flex;align-items:center;justify-content:center;font-size:32px;"><span class="mi">smart_toy</span></div><div style="flex:1;"><p style="font-weight:700;">AI Interview System Update v2.1</p><p style="font-size:12px;color:var(--txts);margin-top:4px;">Improved pathway detection accuracy and Arabic language support...</p><div style="display:flex;gap:8px;margin-top:6px;"><span class="badge" style="background:var(--wf);color:var(--warn);">Draft</span><span style="font-size:11px;color:var(--txtm);">Mar 28, 2026</span></div></div></div>
+</div>`;
+
+pages.ads=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>Advertisements</h3><button class="btn btn-p" style="padding:8px 16px;font-size:12px;">+ New Campaign</button></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+<div class="glass"><div style="height:120px;border-radius:12px;background:linear-gradient(135deg,var(--border),rgba(59,130,246,0.2));display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="font-size:40px;"><span class="mi">medication</span></span></div><p style="font-weight:700;">Nahdi Pharmacy</p><p style="font-size:11px;color:var(--txtm);">Banner • Home Screen</p><div style="display:flex;justify-content:space-between;margin-top:8px;"><span class="badge" style="background:var(--okf);color:var(--ok);">Active</span><span style="font-size:11px;color:var(--txtm);">12,450 impressions</span></div></div>
+<div class="glass"><div style="height:120px;border-radius:12px;background:linear-gradient(135deg,rgba(155,114,207,0.2),rgba(239,68,68,0.2));display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="font-size:40px;"><span class="mi">local_hospital</span></span></div><p style="font-weight:700;">KFMC Health Campaign</p><p style="font-size:11px;color:var(--txtm);">Full Screen • After Consult</p><div style="display:flex;justify-content:space-between;margin-top:8px;"><span class="badge" style="background:var(--wf);color:var(--warn);">Paused</span><span style="font-size:11px;color:var(--txtm);">3,200 impressions</span></div></div>
+</div>`;
+
+pages.health=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>Health Tips Content</h3><button class="btn btn-p" style="padding:8px 16px;font-size:12px;">+ New Tip</button></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+<div class="glass"><div style="height:80px;border-radius:12px;background:linear-gradient(135deg,#065F46,#047857);display:flex;align-items:center;justify-content:center;margin-bottom:8px;"><span style="font-size:28px;"><span class="mi">restaurant</span></span></div><p style="font-weight:700;font-size:13px;">Healthy Eating Habits</p><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Category: Nutrition</p><span class="badge" style="background:var(--okf);color:var(--ok);margin-top:6px;">Published</span></div>
+<div class="glass"><div style="height:80px;border-radius:12px;background:linear-gradient(135deg,#7C3AED,#6D28D9);display:flex;align-items:center;justify-content:center;margin-bottom:8px;"><span style="font-size:28px;"><span class="mi">self_improvement</span></span></div><p style="font-weight:700;font-size:13px;">Stress Management</p><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Category: Mental Health</p><span class="badge" style="background:var(--okf);color:var(--ok);margin-top:6px;">Published</span></div>
+<div class="glass"><div style="height:80px;border-radius:12px;background:linear-gradient(135deg,#B45309,#D97706);display:flex;align-items:center;justify-content:center;margin-bottom:8px;"><span style="font-size:28px;"><span class="mi">light_mode</span></span></div><p style="font-weight:700;font-size:13px;">Sun Protection Guide</p><p style="font-size:11px;color:var(--txtm);margin-top:4px;">Category: Dermatology</p><span class="badge" style="background:var(--wf);color:var(--warn);margin-top:6px;">Draft</span></div>
+</div>`;
+
+pages.errors=`<h3 style="margin-bottom:14px;">Error Reports</h3>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--err);">3</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Critical</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--warn);">12</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Warnings</p></div>
+<div class="glass" style="text-align:center;"><p style="font-size:28px;font-weight:900;color:var(--ok);">99.8%</p><p style="font-size:11px;color:var(--txtm);font-weight:600;">Uptime</p></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div class="glass" style="padding:12px;border-color:rgba(239,68,68,0.3);"><div style="display:flex;align-items:center;gap:8px;"><span class="badge" style="background:var(--ef);color:var(--err);">Critical</span><p style="font-size:13px;flex:1;font-weight:600;">OpenAI rate limit exceeded</p><span style="font-size:11px;color:var(--txtm);">2h ago</span></div><p style="font-size:11px;color:var(--txts);margin-top:4px;">Request throttled at 500 RPM — auto-recovery in progress</p></div>
+<div class="glass" style="padding:12px;border-color:rgba(245,158,11,0.3);"><div style="display:flex;align-items:center;gap:8px;"><span class="badge" style="background:var(--wf);color:var(--warn);">Warning</span><p style="font-size:13px;flex:1;font-weight:600;">Supabase connection pool at 80%</p><span style="font-size:11px;color:var(--txtm);">4h ago</span></div></div>
+<div class="glass" style="padding:12px;border-color:rgba(245,158,11,0.3);"><div style="display:flex;align-items:center;gap:8px;"><span class="badge" style="background:var(--wf);color:var(--warn);">Warning</span><p style="font-size:13px;flex:1;font-weight:600;">Photo upload timeout (3 occurrences)</p><span style="font-size:11px;color:var(--txtm);">6h ago</span></div></div>
+</div>`;
+
+pages.audit=`<h3 style="margin-bottom:14px;">Audit Log</h3>
+<div style="display:flex;gap:6px;margin-bottom:14px;"><input class="inp" placeholder="Search audit logs..." style="width:300px;"><button class="btn btn-o" style="padding:8px 14px;font-size:12px;">Filter</button><button class="btn btn-o" style="padding:8px 14px;font-size:12px;">Export</button></div>
+<div style="display:flex;flex-direction:column;gap:6px;">
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="color:var(--ok);">●</span><span style="color:var(--txtm);min-width:120px;">Mar 29, 16:20</span><span style="font-weight:600;min-width:140px;">admin@cliniq.one</span><span style="flex:1;">Updated AI temperature to 0.3</span><span class="badge" style="background:var(--accf);color:var(--acc);">Settings</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="color:var(--blue);">●</span><span style="color:var(--txtm);min-width:120px;">Mar 29, 15:45</span><span style="font-weight:600;min-width:140px;">admin@cliniq.one</span><span style="flex:1;">Approved KYC for Omar H.</span><span class="badge" style="background:var(--bf);color:var(--blue);">KYC</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="color:var(--err);">●</span><span style="color:var(--txtm);min-width:120px;">Mar 29, 14:30</span><span style="font-weight:600;min-width:140px;">system</span><span style="flex:1;">Emergency protocol triggered — session #1249</span><span class="badge" style="background:var(--ef);color:var(--err);">Protocol</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="color:var(--ok);">●</span><span style="color:var(--txtm);min-width:120px;">Mar 29, 13:10</span><span style="font-weight:600;min-width:140px;">admin@cliniq.one</span><span style="flex:1;">Added Dr. Mona Al-Salem as active doctor</span><span class="badge" style="background:var(--okf);color:var(--ok);">Doctors</span></div>
+<div class="glass" style="padding:10px;display:flex;align-items:center;gap:10px;font-size:12px;"><span style="color:var(--warn);">●</span><span style="color:var(--txtm);min-width:120px;">Mar 29, 11:00</span><span style="font-weight:600;min-width:140px;">admin@cliniq.one</span><span style="flex:1;">Updated pricing — Premium pack to 199 SAR</span><span class="badge" style="background:var(--wf);color:var(--warn);">Pricing</span></div>
+</div>`;
+
+pages.settings=`<h3 style="margin-bottom:14px;">Platform Settings</h3>
+<div style="display:flex;flex-direction:column;gap:14px;">
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">language</span> General</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Platform Name</span><input class="inp" value="cliniq.one" style="width:200px;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Default Language</span><select class="inp" style="width:200px;"><option>English</option><option>Arabic</option></select></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Timezone</span><input class="inp" value="Asia/Riyadh (UTC+3)" style="width:200px;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Maintenance Mode</span><div style="width:44px;height:24px;border-radius:12px;background:var(--bdr);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;"></div></div></div>
+</div></div>
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">vpn_key</span> API Keys</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>OpenAI</span><input class="inp" value="sk-••••••••••••••••" style="width:250px;" type="password"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Supabase URL</span><input class="inp" value="https://••••.supabase.co" style="width:250px;"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Stripe Key</span><input class="inp" value="pk_••••••••••••" style="width:250px;" type="password"></div>
+</div></div>
+<div class="glass"><h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;"><span class="mi">mail</span> Notifications</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Email alerts for emergencies</span><div style="width:44px;height:24px;border-radius:12px;background:var(--ok);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span>Daily summary report</span><div style="width:44px;height:24px;border-radius:12px;background:var(--ok);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div></div>
+</div></div>
+<button class="btn btn-p" style="align-self:flex-start;">Save Settings</button>
+</div>`;
+
+pages.admins=`<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><h3>Admin Users</h3><button class="btn btn-p" style="padding:8px 16px;font-size:12px;">+ Invite Admin</button></div>
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:var(--ef);display:flex;align-items:center;justify-content:center;font-size:18px;"><span class="mi">workspace_premium</span></div><div style="flex:1;"><p style="font-weight:700;">Dr. Mohammed (Owner)</p><p style="font-size:11px;color:var(--txtm);">admin@cliniq.one • Super Admin</p></div><span class="badge" style="background:var(--ef);color:var(--err);">Super Admin</span></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:var(--accf);display:flex;align-items:center;justify-content:center;font-size:18px;"><span class="mi">person</span></div><div style="flex:1;"><p style="font-weight:700;">Nora Al-Harbi</p><p style="font-size:11px;color:var(--txtm);">nora@cliniq.one • Operations</p></div><span class="badge" style="background:var(--accf);color:var(--acc);">Admin</span><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div>
+<div class="glass" style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:var(--bf);display:flex;align-items:center;justify-content:center;font-size:18px;"><span class="mi">person</span></div><div style="flex:1;"><p style="font-weight:700;">Faisal Al-Dosari</p><p style="font-size:11px;color:var(--txtm);">faisal@cliniq.one • Support</p></div><span class="badge" style="background:var(--bf);color:var(--blue);">Moderator</span><button class="btn btn-o" style="padding:4px 10px;font-size:10px;">Edit</button></div>
+</div>`;
+
+// Deep-link URL parameter support for fast figure capture
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  const targetPage=params.get('page');
+  const targetLang=params.get('lang');
+  const skip=params.get('skip');
+  if(skip==='1'||targetPage||targetLang){
+    // Skip splash and login immediately
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('loginPage').classList.add('hide');
+    const app=document.getElementById('appMain');
+    app.classList.add('show');app.style.opacity='1';app.style.transform='translateY(0)';
+    setTimeout(()=>{
+      if(targetPage){goPage(targetPage);}else{goPage('dashboard');}
+      if(targetLang==='ar'){setTimeout(()=>toggleLang(),400);}
+    },200);
+  }
+})();
+</script>
+</div><!-- /fold-frame -->
+</div><!-- /fold-bezel -->
+</div><!-- /fold-outer -->
+</body>
+</html>

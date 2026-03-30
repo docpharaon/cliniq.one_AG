@@ -118,7 +118,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    background: #0A0E1A;
+                    background: var(--color-bg-primary);
                     cursor: pointer;
                 }
 

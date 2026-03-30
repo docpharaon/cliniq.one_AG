@@ -14,7 +14,7 @@ const SLIDES = [
         icon: '🤖',
         titleKey: 'onboarding.slide1Title',
         descKey: 'onboarding.slide1Desc',
-        color: '#00D4AA',
+        color: '#1A8A9E',
     },
     {
         id: '2',

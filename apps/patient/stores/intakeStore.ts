@@ -23,6 +23,8 @@ export interface ChatMessage {
     sectionLabel?: string;
     /** Photo URIs attached to this message (for skin photo capture) */
     imageUrls?: string[];
+    /** Body location label for this photo */
+    bodyLocation?: string;
 }
 
 /** Shape of the snapshot saved to / restored from the database */
@@ -89,6 +91,13 @@ interface IntakeState {
     requestedDoctorFee: number | null;
     requestedDoctorSpecialty: string | null;
 
+    // Medication verification (ephemeral — not persisted in snapshot)
+    medicationVerifications: Record<string, unknown>[];
+    drugLabelAnalyses: Record<string, unknown>[];
+
+    // Photo body location labels (maps photo URI → body part)
+    photoBodyLocations: Record<string, string>;
+
     // ── Actions ─────────────────────────────────
     setSessionId: (id: string | null) => void;
     setSpecialty: (specialty: string) => void;
@@ -119,6 +128,14 @@ interface IntakeState {
     setSequenceNodes: (nodes: SequenceNode[]) => void;
     setCurrentNodeIndex: (index: number) => void;
     setActivePathway: (pathway: string | null) => void;
+
+    // Medication verification actions
+    setMedicationVerifications: (verifications: Record<string, unknown>[]) => void;
+    addDrugLabelAnalysis: (analysis: Record<string, unknown>) => void;
+    clearDrugLabelAnalyses: () => void;
+
+    // Photo body location actions
+    setPhotoBodyLocation: (photoUri: string, bodyLocation: string) => void;
 
     // Session persistence
     restoreFromSnapshot: (sessionId: string, snapshot: IntakeSnapshot) => void;
@@ -151,6 +168,9 @@ const initialState = {
     doctorSelectionMethod: null as 'code' | 'qr' | 'search' | 'favorites' | 'auto' | null,
     requestedDoctorFee: null as number | null,
     requestedDoctorSpecialty: null as string | null,
+    medicationVerifications: [] as Record<string, unknown>[],
+    drugLabelAnalyses: [] as Record<string, unknown>[],
+    photoBodyLocations: {} as Record<string, string>,
 };
 
 export const useIntakeStore = create<IntakeState>((set) => ({
@@ -190,6 +210,18 @@ export const useIntakeStore = create<IntakeState>((set) => ({
     setSequenceNodes: (sequenceNodes) => set({ sequenceNodes }),
     setCurrentNodeIndex: (currentNodeIndex) => set({ currentNodeIndex }),
     setActivePathway: (activePathway) => set({ activePathway }),
+
+    // Medication verification (ephemeral)
+    setMedicationVerifications: (medicationVerifications) => set({ medicationVerifications }),
+    addDrugLabelAnalysis: (analysis) => set((s) => ({
+        drugLabelAnalyses: [...s.drugLabelAnalyses, analysis],
+    })),
+    clearDrugLabelAnalyses: () => set({ drugLabelAnalyses: [] }),
+
+    // Photo body location labels
+    setPhotoBodyLocation: (photoUri, bodyLocation) => set((s) => ({
+        photoBodyLocations: { ...s.photoBodyLocations, [photoUri]: bodyLocation },
+    })),
 
     // Session persistence — restore all state from a saved snapshot
     restoreFromSnapshot: (sessionId, snapshot) => set({

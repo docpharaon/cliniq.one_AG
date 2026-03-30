@@ -309,6 +309,7 @@ export default function ProfileScreen() {
                     <MenuItem icon="🏥" label={t('profile.insurance')} onPress={() => router.push('/settings/insurance')} />
                     <MenuItem icon="🔔" label={t('profile.notifications')} onPress={() => router.push('/settings/notifications')} />
                     <MenuItem icon="🌐" label={t('profile.language')} onPress={() => router.push('/settings/language')} />
+                    <MenuItem icon="🎨" label={t('profile.appearance') || 'Appearance'} onPress={() => router.push('/settings/appearance')} />
                     <MenuItem icon="🔒" label={t('profile.security')} onPress={() => router.push('/settings/security')} />
 
                     <Text style={[styles.menuSectionTitle, { marginTop: spacing.xl }]}>{t('profile.supportTitle')}</Text>

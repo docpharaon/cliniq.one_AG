@@ -194,7 +194,7 @@ export default function Sidebar() {
                     );
                 })}
 
-                <div className="my-4 border-t border-[rgba(45,212,191,0.15)]" />
+                <div className="my-4 border-t border-border" />
 
                 {isSuperadmin && renderNavLink({ label: 'Admins', href: '/dashboard/admins', icon: Crown }, isActive('/dashboard/admins'))}
                 {isSuperadmin && renderNavLink({ label: 'Settings', href: '/dashboard/settings', icon: Settings }, isActive('/dashboard/settings'))}
@@ -237,8 +237,8 @@ export default function Sidebar() {
                     className={`fixed left-0 top-0 h-screen w-[280px] flex flex-col z-50 transition-transform duration-300 ease-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
                         }`}
                     style={{
-                        background: '#0F172A',
-                        borderRight: '1px solid rgba(45, 212, 191, 0.2)',
+                        background: 'var(--color-bg-primary)',
+                        borderRight: '1px solid var(--color-border)',
                     }}
                 >
                     {sidebarContent}
@@ -253,8 +253,8 @@ export default function Sidebar() {
             className={`fixed left-0 top-0 h-screen flex flex-col z-50 transition-all duration-300 ${collapsed ? 'w-16' : 'w-[280px]'
                 }`}
             style={{
-                background: '#0F172A',
-                borderRight: '1px solid rgba(45, 212, 191, 0.2)',
+                background: 'var(--color-bg-primary)',
+                borderRight: '1px solid var(--color-border)',
             }}
         >
             {sidebarContent}

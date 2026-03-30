@@ -117,13 +117,13 @@ const styles = StyleSheet.create({
     cardArrow: { fontSize: 20, color: colors.accentTeal },
 
     disclaimerCard: {
-        backgroundColor: 'rgba(45, 212, 191, 0.06)',
+        backgroundColor: colors.accentTealFaded,
         borderRadius: radius.xl,
         padding: spacing.xl,
         marginTop: spacing.lg,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(45, 212, 191, 0.2)',
+        borderColor: colors.borderFocused,
     },
     disclaimerIcon: { fontSize: 28, textAlign: 'center' as const, marginBottom: spacing.sm },
     disclaimerTitle: { ...typography.h4, color: colors.textPrimary, textAlign: 'center' as const, marginBottom: spacing.md },

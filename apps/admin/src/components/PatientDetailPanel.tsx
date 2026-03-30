@@ -164,8 +164,8 @@ export default function PatientDetailPanel({ user, onClose, onUpdated }: Props) 
                 className="relative w-full max-w-[520px] h-full flex flex-col overflow-hidden"
                 style={{
                     pointerEvents: 'auto',
-                    background: 'linear-gradient(180deg, #131B2E 0%, #0A0E1A 100%)',
-                    borderLeft: '1px solid rgba(45, 212, 191, 0.15)',
+                    background: 'linear-gradient(180deg, #FFFFFF 0%, #F5F8FA 100%)',
+                    borderLeft: '1px solid var(--color-border)',
                     boxShadow: '-24px 0 80px rgba(0, 0, 0, 0.5)',
                     animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                 }}

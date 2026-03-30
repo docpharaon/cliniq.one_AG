@@ -35,12 +35,12 @@ export const useToast = create<ToastStore>((set) => ({
     },
 }));
 
-// ── Colors ─────────────────────────────────────
-const TYPE_STYLES: Record<ToastType, { bg: string; border: string; icon: string }> = {
-    success: { bg: '#0D3B2E', border: '#10B981', icon: '✅' },
-    error:   { bg: '#3B1A1A', border: '#EF4444', icon: '❌' },
-    warning: { bg: '#3B2E0D', border: '#F59E0B', icon: '⚠️' },
-    info:    { bg: '#0D2B3B', border: '#2DD4BF', icon: 'ℹ️' },
+// ── Colors (Light-theme optimized) ─────────────
+const TYPE_STYLES: Record<ToastType, { bg: string; border: string; icon: string; text: string }> = {
+    success: { bg: '#ECFDF5', border: '#059669', icon: '✅', text: '#065F46' },
+    error:   { bg: '#FEF2F2', border: '#DC2626', icon: '❌', text: '#991B1B' },
+    warning: { bg: '#FFFBEB', border: '#D97706', icon: '⚠️', text: '#92400E' },
+    info:    { bg: '#F0FDFA', border: '#1A8A9E', icon: 'ℹ️', text: '#134E4A' },
 };
 
 // ── Single Toast ───────────────────────────────
@@ -75,7 +75,7 @@ function ToastItem({ toast }: { toast: Toast }) {
             ]}
         >
             <Text style={styles.icon}>{style.icon}</Text>
-            <Text style={styles.message} numberOfLines={3}>{toast.message}</Text>
+            <Text style={[styles.message, { color: style.text }]} numberOfLines={3}>{toast.message}</Text>
             <TouchableOpacity onPress={() => dismiss(toast.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.close}>✕</Text>
             </TouchableOpacity>
@@ -122,20 +122,20 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xs,
         // Shadow
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 4,
     },
     icon: { fontSize: 16, marginRight: spacing.sm },
     message: {
         ...typography.bodySm,
-        color: '#F1F5F9',
+        color: colors.textPrimary,
         flex: 1,
         lineHeight: 18,
     },
     close: {
-        color: '#94A3B8',
+        color: colors.textSecondary,
         fontSize: 14,
         paddingLeft: spacing.sm,
         fontWeight: '700',

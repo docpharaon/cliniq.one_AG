@@ -50,7 +50,7 @@ export async function registerForPushNotifications(userId?: string): Promise<str
             name: 'Default',
             importance: Notifications.AndroidImportance.HIGH,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#00D4AA',
+            lightColor: '#1A8A9E',
         });
 
         await Notifications.setNotificationChannelAsync('consultations', {
@@ -58,7 +58,7 @@ export async function registerForPushNotifications(userId?: string): Promise<str
             description: 'Doctor responses and consultation updates',
             importance: Notifications.AndroidImportance.HIGH,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#00D4AA',
+            lightColor: '#1A8A9E',
         });
     }
 

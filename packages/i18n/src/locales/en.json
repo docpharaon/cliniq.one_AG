@@ -864,5 +864,50 @@
         "crisisVisit": "Crisis Visit",
         "familySession": "Family Session",
         "telepsychiatryFollowup": "Telepsychiatry Follow-up"
+    },
+    "medVerify": {
+        "verified": "Verified",
+        "needsConfirmation": "Needs Confirmation",
+        "unrecognized": "Unrecognized",
+        "statedDosage": "Stated Dosage",
+        "therapeuticRange": "Therapeutic Range",
+        "photoLabel": "Photo Label",
+        "confirm": "Confirm",
+        "verifying": "Verifying medications...",
+        "verificationComplete": "Medication verification complete"
+    },
+    "drugLabel": {
+        "offerTitle": "Photo Your Medication Label",
+        "offerDesc": "Take a photo of your {{medication}} label for AI-powered verification. This is optional.",
+        "takePhoto": "Take Photo",
+        "addPhoto": "Add Label Photo",
+        "tipsTitle": "Tips for a Clear Label Photo",
+        "tipLighting": "Good Lighting",
+        "tipLightingDesc": "Use natural light or bright indoor lighting. Avoid shadows on the label.",
+        "tipAlignment": "Proper Alignment",
+        "tipAlignmentDesc": "Hold the label flat and centered. Align all four edges within the frame.",
+        "tipReadability": "Ensure Readability",
+        "tipReadabilityDesc": "Make sure all text is sharp and in focus. The drug name and dosage should be clearly visible.",
+        "captureInstruction": "Take a clear photo of your {{medication}} medication label",
+        "analyze": "Analyze Label",
+        "skipAnalysis": "Skip Analysis",
+        "ephemeralNotice": "Your photo is processed in real-time and never stored in the cloud. Only the extracted text is saved."
+    },
+    "drugAnalysis": {
+        "sourceImage": "Source Image",
+        "aiProcessed": "AI-processed in real-time",
+        "extractedInfo": "Extracted Information",
+        "drugName": "Drug Name",
+        "dosage": "Dosage",
+        "form": "Form",
+        "manufacturer": "Manufacturer",
+        "expiry": "Expiry Date",
+        "match": "Match — Data Consistent",
+        "partialMatch": "Partial Match — Review Needed",
+        "mismatch": "Mismatch — Data Inconsistent",
+        "unableToRead": "Unable to Read Label",
+        "aiConfidence": "AI Confidence",
+        "confirmContinue": "Confirm & Continue Interview",
+        "retakePhoto": "Retake Photo"
     }
 }

@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "SKIP_WEBPACK_ALIAS=1 next build"
+  "buildCommand": "next build"
 }

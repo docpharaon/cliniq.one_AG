@@ -242,6 +242,7 @@ export async function createDoctorInquiry(params: {
     doctorId: string;
     questionText: string;
     aiImprovedText?: string;
+    requestType?: 'text' | 'skin_photo' | 'medication_photo' | 'document_photo';
     maxTurns?: number;
     deadlineHours?: number;
 }): Promise<DoctorInquiry> {
@@ -256,6 +257,7 @@ export async function createDoctorInquiry(params: {
             doctor_id: params.doctorId,
             question_text: params.questionText,
             ai_improved_text: params.aiImprovedText || null,
+            request_type: params.requestType || 'text',
             max_turns: params.maxTurns || 7,
             deadline_at: deadlineAt,
         })

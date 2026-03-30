@@ -32,6 +32,7 @@ export default function RespondScreen() {
     const [aiImprovedText, setAiImprovedText] = useState('');
     const [isImprovingWithAi, setIsImprovingWithAi] = useState(false);
     const [showInquiryForm, setShowInquiryForm] = useState(false);
+    const [inquiryRequestType, setInquiryRequestType] = useState<'text' | 'skin_photo' | 'medication_photo' | 'document_photo'>('text');
 
     // AI Improve handler
     const handleImproveWithAi = async () => {
@@ -72,6 +73,7 @@ export default function RespondScreen() {
                         doctorId,
                         questionText: inquiryText,
                         aiImprovedText: aiImprovedText || undefined,
+                        requestType: inquiryRequestType,
                     },
                     {
                         onSuccess: () => {
@@ -258,6 +260,37 @@ export default function RespondScreen() {
 
                 {showInquiryForm && (
                     <View style={[styles.card, { marginBottom: 20, borderColor: colors.warning }]}>
+                        {/* Quick-Action Photo Request Buttons */}
+                        <Text style={styles.subLabel}>QUICK REQUESTS</Text>
+                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                            <TouchableOpacity
+                                style={[styles.quickRequestBtn, inquiryRequestType === 'skin_photo' && styles.quickRequestBtnActive]}
+                                onPress={() => {
+                                    setInquiryRequestType('skin_photo');
+                                    if (!inquiryText) setInquiryText('Please provide a clear photo of the affected skin area for better clinical assessment.');
+                                }}
+                            >
+                                <Text style={[styles.quickRequestText, inquiryRequestType === 'skin_photo' && styles.quickRequestTextActive]}>📸 Request Skin Photo</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.quickRequestBtn, inquiryRequestType === 'medication_photo' && styles.quickRequestBtnActive]}
+                                onPress={() => {
+                                    setInquiryRequestType('medication_photo');
+                                    if (!inquiryText) setInquiryText('Please take a photo of your medication labels so we can verify the drugs and dosages you are taking.');
+                                }}
+                            >
+                                <Text style={[styles.quickRequestText, inquiryRequestType === 'medication_photo' && styles.quickRequestTextActive]}>💊 Request Drug Label Photo</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.quickRequestBtn, inquiryRequestType === 'text' && styles.quickRequestBtnActive]}
+                                onPress={() => {
+                                    setInquiryRequestType('text');
+                                }}
+                            >
+                                <Text style={[styles.quickRequestText, inquiryRequestType === 'text' && styles.quickRequestTextActive]}>💬 Text Question</Text>
+                            </TouchableOpacity>
+                        </View>
+
                         <Text style={styles.subLabel}>YOUR QUESTION TO THE PATIENT</Text>
                         <TextInput
                             style={[styles.input, styles.multiline]}
@@ -613,4 +646,8 @@ const styles = StyleSheet.create({
     previewSectionTitle: { ...typography.h3, color: colors.accentTeal, fontSize: 14, marginTop: 16, marginBottom: 6 },
     previewContent: { ...typography.body, color: colors.textPrimary, lineHeight: 22 },
     previewMedCard: { backgroundColor: colors.bgTertiary, borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border },
+    quickRequestBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.bgTertiary },
+    quickRequestBtnActive: { borderColor: colors.warning, backgroundColor: colors.warningFaded },
+    quickRequestText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600', fontSize: 12 },
+    quickRequestTextActive: { color: colors.warning },
 });

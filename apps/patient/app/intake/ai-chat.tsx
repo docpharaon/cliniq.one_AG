@@ -20,6 +20,8 @@ import {
 import { detectProtocols, EMERGENCY_NUMBERS, getEscalationLevel, getEscalationMessage, getEscalationColor, getCooldownMs, setProtocolConfig } from '../../services/protocolDetection';
 import { saveIntakeSession, getActiveIntakeSession, deleteIntakeSession } from '@cliniqone/api';
 import { SkinPhotoCapture } from '../../components/SkinPhotoCapture';
+import { DrugLabelCapture } from '../../components/DrugLabelCapture';
+import { MedicationVerificationCard } from '../../components/MedicationVerificationCard';
 import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { Button } from '@cliniqone/ui';
 
@@ -46,6 +48,7 @@ const NODE_LABELS_AR_SA: Record<string, string> = {
     physical_exam: '🩺 الفحص السريري',
     skin_photo: '📸 صورة الحالة',
     photo_capture: '📸 صورة الحالة',
+    medication_verify: '💊 التحقق من الأدوية',
     summary: '📝 ملخص الحالة',
     patient_addendum: '📝 مراجعة أخيرة',
 };
@@ -207,6 +210,8 @@ export default function AIChatScreen() {
     const [sectionTurnCount, setSectionTurnCount] = useState(0);
     const [isReported, setIsReported] = useState(false);
     const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+    const [showDrugLabelCapture, setShowDrugLabelCapture] = useState(false);
+    const [drugLabelMedName, setDrugLabelMedName] = useState('');
     const [aiConsentGiven, setAiConsentGiven] = useState(false);
 
     // ── Addendum state ───────────────────────
@@ -757,6 +762,15 @@ export default function AIChatScreen() {
                 // Photo capture node — handled by client UI, no AI call
                 if (nextNode.step_key === 'photo_capture') {
                     setShowPhotoCapture(true);
+                    setAiTyping(false);
+                    return;
+                }
+
+                // Medication verify node — show drug label capture UI
+                if (nextNode.step_key === 'medication_verify') {
+                    const meds = useIntakeStore.getState().medications;
+                    setDrugLabelMedName(meds[0] || '');
+                    setShowDrugLabelCapture(true);
                     setAiTyping(false);
                     return;
                 }
@@ -1353,6 +1367,132 @@ export default function AIChatScreen() {
         advanceFromPhotoCapture();
     }
 
+    // ── Drug Label capture handlers (FIG_54/55) ──
+    async function advanceFromDrugLabelCapture() {
+        setShowDrugLabelCapture(false);
+        const currentNodes = applicableNodes;
+        const nextIdx = currentNodeIndex + 1;
+
+        if (nextIdx >= currentNodes.length) {
+            await generateFinalSummary();
+            return;
+        }
+
+        const nextNode = currentNodes[nextIdx];
+        if (nextNode.step_key === 'summary') {
+            await generateFinalSummary();
+            return;
+        }
+
+        setCurrentNodeIndex(nextIdx);
+        setProgress(Math.round(((nextIdx + 1) / currentNodes.length) * 100));
+        setSectionTurnCount(0);
+        setSectionHistory([]);
+        setRecentPatientMessages([]);
+
+        // Show section transition
+        addMessage({
+            id: uid(),
+            role: 'system',
+            content: getNodeLabel(nextNode),
+            timestamp: Date.now(),
+            sectionLabel: nextNode.label,
+        });
+
+        // Start the next section's AI
+        setAiTyping(true);
+        try {
+            const result = await chatSection({
+                section: nextNode.step_key,
+                promptId: nextNode.prompt_id || undefined,
+                conversationHistory: [],
+                language: getLocale(),
+                patientContext,
+            });
+
+            const response = result.response;
+            setConversationHistory(prev => [...prev, { role: 'ai', content: response }]);
+            setSectionHistory([{ role: 'ai', content: response }]);
+
+            addMessage({
+                id: uid(),
+                role: 'ai',
+                content: stripInternalTags(response),
+                timestamp: Date.now(),
+            });
+        } catch (err) {
+            console.error('Post-drug-label section error:', err);
+        } finally {
+            setAiTyping(false);
+        }
+        autoSaveSession();
+    }
+
+    async function handleDrugLabelComplete(photos: { uri: string; base64: string }[]) {
+        if (photos.length > 0) {
+            addMessage({
+                id: uid(),
+                role: 'patient',
+                content: `📷 ${photos.length} medication label photo(s) captured`,
+                timestamp: Date.now(),
+                imageUrls: photos.map(p => p.uri),
+            });
+
+            // Analyze each photo via Vision API (ephemeral processing)
+            addMessage({
+                id: uid(),
+                role: 'system',
+                content: `🔬 ${t('medVerify.verifying')}`,
+                timestamp: Date.now(),
+            });
+
+            setAiTyping(true);
+            try {
+                const { analyzeDrugLabel } = await import('../../services/aiService');
+                const meds = useIntakeStore.getState().medications;
+                const statedMed = meds[0] || drugLabelMedName;
+
+                for (const photo of photos) {
+                    const result = await analyzeDrugLabel(
+                        photo.base64,
+                        statedMed,
+                        '',
+                        getLocale() as 'en' | 'ar',
+                    );
+                    useIntakeStore.getState().addDrugLabelAnalysis(result);
+                }
+
+                addMessage({
+                    id: uid(),
+                    role: 'system',
+                    content: `✅ ${t('medVerify.verificationComplete')}`,
+                    timestamp: Date.now(),
+                });
+            } catch (err) {
+                console.error('Drug label analysis error:', err);
+                addMessage({
+                    id: uid(),
+                    role: 'system',
+                    content: '⚠️ Analysis could not be completed. Continuing...',
+                    timestamp: Date.now(),
+                });
+            } finally {
+                setAiTyping(false);
+            }
+        }
+        advanceFromDrugLabelCapture();
+    }
+
+    function handleDrugLabelSkip() {
+        addMessage({
+            id: uid(),
+            role: 'system',
+            content: `📷 ${t('drugLabel.skipAnalysis')}`,
+            timestamp: Date.now(),
+        });
+        advanceFromDrugLabelCapture();
+    }
+
     // ── Skip Section handler ────────────────────
     async function handleSkipSection() {
         if (isAiTyping) return;
@@ -1511,6 +1651,15 @@ export default function AIChatScreen() {
                         <SkinPhotoCapture
                             onComplete={handlePhotoComplete}
                             onSkip={handlePhotoSkip}
+                        />
+                    )}
+
+                    {/* Drug Label Capture Card (inline in chat — FIG_54) */}
+                    {showDrugLabelCapture && (
+                        <DrugLabelCapture
+                            medicationName={drugLabelMedName}
+                            onComplete={handleDrugLabelComplete}
+                            onSkip={handleDrugLabelSkip}
                         />
                     )}
 

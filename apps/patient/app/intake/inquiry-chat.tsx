@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '@cliniqone/ui';
 import { supabase, submitInquiryResponse } from '@cliniqone/api';
 import { chatSection } from '../../services/aiService';
+import { SkinPhotoCapture } from '../../components/SkinPhotoCapture';
+import { DrugLabelCapture } from '../../components/DrugLabelCapture';
+import { useIntakeStore } from '../../stores/intakeStore';
 
 const MAX_TURNS = 7;
 
@@ -20,7 +23,12 @@ export default function InquiryChatScreen() {
     const [turnCount, setTurnCount] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [resolvedInquiryId, setResolvedInquiryId] = useState<string | undefined>(rawInquiryId);
+    const [requestType, setRequestType] = useState<string>('text');
+    const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+    const [showDrugLabelCapture, setShowDrugLabelCapture] = useState(false);
+    const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
     const scrollRef = useRef<ScrollView>(null);
+    const addPhoto = useIntakeStore((s) => s.addPhoto);
 
     // Load inquiry details
     useEffect(() => {
@@ -64,7 +72,15 @@ export default function InquiryChatScreen() {
             }
 
             setInquiry(data);
+            setRequestType(data.request_type || 'text');
             setLoading(false);
+
+            // Auto-show photo capture based on request_type
+            if (data.request_type === 'skin_photo') {
+                setShowPhotoCapture(true);
+            } else if (data.request_type === 'medication_photo') {
+                setShowDrugLabelCapture(true);
+            }
 
             // Initial AI message presenting the doctor's question
             const doctorQuestion = data.ai_improved_text || data.question_text;
@@ -131,6 +147,11 @@ export default function InquiryChatScreen() {
                 answers: patientAnswers,
                 turnCount,
                 completedAt: new Date().toISOString(),
+                requestType,
+                ...(capturedPhotos.length > 0 ? {
+                    photos: capturedPhotos,
+                    photoCount: capturedPhotos.length,
+                } : {}),
             };
 
             await submitInquiryResponse({
@@ -170,7 +191,16 @@ export default function InquiryChatScreen() {
                 <TouchableOpacity onPress={() => router.back()}>
                     <Text style={styles.backBtn}>← Back</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>🩺 Doctor's Question</Text>
+                <View style={{ alignItems: 'center' }}>
+                    <Text style={styles.headerTitle}>🩺 Doctor's Question</Text>
+                    {requestType !== 'text' && (
+                        <Text style={styles.requestTypeBadge}>
+                            {requestType === 'skin_photo' ? '📸 Photo Requested' :
+                             requestType === 'medication_photo' ? '💊 Drug Label Requested' :
+                             requestType === 'document_photo' ? '📄 Document Requested' : ''}
+                        </Text>
+                    )}
+                </View>
                 <Text style={styles.turnBadge}>{turnCount}/{MAX_TURNS}</Text>
             </View>
 
@@ -178,6 +208,24 @@ export default function InquiryChatScreen() {
             <View style={styles.progressContainer}>
                 <View style={[styles.progressBar, { width: `${(turnCount / MAX_TURNS) * 100}%` }]} />
             </View>
+
+            {/* Re-open photo capture button (if request type is photo and capture was dismissed) */}
+            {(requestType === 'skin_photo' && !showPhotoCapture && capturedPhotos.length === 0) && (
+                <TouchableOpacity
+                    style={styles.reOpenCaptureBtn}
+                    onPress={() => setShowPhotoCapture(true)}
+                >
+                    <Text style={styles.reOpenCaptureText}>📸 Add Skin Photo</Text>
+                </TouchableOpacity>
+            )}
+            {(requestType === 'medication_photo' && !showDrugLabelCapture && capturedPhotos.length === 0) && (
+                <TouchableOpacity
+                    style={styles.reOpenCaptureBtn}
+                    onPress={() => setShowDrugLabelCapture(true)}
+                >
+                    <Text style={styles.reOpenCaptureText}>💊 Add Drug Label Photo</Text>
+                </TouchableOpacity>
+            )}
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 {/* Messages */}
@@ -207,6 +255,61 @@ export default function InquiryChatScreen() {
                     {isSending && (
                         <View style={[styles.messageBubble, styles.aiBubble]}>
                             <ActivityIndicator color={colors.accentTeal} size="small" />
+                        </View>
+                    )}
+
+                    {/* Skin Photo Capture (auto-shown for skin_photo requests) */}
+                    {showPhotoCapture && (
+                        <SkinPhotoCapture
+                            onComplete={(uris) => {
+                                setCapturedPhotos(prev => [...prev, ...uris]);
+                                uris.forEach(uri => addPhoto(uri));
+                                setShowPhotoCapture(false);
+                                setMessages(prev => [...prev, {
+                                    role: 'user',
+                                    content: `📸 ${uris.length} skin photo(s) captured`,
+                                }]);
+                            }}
+                            onSkip={() => {
+                                setShowPhotoCapture(false);
+                                setMessages(prev => [...prev, {
+                                    role: 'user',
+                                    content: 'Skipped photo upload',
+                                }]);
+                            }}
+                        />
+                    )}
+
+                    {/* Drug Label Capture (auto-shown for medication_photo requests) */}
+                    {showDrugLabelCapture && (
+                        <DrugLabelCapture
+                            medicationName=""
+                            onComplete={(photos) => {
+                                const uris = photos.map(p => p.uri);
+                                setCapturedPhotos(prev => [...prev, ...uris]);
+                                uris.forEach(uri => addPhoto(uri));
+                                setShowDrugLabelCapture(false);
+                                setMessages(prev => [...prev, {
+                                    role: 'user',
+                                    content: `💊 ${photos.length} medication label photo(s) captured`,
+                                }]);
+                            }}
+                            onSkip={() => {
+                                setShowDrugLabelCapture(false);
+                                setMessages(prev => [...prev, {
+                                    role: 'user',
+                                    content: 'Skipped medication photo',
+                                }]);
+                            }}
+                        />
+                    )}
+
+                    {/* Captured photos preview */}
+                    {capturedPhotos.length > 0 && (
+                        <View style={styles.photoPreviewRow}>
+                            {capturedPhotos.map((uri, idx) => (
+                                <Image key={idx} source={{ uri }} style={styles.photoPreviewThumb} />
+                            ))}
                         </View>
                     )}
 
@@ -285,4 +388,9 @@ const styles = StyleSheet.create({
     sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accentTeal, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
     sendBtnDisabled: { opacity: 0.4 },
     sendBtnText: { fontSize: 20, color: colors.bgPrimary },
+    requestTypeBadge: { ...typography.caption, fontSize: 10, color: colors.warning, fontWeight: '700', marginTop: 2 },
+    reOpenCaptureBtn: { marginHorizontal: 16, marginTop: 8, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.warning, backgroundColor: colors.warningFaded, alignItems: 'center' },
+    reOpenCaptureText: { ...typography.button, color: colors.warning, fontSize: 13, fontWeight: '600' },
+    photoPreviewRow: { flexDirection: 'row', gap: 8, marginVertical: 10, paddingHorizontal: 4 },
+    photoPreviewThumb: { width: 60, height: 60, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
 });

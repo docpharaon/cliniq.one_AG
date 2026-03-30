@@ -19,6 +19,7 @@ export default function SettingsLayout() {
             <Stack.Screen name="insurance" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="language" />
+            <Stack.Screen name="appearance" />
             <Stack.Screen name="security" />
             <Stack.Screen name="help" />
             <Stack.Screen name="privacy-terms" />
