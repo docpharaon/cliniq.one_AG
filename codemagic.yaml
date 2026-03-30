@@ -24,12 +24,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor-web (static export)
+      - name: Build doctor web (Expo export)
         script: |
-          cd apps/doctor-web
-          CAPACITOR_BUILD=1 npx next build
-          echo "=== doctor-web/out contents ==="
-          ls -la out/ | head -20
+          cd apps/doctor
+          npx expo export --platform web
+          echo "=== doctor/dist contents ==="
+          ls -la dist/ | head -20
       - name: Add and sync iOS platform
         script: |
           cd apps/doctor-capacitor
@@ -39,8 +39,8 @@ workflows:
 
           # Force-copy web assets to ios/App/App/public
           APP_DIR="ios/App/App"
-          WEB_SRC="$CLONE_DIR/apps/doctor-web/out"
-          if [ -z "$CLONE_DIR" ]; then WEB_SRC="$(pwd)/../doctor-web/out"; fi
+          WEB_SRC="$CLONE_DIR/apps/doctor/dist"
+          if [ -z "$CLONE_DIR" ]; then WEB_SRC="$(pwd)/../doctor/dist"; fi
 
           echo "=== Web source: $WEB_SRC ==="
           ls -la "$WEB_SRC/" 2>/dev/null | head -5 || echo "WARNING: web source not found at $WEB_SRC"
@@ -54,8 +54,8 @@ workflows:
           echo "public/ has $FILE_COUNT files"
           if [ "$FILE_COUNT" -eq 0 ]; then
             echo "ERROR: public/ is empty! Listing possible locations..."
-            ls -la ../doctor-web/ 2>/dev/null || true
-            ls -la ../doctor-web/out/ 2>/dev/null || true
+            ls -la ../doctor/ 2>/dev/null || true
+            ls -la ../doctor/dist/ 2>/dev/null || true
             exit 1
           fi
 
@@ -397,12 +397,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor-web (static export)
+      - name: Build doctor web (Expo export)
         script: |
-          cd apps/doctor-web
-          CAPACITOR_BUILD=1 npx next build
-          echo "=== doctor-web/out contents ==="
-          ls -la out/ | head -20
+          cd apps/doctor
+          npx expo export --platform web
+          echo "=== doctor/dist contents ==="
+          ls -la dist/ | head -20
       - name: Add and sync Android platform
         script: |
           cd apps/doctor-capacitor
@@ -565,12 +565,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor-web for locum (static export)
+      - name: Build doctor web for locum (Expo export)
         script: |
-          cd apps/doctor-web
-          CAPACITOR_BUILD=1 npx next build
-          echo "=== doctor-web/out contents (for locum) ==="
-          ls -la out/ | head -20
+          cd apps/doctor
+          npx expo export --platform web
+          echo "=== doctor/dist contents (for locum) ==="
+          ls -la dist/ | head -20
       - name: Add and sync iOS platform
         script: |
           cd apps/locum-capacitor
@@ -673,12 +673,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor-web for locum (static export)
+      - name: Build doctor web for locum (Expo export)
         script: |
-          cd apps/doctor-web
-          CAPACITOR_BUILD=1 npx next build
-          echo "=== doctor-web/out contents (for locum) ==="
-          ls -la out/ | head -20
+          cd apps/doctor
+          npx expo export --platform web
+          echo "=== doctor/dist contents (for locum) ==="
+          ls -la dist/ | head -20
       - name: Add and sync Android platform
         script: |
           cd apps/locum-capacitor
