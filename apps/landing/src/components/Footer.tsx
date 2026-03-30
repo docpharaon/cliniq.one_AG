@@ -49,7 +49,13 @@ export default function Footer() {
                 <div className="section-divider mb-8" />
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-text-muted text-xs">
-                    <span>{t('footer.copyright')}</span>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                        <span>{t('footer.copyright')}</span>
+                        <span className="hidden sm:inline text-border">|</span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-faded text-accent font-medium border border-accent/10 text-[10px] tracking-wide">
+                            🔬 {t('footer.patent')}
+                        </span>
+                    </div>
                     <div className="flex items-center gap-6">
                         <a href="/terms" className="hover:text-accent transition-colors">{t('footer.terms')}</a>
                         <a href="/privacy" className="hover:text-accent transition-colors">{t('footer.privacy')}</a>

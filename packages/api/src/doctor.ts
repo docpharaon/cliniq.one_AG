@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Consultation, Doctor, Message, DoctorInquiry } from '@cliniqone/types';
+import type { Consultation, Doctor, Message, DoctorInquiry, RefundRequest, DoctorRefundReason } from '@cliniqone/types';
 
 // ──────────────────────────────────────────
 // Doctor API Functions
@@ -351,4 +351,90 @@ export async function submitInquiryResponse(params: {
         .eq('id', (data as DoctorInquiry).consultation_id);
 
     return data as DoctorInquiry;
+}
+
+// ──────────────────────────────────────────
+// Doctor Refund Requests
+// ──────────────────────────────────────────
+
+/**
+ * Request a refund for a consultation (doctor-initiated).
+ * Creates a refund_request with requester_role='doctor'.
+ */
+export async function requestDoctorRefund(params: {
+    consultationId: string;
+    doctorUserId: string;
+    reasonCategory: DoctorRefundReason;
+    reasonText: string;
+}): Promise<RefundRequest> {
+    // Get the consultation to find the token cost
+    const { data: consultation, error: consultationError } = await supabase
+        .from('consultations')
+        .select('token_cost, status')
+        .eq('id', params.consultationId)
+        .single();
+
+    if (consultationError) throw consultationError;
+
+    const { data, error } = await supabase
+        .from('refund_requests')
+        .insert({
+            consultation_id: params.consultationId,
+            requested_by: params.doctorUserId,
+            requester_role: 'doctor',
+            reason_category: params.reasonCategory,
+            reason_text: params.reasonText,
+            refund_amount: consultation.token_cost,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // Log to consultation audit
+    await supabase.from('consultation_audit_log').insert({
+        consultation_id: params.consultationId,
+        action: 'refund_requested',
+        performed_by: params.doctorUserId,
+        metadata: {
+            requester_role: 'doctor',
+            reason_category: params.reasonCategory,
+            refund_amount: consultation.token_cost,
+        },
+    });
+
+    return data as RefundRequest;
+}
+
+/**
+ * Get refund requests submitted by this doctor.
+ */
+export async function getDoctorRefundRequests(doctorUserId: string): Promise<RefundRequest[]> {
+    const { data, error } = await supabase
+        .from('refund_requests')
+        .select(`
+            *,
+            consultation:consultations!refund_requests_consultation_id_fkey(
+                id, specialty, chief_complaint, status, patient_id
+            )
+        `)
+        .eq('requested_by', doctorUserId)
+        .eq('requester_role', 'doctor')
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as RefundRequest[];
+}
+
+/**
+ * Check if a pending refund request already exists for a consultation (from any role).
+ */
+export async function hasRefundPending(consultationId: string): Promise<boolean> {
+    const { count } = await supabase
+        .from('refund_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('consultation_id', consultationId)
+        .eq('status', 'pending');
+
+    return (count || 0) > 0;
 }

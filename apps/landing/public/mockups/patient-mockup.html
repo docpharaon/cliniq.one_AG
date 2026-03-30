@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>cliniq.one — Patient App Mockup</title>
+<meta name="description" content="cliniq.one Patient Application Mockup — AI-Powered Telemedicine Platform">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root{--bg-primary:#FFFFFF;--bg-secondary:#F5F8FA;--bg-tertiary:#EDF2F7;--bg-card:#FFFFFF;--bg-elevated:#FFFFFF;--accent:#1A8A9E;--accent-dark:#157A8C;--accent-light:#2BA3B8;--accent-faded:rgba(26,138,158,0.08);--blue:#3B82F6;--blue-faded:rgba(59,130,246,0.15);--purple:#9B72CF;--purple-faded:rgba(155,114,207,0.15);--pink:#C98BB9;--gold:#FFD700;--gold-faded:rgba(255,215,0,0.15);--text-primary:#1E293B;--text-secondary:#64748B;--text-muted:#94A3B8;--success:#059669;--success-faded:rgba(34,197,94,0.15);--warning:#D97706;--warning-faded:rgba(245,158,11,0.15);--error:#DC2626;--error-faded:rgba(239,68,68,0.15);--info:#3B82F6;--border:#DEE5ED;--radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;--radius-2xl:24px;--font:'Inter','Noto Sans Arabic',system-ui,sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+html,body{height:100%;background:#F0F4F8;color:var(--text-primary);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow:hidden;}
+html[dir="rtl"]{direction:rtl;}
+
+/* iPhone Frame */
+.iphone-outer{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:860px;background:linear-gradient(145deg,#e8edf2,#d1d8e0);border-radius:56px;padding:14px;box-shadow:0 0 0 2px rgba(0,0,0,0.05),0 20px 60px rgba(0,0,0,0.12),inset 0 2px 0 rgba(255,255,255,0.4);}
+.iphone-bezel{width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:var(--bg-primary);}
+.iphone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;z-index:9998;display:flex;align-items:center;justify-content:center;gap:8px;}
+.iphone-notch::before{content:'';width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#333,#111);}
+.iphone-notch::after{content:'';width:40px;height:4px;border-radius:2px;background:#222;}
+.iphone-status{position:absolute;top:0;left:0;right:0;height:34px;z-index:9997;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:600;color:var(--text-primary);}
+.iphone-status .time{font-weight:700;}
+.iphone-status .icons{display:flex;gap:4px;font-size:11px;}
+.iphone-home-indicator{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(0,0,0,0.15);z-index:9998;}
+html[dir="rtl"] .flip-rtl{transform:scaleX(-1);}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+
+/* Glass */
+.glass{background:rgba(255,255,255,0.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.glass-premium{background:rgba(255,255,255,0.95);backdrop-filter:blur(24px) saturate(150%);border:1px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,0.06);}
+
+/* Mockup Watermark */
+.mockup-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#EF4444,#F97316);color:white;text-align:center;font-size:10px;font-weight:700;padding:2px 0;letter-spacing:2px;text-transform:uppercase;}
+
+/* Screen System */
+.screen{display:none;position:absolute;inset:0;top:34px;bottom:24px;overflow-y:auto;overflow-x:hidden;}
+.screen.active{display:flex;flex-direction:column;animation:screenIn 0.35s ease;}
+@keyframes screenIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Phone Frame */
+.phone-frame{width:100%;height:100%;position:relative;overflow:hidden;background:var(--bg-primary);}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 20px var(--border)}50%{box-shadow:0 0 40px rgba(26,138,158,0.25)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes typing-dot{0%,60%,100%{opacity:0.3;transform:scale(0.8)}30%{opacity:1;transform:scale(1)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes countUp{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}
+@keyframes splashLogo{0%{opacity:0;transform:scale(0.3) rotate(-10deg)}40%{opacity:1;transform:scale(1.08) rotate(2deg)}70%{transform:scale(0.96) rotate(0deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes splashText{0%{opacity:0;letter-spacing:16px;filter:blur(8px)}60%{opacity:1;letter-spacing:6px;filter:blur(0)}100%{opacity:1;letter-spacing:4px;filter:blur(0)}}
+@keyframes splashVideoFade{from{opacity:0}to{opacity:1}}
+@keyframes bubbleIn{from{opacity:0;transform:translateY(16px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes progressBar{from{width:0}to{width:100%}}
+@keyframes splashOrb1{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-30%,-40%) scale(1.3)}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes splashOrb2{0%{transform:translate(50%,50%) scale(1)}50%{transform:translate(30%,60%) scale(1.2)}100%{transform:translate(50%,50%) scale(1)}}
+@keyframes splashOrb3{0%{transform:translate(0%,-20%) scale(0.8)}50%{transform:translate(-20%,10%) scale(1.1)}100%{transform:translate(0%,-20%) scale(0.8)}}
+@keyframes splashRing{0%{transform:scale(0.5);opacity:0.6}100%{transform:scale(2.5);opacity:0}}
+@keyframes splashShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes splashParticle{0%{opacity:0;transform:translateY(20px) scale(0)}20%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1;transform:translateY(-60px) scale(0.8)}100%{opacity:0;transform:translateY(-100px) scale(0)}}
+@keyframes splashProgressGlow{0%{box-shadow:0 0 8px rgba(45,212,191,0.3)}50%{box-shadow:0 0 20px rgba(45,212,191,0.6)}100%{box-shadow:0 0 8px rgba(45,212,191,0.3)}}
+@keyframes splashBadgeFade{0%{opacity:0;transform:translateY(10px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes splashHeartbeat{0%,100%{transform:scale(1)}10%{transform:scale(1.06)}20%{transform:scale(1)}30%{transform:scale(1.04)}40%{transform:scale(1)}}
+
+.animate-fade-in{animation:fadeIn 0.4s ease forwards;}
+.animate-fade-in-up{animation:fadeInUp 0.5s ease forwards;}
+
+/* Buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius-lg);font-weight:700;font-size:15px;border:none;cursor:pointer;transition:all 0.2s;font-family:var(--font);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:var(--bg-primary);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--border);}
+.btn-outline{background:transparent;border:2px solid var(--accent);color:var(--accent);}
+.btn-ghost{background:transparent;color:var(--text-secondary);padding:10px 16px;font-size:13px;}
+.btn-google{background:#fff;color:#333;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.btn-apple{background:#000;color:#fff;border:1px solid #333;}
+.btn-danger{background:var(--error);color:white;}
+
+/* Form Inputs */
+.input-group{display:flex;flex-direction:column;gap:6px;}
+.input-group label{font-size:13px;font-weight:600;color:var(--text-secondary);}
+.input-field{padding:14px 16px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text-primary);font-size:15px;font-family:var(--font);outline:none;transition:border-color 0.2s;}
+.input-field:focus{border-color:var(--accent);}
+.input-field::placeholder{color:var(--text-muted);}
+
+/* Status badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-draft{background:rgba(148,163,184,0.15);color:#94A3B8;}
+.badge-intake{background:var(--accent-faded);color:var(--accent);}
+.badge-payment{background:var(--warning-faded);color:var(--warning);}
+.badge-submitted{background:var(--blue-faded);color:var(--blue);}
+.badge-assigned{background:rgba(20,184,166,0.15);color:#14B8A6;}
+.badge-progress{background:var(--blue-faded);color:var(--blue);}
+.badge-report{background:var(--purple-faded);color:var(--purple);}
+.badge-completed{background:var(--success-faded);color:var(--success);}
+.badge-cancelled{background:var(--error-faded);color:var(--error);}
+
+/* Tab Bar */
+.tab-bar{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:8px 0 24px;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);z-index:100;}
+.tab-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px;cursor:pointer;transition:all 0.2s;opacity:0.5;}
+.tab-item.active{opacity:1;}
+.tab-item .tab-icon{font-size:22px;}
+.tab-item .tab-label{font-size:10px;font-weight:600;color:var(--text-secondary);}
+.tab-item.active .tab-label{color:var(--accent);}
+
+/* Chat */
+.chat-container{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;padding-bottom:80px;}
+.chat-msg{max-width:80%;padding:14px 18px;border-radius:22px;font-size:14px;line-height:1.55;word-wrap:break-word;overflow-wrap:break-word;hyphens:auto;}
+.chat-ai{align-self:flex-start;background:var(--bg-tertiary);border:1px solid var(--border);border-bottom-left-radius:6px;animation:slideInLeft 0.35s cubic-bezier(.22,1,.36,1);box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.chat-user{align-self:flex-end;background:linear-gradient(135deg,var(--accent-dark),var(--accent));color:var(--bg-primary);font-weight:500;border-bottom-right-radius:6px;animation:slideInRight 0.35s cubic-bezier(.22,1,.36,1);box-shadow:0 2px 12px var(--border);}
+.chat-section-badge{align-self:center;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;background:var(--accent-faded);color:var(--accent);border:1px solid var(--border);animation:bubbleIn 0.4s ease;}
+.chat-typing{align-self:flex-start;padding:14px 20px;border-radius:22px;background:var(--bg-tertiary);border:1px solid var(--border);display:flex;gap:4px;animation:bubbleIn 0.3s ease;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.chat-typing span{width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:typing-dot 1.4s infinite;}
+.chat-typing span:nth-child(2){animation-delay:0.2s;}
+.chat-typing span:nth-child(3){animation-delay:0.4s;}
+
+/* Card */
+.card{background:var(--bg-card);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:var(--radius-xl);padding:20px;transition:all 0.2s;}
+.card:hover{border-color:var(--border);}
+
+/* Stat Card */
+.stat-card{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-xl);padding:16px;display:flex;flex-direction:column;gap:8px;}
+.stat-card .stat-icon{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.stat-card .stat-value{font-size:24px;font-weight:800;color:var(--text-primary);}
+.stat-card .stat-label{font-size:11px;color:var(--text-muted);font-weight:600;}
+
+/* Guard Banners */
+.guard-banner{padding:12px 16px;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;animation:fadeIn 0.3s ease;}
+.guard-warning{background:rgba(245,158,11,0.15);color:var(--warning);border:1px solid rgba(245,158,11,0.3);}
+.guard-cooldown{background:rgba(249,115,22,0.15);color:#F97316;border:1px solid rgba(249,115,22,0.3);}
+.guard-terminated{background:var(--error-faded);color:var(--error);border:1px solid rgba(239,68,68,0.3);}
+.guard-emergency{background:var(--error-faded);border:2px solid var(--error);color:var(--error);padding:20px;border-radius:var(--radius-xl);}
+
+/* Emergency Overlay */
+.emergency-overlay{position:absolute;inset:0;top:18px;background:rgba(10,14,26,0.97);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;animation:fadeIn 0.3s ease;}
+</style>
+</head>
+<body>
+<div class="mockup-banner" id="watermark"><span class="mi" style="font-size:12px">warning</span> MOCKUP DEMO — NOT FOR PRODUCTION <span class="mi" style="font-size:12px">warning</span></div>
+<div class="iphone-outer">
+<div class="iphone-bezel">
+<div class="iphone-notch"></div>
+<div class="iphone-status"><span class="time">4:43 PM</span><span class="icons"><span class="mi" style="font-size:11px">signal_cellular_alt</span> <span class="mi" style="font-size:11px">wifi</span> <span class="mi" style="font-size:11px">battery_full</span></span></div>
+<div class="phone-frame" id="app">
+
+<!-- ═══════════════ SPLASH SCREEN ═══════════════ -->
+<div class="screen active" id="screen-splash" style="background:#060A14;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="skipSplash()">
+  <!-- Animated Gradient Orbs -->
+  <div style="position:absolute;inset:0;z-index:0;overflow:hidden;">
+    <div style="position:absolute;top:10%;left:15%;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,0.18),transparent 70%);animation:splashOrb1 6s ease-in-out infinite;filter:blur(40px);"></div>
+    <div style="position:absolute;bottom:15%;right:10%;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.15),transparent 70%);animation:splashOrb2 8s ease-in-out infinite;filter:blur(50px);"></div>
+    <div style="position:absolute;top:45%;left:55%;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(155,114,207,0.12),transparent 70%);animation:splashOrb3 7s ease-in-out infinite;filter:blur(35px);"></div>
+  </div>
+  <!-- Subtle grid pattern -->
+  <div style="position:absolute;inset:0;z-index:0;opacity:0.03;background-image:linear-gradient(rgba(255,255,255,0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px);background-size:40px 40px;"></div>
+  <!-- Video Background -->
+  <video autoplay loop muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;animation:splashVideoFade 2s ease 0.5s forwards;z-index:0;mix-blend-mode:screen;"><source src="assets/splash-bg.mp4" type="video/mp4"></video>
+  <!-- Dark overlay -->
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,10,20,0.3) 0%,rgba(6,10,20,0.5) 50%,rgba(6,10,20,0.7) 100%);z-index:1;"></div>
+
+  <!-- Pulse Rings behind logo -->
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);z-index:1;">
+    <div style="position:absolute;top:50%;left:50%;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;border:1px solid rgba(45,212,191,0.15);animation:splashRing 3s ease-out infinite;"></div>
+    <div style="position:absolute;top:50%;left:50%;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;border:1px solid rgba(45,212,191,0.1);animation:splashRing 3s ease-out 1s infinite;"></div>
+    <div style="position:absolute;top:50%;left:50%;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;border:1px solid rgba(45,212,191,0.08);animation:splashRing 3s ease-out 2s infinite;"></div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;">
+    <!-- Logo with glow -->
+    <div style="position:relative;animation:splashLogo 1.2s cubic-bezier(0.34,1.56,0.64,1) forwards;">
+      <div style="position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,0.2),transparent 65%);animation:splashHeartbeat 4s ease-in-out 1.5s infinite;"></div>
+      <img src="assets/logo.png" alt="Cliniq.One" style="width:140px;height:140px;position:relative;filter:drop-shadow(0 0 40px rgba(45,212,191,0.35)) drop-shadow(0 0 80px rgba(45,212,191,0.15));">
+    </div>
+
+    <!-- App name with shimmer -->
+    <div style="margin-top:24px;opacity:0;animation:fadeIn 0.8s ease 0.6s forwards;">
+      <h1 style="font-size:28px;font-weight:900;letter-spacing:2px;background:linear-gradient(135deg,rgba(255,255,255,0.95),rgba(45,212,191,0.9),rgba(255,255,255,0.95));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:splashShimmer 4s linear 1.2s infinite;">cliniq.one</h1>
+    </div>
+
+    <!-- Portal badge -->
+    <div style="margin-top:16px;display:inline-flex;align-items:center;gap:10px;padding:8px 24px;border-radius:24px;border:1px solid rgba(45,212,191,0.2);background:rgba(45,212,191,0.06);backdrop-filter:blur(10px);opacity:0;animation:splashBadgeFade 0.6s ease 1s forwards;">
+      <div style="width:6px;height:6px;border-radius:50%;background:rgba(45,212,191,0.7);box-shadow:0 0 8px rgba(45,212,191,0.5);"></div>
+      <span style="font-size:11px;font-weight:700;color:rgba(45,212,191,0.85);letter-spacing:5px;text-transform:uppercase;" data-en="PATIENT PORTAL" data-ar="بوابة المريض">PATIENT PORTAL</span>
+      <div style="width:6px;height:6px;border-radius:50%;background:rgba(45,212,191,0.7);box-shadow:0 0 8px rgba(45,212,191,0.5);"></div>
+    </div>
+
+    <!-- Tagline -->
+    <p style="margin-top:12px;font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:1px;font-weight:400;opacity:0;animation:fadeIn 0.6s ease 1.4s forwards;" data-en="AI-Powered Telemedicine" data-ar="الطب عن بُعد بالذكاء الاصطناعي">AI-Powered Telemedicine</p>
+  </div>
+
+  <!-- Floating particles -->
+  <div style="position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;">
+    <div style="position:absolute;top:25%;left:20%;width:3px;height:3px;border-radius:50%;background:rgba(45,212,191,0.5);animation:splashParticle 4s ease-in-out 0.5s infinite;"></div>
+    <div style="position:absolute;top:60%;left:75%;width:2px;height:2px;border-radius:50%;background:rgba(59,130,246,0.5);animation:splashParticle 5s ease-in-out 1.2s infinite;"></div>
+    <div style="position:absolute;top:40%;left:85%;width:3px;height:3px;border-radius:50%;background:rgba(155,114,207,0.4);animation:splashParticle 4.5s ease-in-out 2s infinite;"></div>
+    <div style="position:absolute;top:70%;left:30%;width:2px;height:2px;border-radius:50%;background:rgba(45,212,191,0.4);animation:splashParticle 5.5s ease-in-out 0.8s infinite;"></div>
+    <div style="position:absolute;top:15%;left:60%;width:2px;height:2px;border-radius:50%;background:rgba(255,255,255,0.3);animation:splashParticle 4s ease-in-out 1.8s infinite;"></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div style="position:absolute;bottom:110px;left:50%;transform:translateX(-50%);z-index:2;width:120px;">
+    <div style="height:2px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;animation:splashProgressGlow 2s ease infinite;">
+      <div id="splash-progress" style="height:100%;width:0%;background:linear-gradient(90deg,rgba(45,212,191,0.6),rgba(59,130,246,0.6));border-radius:2px;transition:width 0.1s linear;"></div>
+    </div>
+  </div>
+
+  <!-- Crafted by -->
+  <div style="position:absolute;bottom:70px;text-align:center;z-index:2;opacity:0;animation:fadeIn 0.6s ease 1.8s forwards;">
+    <div style="width:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);margin:0 auto 8px;"></div>
+    <p style="font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:3px;text-transform:uppercase;font-weight:300;">Crafted by</p>
+    <p style="font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:4px;text-transform:uppercase;font-weight:500;margin-top:2px;">momen pharaon</p>
+  </div>
+  <!-- Skip hint -->
+  <div style="position:absolute;bottom:42px;z-index:2;opacity:0;animation:fadeIn 0.5s ease 2.2s forwards;">
+    <p style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:1px;cursor:pointer;display:flex;align-items:center;gap:6px;" data-en="Tap anywhere to skip" data-ar="اضغط في أي مكان للتخطي"><span class="mi" style="font-size:14px;color:rgba(45,212,191,0.4);">touch_app</span> Tap anywhere to skip</p>
+  </div>
+</div>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div class="screen" id="screen-login">
+  <div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:center;background:radial-gradient(ellipse at 50% 20%,rgba(45,212,191,0.06),transparent 60%);">
+    <div style="text-align:center;margin-bottom:40px;">
+      <img src="assets/title-logo.png" alt="Cliniq.One" style="width:180px;height:auto;margin:0 auto 16px;display:block;">
+      <h1 style="font-size:26px;font-weight:800;" data-en="Welcome Back" data-ar="مرحباً بعودتك">Welcome Back</h1>
+      <p style="color:var(--text-muted);font-size:14px;margin-top:4px;" data-en="Sign in to your patient account" data-ar="سجّل دخولك لحساب المريض">Sign in to your patient account</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="input-group">
+        <label data-en="Email" data-ar="البريد الإلكتروني">Email</label>
+        <input type="email" class="input-field" value="ahmed.k@email.com" placeholder="Enter your email">
+      </div>
+      <div class="input-group">
+        <label data-en="Password" data-ar="كلمة المرور">Password</label>
+        <div style="position:relative;">
+          <input type="password" class="input-field" value="••••••••" style="width:100%;padding-right:48px;">
+          <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-muted);"><span class="mi">visibility</span></span>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <a href="#" style="color:var(--accent);font-size:13px;text-decoration:none;font-weight:600;" data-en="Forgot Password?" data-ar="نسيت كلمة المرور؟" onclick="showScreen('screen-forgot-password')">Forgot Password?</a>
+      </div>
+      <button class="btn btn-primary" onclick="showScreen('screen-home')" data-en="Sign In" data-ar="تسجيل الدخول">Sign In</button>
+      <div style="display:flex;align-items:center;gap:12px;margin:8px 0;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="color:var(--text-muted);font-size:12px;" data-en="or continue with" data-ar="أو تابع عبر">or continue with</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <button class="btn btn-google" onclick="showScreen('screen-home')">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        <span data-en="Continue with Google" data-ar="المتابعة عبر جوجل">Continue with Google</span>
+      </button>
+      <button class="btn btn-apple" onclick="showScreen('screen-home')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        <span data-en="Continue with Apple" data-ar="المتابعة عبر أبل">Continue with Apple</span>
+      </button>
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted);" data-en="Don't have an account?" data-ar="ليس لديك حساب؟">Don't have an account? <a href="#" style="color:var(--accent);font-weight:700;text-decoration:none;" onclick="showScreen('screen-signup')" data-en="Sign Up" data-ar="إنشاء حساب">Sign Up</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SIGN UP SCREEN ═══════════════ -->
+<div class="screen" id="screen-signup">
+  <div style="padding:24px;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <button onclick="showScreen('screen-login')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;" class="flip-rtl">←</button>
+      <h1 style="font-size:22px;font-weight:800;" data-en="Create Account" data-ar="إنشاء حساب">Create Account</h1>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;">
+      <div class="input-group"><label data-en="Nickname" data-ar="الاسم المستعار">Nickname</label><input class="input-field" value="Ahmed K." placeholder="Your display name"></div>
+      <div class="input-group"><label data-en="Email" data-ar="البريد الإلكتروني">Email</label><input class="input-field" type="email" value="ahmed.k@email.com"></div>
+      <div class="input-group"><label data-en="Phone" data-ar="الهاتف">Phone</label><input class="input-field" type="tel" value="+966 5XX XXX XXX"></div>
+      <div class="input-group"><label data-en="Password" data-ar="كلمة المرور">Password</label><input class="input-field" type="password" value="••••••••"></div>
+      <div class="input-group"><label data-en="Confirm Password" data-ar="تأكيد كلمة المرور">Confirm Password</label><input class="input-field" type="password" value="••••••••"></div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md);margin-top:4px;">
+        <input type="checkbox" checked style="margin-top:3px;accent-color:var(--accent);">
+        <span style="font-size:12px;color:var(--text-secondary);line-height:1.4;" data-en="I agree to the Terms of Service, Privacy Policy, and AI Disclosure" data-ar="أوافق على شروط الخدمة وسياسة الخصوصية والإفصاح عن الذكاء الاصطناعي">I agree to the Terms of Service, Privacy Policy, and AI Disclosure</span>
+      </div>
+      <button class="btn btn-primary" onclick="showScreen('screen-onboarding')" style="margin-top:8px;" data-en="Create Account" data-ar="إنشاء حساب">Create Account</button>
+      <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px;"><span class="mi">redeem</span> <span data-en="100 free tokens on signup!" data-ar="١٠٠ وحدة رصيد مجانية عند التسجيل!">100 free tokens on signup!</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ FORGOT PASSWORD ═══════════════ -->
+<div class="screen" id="screen-forgot-password">
+  <div style="padding:24px;display:flex;flex-direction:column;justify-content:center;flex:1;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;">
+      <button onclick="showScreen('screen-login')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;" class="flip-rtl">←</button>
+      <h1 style="font-size:22px;font-weight:800;" data-en="Reset Password" data-ar="إعادة تعيين كلمة المرور">Reset Password</h1>
+    </div>
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-size:48px;margin-bottom:12px;"><span class="mi">lock</span></div>
+      <p style="color:var(--text-secondary);font-size:14px;" data-en="Enter your email and we'll send you a password reset link" data-ar="أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور">Enter your email and we'll send you a password reset link</p>
+    </div>
+    <div class="input-group" style="margin-bottom:20px;">
+      <label data-en="Email" data-ar="البريد الإلكتروني">Email</label>
+      <input class="input-field" type="email" value="ahmed.k@email.com">
+    </div>
+    <button class="btn btn-primary" onclick="showScreen('screen-login')" data-en="Send Reset Link" data-ar="إرسال رابط الإعادة">Send Reset Link</button>
+  </div>
+</div>
+
+<!-- ═══════════════ ONBOARDING ═══════════════ -->
+<div class="screen" id="screen-onboarding" style="background:var(--bg-primary);">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
+    <div id="onboarding-slides" style="width:100%;">
+      <div class="ob-slide active" data-slide="0">
+        <div style="width:140px;height:140px;margin:0 auto 32px;border-radius:50%;background:var(--accent-faded);display:flex;align-items:center;justify-content:center;border:2px solid var(--border);">
+          <span style="font-size:64px;"><span class="mi">smart_toy</span></span>
+        </div>
+        <h2 style="font-size:24px;font-weight:800;margin-bottom:12px;" data-en="AI Medical Intake" data-ar="استقبال طبي بالذكاء الاصطناعي">AI Medical Intake</h2>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;max-width:300px;margin:0 auto;" data-en="Our AI assistant conducts a thorough medical interview to understand your symptoms" data-ar="مساعدنا الذكي يُجري مقابلة طبية شاملة لفهم أعراضك">Our AI assistant conducts a thorough medical interview to understand your symptoms</p>
+      </div>
+      <div class="ob-slide" data-slide="1" style="display:none;">
+        <div style="width:140px;height:140px;margin:0 auto 32px;border-radius:50%;background:var(--purple-faded);display:flex;align-items:center;justify-content:center;border:2px solid rgba(155,114,207,0.2);">
+          <span style="font-size:64px;"><span class="mi">medical_services</span></span>
+        </div>
+        <h2 style="font-size:24px;font-weight:800;margin-bottom:12px;" data-en="Licensed Doctors" data-ar="أطباء مرخّصون">Licensed Doctors</h2>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;max-width:300px;margin:0 auto;" data-en="Board-certified physicians review your case and provide professional medical advice" data-ar="أطباء معتمدون يراجعون حالتك ويقدمون استشارات طبية مهنية">Board-certified physicians review your case and provide professional medical advice</p>
+      </div>
+      <div class="ob-slide" data-slide="2" style="display:none;">
+        <div style="width:140px;height:140px;margin:0 auto 32px;border-radius:50%;background:var(--success-faded);display:flex;align-items:center;justify-content:center;border:2px solid rgba(34,197,94,0.2);">
+          <span style="font-size:64px;"><span class="mi">assignment</span></span>
+        </div>
+        <h2 style="font-size:24px;font-weight:800;margin-bottom:12px;" data-en="Easy Tracking" data-ar="متابعة سهلة">Easy Tracking</h2>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;max-width:300px;margin:0 auto;" data-en="Track your consultations, prescriptions, and follow-ups all in one place" data-ar="تابع استشاراتك ووصفاتك والمتابعات في مكان واحد">Track your consultations, prescriptions, and follow-ups all in one place</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin:40px 0 32px;" id="onboarding-dots">
+      <div class="ob-dot active" style="width:24px;height:8px;border-radius:4px;background:var(--accent);transition:all 0.3s;"></div>
+      <div class="ob-dot" style="width:8px;height:8px;border-radius:4px;background:var(--text-muted);transition:all 0.3s;"></div>
+      <div class="ob-dot" style="width:8px;height:8px;border-radius:4px;background:var(--text-muted);transition:all 0.3s;"></div>
+    </div>
+    <button class="btn btn-primary" id="ob-next-btn" style="width:100%;max-width:300px;" onclick="nextOnboarding()" data-en="Next" data-ar="التالي">Next</button>
+    <button class="btn btn-ghost" onclick="showScreen('screen-home')" style="margin-top:8px;" data-en="Skip" data-ar="تخطي">Skip</button>
+  </div>
+</div>
+
+<!-- ═══════════════ HOME (Tab Container) ═══════════════ -->
+<div class="screen" id="screen-home">
+<!-- Header -->
+<div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+<div><p style="font-size:13px;color:var(--text-muted);" data-en="Good afternoon" data-ar="مساء الخير">Good afternoon</p><h2 style="font-size:22px;font-weight:800;" data-en="Hello, Ahmed" data-ar="مرحباً، أحمد">Hello, Ahmed</h2></div>
+<button id="lang-toggle" onclick="toggleLang()" style="background:var(--bg-tertiary);border:1px solid var(--border);width:42px;height:42px;border-radius:12px;font-size:20px;cursor:pointer;">AR</button>
+</div>
+
+<!-- Tab Content Area -->
+<div style="flex:1;overflow-y:auto;padding-bottom:72px;">
+
+<!-- ── HOME TAB ── -->
+<div class="tab-screen" id="tab-home" style="display:flex;flex-direction:column;padding:16px 20px;gap:16px;">
+<!-- Active Consultation Banner -->
+<div onclick="showScreen('screen-waiting')" style="background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.3);border-radius:var(--radius-xl);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">
+<div style="width:10px;height:10px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite;"></div>
+<div style="flex:1;"><p style="font-size:13px;font-weight:700;color:var(--blue);" data-en="Active Consultation" data-ar="استشارة نشطة">Active Consultation</p><p style="font-size:11px;color:var(--text-muted);" data-en="Assigned to Dr. Al-Rashid" data-ar="تم تعيينها للدكتورة الراشد">Assigned to Dr. Al-Rashid</p></div>
+<span style="color:var(--blue);font-size:18px;" class="flip-rtl">→</span>
+</div>
+<!-- Token Balance -->
+<div class="glass-premium" style="border-radius:var(--radius-2xl);padding:20px;display:flex;align-items:center;justify-content:space-between;animation:pulse-glow 3s infinite;">
+<div><p style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;" data-en="Token Balance" data-ar="رصيد وحدات الرصيد">Token Balance</p><p style="font-size:42px;font-weight:900;color:var(--accent);line-height:1;">47</p></div>
+<button onclick="switchTab('wallet')" style="background:var(--accent-faded);border:1px solid var(--border);color:var(--accent);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);" data-en="Buy Tokens" data-ar="شراء وحدات رصيد">Buy Tokens</button>
+</div>
+<!-- Start Consultation CTA -->
+<div onclick="showScreen('screen-ai-chat')" style="background:linear-gradient(135deg,var(--accent),var(--accent-dark));border-radius:var(--radius-xl);padding:20px;cursor:pointer;display:flex;align-items:center;gap:16px;box-shadow:0 8px 32px var(--border);">
+<span style="font-size:36px;"><span class="mi">stethoscope</span></span>
+<div><p style="font-size:16px;font-weight:800;color:var(--bg-primary);" data-en="Start New Consultation" data-ar="بدء استشارة جديدة">Start New Consultation</p><p style="font-size:12px;color:rgba(10,14,26,0.7);" data-en="AI Medical Interview • 3 Tokens" data-ar="مقابلة طبية ذكية • ٣ وحدات رصيد">AI Medical Interview • 3 Tokens</p></div>
+</div>
+<!-- Quick Actions -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+<div onclick="showScreen('screen-ai-chat')" class="card" style="text-align:center;padding:14px 8px;cursor:pointer;"><span style="font-size:24px;"><span class="mi">chat</span></span><p style="font-size:11px;font-weight:600;margin-top:6px;color:var(--text-secondary);" data-en="New Consult" data-ar="استشارة جديدة">New Consult</p></div>
+<div onclick="switchTab('consultations')" class="card" style="text-align:center;padding:14px 8px;cursor:pointer;"><span style="font-size:24px;"><span class="mi">assignment</span></span><p style="font-size:11px;font-weight:600;margin-top:6px;color:var(--text-secondary);" data-en="History" data-ar="السجل">History</p></div>
+<div onclick="showScreen('screen-interventions')" class="card" style="text-align:center;padding:14px 8px;cursor:pointer;"><span style="font-size:24px;"><span class="mi">science</span></span><p style="font-size:11px;font-weight:600;margin-top:6px;color:var(--text-secondary);" data-en="My Tests" data-ar="فحوصاتي">My Tests</p></div>
+</div>
+<!-- Recent Consultations -->
+<div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="font-size:15px;font-weight:700;" data-en="Recent Consultations" data-ar="الاستشارات الأخيرة">Recent Consultations</h3><a href="#" onclick="switchTab('consultations')" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600;" data-en="View All" data-ar="عرض الكل">View All</a></div>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div onclick="showScreen('screen-consultation-detail')" class="card" style="padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;"><span style="font-size:20px;"><span class="mi">assignment</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;" data-en="Skin rash on arms" data-ar="طفح جلدي على الذراعين">Skin rash on arms</p><p style="font-size:11px;color:var(--text-muted);">Mar 28, 2026</p></div><span class="badge badge-report"><span class="mi">assignment</span> Report Ready</span></div>
+<div class="card" style="padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;"><span style="font-size:20px;"><span class="mi">check_circle</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;" data-en="Recurring headaches" data-ar="صداع متكرر">Recurring headaches</p><p style="font-size:11px;color:var(--text-muted);">Mar 20, 2026</p></div><span class="badge badge-completed"><span class="mi">check_circle</span> Completed</span></div>
+<div class="card" style="padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;"><span style="font-size:20px;"><span class="mi">check_circle</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;" data-en="Annual checkup follow-up" data-ar="متابعة فحص سنوي">Annual checkup follow-up</p><p style="font-size:11px;color:var(--text-muted);">Mar 12, 2026</p></div><span class="badge badge-completed"><span class="mi">check_circle</span> Completed</span></div>
+</div></div>
+<div><h3 style="font-size:15px;font-weight:700;margin-bottom:10px;" data-en="Health Tips" data-ar="نصائح صحية">Health Tips</h3>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+<div style="padding:16px;border-radius:var(--radius-xl);background:var(--blue-faded);border:1px solid rgba(59,130,246,0.2);text-align:center;"><span style="font-size:28px;"><span class="mi">water_drop</span></span><p style="font-size:12px;font-weight:600;margin-top:6px;color:var(--blue);" data-en="Stay Hydrated" data-ar="اشرب الماء">Stay Hydrated</p></div>
+<div style="padding:16px;border-radius:var(--radius-xl);background:var(--success-faded);border:1px solid rgba(34,197,94,0.2);text-align:center;"><span style="font-size:28px;"><span class="mi">directions_walk</span></span><p style="font-size:12px;font-weight:600;margin-top:6px;color:var(--success);" data-en="Stay Active" data-ar="كن نشيطاً">Stay Active</p></div>
+<div style="padding:16px;border-radius:var(--radius-xl);background:var(--purple-faded);border:1px solid rgba(155,114,207,0.2);text-align:center;"><span style="font-size:28px;"><span class="mi">bedtime</span></span><p style="font-size:12px;font-weight:600;margin-top:6px;color:var(--purple);" data-en="Sleep Well" data-ar="نم جيداً">Sleep Well</p></div>
+</div></div>
+<!-- Quick Info -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="stat-card"><div class="stat-icon" style="background:var(--blue-faded);"><span class="mi">timer</span></div><div class="stat-value" style="font-size:18px;" data-en="~2 hrs" data-ar="~٢ ساعة">~2 hrs</div><div class="stat-label" data-en="Avg Response" data-ar="متوسط الاستجابة">Avg Response</div></div>
+<div class="stat-card"><div class="stat-icon" style="background:var(--accent-faded);"><span class="mi">payments</span></div><div class="stat-value" style="font-size:18px;" data-en="3 tokens" data-ar="٣ وحدات رصيد">3 tokens</div><div class="stat-label" data-en="Per Consultation" data-ar="لكل استشارة">Per Consultation</div></div>
+</div>
+</div>
+
+<!-- ── CONSULTATIONS TAB ── -->
+<div class="tab-screen" id="tab-consultations" style="display:none;flex-direction:column;padding:16px 20px;gap:10px;">
+<h3 style="font-size:18px;font-weight:800;margin-bottom:4px;" data-en="My Consultations" data-ar="استشاراتي">My Consultations</h3>
+<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;">
+<button style="padding:6px 14px;border-radius:20px;border:1px solid var(--accent);background:var(--accent-faded);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);">All</button>
+<button style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font);">Active</button>
+<button style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font);">Completed</button>
+</div>
+<div onclick="showScreen('screen-ai-chat')" class="card" style="padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;"><div style="flex:1;"><p style="font-size:14px;font-weight:600;">Persistent cough</p><p style="font-size:11px;color:var(--text-muted);">Mar 29 — Family Medicine</p></div><span class="badge badge-intake"><span class="mi">smart_toy</span> AI Intake</span></div>
+<div onclick="showScreen('screen-waiting')" class="card" style="padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;"><div style="flex:1;"><p style="font-size:14px;font-weight:600;">Lower back pain</p><p style="font-size:11px;color:var(--text-muted);">Mar 29 — Dr. Hassan</p></div><span class="badge badge-assigned"><span class="mi">medical_services</span> Assigned</span></div>
+<div onclick="showScreen('screen-consultation-detail')" class="card" style="padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;"><div style="flex:1;"><p style="font-size:14px;font-weight:600;" data-en="Skin rash on arms" data-ar="طفح جلدي على الذراعين">Skin rash on arms</p><p style="font-size:11px;color:var(--text-muted);">Mar 28 — Dr. Al-Rashid</p></div><span class="badge badge-report"><span class="mi">assignment</span> Report</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;"><div style="flex:1;"><p style="font-size:14px;font-weight:600;">Recurring headaches</p><p style="font-size:11px;color:var(--text-muted);">Mar 20 — Dr. Hassan</p></div><span class="badge badge-completed"><span class="mi">check_circle</span> Done</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;"><div style="flex:1;"><p style="font-size:14px;font-weight:600;">Annual checkup</p><p style="font-size:11px;color:var(--text-muted);">Mar 12 — Dr. Al-Rashid</p></div><span class="badge badge-completed"><span class="mi">check_circle</span> Done</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;opacity:0.6;"><div style="flex:1;"><p style="font-size:14px;font-weight:600;">Stomach pain (cancelled)</p><p style="font-size:11px;color:var(--text-muted);">Feb 28</p></div><span class="badge badge-cancelled"><span class="mi">cancel</span> Cancelled</span></div>
+</div>
+
+<!-- ── WALLET TAB ── -->
+<div class="tab-screen" id="tab-wallet" style="display:none;flex-direction:column;padding:16px 20px;gap:16px;">
+<div class="glass-premium" style="border-radius:var(--radius-2xl);padding:24px;text-align:center;animation:pulse-glow 3s infinite;">
+<p style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;" data-en="Available Balance" data-ar="الرصيد المتاح">Available Balance</p>
+<p style="font-size:52px;font-weight:900;color:var(--accent);line-height:1;margin:8px 0;">47</p>
+<p style="font-size:13px;color:var(--text-secondary);" data-en="tokens" data-ar="وحدة رصيد">tokens</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+<div class="stat-card" style="text-align:center;padding:12px;"><p style="font-size:18px;font-weight:800;color:var(--error);">9</p><p style="font-size:10px;color:var(--text-muted);" data-en="Spent" data-ar="مُنفق">Spent</p></div>
+<div class="stat-card" style="text-align:center;padding:12px;"><p style="font-size:18px;font-weight:800;color:var(--success);">100</p><p style="font-size:10px;color:var(--text-muted);" data-en="Earned" data-ar="مُكتسب">Earned</p></div>
+<div class="stat-card" style="text-align:center;padding:12px;"><p style="font-size:18px;font-weight:800;color:var(--blue);">0</p><p style="font-size:10px;color:var(--text-muted);" data-en="Purchased" data-ar="مُشترى">Purchased</p></div>
+</div>
+<h3 style="font-size:15px;font-weight:700;" data-en="Token Packages" data-ar="باقات وحدات الرصيد">Token Packages</h3>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+<div class="card" style="text-align:center;padding:16px 8px;"><p style="font-size:11px;color:var(--text-muted);font-weight:600;">Basic</p><p style="font-size:28px;font-weight:900;color:var(--accent);margin:4px 0;">3</p><p style="font-size:10px;color:var(--text-muted);">tokens</p><p style="font-size:13px;font-weight:700;margin-top:8px;">$9.99</p><p style="font-size:10px;color:var(--text-muted);">37.49 SAR</p></div>
+<div class="card" style="text-align:center;padding:16px 8px;border:2px solid var(--accent);position:relative;"><div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg-primary);padding:2px 10px;border-radius:10px;font-size:9px;font-weight:800;">POPULAR</div><p style="font-size:11px;color:var(--text-muted);font-weight:600;">Standard</p><p style="font-size:28px;font-weight:900;color:var(--accent);margin:4px 0;">7</p><p style="font-size:10px;color:var(--text-muted);">tokens</p><p style="font-size:13px;font-weight:700;margin-top:8px;">$19.99</p><p style="font-size:10px;color:var(--text-muted);">74.99 SAR</p></div>
+<div class="card" style="text-align:center;padding:16px 8px;"><p style="font-size:11px;color:var(--text-muted);font-weight:600;">Premium</p><p style="font-size:28px;font-weight:900;color:var(--accent);margin:4px 0;">15</p><p style="font-size:10px;color:var(--text-muted);">tokens</p><p style="font-size:13px;font-weight:700;margin-top:8px;">$39.99</p><p style="font-size:10px;color:var(--text-muted);">149.99 SAR</p></div>
+</div>
+<h3 style="font-size:15px;font-weight:700;" data-en="Transaction History" data-ar="سجل المعاملات">Transaction History</h3>
+<div style="display:flex;flex-direction:column;gap:6px;">
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">vpn_key</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Welcome Bonus</p><p style="font-size:11px;color:var(--text-muted);">Mar 10, 2026</p></div><span style="color:var(--success);font-weight:800;">+100</span></div>
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">stethoscope</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Consultation — Headaches</p><p style="font-size:11px;color:var(--text-muted);">Mar 20, 2026</p></div><span style="color:var(--error);font-weight:800;">-3</span></div>
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">stethoscope</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Consultation — Skin rash</p><p style="font-size:11px;color:var(--text-muted);">Mar 28, 2026</p></div><span style="color:var(--error);font-weight:800;">-3</span></div>
+<div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;"><span><span class="mi">stethoscope</span></span><div style="flex:1;"><p style="font-size:13px;font-weight:600;">Follow-up — Checkup</p><p style="font-size:11px;color:var(--text-muted);">Mar 12, 2026</p></div><span style="color:var(--error);font-weight:800;">-1</span></div>
+</div>
+</div>
+
+<!-- ── PROFILE TAB ── -->
+<div class="tab-screen" id="tab-profile" style="display:none;flex-direction:column;padding:16px 20px;gap:16px;">
+<div style="text-align:center;padding:20px 0;">
+<div style="width:80px;height:80px;margin:0 auto 12px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-dark));display:flex;align-items:center;justify-content:center;font-size:32px;border:3px solid var(--border);">A</div>
+<h3 style="font-size:20px;font-weight:800;">Ahmed K.</h3>
+<p style="font-size:13px;color:var(--text-muted);">ahmed.k@email.com</p>
+<p style="font-size:12px;color:var(--text-muted);">+966 5XX XXX XXX</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:2px;">
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">person</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Edit Profile" data-ar="تعديل الملف">Edit Profile</span><span style="color:var(--text-muted);" class="flip-rtl">→</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;" onclick="toggleLang()"><span><span class="mi">language</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Language" data-ar="اللغة">Language</span><span style="color:var(--accent);font-size:12px;font-weight:600;" data-en="English" data-ar="العربية">English</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">lock</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Security" data-ar="الأمان">Security</span><span style="color:var(--text-muted);" class="flip-rtl">→</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">local_hospital</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Insurance" data-ar="التأمين">Insurance</span><span style="color:var(--text-muted);font-size:12px;">Bupa Arabia</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">notifications</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Notifications" data-ar="الإشعارات">Notifications</span><span style="color:var(--text-muted);" class="flip-rtl">→</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">check_circle</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Verify Identity (KYC)" data-ar="التحقق من الهوية">Verify Identity (KYC)</span><span style="color:var(--success);font-size:12px;font-weight:600;" data-en="Approved" data-ar="مُعتمد">Approved</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">help</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Help & FAQ" data-ar="المساعدة">Help & FAQ</span><span style="color:var(--text-muted);" class="flip-rtl">→</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span><span class="mi">description</span></span><span style="flex:1;font-size:14px;font-weight:500;" data-en="Privacy & Terms" data-ar="الخصوصية والشروط">Privacy & Terms</span><span style="color:var(--text-muted);" class="flip-rtl">→</span></div>
+<div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);cursor:pointer;"><span style="color:var(--error);"><span class="mi">delete</span></span><span style="flex:1;font-size:14px;font-weight:500;color:var(--error);" data-en="Delete Account" data-ar="حذف الحساب">Delete Account</span></div>
+</div>
+<button class="btn btn-outline" style="margin-top:8px;" onclick="showScreen('screen-login')" data-en="Sign Out" data-ar="تسجيل الخروج">Sign Out</button>
+</div>
+</div><!-- end tab content area -->
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+<div class="tab-item active" data-tab="home" onclick="switchTab('home')"><span class="tab-icon"><span class="mi">home</span></span><span class="tab-label" data-en="Home" data-ar="الرئيسية">Home</span></div>
+<div class="tab-item" data-tab="consultations" onclick="switchTab('consultations')"><span class="tab-icon"><span class="mi">assignment</span></span><span class="tab-label" data-en="Consults" data-ar="الاستشارات">Consults</span></div>
+<div class="tab-item" data-tab="wallet" onclick="switchTab('wallet')"><span class="tab-icon"><span class="mi">payments</span></span><span class="tab-label" data-en="Wallet" data-ar="المحفظة">Wallet</span></div>
+<div class="tab-item" data-tab="profile" onclick="switchTab('profile')"><span class="tab-icon"><span class="mi">person</span></span><span class="tab-label" data-en="Profile" data-ar="الملف">Profile</span></div>
+</div>
+</div><!-- end screen-home -->
+
+<!-- ═══════════════ AI CHAT ═══════════════ -->
+<div class="screen" id="screen-ai-chat" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-home')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="AI Medical Interview" data-ar="المقابلة الطبية الذكية">AI Medical Interview</p><p style="font-size:11px;color:var(--accent);" data-en="Dermatology Pathway" data-ar="مسار الجلدية">Dermatology Pathway</p></div>
+<div style="display:flex;gap:6px;">
+<button onclick="showGuardDemo('emergency')" style="background:var(--error-faded);border:1px solid rgba(239,68,68,0.3);color:var(--error);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);"><span class="mi">emergency</span></button>
+<button onclick="showGuardDemo('gibberish')" style="background:var(--warning-faded);border:1px solid rgba(245,158,11,0.3);color:var(--warning);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);"><span class="mi">smart_toy</span></button>
+</div>
+</div>
+<div class="chat-container" id="chat-messages">
+<div class="chat-section-badge"><span class="mi" style="font-size:inherit">waving_hand</span> Greeting</div>
+<div class="chat-msg chat-ai" data-en="Hello! I'm your AI medical assistant at cliniq.one. I'll be conducting your medical interview today. Everything you share is confidential. What brings you in today?" data-ar="مرحباً! أنا مساعدك الطبي الذكي في cliniq.one. سأجري مقابلتك الطبية اليوم. كل ما تشاركه سري. ما الذي يزعجك اليوم؟">Hello! I'm your AI medical assistant at cliniq.one. I'll be conducting your medical interview today. Everything you share is confidential. What brings you in today?</div>
+<div class="chat-msg chat-user" data-en="I have a rash on my arms for about 2 weeks now" data-ar="عندي طفح جلدي على ذراعي من حوالي أسبوعين">I have a rash on my arms for about 2 weeks now</div>
+<div class="chat-section-badge"><span class="mi">alt_route</span> Pathway Detected: Dermatology</div>
+<div class="chat-msg chat-ai" data-en="I understand you're dealing with a skin concern. I'll ask you detailed questions about your symptoms. Let's start with the details." data-ar="أفهم أنك تعاني من مشكلة جلدية. سأسألك أسئلة تفصيلية عن أعراضك. لنبدأ بالتفاصيل.">I understand you're dealing with a skin concern. I'll ask you detailed questions about your symptoms. Let's start with the details.</div>
+<div class="chat-section-badge"><span class="mi">assignment</span> HPI — History of Present Illness</div>
+<div class="chat-msg chat-ai" data-en="When exactly did you first notice the rash?" data-ar="متى لاحظت الطفح الجلدي لأول مرة؟">When exactly did you first notice the rash?</div>
+<div class="chat-msg chat-user" data-en="About 2 weeks ago" data-ar="قبل حوالي أسبوعين">About 2 weeks ago</div>
+<div class="chat-msg chat-ai" data-en="Does it itch, burn, or cause any pain?" data-ar="هل يسبب حكة أو حرقة أو ألم؟">Does it itch, burn, or cause any pain?</div>
+<div class="chat-msg chat-user" data-en="Yes it itches a lot especially at night" data-ar="نعم يسبب حكة كثيرة خصوصاً بالليل">Yes it itches a lot especially at night</div>
+<div class="chat-msg chat-ai" data-en="Has it spread to other areas or stayed in the same location?" data-ar="هل انتشر لمناطق أخرى أم بقي في نفس المكان؟">Has it spread to other areas or stayed in the same location?</div>
+<div class="chat-msg chat-user" data-en="It started on one arm and spread to both" data-ar="بدأ في ذراع واحد وانتشر للاثنين">It started on one arm and spread to both</div>
+<div class="chat-msg chat-ai" data-en="On a scale of 1-10, how severe is the itching?" data-ar="على مقياس من ١ إلى ١٠، ما مدى شدة الحكة؟">On a scale of 1-10, how severe is the itching?</div>
+<div class="chat-msg chat-user" data-en="About 7" data-ar="حوالي ٧">About 7</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE] — Moving to Past Medical History</div>
+<div class="chat-section-badge"><span class="mi">local_hospital</span> PMH — Past Medical History</div>
+<div class="chat-msg chat-ai" data-en="Do you have any chronic conditions like diabetes, asthma, eczema, or any previous skin conditions?" data-ar="هل لديك أي أمراض مزمنة مثل السكري أو الربو أو الأكزيما أو أي حالات جلدية سابقة؟">Do you have any chronic conditions like diabetes, asthma, eczema, or any previous skin conditions?</div>
+<div class="chat-msg chat-user" data-en="I had eczema as a child" data-ar="كان عندي أكزيما وأنا صغير">I had eczema as a child</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE]</div>
+<div class="chat-section-badge"><span class="mi">medication</span> Medications</div>
+<div class="chat-msg chat-ai" data-en="Are you currently taking any medications, supplements, or using any creams?" data-ar="هل تتناول أي أدوية أو مكملات حالياً أو تستخدم أي كريمات؟">Are you currently taking any medications, supplements, or using any creams?</div>
+<div class="chat-msg chat-user" data-en="Just Cetirizine for the itch" data-ar="فقط سيتريزين للحكة">Just Cetirizine for the itch</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE]</div>
+<div class="chat-msg chat-ai" data-en="You mentioned taking Cetirizine. For patient safety, I can verify your medication details — including dosage and drug interactions. Would you like to proceed with medication verification?" data-ar="ذكرت أنك تتناول سيتريزين. لسلامة المريض، يمكنني التحقق من تفاصيل أدويتك — بما في ذلك الجرعة والتفاعلات الدوائية. هل تريد المتابعة بالتحقق من الأدوية؟">You mentioned taking Cetirizine. For patient safety, I can verify your medication details — including dosage and drug interactions. Would you like to proceed with medication verification?</div>
+<div style="align-self:stretch;display:flex;gap:8px;padding:4px 0;animation:fadeInUp 0.4s ease;">
+<button onclick="showScreen('screen-med-verify')" class="btn btn-outline" style="flex:1;padding:10px;font-size:12px;"><span class="mi">medication</span> <span data-en="Verify Meds" data-ar="تحقق من الأدوية">Verify Meds</span></button>
+<button onclick="showScreen('screen-drug-label')" class="btn btn-ghost" style="flex:1;padding:10px;font-size:12px;"><span class="mi">photo_camera</span> <span data-en="Photo Label" data-ar="تصوير الملصق">Photo Label</span></button>
+</div>
+<div class="chat-section-badge"><span class="mi" style="font-size:inherit">warning</span> Allergies</div>
+<div class="chat-msg chat-ai" data-en="Do you have any known allergies to medications, foods, or environmental substances?" data-ar="هل لديك أي حساسية معروفة من الأدوية أو الأطعمة أو المواد البيئية؟">Do you have any known allergies to medications, foods, or environmental substances?</div>
+<div class="chat-msg chat-user" data-en="No allergies" data-ar="لا يوجد حساسية">No allergies</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE]</div>
+<div class="chat-section-badge"><span class="mi">family_restroom</span> Family History</div>
+<div class="chat-msg chat-ai" data-en="Does anyone in your family have skin conditions, eczema, psoriasis, or autoimmune diseases?" data-ar="هل يعاني أحد في عائلتك من أمراض جلدية أو أكزيما أو صدفية أو أمراض مناعة ذاتية؟">Does anyone in your family have skin conditions, eczema, psoriasis, or autoimmune diseases?</div>
+<div class="chat-msg chat-user" data-en="My mother has psoriasis" data-ar="أمي عندها صدفية">My mother has psoriasis</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE]</div>
+<div class="chat-section-badge"><span class="mi">public</span> Social History</div>
+<div class="chat-msg chat-ai" data-en="Do you smoke or have any occupational exposures? How would you describe your stress level?" data-ar="هل تدخن أو لديك تعرض مهني؟ كيف تصف مستوى التوتر لديك؟">Do you smoke or have any occupational exposures? How would you describe your stress level?</div>
+<div class="chat-msg chat-user" data-en="Non-smoker, some work stress" data-ar="لا أدخن، عندي بعض ضغط العمل">Non-smoker, some work stress</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE]</div>
+<div class="chat-section-badge"><span class="mi">search</span> Review of Systems</div>
+<div class="chat-msg chat-ai" data-en="Any recent fever, weight changes, joint pain, fatigue, or other symptoms?" data-ar="أي حمى حديثة أو تغيرات في الوزن أو آلام مفاصل أو إرهاق أو أعراض أخرى؟">Any recent fever, weight changes, joint pain, fatigue, or other symptoms?</div>
+<div class="chat-msg chat-user" data-en="No other symptoms" data-ar="لا توجد أعراض أخرى">No other symptoms</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ [SECTION_COMPLETE]</div>
+<div class="chat-section-badge"><span class="mi">photo_camera</span> Photo Capture (Dermatology)</div>
+<!-- Photo Offer (matches SkinPhotoCapture 'offer' step) -->
+<div class="chat-msg chat-ai" data-en="Would you like to add a photo of the affected area? A photo can help your doctor provide better care. This is completely optional." data-ar="هل تود إضافة صورة للمنطقة المتأثرة؟ قد تساعد صورة طبيبك على تقديم رعاية أفضل. هذه الخطوة اختيارية بالكامل.">Would you like to add a photo of the affected area? A photo can help your doctor provide better care. This is completely optional.</div>
+<div class="chat-msg chat-user" data-en="Yes, I'll add a photo" data-ar="نعم، سأضيف صورة">Yes, I'll add a photo</div>
+<!-- Legal Disclaimer / Photo Consent (matches SkinPhotoCapture 'consent' step) -->
+<div style="align-self:flex-start;max-width:92%;animation:fadeInUp 0.4s ease;">
+<div class="card" style="padding:14px;border:1px solid rgba(59,130,246,0.3);background:linear-gradient(135deg,rgba(59,130,246,0.06),rgba(45,212,191,0.04));">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+    <span class="mi" style="color:var(--blue);font-size:20px;">gavel</span>
+    <span style="font-size:14px;font-weight:800;" data-en="📋 Photo Consent" data-ar="📋 الموافقة على رفع الصور">📋 Photo Consent</span>
+  </div>
+  <p style="font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:10px;" data-en="Your doctor may benefit from seeing a photo of the affected area." data-ar="قد يساعد طبيبك الاطلاع على صورة للمنطقة المتأثرة.">Your doctor may benefit from seeing a photo of the affected area.</p>
+  <div style="font-size:11px;color:var(--text-secondary);line-height:1.8;margin-bottom:10px;">
+    <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span class="mi" style="color:var(--accent);font-size:14px;flex-shrink:0;">lock</span> <span data-en="Your photo being stored securely and shared only with your treating physician" data-ar="يتم حفظ صورتك بشكل آمن، ولا تتم مشاركتها إلا مع طبيبك المعالج">Your photo being stored securely and shared only with your treating physician</span></div>
+    <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span class="mi" style="color:var(--accent);font-size:14px;flex-shrink:0;">enhanced_encryption</span> <span data-en="Photos are encrypted and stored in compliance with healthcare privacy regulations" data-ar="الصور مشفّرة ومحفوظة بما يتوافق مع متطلبات خصوصية الرعاية الصحية">Photos are encrypted and stored in compliance with healthcare privacy regulations</span></div>
+    <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span class="mi" style="color:var(--accent);font-size:14px;flex-shrink:0;">delete_sweep</span> <span data-en="You can request deletion of your photos at any time" data-ar="يمكنك طلب حذف صورك في أي وقت">You can request deletion of your photos at any time</span></div>
+  </div>
+  <p style="font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:12px;" data-en="This is completely optional. You can skip this step." data-ar="هالخطوة اختيارية بالكامل، وتقدر تتخطاها.">This is completely optional. You can skip this step.</p>
+  <!-- Consent Checkbox (checked = agreed) -->
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid rgba(45,212,191,0.3);">
+    <div style="width:20px;height:20px;border-radius:4px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <span style="color:white;font-size:12px;font-weight:900;">✓</span>
+    </div>
+    <span style="font-size:12px;font-weight:600;color:var(--text-primary);" data-en="I understand and consent to photo storage" data-ar="أفهم وأوافق على حفظ الصور">I understand and consent to photo storage</span>
+  </div>
+  <!-- Photo Tips Accordion -->
+  <div style="margin-top:10px;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+    <p style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:6px;" data-en="📷 How to take a good medical photo:" data-ar="📷 طريقة تصوير صورة طبية واضحة:">📷 How to take a good medical photo:</p>
+    <div style="font-size:10px;color:var(--text-muted);line-height:1.7;">
+      <p data-en="1. Use good, natural lighting — avoid flash" data-ar="١. استخدم إضاءة كويسة وطبيعية — وتجنب الفلاش">1. Use good, natural lighting — avoid flash</p>
+      <p data-en="2. Hold phone 15–30 cm from the area" data-ar="٢. خلّ الجوال على بعد ١٥–٣٠ سم من المنطقة">2. Hold phone 15–30 cm from the area</p>
+      <p data-en="3. Place a coin next to the lesion for size reference" data-ar="٣. حط عملة معدنية جنب المنطقة عشان يوضح الحجم">3. Place a coin next to the lesion for size reference</p>
+      <p data-en="4. Take one close-up and one wider shot" data-ar="٤. خذ صورة قريبة، وصورة ثانية أبعد شوي">4. Take one close-up and one wider shot</p>
+      <p data-en="5. Photograph from directly above" data-ar="٥. صوّر من فوق بشكل مباشر">5. Photograph from directly above</p>
+      <p data-en="6. Make sure the image is in focus" data-ar="٦. تأكد إن الصورة واضحة ومركزة">6. Make sure the image is in focus</p>
+    </div>
+  </div>
+</div>
+</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ Consent granted — Camera ready</div>
+<div class="chat-msg chat-ai" data-en="Please take clear photos of the affected area on your arms. Good lighting helps!" data-ar="يرجى التقاط صور واضحة للمنطقة المصابة على ذراعيك. الإضاءة الجيدة تساعد!">Please take clear photos of the affected area on your arms. Good lighting helps!</div>
+<div style="align-self:flex-end;max-width:82%;display:flex;gap:6px;animation:fadeInUp 0.3s ease;">
+<div style="position:relative;">
+<img src="assets/skin-rash-closeup.png" alt="Close-up" style="width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid var(--border);">
+<div style="position:absolute;bottom:-6px;left:0;right:0;text-align:center;"><span style="font-size:8px;font-weight:700;background:var(--accent-faded);color:var(--accent);padding:2px 6px;border-radius:6px;border:1px solid var(--accent);">💪 Arms</span></div>
+</div>
+<div style="position:relative;">
+<img src="assets/skin-rash-wide.png" alt="Wide view" style="width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid var(--border);">
+<div style="position:absolute;bottom:-6px;left:0;right:0;text-align:center;"><span style="font-size:8px;font-weight:700;background:var(--accent-faded);color:var(--accent);padding:2px 6px;border-radius:6px;border:1px solid var(--accent);">💪 Arms</span></div>
+</div>
+</div>
+<div class="chat-msg chat-ai" style="color:var(--accent);font-size:12px;font-style:italic;">✓ 2 photos received — Generating summary</div>
+<div class="chat-section-badge"><span class="mi">edit_note</span> Clinical Summary</div>
+<div class="chat-msg chat-ai" style="background:var(--bg-elevated);border:1px solid var(--border);font-size:13px;line-height:1.7;" data-en="**Clinical Summary**&#10;&#10;• Chief Complaint: Bilateral arm rash, 2 weeks&#10;• HPI: Pruritic rash (7/10), worse at night, spreading from unilateral → bilateral&#10;• PMH: Childhood eczema&#10;• Medications: Cetirizine PO&#10;• Allergies: NKDA&#10;• Family Hx: Mother — psoriasis&#10;• Social Hx: Non-smoker, moderate work stress&#10;• ROS: Negative for systemic symptoms&#10;&#10;🏥 Recommended Specialty: Dermatology&#10;⚡ Priority: Standard" data-ar="**الملخص السريري**&#10;&#10;• الشكوى الرئيسية: طفح جلدي على الذراعين، أسبوعين&#10;• التاريخ المرضي: طفح حاك (٧/١٠)، يزداد ليلاً، انتشر من ذراع واحد للاثنين&#10;• التاريخ الطبي: أكزيما في الطفولة&#10;• الأدوية: سيتريزين&#10;• الحساسية: لا توجد&#10;• تاريخ العائلة: الأم — صدفية&#10;• التاريخ الاجتماعي: لا يدخن، ضغط عمل متوسط&#10;• مراجعة الأجهزة: سلبية&#10;&#10;🏥 التخصص الموصى: الجلدية&#10;⚡ الأولوية: عادية"><b>Clinical Summary</b><br><br>• Chief Complaint: Bilateral arm rash, 2 weeks<br>• HPI: Pruritic rash (7/10), worse at night, spreading<br>• PMH: Childhood eczema<br>• Medications: Cetirizine PO<br>• Allergies: NKDA<br>• Family Hx: Mother — psoriasis<br>• Social Hx: Non-smoker, moderate stress<br>• ROS: Negative<br><br><span class="mi">local_hospital</span> Recommended: Dermatology<br>⚡ Priority: Standard</div>
+<div class="chat-section-badge"><span class="mi">check_circle</span> Addendum & Confirmation</div>
+<div class="chat-msg chat-ai" data-en="Please review the summary above. Is there anything you'd like to add or correct?" data-ar="يرجى مراجعة الملخص أعلاه. هل هناك أي شيء تود إضافته أو تصحيحه؟">Please review the summary above. Is there anything you'd like to add or correct?</div>
+<div class="chat-msg chat-user" data-en="That looks correct" data-ar="هذا صحيح">That looks correct</div>
+<div class="chat-msg chat-ai" data-en="Thank you! Your intake is complete. ✓ [ADDENDUM_DONE] — 3 tokens will be deducted. Your case will be assigned to a dermatologist." data-ar="شكراً! تم إكمال الاستقبال. ✓ — سيتم خصم ٣ وحدات رصيد. سيتم تعيين حالتك لطبيب جلدية.">Thank you! Your intake is complete. <span class="mi">check_circle</span> [ADDENDUM_DONE] — 3 tokens will be deducted. Your case will be assigned to a dermatologist.</div>
+</div>
+<div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--bg-secondary);">
+<input class="input-field" style="flex:1;padding:10px 14px;" placeholder="Type your message..." data-placeholder-en="Type your message..." data-placeholder-ar="اكتب رسالتك...">
+<button class="btn btn-primary" style="padding:10px 16px;border-radius:var(--radius-md);">→</button>
+</div>
+</div>
+
+<!-- ═══════════════ MEDICATION VERIFICATION (FIG_53) ═══════════════ -->
+<div class="screen" id="screen-med-verify" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-ai-chat')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="Medication Verification" data-ar="التحقق من الأدوية">Medication Verification</p><p style="font-size:11px;color:var(--accent);" data-en="AI-Powered Drug Safety Check" data-ar="فحص سلامة الأدوية بالذكاء الاصطناعي">AI-Powered Drug Safety Check</p></div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+<div style="text-align:center;padding:8px;"><p style="font-size:12px;color:var(--text-secondary);" data-en="We verified the medications you mentioned against our clinical database." data-ar="تحققنا من الأدوية التي ذكرتها مقابل قاعدة بياناتنا السريرية.">We verified the medications you mentioned against our clinical database.</p></div>
+<!-- Cetirizine: Verified -->
+<div class="card" style="border-left:4px solid var(--success);">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+<p style="font-size:15px;font-weight:700;">Cetirizine 10mg</p>
+<span class="badge badge-completed"><span class="mi" style="font-size:12px">verified</span> Verified</span>
+</div>
+<div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">
+<p>• <b>Class:</b> Antihistamine (2nd generation)</p>
+<p>• <b>Dosage:</b> 10mg PO — Within therapeutic range ✓</p>
+<p>• <b>Interactions:</b> None detected with current medications</p>
+<p>• <b>Safety:</b> No contraindications identified</p>
+</div>
+<div style="margin-top:8px;padding:8px 10px;background:var(--success-faded);border-radius:8px;display:flex;align-items:center;gap:6px;">
+<span class="mi" style="color:var(--success);font-size:16px">check_circle</span>
+<span style="font-size:11px;color:var(--success);font-weight:600;">AI Confidence: 97%</span>
+</div>
+</div>
+<!-- Unverified example -->
+<div class="card" style="border-left:4px solid var(--warning);">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+<p style="font-size:15px;font-weight:700;">Hydrocortisone Cream</p>
+<span class="badge badge-payment"><span class="mi" style="font-size:12px">help</span> Needs Confirmation</span>
+</div>
+<div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">
+<p>• <b>Class:</b> Topical Corticosteroid</p>
+<p>• <b>Dosage:</b> Not specified — Please confirm strength</p>
+<p>• <b>Note:</b> Mentioned during chat but not confirmed by patient</p>
+</div>
+<div style="margin-top:8px;display:flex;gap:6px;">
+<button onclick="showScreen('screen-drug-label')" style="flex:1;padding:8px;background:var(--warning-faded);border:1px solid var(--warning);color:var(--warning);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);"><span class="mi">photo_camera</span> Photo Label</button>
+<button style="flex:1;padding:8px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);">Confirm Manually</button>
+</div>
+</div>
+<div style="padding:12px;background:var(--bg-tertiary);border-radius:12px;text-align:center;">
+<p style="font-size:11px;color:var(--text-muted);line-height:1.6;"><span class="mi" style="font-size:14px;color:var(--accent)">info</span> Verification uses AI to cross-check your medications. Admin-configurable via <b>ai_prompts</b> table. Images are processed ephemerally — no photos are stored.</p>
+</div>
+<button class="btn btn-primary" onclick="showScreen('screen-ai-chat')" style="width:100%;" data-en="Back to Chat" data-ar="العودة للمحادثة">Back to Chat</button>
+</div>
+</div>
+
+<!-- ═══════════════ DRUG LABEL CAPTURE (FIG_54 + FIG_55) ═══════════════ -->
+<div class="screen" id="screen-drug-label" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-med-verify')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="Drug Label Photography" data-ar="تصوير ملصق الدواء">Drug Label Photography</p><p style="font-size:11px;color:var(--accent);" data-en="AI OCR Analysis" data-ar="تحليل OCR بالذكاء الاصطناعي">AI OCR Analysis</p></div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+<!-- Viewfinder -->
+<div style="aspect-ratio:4/3;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+<div style="position:absolute;inset:20px;border:2px dashed rgba(45,212,191,0.5);border-radius:12px;"></div>
+<div style="text-align:center;z-index:1;">
+<span class="mi" style="font-size:48px;color:rgba(45,212,191,0.7)">photo_camera</span>
+<p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;" data-en="Align medication label within frame" data-ar="ضع ملصق الدواء داخل الإطار">Align medication label within frame</p>
+</div>
+<div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;">
+<div style="width:50px;height:50px;border-radius:50%;border:3px solid rgba(45,212,191,0.8);display:flex;align-items:center;justify-content:center;background:rgba(45,212,191,0.15);cursor:pointer;"><span class="mi" style="color:rgba(45,212,191,0.9);font-size:24px">photo_camera</span></div>
+</div>
+</div>
+<!-- Photo Tips -->
+<div class="card" style="padding:12px;">
+<h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">📷 Photo Tips</h4>
+<div style="font-size:11px;color:var(--text-secondary);line-height:1.8;">
+<p>💡 Use good, even lighting</p>
+<p>📐 Keep label flat and aligned</p>
+<p>🔤 Ensure text is readable</p>
+</div>
+</div>
+<!-- Simulated OCR Results -->
+<div class="card" style="border:1px solid var(--accent);">
+<h4 style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;"><span class="mi">document_scanner</span> OCR Analysis Results</h4>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<div style="padding:8px;background:var(--bg-tertiary);border-radius:8px;"><p style="font-size:9px;color:var(--text-muted);font-weight:600;">DRUG NAME</p><p style="font-size:13px;font-weight:700;">Cetirizine HCl</p></div>
+<div style="padding:8px;background:var(--bg-tertiary);border-radius:8px;"><p style="font-size:9px;color:var(--text-muted);font-weight:600;">DOSAGE</p><p style="font-size:13px;font-weight:700;">10mg tablets</p></div>
+<div style="padding:8px;background:var(--bg-tertiary);border-radius:8px;"><p style="font-size:9px;color:var(--text-muted);font-weight:600;">FORM</p><p style="font-size:13px;font-weight:700;">Oral Tablet</p></div>
+<div style="padding:8px;background:var(--bg-tertiary);border-radius:8px;"><p style="font-size:9px;color:var(--text-muted);font-weight:600;">MANUFACTURER</p><p style="font-size:13px;font-weight:700;">Generic</p></div>
+</div>
+<!-- Cross-validation -->
+<div style="margin-top:10px;padding:10px;background:var(--success-faded);border-radius:8px;border:1px solid rgba(34,197,94,0.3);">
+<p style="font-size:11px;font-weight:700;color:var(--success);margin-bottom:4px;"><span class="mi" style="font-size:14px">check_circle</span> Cross-Validation: MATCH</p>
+<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;font-size:10px;color:var(--text-secondary);">
+<span>Patient said: Cetirizine</span><span style="color:var(--success);">✓</span><span>Label: Cetirizine HCl</span>
+<span>Patient said: 10mg</span><span style="color:var(--success);">✓</span><span>Label: 10mg</span>
+</div>
+</div>
+<!-- Confidence Bar -->
+<div style="margin-top:10px;">
+<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:10px;color:var(--text-muted);font-weight:600;">AI Confidence</span><span style="font-size:10px;color:var(--success);font-weight:800;">97%</span></div>
+<div style="height:6px;background:var(--bg-tertiary);border-radius:3px;"><div style="width:97%;height:100%;background:var(--success);border-radius:3px;"></div></div>
+</div>
+</div>
+<button class="btn btn-primary" onclick="showScreen('screen-med-verify')" style="width:100%;">Done</button>
+</div>
+</div>
+
+<!-- ═══════════════ DOCTOR INQUIRY RESPONSE / PHOTO REQUEST (FIG_59) ═══════════════ -->
+<div class="screen" id="screen-inquiry" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-home')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;text-align:center;"><p style="font-size:15px;font-weight:700;" data-en="🩺 Doctor's Question" data-ar="🩺 سؤال الطبيب">🩺 Doctor's Question</p><p style="font-size:10px;color:var(--warning);font-weight:700;">📸 Photo Requested</p></div>
+<span style="padding:4px 8px;background:var(--warning-faded);color:var(--warning);border-radius:8px;font-size:11px;font-weight:700;">2/7</span>
+</div>
+<div style="height:3px;background:var(--bg-tertiary);"><div style="width:28%;height:100%;background:var(--accent);border-radius:3px;"></div></div>
+<div class="chat-container" id="inquiry-messages" style="padding-bottom:120px;">
+<div class="chat-msg chat-ai" data-en="Your doctor, Dr. Al-Rashid, has asked you to provide a photo of the affected skin area. Would you like to take or upload a photo now?" data-ar="طبيبتك، د. الراشد، طلبت منك تقديم صورة للمنطقة المصابة. هل تود التقاط أو رفع صورة الآن؟">Your doctor, Dr. Al-Rashid, has asked you to provide a photo of the affected skin area. Would you like to take or upload a photo now?</div>
+<!-- Photo Capture Card -->
+<div style="align-self:stretch;animation:fadeInUp 0.4s ease;">
+<div class="card" style="border:2px dashed var(--accent);text-align:center;padding:20px;">
+<span class="mi" style="font-size:40px;color:var(--accent)">add_a_photo</span>
+<p style="font-size:14px;font-weight:700;margin-top:8px;" data-en="Add Skin Photos" data-ar="إضافة صور الجلد">Add Skin Photos</p>
+<p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Camera or gallery • Max 3 photos</p>
+<div style="display:flex;gap:8px;margin-top:12px;">
+<button style="flex:1;padding:10px;background:var(--accent);color:var(--bg-primary);border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font);"><span class="mi">photo_camera</span> Camera</button>
+<button style="flex:1;padding:10px;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font);"><span class="mi">photo_library</span> Gallery</button>
+</div>
+</div>
+</div>
+<!-- Simulated Captured Photos with Body Location -->
+<div style="align-self:flex-end;max-width:90%;display:flex;gap:8px;animation:fadeInUp 0.4s ease;">
+<div style="position:relative;">
+<img src="assets/skin-rash-closeup.png" alt="Photo 1" style="width:70px;height:70px;border-radius:10px;object-fit:cover;border:2px solid var(--border);">
+<div style="position:absolute;bottom:-6px;left:0;right:0;text-align:center;"><span style="font-size:7px;font-weight:700;background:var(--accent-faded);color:var(--accent);padding:2px 5px;border-radius:5px;border:1px solid var(--accent);">😶 Face</span></div>
+</div>
+<div style="position:relative;">
+<img src="assets/skin-rash-wide.png" alt="Photo 2" style="width:70px;height:70px;border-radius:10px;object-fit:cover;border:2px solid var(--border);">
+<div style="position:absolute;bottom:-6px;left:0;right:0;text-align:center;"><span style="font-size:7px;font-weight:700;background:var(--accent-faded);color:var(--accent);padding:2px 5px;border-radius:5px;border:1px solid var(--accent);">💪 Left Arm</span></div>
+</div>
+</div>
+<!-- Body Location Picker -->
+<div style="align-self:stretch;animation:fadeInUp 0.4s ease;">
+<div style="background:var(--bg-tertiary);border-radius:12px;padding:12px;">
+<p style="font-size:11px;color:var(--text-secondary);font-weight:600;margin-bottom:8px;">📍 Select body location for photo 3:</p>
+<div style="display:flex;flex-wrap:wrap;gap:5px;">
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">😶 Face</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--accent);background:var(--accent-faded);font-size:10px;color:var(--accent);font-weight:700;cursor:pointer;">🧑 Scalp</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">🦴 Neck</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">🦴 Chest</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">🦴 Back</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">💪 Arms</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">✋ Hands</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">🦵 Legs</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">🦶 Feet</span>
+<span style="padding:5px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-secondary);font-size:10px;color:var(--text-secondary);cursor:pointer;">📌 Other</span>
+</div>
+</div>
+</div>
+<div class="chat-msg chat-user" style="margin-top:10px;">📸 2 skin photo(s) captured</div>
+<div class="chat-msg chat-ai" data-en="Thank you for the photos! I can see the affected areas. Is there anything else your doctor should know about the current condition?" data-ar="شكراً على الصور! أستطيع رؤية المناطق المصابة. هل هناك أي شيء آخر يجب أن يعرفه طبيبك عن الحالة الحالية؟">Thank you for the photos! I can see the affected areas. Is there anything else your doctor should know about the current condition?</div>
+<div class="chat-msg chat-user">The rash has gotten slightly worse since yesterday</div>
+<!-- Completion -->
+<div class="card" style="text-align:center;border:1px solid var(--success);">
+<p style="font-size:15px;font-weight:800;color:var(--success);margin-bottom:6px;">✅ Information Gathered</p>
+<p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Thank you for answering. Tap below to send your responses to your doctor.</p>
+<button class="btn btn-primary" onclick="showScreen('screen-home')" style="width:100%;">📤 Submit to Doctor</button>
+</div>
+</div>
+<div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--bg-secondary);">
+<input class="input-field" style="flex:1;padding:10px 14px;" placeholder="Type your answer...">
+<button class="btn btn-primary" style="padding:10px 16px;border-radius:var(--radius-md);">→</button>
+</div>
+</div>
+
+<!-- ═══════════════ GUARD DEMOS ═══════════════ -->
+<div class="screen" id="screen-guard-demo" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-ai-chat')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<p style="font-size:15px;font-weight:700;" data-en="Safety Guard Demo" data-ar="عرض نظام الحماية" id="guard-title">Safety Guard Demo</p>
+</div>
+<div class="chat-container" id="guard-chat"></div>
+</div>
+
+<!-- ═══════════════ WAITING ROOM ═══════════════ -->
+<div class="screen" id="screen-waiting" style="align-items:center;justify-content:center;padding:32px;">
+<div style="text-align:center;width:100%;">
+<button onclick="showScreen('screen-home')" style="position:absolute;top:28px;left:16px;background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="font-size:64px;margin-bottom:16px;animation:pulse 2s infinite;"><span class="mi">hourglass_top</span></div>
+<h2 style="font-size:22px;font-weight:800;margin-bottom:8px;" data-en="Waiting Room" data-ar="غرفة الانتظار">Waiting Room</h2>
+<p style="font-size:13px;color:var(--text-secondary);margin-bottom:32px;" data-en="Your case is being reviewed by a specialist" data-ar="يتم مراجعة حالتك من قبل متخصص">Your case is being reviewed by a specialist</p>
+<!-- Stepper -->
+<div style="display:flex;flex-direction:column;gap:0;text-align:left;max-width:280px;margin:0 auto;">
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;"><div style="width:32px;height:32px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div><div><p style="font-size:13px;font-weight:600;" data-en="AI Intake Complete" data-ar="اكتمال الاستقبال الذكي">AI Intake Complete</p><p style="font-size:11px;color:var(--text-muted);">2:34 PM</p></div></div>
+<div style="width:2px;height:20px;background:var(--success);margin-left:15px;"></div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;"><div style="width:32px;height:32px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div><div><p style="font-size:13px;font-weight:600;" data-en="Payment Confirmed" data-ar="تم تأكيد الدفع">Payment Confirmed</p><p style="font-size:11px;color:var(--text-muted);">2:34 PM — 3 tokens</p></div></div>
+<div style="width:2px;height:20px;background:var(--success);margin-left:15px;"></div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;"><div style="width:32px;height:32px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;animation:pulse 2s infinite;"><span class="mi">sync</span></div><div><p style="font-size:13px;font-weight:600;color:var(--blue);" data-en="Assigned to Dr. Al-Rashid" data-ar="تم التعيين للدكتورة الراشد">Assigned to Dr. Al-Rashid</p><p style="font-size:11px;color:var(--text-muted);" data-en="Reviewing your case..." data-ar="يراجع حالتك...">Reviewing your case...</p></div></div>
+<div style="width:2px;height:20px;background:var(--border);margin-left:15px;"></div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;opacity:0.4;"><div style="width:32px;height:32px;border-radius:50%;background:var(--bg-tertiary);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;">4</div><div><p style="font-size:13px;font-weight:600;" data-en="Report Ready" data-ar="التقرير جاهز">Report Ready</p><p style="font-size:11px;color:var(--text-muted);" data-en="Pending..." data-ar="قيد الانتظار...">Pending...</p></div></div>
+</div>
+<div class="card" style="margin-top:32px;padding:14px;display:flex;align-items:center;gap:12px;">
+<div style="width:44px;height:44px;border-radius:50%;background:var(--accent-faded);display:flex;align-items:center;justify-content:center;font-size:20px;"><span class="mi">medical_services</span></div>
+<div style="text-align:left;"><p style="font-size:14px;font-weight:700;" data-en="Dr. Sarah Al-Rashid" data-ar="د. سارة الراشد">Dr. Sarah Al-Rashid</p><p style="font-size:12px;color:var(--text-muted);" data-en="Dermatology — KFMC" data-ar="الجلدية — مدينة الملك فهد الطبية">Dermatology — KFMC</p></div>
+<span style="color:var(--accent);font-size:12px;font-weight:700;"><span class="mi">star</span> 4.8</span>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════ CONSULTATION DETAIL — Professional Medical Report ═══════════════ -->
+<div class="screen" id="screen-consultation-detail" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-home')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="Clinical Case Report" data-ar="تقرير الحالة السريرية">Clinical Case Report</p><p style="font-size:11px;color:var(--text-muted);">Case #CQ-2026-1247 • Mar 28, 2026</p></div>
+<span class="badge badge-report" style="font-size:10px;"><span class="mi">assignment</span> Final</span>
+</div>
+<div style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px;">
+<!-- Report Header -->
+<div style="background:linear-gradient(135deg,rgba(45,212,191,0.08),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:var(--radius-xl);padding:14px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><p style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:2px;">cliniq.one • Teleconsultation Report</p><p style="font-size:9px;color:var(--text-muted);">Page 1 of 1</p></div>
+<div style="display:flex;align-items:center;gap:12px;">
+<div style="width:44px;height:44px;border-radius:50%;background:var(--accent-faded);display:flex;align-items:center;justify-content:center;font-size:20px;"><span class="mi">medical_services</span></div>
+<div style="flex:1;"><p style="font-size:14px;font-weight:700;">Dr. Sarah Al-Rashid, MD, FAAD</p><p style="font-size:11px;color:var(--text-muted);">Dermatology — Consultant, King Fahad Medical City</p><p style="font-size:10px;color:var(--text-muted);">Saudi License #DRM-18294 • Board Certified</p></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><span style="font-size:10px;color:var(--text-muted);background:var(--bg-tertiary);padding:3px 8px;border-radius:4px;"><span class="mi">calendar_month</span> Mar 28, 2026</span><span style="font-size:10px;color:var(--text-muted);background:var(--bg-tertiary);padding:3px 8px;border-radius:4px;">⏱ Response: 1h 24m</span><span style="font-size:10px;color:var(--success);background:var(--success-faded);padding:3px 8px;border-radius:4px;">✓ Verified</span></div>
+</div>
+<!-- Patient Demographics -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Patient Demographics</h4>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;">
+<div><span style="color:var(--text-muted);">Name: </span><span style="font-weight:600;">Ahmed K.</span></div>
+<div><span style="color:var(--text-muted);">Age: </span><span style="font-weight:600;">28 yrs, Male</span></div>
+<div><span style="color:var(--text-muted);">MRN: </span><span style="font-weight:600;">CQ-P-004182</span></div>
+<div><span style="color:var(--text-muted);">Blood: </span><span style="font-weight:600;">A+ (self-reported)</span></div>
+</div></div>
+<!-- Chief Complaint -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Chief Complaint</h4>
+<p style="font-size:13px;font-weight:600;line-height:1.5;">Bilateral pruritic skin rash on upper extremities, 2-week duration, progressive</p></div>
+<!-- HPI -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">History of Present Illness (HPI)</h4>
+<p style="font-size:12px;color:var(--text-secondary);line-height:1.7;">A 28-year-old male presents with a 2-week history of pruritic, erythematous rash initially localized to the right forearm, which has progressively spread to involve both upper extremities. The patient rates itching severity as 7/10, with notable nocturnal exacerbation. No clear inciting event identified. The patient has been self-medicating with oral cetirizine with partial relief. No associated fever, arthralgias, or systemic symptoms reported. Denies new exposures to detergents, chemicals, or topical products.</p></div>
+<!-- PMH / Meds / Allergies / FH / SH -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Past Medical & Surgical History</h4>
+<p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">• Childhood atopic dermatitis (resolved ~age 12)<br>• No surgical history<br>• No hospitalizations</p></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Medications</h4>
+<p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">• Cetirizine 10mg PO PRN<br>• No other regular Rx</p></div>
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Allergies</h4>
+<p style="font-size:12px;color:var(--success);font-weight:700;">NKDA</p><p style="font-size:11px;color:var(--text-muted);">No known drug or food allergies</p></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Family History</h4>
+<p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">• Mother — psoriasis<br>• Father — HTN<br>• No skin Ca history</p></div>
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Social History</h4>
+<p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">• Non-smoker, no EtOH<br>• Office worker<br>• Moderate psychosocial stress</p></div>
+</div>
+<!-- ROS -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Review of Systems</h4>
+<div style="display:flex;flex-wrap:wrap;gap:4px;">
+<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--success-faded);color:var(--success);">Constitutional ⊖</span>
+<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--success-faded);color:var(--success);">HEENT ⊖</span>
+<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--success-faded);color:var(--success);">Respiratory ⊖</span>
+<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--success-faded);color:var(--success);">CVS ⊖</span>
+<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--success-faded);color:var(--success);">MSK ⊖</span>
+<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--error-faded);color:var(--error);">Derm ⊕ (see HPI)</span>
+</div></div>
+<!-- Clinical Photos -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Clinical Photographs</h4>
+<div style="display:flex;gap:8px;">
+<img src="assets/skin-rash-closeup.png" alt="Close-up of skin rash" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid var(--border);">
+<img src="assets/skin-rash-wide.png" alt="Wide view of bilateral rash" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid var(--border);">
+<div style="flex:1;font-size:11px;color:var(--text-muted);line-height:1.5;padding:4px;">Well-demarcated, erythematous, papulovesicular plaques on bilateral forearms. No exudate. No secondary infection noted.</div>
+</div></div>
+<!-- Assessment & Diagnosis -->
+<div class="card" style="padding:12px;border:1px solid var(--border);">
+<h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Assessment & Diagnosis</h4>
+<div style="padding:8px;background:var(--bg-tertiary);border-radius:var(--radius-md);margin-bottom:8px;">
+<p style="font-size:14px;font-weight:800;color:var(--text-primary);">Contact Dermatitis, Subacute</p>
+<p style="font-size:11px;color:var(--text-muted);margin-top:2px;">ICD-10: L25.1 — Unspecified contact dermatitis due to plants</p>
+</div>
+<p style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Differential Diagnoses:</p>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--text-muted);">
+<p>1. Atopic dermatitis (history of childhood eczema, FH of psoriasis)</p>
+<p>2. Nummular dermatitis</p>
+<p>3. Early psoriasis (FH significant)</p>
+<p>4. Tinea corporis (lower probability)</p>
+</div></div>
+<!-- Treatment Plan -->
+<div class="card" style="padding:12px;">
+<h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Treatment Plan</h4>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div style="padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);border-left:3px solid var(--accent);">
+<p style="font-size:12px;font-weight:700;">Rx: Betamethasone Valerate 0.1% Cream</p>
+<p style="font-size:11px;color:var(--text-muted);margin-top:2px;">Sig: Apply thin layer to affected areas BID × 14 days</p>
+<p style="font-size:10px;color:var(--warning);margin-top:2px;"><span class="mi" style="font-size:12px">warning</span> Do not apply to face/groin. Taper if improving.</p>
+</div>
+<div style="padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);border-left:3px solid var(--blue);">
+<p style="font-size:12px;font-weight:700;">Rx: Cetirizine Hydrochloride 10mg Tablets</p>
+<p style="font-size:11px;color:var(--text-muted);margin-top:2px;">Sig: 1 tab PO QHS × 30 days (continue current)</p>
+</div>
+<div style="padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);border-left:3px solid var(--purple);">
+<p style="font-size:12px;font-weight:700;">OTC: CeraVe Moisturizing Cream (Ceramide-based)</p>
+<p style="font-size:11px;color:var(--text-muted);margin-top:2px;">Sig: Apply generously to all affected areas TID, especially post-bathing</p>
+</div>
+</div></div>
+<!-- Patient Education -->
+<div class="card" style="padding:12px;"><h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Patient Education & Lifestyle Modifications</h4>
+<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+<p>1. <b>Avoid known irritants</b> — harsh soaps, detergents, perfumed products</p>
+<p>2. <b>Bathing</b> — lukewarm water only, limit to 10 minutes, pat dry gently</p>
+<p>3. <b>Clothing</b> — wear loose cotton garments, avoid wool/synthetic fabrics</p>
+<p>4. <b>Moisturize</b> — apply within 3 minutes of bathing ("soak and seal")</p>
+<p>5. <b>Stress management</b> — identifies stress as possible exacerbating factor</p>
+</div></div>
+<!-- Warning Signs -->
+<div class="card" style="padding:12px;border:1px solid rgba(239,68,68,0.25);">
+<h4 style="font-size:11px;font-weight:700;color:var(--error);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;"><span class="mi" style="font-size:12px">warning</span> Red Flag Symptoms — Seek Immediate Care If:</h4>
+<div style="display:flex;flex-wrap:wrap;gap:4px;">
+<span class="badge" style="background:var(--error-faded);color:var(--error);font-size:10px;">Fever >38.5°C</span>
+<span class="badge" style="background:var(--error-faded);color:var(--error);font-size:10px;">Rapid spread beyond arms</span>
+<span class="badge" style="background:var(--error-faded);color:var(--error);font-size:10px;">Purulent discharge</span>
+<span class="badge" style="background:var(--error-faded);color:var(--error);font-size:10px;">Facial/periorbital involvement</span>
+<span class="badge" style="background:var(--error-faded);color:var(--error);font-size:10px;">Worsening despite treatment</span>
+</div></div>
+<!-- Investigations Ordered -->
+<div class="card" style="padding:12px;" onclick="showScreen('screen-interventions')">
+<h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Investigations & Follow-Up Orders</h4>
+<div style="display:flex;flex-direction:column;gap:6px;">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:6px;"><div><span style="font-size:12px;font-weight:600;">Punch Biopsy 4mm</span><p style="font-size:10px;color:var(--text-muted);">R/O psoriasis vs dermatitis — 450 SAR</p></div><span class="badge badge-payment" style="font-size:9px;"><span class="mi">hourglass_top</span> Auth</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:6px;"><div><span style="font-size:12px;font-weight:600;">CBC w/ Differential</span><p style="font-size:10px;color:var(--text-muted);">Eosinophilia screen — 80 SAR</p></div><span class="badge badge-assigned" style="font-size:9px;"><span class="mi">calendar_month</span> Mar 31</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg-tertiary);border-radius:6px;"><div><span style="font-size:12px;font-weight:600;">Follow-up Teleconsult</span><p style="font-size:10px;color:var(--text-muted);">2-week reassessment — 150 SAR</p></div><span class="badge badge-draft" style="font-size:9px;"><span class="mi" style="font-size:12px;color:var(--warn)">circle</span> Apr 11</span></div>
+</div></div>
+<!-- Disposition -->
+<div style="padding:10px;background:var(--bg-tertiary);border-radius:var(--radius-md);text-align:center;border:1px solid var(--border);">
+<p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Disposition</p>
+<p style="font-size:13px;font-weight:700;color:var(--success);margin:4px 0;">Discharged — Outpatient Follow-up</p>
+<p style="font-size:10px;color:var(--text-muted);">Prognosis: Good with adherence to topical regimen</p>
+</div>
+<!-- Signature -->
+<div style="padding:10px;border-top:1px dashed var(--border);text-align:center;">
+<p style="font-size:11px;color:var(--text-muted);">Electronically signed by</p>
+<p style="font-size:13px;font-weight:700;font-style:italic;color:var(--accent);">Dr. Sarah Al-Rashid, MD, FAAD</p>
+<p style="font-size:10px;color:var(--text-muted);">Mar 28, 2026 at 4:08 PM AST</p>
+<p style="font-size:9px;color:var(--text-muted);margin-top:4px;">This report is generated via cliniq.one teleconsultation platform and constitutes a legal medical document.</p>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════ INTERVENTIONS ═══════════════ -->
+<div class="screen" id="screen-interventions" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-home')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<h2 style="font-size:18px;font-weight:800;" data-en="My Tests & Referrals" data-ar="فحوصاتي والإحالات">My Tests & Referrals</h2>
+</div>
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+<div class="card" style="padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><p style="font-size:14px;font-weight:700;">Skin Biopsy</p><span class="badge guard-cooldown" style="font-size:10px;"><span class="mi" style="font-size:12px;color:#F97316">circle</span> Pending Insurance</span></div><p style="font-size:12px;color:var(--text-muted);">Dermatopathology — 450 SAR</p><p style="font-size:11px;color:var(--text-secondary);margin-top:4px;" data-en="Clinical: Rule out psoriasis vs contact dermatitis" data-ar="السريري: استبعاد الصدفية مقابل التهاب الجلد التماسي">Clinical: Rule out psoriasis vs contact dermatitis</p><p style="font-size:11px;color:var(--text-muted);margin-top:4px;" data-en="⚠ No blood thinners 7 days before" data-ar="⚠ لا مميعات دم قبل ٧ أيام"><span class="mi" style="font-size:12px">warning</span> No blood thinners 7 days before</p></div>
+<div class="card" style="padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><p style="font-size:14px;font-weight:700;">CBC (Complete Blood Count)</p><span class="badge badge-assigned"><span class="mi">calendar_month</span> Mar 31</span></div><p style="font-size:12px;color:var(--text-muted);">Hematology — 80 SAR</p><p style="font-size:11px;color:var(--text-secondary);margin-top:4px;" data-en="Provider: Al-Moosa Lab, Riyadh" data-ar="المزود: مختبر الموسى، الرياض">Provider: Al-Moosa Lab, Riyadh</p></div>
+<div class="card" style="padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><p style="font-size:14px;font-weight:700;" data-en="Follow-up Visit" data-ar="زيارة متابعة">Follow-up Visit</p><span class="badge badge-draft"><span class="mi" style="font-size:12px;color:var(--warn)">circle</span> Ordered</span></div><p style="font-size:12px;color:var(--text-muted);">150 SAR</p><p style="font-size:11px;color:var(--text-secondary);margin-top:4px;" data-en="In 2 weeks if no improvement" data-ar="خلال أسبوعين إذا لم يتحسن">In 2 weeks if no improvement</p></div>
+<div style="padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md);text-align:center;margin-top:8px;">
+<p style="font-size:12px;color:var(--text-muted);" data-en="Total Estimated Cost" data-ar="التكلفة التقديرية الإجمالية">Total Estimated Cost</p>
+<p style="font-size:24px;font-weight:800;color:var(--accent);margin:4px 0;">680 <span style="font-size:14px;color:var(--text-muted);">SAR</span></p>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════ FIG_53: MEDICATION & DOSAGE VERIFICATION ═══════════════ -->
+<div class="screen" id="screen-med-verify" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-ai-chat')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="AI Medical Interview" data-ar="المقابلة الطبية الذكية">AI Medical Interview</p><p style="font-size:11px;color:var(--accent);" data-en="Medication Verification" data-ar="التحقق من الأدوية">Medication Verification</p></div>
+<span class="badge badge-intake" style="font-size:10px;"><span class="mi">medication</span> <span data-en="Meds" data-ar="أدوية">Meds</span></span>
+</div>
+<div class="chat-container" id="med-verify-chat">
+<div class="chat-section-badge"><span class="mi">medication</span> <span data-en="Medications" data-ar="الأدوية">Medications</span></div>
+<div class="chat-msg chat-ai" data-en="Are you currently taking any medications, supplements, or using any creams?" data-ar="هل تتناول أي أدوية أو مكملات حالياً أو تستخدم أي كريمات؟">Are you currently taking any medications, supplements, or using any creams?</div>
+<div class="chat-msg chat-user" data-en="Yes, I take Metformin 500mg twice a day and Lisinopril 10mg once in the morning" data-ar="نعم، أتناول ميتفورمين ٥٠٠ ملغ مرتين يومياً وليزينوبريل ١٠ ملغ مرة صباحاً">Yes, I take Metformin 500mg twice a day and Lisinopril 10mg once in the morning</div>
+<div class="chat-section-badge" style="background:rgba(59,130,246,0.12);color:var(--blue);border-color:rgba(59,130,246,0.3);"><span class="mi">fact_check</span> <span data-en="Medication Verification" data-ar="التحقق من الأدوية">Medication Verification</span></div>
+<div class="chat-msg chat-ai" data-en="I've identified 2 medications. Let me verify the details:" data-ar="تم تحديد دواءين. دعني أتحقق من التفاصيل:">I've identified 2 medications. Let me verify the details:</div>
+<!-- Verification Card 1 — Valid -->
+<div style="align-self:flex-start;max-width:88%;animation:fadeInUp 0.4s ease;">
+<div class="card" style="padding:14px;border-left:3px solid var(--success);">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <span class="mi" style="color:var(--success);font-size:18px;">check_circle</span>
+    <span style="font-size:14px;font-weight:700;" data-en="Metformin 500mg" data-ar="ميتفورمين ٥٠٠ ملغ">Metformin 500mg</span>
+    <span class="badge badge-completed" style="font-size:9px;" data-en="Verified" data-ar="مُتحقق">Verified</span>
+  </div>
+  <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">
+    <p data-en="Frequency: Twice daily ✓" data-ar="التكرار: مرتين يومياً ✓">Frequency: Twice daily ✓</p>
+    <p data-en="Therapeutic range: 500–2550 mg/day" data-ar="النطاق العلاجي: ٥٠٠–٢٥٥٠ ملغ/يوم">Therapeutic range: 500–2550 mg/day</p>
+    <p style="color:var(--success);font-weight:600;" data-en="Daily dose 1000mg — Within range ✓" data-ar="الجرعة اليومية ١٠٠٠ ملغ — ضمن النطاق ✓">Daily dose 1000mg — Within range ✓</p>
+  </div>
+</div>
+</div>
+<!-- Verification Card 2 — Warning -->
+<div style="align-self:flex-start;max-width:88%;animation:fadeInUp 0.5s ease;">
+<div class="card" style="padding:14px;border-left:3px solid var(--warning);">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <span class="mi" style="color:var(--warning);font-size:18px;">warning</span>
+    <span style="font-size:14px;font-weight:700;" data-en="Lisinopril 10mg" data-ar="ليزينوبريل ١٠ ملغ">Lisinopril 10mg</span>
+    <span class="badge badge-payment" style="font-size:9px;" data-en="Confirm" data-ar="تأكيد">Confirm</span>
+  </div>
+  <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">
+    <p data-en="Standard range: 5–40 mg/day" data-ar="النطاق القياسي: ٥–٤٠ ملغ/يوم">Standard range: 5–40 mg/day</p>
+    <p style="color:var(--warning);font-weight:600;" data-en="⚠ Please confirm: Are you taking this for blood pressure or heart failure?" data-ar="⚠ يرجى التأكيد: هل تتناوله لضغط الدم أم لقصور القلب؟">⚠ Please confirm: Are you taking this for blood pressure or heart failure?</p>
+  </div>
+</div>
+</div>
+<div class="chat-msg chat-user" data-en="For blood pressure, my doctor prescribed it 6 months ago" data-ar="لضغط الدم، وصفه لي الطبيب قبل ٦ أشهر">For blood pressure, my doctor prescribed it 6 months ago</div>
+<div class="chat-msg chat-ai" style="color:var(--success);font-size:12px;font-style:italic;">✓ <span data-en="Indication confirmed — Both medications verified" data-ar="تم تأكيد الاستطباب — تم التحقق من كلا الدواءين">Indication confirmed — Both medications verified</span></div>
+<div class="chat-msg chat-ai" data-en="Would you like to take a photo of your medication labels for additional verification? This helps ensure dosage accuracy." data-ar="هل تريد التقاط صورة لملصقات الأدوية للتحقق الإضافي؟ هذا يساعد في ضمان دقة الجرعات.">Would you like to take a photo of your medication labels for additional verification? This helps ensure dosage accuracy.</div>
+<!-- Action Buttons -->
+<div style="align-self:stretch;display:flex;gap:8px;padding:4px 0;animation:fadeInUp 0.4s ease;">
+<button onclick="showScreen('screen-drug-label')" class="btn btn-outline" style="flex:1;padding:10px;font-size:12px;"><span class="mi">photo_camera</span> <span data-en="Photo Label" data-ar="تصوير الملصق">Photo Label</span></button>
+<button onclick="showScreen('screen-ai-chat')" class="btn btn-ghost" style="flex:1;padding:10px;font-size:12px;" data-en="Skip →" data-ar="تخطي ←">Skip →</button>
+</div>
+</div>
+<div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--bg-secondary);">
+<input class="input-field" style="flex:1;padding:10px 14px;" placeholder="Type your response..." data-placeholder-en="Type your response..." data-placeholder-ar="اكتب ردك...">
+<button class="btn btn-primary" style="padding:10px 16px;border-radius:var(--radius-md);">→</button>
+</div>
+</div>
+
+<!-- ═══════════════ FIG_54: DRUG LABEL PHOTOGRAPHY PROTOCOL ═══════════════ -->
+<div class="screen" id="screen-drug-label" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-med-verify')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="Medication Label Capture" data-ar="التقاط ملصق الدواء">Medication Label Capture</p><p style="font-size:11px;color:var(--accent);" data-en="Photo Verification Protocol" data-ar="بروتوكول التحقق بالصورة">Photo Verification Protocol</p></div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+<!-- AI Instruction -->
+<div class="chat-msg chat-ai" style="max-width:100%;" data-en="Please take a clear photo of your Metformin medication label. Ensure the drug name and dosage are visible." data-ar="يرجى التقاط صورة واضحة لملصق دواء الميتفورمين. تأكد من ظهور اسم الدواء والجرعة.">Please take a clear photo of your Metformin medication label. Ensure the drug name and dosage are visible.</div>
+<!-- Camera Viewfinder -->
+<div class="card" style="padding:0;overflow:hidden;border:2px solid var(--accent);position:relative;">
+  <div style="aspect-ratio:4/3;background:linear-gradient(145deg,#f8f9fb,#edf0f5);display:flex;align-items:center;justify-content:center;position:relative;">
+    <!-- Corner guides -->
+    <div style="position:absolute;top:12px;left:12px;width:24px;height:24px;border-top:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:4px 0 0 0;"></div>
+    <div style="position:absolute;top:12px;right:12px;width:24px;height:24px;border-top:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 4px 0 0;"></div>
+    <div style="position:absolute;bottom:12px;left:12px;width:24px;height:24px;border-bottom:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:0 0 0 4px;"></div>
+    <div style="position:absolute;bottom:12px;right:12px;width:24px;height:24px;border-bottom:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 0 4px 0;"></div>
+    <!-- Mock Label -->
+    <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 24px;box-shadow:0 4px 16px rgba(0,0,0,0.08);transform:rotate(-2deg);max-width:220px;">
+      <p style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Riyadh Pharma Co.</p>
+      <p style="font-size:16px;font-weight:800;color:var(--text-primary);margin:4px 0;">Metformin HCl</p>
+      <p style="font-size:22px;font-weight:900;color:var(--accent);">500 mg</p>
+      <p style="font-size:10px;color:var(--text-secondary);margin-top:4px;">Tablets — 30 count</p>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:9px;color:var(--text-muted);">Rx Only • Store below 30°C</div>
+    </div>
+  </div>
+  <div style="padding:10px;background:var(--bg-tertiary);text-align:center;">
+    <p style="font-size:11px;color:var(--text-secondary);font-weight:600;" data-en="Align label within frame" data-ar="قم بمحاذاة الملصق داخل الإطار">Align label within frame</p>
+  </div>
+</div>
+<!-- Tips -->
+<div class="card" style="padding:14px;">
+  <p style="font-size:12px;font-weight:700;margin-bottom:8px;" data-en="Tips for a clear photo:" data-ar="نصائح لصورة واضحة:">Tips for a clear photo:</p>
+  <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text-secondary);">
+    <div style="display:flex;align-items:center;gap:8px;"><span class="mi" style="color:var(--warning);font-size:16px;">light_mode</span> <span data-en="Good lighting — avoid shadows" data-ar="إضاءة جيدة — تجنب الظلال">Good lighting — avoid shadows</span></div>
+    <div style="display:flex;align-items:center;gap:8px;"><span class="mi" style="color:var(--blue);font-size:16px;">crop_free</span> <span data-en="Hold phone parallel to label" data-ar="أمسك الهاتف بشكل موازٍ للملصق">Hold phone parallel to label</span></div>
+    <div style="display:flex;align-items:center;gap:8px;"><span class="mi" style="color:var(--accent);font-size:16px;">search</span> <span data-en="Drug name & dosage must be readable" data-ar="يجب أن يكون اسم الدواء والجرعة مقروءين">Drug name & dosage must be readable</span></div>
+  </div>
+</div>
+<!-- Captured Photos Strip -->
+<div style="display:flex;gap:8px;align-items:center;">
+  <div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#DBEAFE,#BFDBFE);display:flex;align-items:center;justify-content:center;position:relative;border:2px solid var(--success);">
+    <span class="mi" style="font-size:22px;color:var(--blue);">photo</span>
+    <span class="mi" style="position:absolute;top:-4px;right:-4px;font-size:14px;color:var(--success);background:white;border-radius:50%;">check_circle</span>
+  </div>
+  <div style="width:56px;height:56px;border-radius:10px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;">
+    <span class="mi" style="font-size:18px;color:var(--text-muted);">add</span>
+  </div>
+  <span style="font-size:11px;color:var(--text-muted);flex:1;" data-en="1 photo captured" data-ar="تم التقاط صورة واحدة">1 photo captured</span>
+</div>
+<!-- Action Buttons -->
+<div style="display:flex;gap:8px;">
+  <button class="btn btn-outline" style="flex:1;font-size:12px;padding:12px;" data-en="Add Another" data-ar="إضافة أخرى"><span class="mi">add_a_photo</span> <span data-en="Add Another" data-ar="إضافة أخرى">Add Another</span></button>
+  <button onclick="showScreen('screen-drug-analysis')" class="btn btn-primary" style="flex:1;font-size:12px;padding:12px;"><span class="mi">check</span> <span data-en="Analyze" data-ar="تحليل">Analyze</span></button>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════ FIG_55: DRUG IMAGE ANALYSIS / OCR RESULTS ═══════════════ -->
+<div class="screen" id="screen-drug-analysis" style="flex-direction:column;">
+<div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--bg-secondary);">
+<button onclick="showScreen('screen-drug-label')" style="background:var(--bg-tertiary);border:none;color:var(--text-primary);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" class="flip-rtl">←</button>
+<div style="flex:1;"><p style="font-size:15px;font-weight:700;" data-en="Medication Analysis" data-ar="تحليل الدواء">Medication Analysis</p><p style="font-size:11px;color:var(--success);" data-en="✓ AI Verification Complete" data-ar="✓ اكتمل التحقق بالذكاء الاصطناعي">✓ AI Verification Complete</p></div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+<!-- Source Image Thumbnail -->
+<div class="card" style="padding:12px;display:flex;gap:12px;align-items:center;">
+  <div style="width:64px;height:64px;border-radius:10px;background:linear-gradient(135deg,#DBEAFE,#BFDBFE);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <span class="mi" style="font-size:28px;color:var(--blue);">photo</span>
+  </div>
+  <div style="flex:1;">
+    <p style="font-size:13px;font-weight:700;" data-en="Label Photo Analyzed" data-ar="تم تحليل صورة الملصق">Label Photo Analyzed</p>
+    <p style="font-size:11px;color:var(--text-muted);" data-en="AI processing time: 1.2s" data-ar="وقت المعالجة: ١.٢ ثانية">AI processing time: 1.2s</p>
+  </div>
+  <span class="badge badge-completed" style="font-size:9px;"><span class="mi">check_circle</span></span>
+</div>
+<!-- Extracted Information Card -->
+<div class="card" style="padding:14px;">
+  <h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;" data-en="Extracted Information" data-ar="المعلومات المستخرجة">Extracted Information</h4>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+      <div><p style="font-size:10px;color:var(--text-muted);" data-en="Drug Name" data-ar="اسم الدواء">Drug Name</p><p style="font-size:14px;font-weight:700;">Metformin Hydrochloride</p></div>
+      <span class="mi" style="color:var(--success);">check_circle</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+      <div><p style="font-size:10px;color:var(--text-muted);" data-en="Dosage" data-ar="الجرعة">Dosage</p><p style="font-size:14px;font-weight:700;">500 mg</p></div>
+      <span class="mi" style="color:var(--success);">check_circle</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+      <div><p style="font-size:10px;color:var(--text-muted);" data-en="Form" data-ar="الشكل الدوائي">Form</p><p style="font-size:14px;font-weight:700;" data-en="Tablet" data-ar="أقراص">Tablet</p></div>
+      <span class="mi" style="color:var(--success);">check_circle</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+      <div><p style="font-size:10px;color:var(--text-muted);" data-en="Manufacturer" data-ar="الشركة المصنعة">Manufacturer</p><p style="font-size:13px;font-weight:600;color:var(--text-secondary);">Riyadh Pharma Co.</p></div>
+      <span class="mi" style="color:var(--text-muted);">info</span>
+    </div>
+  </div>
+</div>
+<!-- Cross-Validation Card -->
+<div class="card" style="padding:14px;border:1px solid rgba(5,150,105,0.3);">
+  <h4 style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;" data-en="Cross-Validation" data-ar="التحقق المتقاطع">Cross-Validation</h4>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+      <span class="mi" style="color:var(--blue);font-size:16px;">chat</span>
+      <div style="flex:1;"><p style="font-size:10px;color:var(--text-muted);" data-en="Patient stated" data-ar="أفاد المريض">Patient stated</p><p style="font-size:13px;font-weight:600;">Metformin 500mg</p></div>
+    </div>
+    <div style="text-align:center;"><span class="mi" style="color:var(--success);font-size:20px;">swap_vert</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-md);">
+      <span class="mi" style="color:var(--purple);font-size:16px;">photo_camera</span>
+      <div style="flex:1;"><p style="font-size:10px;color:var(--text-muted);" data-en="Label shows" data-ar="الملصق يُظهر">Label shows</p><p style="font-size:13px;font-weight:600;">Metformin HCl 500mg</p></div>
+    </div>
+  </div>
+  <!-- Match Result -->
+  <div style="margin-top:12px;padding:12px;background:var(--success-faded);border-radius:var(--radius-md);text-align:center;border:1px solid rgba(5,150,105,0.2);">
+    <span class="mi" style="font-size:28px;color:var(--success);">verified</span>
+    <p style="font-size:14px;font-weight:800;color:var(--success);margin-top:4px;" data-en="MATCH — Data Consistent" data-ar="تطابق — البيانات متسقة">MATCH — Data Consistent</p>
+  </div>
+  <!-- Confidence Bar -->
+  <div style="margin-top:10px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-size:11px;color:var(--text-muted);" data-en="AI Confidence" data-ar="ثقة الذكاء الاصطناعي">AI Confidence</span>
+      <span style="font-size:11px;font-weight:800;color:var(--accent);">97%</span>
+    </div>
+    <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+      <div style="width:97%;height:100%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:3px;animation:progressBar 1s ease;"></div>
+    </div>
+  </div>
+</div>
+<!-- Continue Button -->
+<button onclick="showScreen('screen-ai-chat')" class="btn btn-primary" style="width:100%;margin-top:4px;" data-en="Confirm & Continue Interview" data-ar="تأكيد ومتابعة المقابلة"><span class="mi">check</span> <span data-en="Confirm & Continue Interview" data-ar="تأكيد ومتابعة المقابلة">Confirm & Continue Interview</span></button>
+</div>
+</div>
+
+</div><!-- end phone-frame -->
+<div class="iphone-home-indicator"></div>
+</div><!-- end iphone-bezel -->
+</div><!-- end iphone-outer -->
+
+<script>
+// ═══════ Global State ═══════
+let currentLang = 'en';
+let currentSlide = 0;
+let currentTab = 'home';
+let splashSkipped = false;
+
+// ═══════ Screen Navigation ═══════
+function showScreen(id) {
+  const active = document.querySelector('.screen.active');
+  if (active) {
+    active.style.opacity = '0'; active.style.transform = 'translateY(-8px)';
+    active.style.transition = 'opacity 0.2s, transform 0.2s';
+    setTimeout(() => {
+      document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.opacity = ''; s.style.transform = ''; s.style.transition = ''; });
+      const el = document.getElementById(id);
+      if (el) { el.classList.add('active'); el.scrollTop = 0; }
+    }, 200);
+  } else {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('active'); el.scrollTop = 0; }
+  }
+}
+
+// ═══════ Splash Screen Progress & Auto-Advance ═══════
+function skipSplash() {
+  if (splashSkipped) return;
+  splashSkipped = true;
+  showScreen('screen-login');
+}
+
+// Animate progress bar and auto-advance after 4s
+(function() {
+  const duration = 4000;
+  const startTime = performance.now();
+  const bar = document.getElementById('splash-progress');
+  function updateProgress(now) {
+    if (splashSkipped) return;
+    const elapsed = now - startTime;
+    const pct = Math.min((elapsed / duration) * 100, 100);
+    if (bar) bar.style.width = pct + '%';
+    if (pct >= 100) { skipSplash(); return; }
+    requestAnimationFrame(updateProgress);
+  }
+  requestAnimationFrame(updateProgress);
+})();
+// Fallback: ensure splash never stays stuck
+setTimeout(function() { if (!splashSkipped) skipSplash(); }, 5000);
+
+// ═══════ Onboarding ═══════
+function nextOnboarding() {
+  currentSlide++;
+  if (currentSlide > 2) { showScreen('screen-home'); return; }
+  document.querySelectorAll('.ob-slide').forEach(s => s.style.display = 'none');
+  document.querySelector(`.ob-slide[data-slide="${currentSlide}"]`).style.display = 'block';
+  document.querySelectorAll('.ob-dot').forEach((d, i) => {
+    d.style.width = i === currentSlide ? '24px' : '8px';
+    d.style.background = i === currentSlide ? 'var(--accent)' : 'var(--text-muted)';
+  });
+  if (currentSlide === 2) document.getElementById('ob-next-btn').textContent = currentLang === 'ar' ? 'ابدأ' : 'Get Started';
+}
+
+// ═══════ Indian Numeral Conversion ═══════
+const westernToIndian = {'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
+const indianToWestern = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+function toIndian(str){return String(str).replace(/[0-9]/g,d=>westernToIndian[d]);}
+function toWestern(str){return String(str).replace(/[٠-٩]/g,d=>indianToWestern[d]);}
+function convertNumeralsInNode(node,converter){
+  if(node.nodeType===3){if(/[\d٠-٩]/.test(node.textContent))node.textContent=converter(node.textContent);return;}
+  if(node.nodeName==='SCRIPT'||node.nodeName==='STYLE'||node.classList?.contains('mi'))return;
+  node.childNodes.forEach(c=>convertNumeralsInNode(c,converter));
+}
+
+// ═══════ Language Toggle ═══════
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'ar' : 'en';
+  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-en]').forEach(el => {
+    el.textContent = el.getAttribute('data-' + currentLang) || el.textContent;
+  });
+  const langBtn = document.getElementById('lang-toggle');
+  if (langBtn) langBtn.textContent = currentLang === 'ar' ? 'EN' : 'AR';
+  // Convert all visible numbers to Indian numerals (Arabic) or Western (English)
+  convertNumeralsInNode(document.getElementById('app'), currentLang === 'ar' ? toIndian : toWestern);
+}
+
+// ═══════ Tab Navigation ═══════
+function switchTab(tab) {
+  currentTab = tab;
+  const tabArea = document.getElementById('tab-' + tab);
+  document.querySelectorAll('.tab-screen').forEach(s => { s.style.opacity = '0'; s.style.transition = 'opacity 0.15s'; });
+  setTimeout(() => {
+    document.querySelectorAll('.tab-screen').forEach(s => s.style.display = 'none');
+    if (tabArea) { tabArea.style.display = 'flex'; setTimeout(() => { tabArea.style.opacity = '1'; }, 20); }
+  }, 150);
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+}
+
+// ═══════ Guard Demos ═══════
+function showGuardDemo(type) {
+  showScreen('screen-guard-demo');
+  const chat = document.getElementById('guard-chat');
+  if (type === 'emergency') {
+    document.getElementById('guard-title').textContent = currentLang==='ar'?'<span class="mi">emergency</span> عرض الطوارئ':'<span class="mi">emergency</span> Emergency Demo';
+    chat.innerHTML = `
+      <div class="chat-section-badge" style="background:var(--error-faded);color:var(--error);border-color:rgba(239,68,68,0.3);"><span class="mi">emergency</span> Protocol A — Emergency Detection</div>
+      <div class="chat-ai">${currentLang==='ar'?'ما الذي يزعجك اليوم؟':'What brings you in today?'}</div>
+      <div class="chat-user">${currentLang==='ar'?'عندي ألم شديد في الصدر ولا أستطيع التنفس':'I have severe chest pain and can\'t breathe'}</div>
+      <div class="guard-banner guard-emergency" style="align-self:stretch;flex-direction:column;gap:12px;text-align:center;">
+        <div style="font-size:36px;"><span class="mi">emergency</span></div>
+        <h3 style="font-size:16px;font-weight:800;">${currentLang==='ar'?'حالة طوارئ طبية - اتصل فوراً':'MEDICAL EMERGENCY — CALL NOW'}</h3>
+        <p style="font-size:13px;opacity:0.9;">${currentLang==='ar'?'هذا يبدو كحالة طوارئ. اتصل بخدمات الطوارئ فوراً':'This sounds like a medical emergency. Call emergency services immediately.'}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;font-size:12px;">
+          <div style="padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;"><b>AR Saudi</b><br>997 / 999</div>
+          <div style="padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;"><b> UAE</b><br>998 / 999</div>
+          <div style="padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;"><b> Kuwait</b><br>112</div>
+          <div style="padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;"><b> Bahrain</b><br>999</div>
+          <div style="padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;"><b> Qatar</b><br>999</div>
+          <div style="padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;"><b> Oman</b><br>9999</div>
+        </div>
+        <p style="font-size:11px;margin-top:8px;opacity:0.7;">${currentLang==='ar'?'تم إيقاف الجلسة':'Chat session paused'}</p>
+      </div>`;
+  } else {
+    document.getElementById('guard-title').textContent = currentLang==='ar'?'<span class="mi">smart_toy</span> عرض الحماية':'<span class="mi">smart_toy</span> Gibberish Guard Demo';
+    chat.innerHTML = `
+      <div class="chat-section-badge" style="background:var(--warning-faded);color:var(--warning);border-color:rgba(245,158,11,0.3);"><span class="mi">smart_toy</span> Protocol I — Gibberish/Refusal Escalation</div>
+      <div class="chat-ai">${currentLang==='ar'?'ما الذي يزعجك اليوم؟':'What brings you in today?'}</div>
+      <div class="chat-user">asdfghjkl</div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 1/7 (silent)</div>
+      <div class="chat-ai">${currentLang==='ar'?'لم أفهم ذلك. هل يمكنك وصف أعراضك؟':'I didn\'t understand that. Could you describe your symptoms?'}</div>
+      <div class="chat-user">qwerty123!!</div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 2/7 (silent)</div>
+      <div class="chat-user">xyzxyzxyz</div>
+      <div class="guard-banner guard-warning"><span class="mi" style="font-size:inherit">warning</span> ${currentLang==='ar'?'يرجى تقديم ردود طبية واضحة (تحذير ١)':'Please provide clear medical responses (Warning 1)'}</div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 3/7 — WARNING issued</div>
+      <div class="chat-user">!!!???!!!</div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 4/7</div>
+      <div class="chat-user">blahblahblah</div>
+      <div class="guard-banner guard-cooldown"><span class="mi" style="font-size:12px;color:#F97316">circle</span> ${currentLang==='ar'?'المحادثة متوقفة — ٠:٣٠ متبقية':'Chat paused — 0:30 remaining'}<span style="margin-left:auto;font-size:16px;font-weight:900;" id="cooldown-timer">0:30</span></div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 5/7 — COOLDOWN (30s lockout)</div>
+      <div style="padding:10px;background:var(--bg-tertiary);border-radius:var(--radius-md);text-align:center;margin:4px 0;">
+        <p style="font-size:12px;color:var(--text-muted);">... after cooldown expires ...</p>
+      </div>
+      <div class="chat-user">aaaaaa</div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 6/7</div>
+      <div class="chat-user">zzzzzzz</div>
+      <div class="guard-banner guard-terminated"><span class="mi" style="font-size:12px;color:var(--err)">circle</span> ${currentLang==='ar'?'تم إنهاء الجلسة لعدم التعاون — سيتم مراجعتها من الإدارة':'Session terminated for non-cooperation — flagged for staff review'}</div>
+      <div class="chat-ai" style="font-size:12px;color:var(--text-muted);font-style:italic;">Strike 7/7 — TERMINATED</div>
+      <div style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-xl);margin-top:8px;">
+        <p style="font-size:12px;color:var(--text-muted);text-align:center;"><b>${currentLang==='ar'?'تنازل الضربات:':'Strike Decay:'}</b> ${currentLang==='ar'?'كل رد تعاوني يقلل العدد بواحد':'Each cooperative response reduces count by 1'}</p>
+      </div>`;
+  }
+}
+
+// ═══════ Debug Navigation (keyboard shortcuts) ═══════
+document.addEventListener('keydown', e => {
+  if (e.key === '1') showScreen('screen-med-verify');
+  if (e.key === '2') showScreen('screen-drug-label');
+  if (e.key === '3') showScreen('screen-drug-analysis');
+});
+
+// ═══════ URL Parameter Deep-Link ═══════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const targetScreen = params.get('screen');
+  if (targetScreen) {
+    splashSkipped = true;
+    setTimeout(() => showScreen(targetScreen), 100);
+  }
+})();
+</script>
+</body>
+</html>

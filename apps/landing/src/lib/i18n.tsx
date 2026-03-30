@@ -78,7 +78,7 @@ const translations: Record<string, Record<Locale, string>> = {
     'innov.new_4': { en: '19 automated safety checks run before a doctor even sees the case', ar: '19 فحص أمان آلي يعمل قبل أن يرى الطبيب الحالة' },
 
     'innov.pillars_title': { en: 'What Makes This Different', ar: 'ما الذي يجعل هذا مختلفاً' },
-    'innov.pillars_sub': { en: 'Six core innovations that power the cliniq.one consultation experience', ar: 'ستة ابتكارات أساسية تدعم تجربة الاستشارة في cliniq.one' },
+    'innov.pillars_sub': { en: 'Core innovations that power the cliniq.one consultation experience', ar: 'ابتكارات أساسية تدعم تجربة الاستشارة في cliniq.one' },
 
     'innov.p1': { en: 'AI-Structured Medical Interview', ar: 'مقابلة طبية مُنظّمة بالذكاء الاصطناعي' },
     'innov.p1_desc': { en: 'A clinically-trained AI chatbot gathers symptoms, history, medications, and allergies — following real clinical interview protocols used by physicians.', ar: 'روبوت محادثة مدرّب سريرياً يجمع الأعراض والتاريخ المرضي والأدوية والحساسيات — متبعاً بروتوكولات المقابلة السريرية الحقيقية.' },
@@ -98,7 +98,13 @@ const translations: Record<string, Record<Locale, string>> = {
     'innov.p6': { en: 'Doctor-Final Decision Model', ar: 'نموذج القرار النهائي للطبيب' },
     'innov.p6_desc': { en: 'AI assists — doctors decide. Every diagnosis, treatment plan, and prescription is made by a licensed physician. AI never acts independently.', ar: 'الذكاء الاصطناعي يساعد — الطبيب يقرر. كل تشخيص وخطة علاج ووصفة تُصدر من طبيب مرخّص. الذكاء الاصطناعي لا يعمل بشكل مستقل أبداً.' },
 
-    'innov.patent': { en: '🔬 Patent-pending consultation model — filed in Saudi Arabia and the Middle East', ar: '🔬 نموذج استشارة قيد تسجيل براءة اختراع — مقدّم في المملكة العربية السعودية والشرق الأوسط' },
+    'innov.p7': { en: 'Clinical Image Capture', ar: 'التقاط الصور السريرية' },
+    'innov.p7_desc': { en: 'Upload photos of skin conditions, wounds, or affected areas directly during your AI interview — automatically linked to the right specialty pathway.', ar: 'ارفع صور الحالات الجلدية أو الجروح أو المناطق المتأثرة أثناء المقابلة الذكية — تُربط تلقائياً بمسار التخصص المناسب.' },
+
+    'innov.p8': { en: 'Insurance Pre-Authorization', ar: 'الموافقة المسبقة من التأمين' },
+    'innov.p8_desc': { en: 'Integrated insurance verification and pre-authorization — reducing claim denials and streamlining the payment process for both patients and providers.', ar: 'تحقق متكامل من التأمين والموافقة المسبقة — يقلل رفض المطالبات ويُسهّل عملية الدفع للمرضى ومقدمي الخدمة.' },
+
+    'innov.patent': { en: '🔬 Patented AI-driven clinical platform — Saudi Patent No. SA 1020262581 · Saudi Authority for Intellectual Property (SAIP)', ar: '🔬 منصة سريرية مدعومة بالذكاء الاصطناعي حاصلة على براءة اختراع — براءة اختراع سعودية رقم SA 1020262581 · الهيئة السعودية للملكية الفكرية (SAIP)' },
 
     // ─── ABOUT ───
     'about.tag': { en: 'The Platform', ar: 'المنصة' },
@@ -116,7 +122,7 @@ const translations: Record<string, Record<Locale, string>> = {
     'about.f5_title': { en: '19 Safety Verification Layers', ar: '19 طبقة تحقق للسلامة' },
     'about.f5_desc': { en: 'From drug interaction detection to allergy cross-checking, dosage validation to red-flag symptom detection — safety is built into every step.', ar: 'من اكتشاف التداخلات الدوائية إلى التحقق من الحساسية، ومن مراجعة الجرعات إلى رصد الأعراض التحذيرية — السلامة مدمجة في كل خطوة.' },
     'about.f6_title': { en: 'Zero-Storage Philosophy', ar: 'فلسفة عدم التخزين' },
-    'about.f6_desc': { en: 'Your medical data is never stored long-term. Session-based processing with automatic 24-hour purging. Your data belongs to you.', ar: 'بياناتك الطبية لا تُخزَّن على المدى الطويل مطلقًا. تتم المعالجة على مستوى الجلسة مع حذف تلقائي خلال 24 ساعة. وتبقى بياناتك ملكًا لك.' },
+    'about.f6_desc': { en: 'Your medical data is never stored long-term. Session-based processing with automatic purging after your consultation is complete and your report is generated. Your data belongs to you.', ar: 'بياناتك الطبية لا تُخزَّن على المدى الطويل مطلقًا. تتم المعالجة على مستوى الجلسة مع حذف تلقائي بعد اكتمال استشارتك وإنشاء تقريرك. وتبقى بياناتك ملكًا لك.' },
 
     // ─── HOW IT WORKS ───
     'how.tag': { en: 'The Journey', ar: 'الرحلة' },
@@ -182,7 +188,7 @@ const translations: Record<string, Record<Locale, string>> = {
     'story.mo_tag3': { en: 'Clinical Strategy', ar: 'الاستراتيجية السريرية' },
     'story.mo_tag4': { en: 'Award Winner', ar: 'حائز على جوائز' },
     'story.ip_title': { en: 'Intellectual Property & Patent Protection', ar: 'الملكية الفكرية وحماية البراءات' },
-    'story.ip_desc': { en: 'The cliniq.one concept, workflow architecture, and AI-driven multi-specialty consultation model are currently under patent filing in Saudi Arabia and the broader Middle East region. This includes proprietary methodologies for single-intake multi-specialty routing, AI-generated clinical documentation, session-based zero-storage consultations, and intelligent specialty collaboration.', ar: 'إن مفهوم cliniq.one، وبنية سير العمل، ونموذج الاستشارات متعددة التخصصات المدعوم بالذكاء الاصطناعي، تخضع حاليًا لإجراءات تسجيل براءة اختراع في السعودية ومنطقة الشرق الأوسط الأوسع. ويشمل ذلك المنهجيات الخاصة بالتوجيه متعدد التخصصات من خلال استقبال واحد، والتوثيق السريري المُولّد بالذكاء الاصطناعي، والاستشارات القائمة على الجلسة بدون تخزين دائم، والتعاون الذكي بين التخصصات.' },
+    'story.ip_desc': { en: 'The cliniq.one concept, workflow architecture, and AI-driven multi-specialty consultation model are protected under Saudi Patent No. SA 1020262581, granted by the Saudi Authority for Intellectual Property (SAIP). This includes proprietary methodologies for single-intake multi-specialty routing, AI-generated clinical documentation, session-based zero-storage consultations, and intelligent specialty collaboration.', ar: 'إن مفهوم cliniq.one، وبنية سير العمل، ونموذج الاستشارات متعددة التخصصات المدعوم بالذكاء الاصطناعي محمية ببراءة اختراع سعودية رقم SA 1020262581، الممنوحة من الهيئة السعودية للملكية الفكرية (SAIP). ويشمل ذلك المنهجيات الخاصة بالتوجيه متعدد التخصصات من خلال استقبال واحد، والتوثيق السريري المُولّد بالذكاء الاصطناعي، والاستشارات القائمة على الجلسة بدون تخزين دائم، والتعاون الذكي بين التخصصات.' },
 
     // ─── SAFETY ───
     'safety.tag': { en: 'Patient Safety', ar: 'سلامة المريض' },
@@ -229,9 +235,9 @@ const translations: Record<string, Record<Locale, string>> = {
     'safety.l19_desc': { en: 'Ensures adherence to WHO, ACP, AAFP, and local regulations', ar: 'يضمن الالتزام بإرشادات منظمة الصحة العالمية وACP وAAFP والأنظمة المحلية' },
     'safety.showAll': { en: 'Show All 19 Safety Layers', ar: 'عرض طبقات الأمان التسع عشرة كاملة' },
     'safety.zero_title': { en: 'Zero-Storage Philosophy', ar: 'فلسفة عدم التخزين' },
-    'safety.zero_desc': { en: 'At cliniq.one, patient privacy is a fundamental principle. Your medical data is processed in real-time session memory — never committed to permanent databases. Data is stored temporarily for a maximum of 24 hours to allow the medical team to complete their assessment, then automatically purged.', ar: 'في cliniq.one، خصوصية المريض مبدأ أساسي. تتم معالجة بياناتك الطبية لحظيًا داخل ذاكرة الجلسة — من دون حفظها في قواعد بيانات دائمة. وتُخزَّن البيانات مؤقتًا لمدة أقصاها 24 ساعة فقط حتى يتمكّن الفريق الطبي من استكمال التقييم، ثم تُحذف تلقائيًا.' },
+    'safety.zero_desc': { en: 'At cliniq.one, patient privacy is a fundamental principle. Your medical data is processed in real-time session memory — never committed to permanent databases. Data is retained only for the consultation window needed to complete your assessment and generate your medical report, then automatically purged. Long-term records are available only on hardcopy or local server per medico-legal standards.', ar: 'في cliniq.one، خصوصية المريض مبدأ أساسي. تتم معالجة بياناتك الطبية لحظيًا داخل ذاكرة الجلسة — من دون حفظها في قواعد بيانات دائمة. يُحتفظ بالبيانات فقط خلال نافذة الاستشارة اللازمة لإتمام التقييم وإنشاء التقرير الطبي، ثم تُحذف تلقائيًا. السجلات طويلة الأمد متاحة فقط كنسخة ورقية أو على الخادم المحلي وفق المعايير الطبية القانونية.' },
     'safety.z1': { en: 'Session-based processing only', ar: 'معالجة قائمة على الجلسة فقط' },
-    'safety.z2': { en: 'Automatic 24h data purging', ar: 'حذف تلقائي للبيانات خلال 24 ساعة' },
+    'safety.z2': { en: 'Auto-purged after consultation', ar: 'حذف تلقائي بعد الاستشارة' },
     'safety.z3': { en: 'No third-party data sharing', ar: 'عدم مشاركة البيانات مع أطراف خارجية' },
     'safety.z4': { en: 'Enterprise-grade encryption', ar: 'تشفير بمستوى مؤسسي' },
     'safety.z5': { en: 'HIPAA-aligned practices', ar: 'ممارسات متوافقة مع HIPAA' },
@@ -358,6 +364,7 @@ const translations: Record<string, Record<Locale, string>> = {
     'footer.markets': { en: 'Markets', ar: 'الأسواق' },
     'footer.ksa': { en: '🇸🇦 KSA', ar: '🇸🇦 السعودية' },
     'footer.uae': { en: '🇦🇪 UAE', ar: '🇦🇪 الإمارات' },
+    'footer.patent': { en: 'Saudi Patent No. SA 1020262581', ar: 'براءة اختراع سعودية رقم SA 1020262581' },
     'footer.copyright': { en: '© 2026 cliniq.one. All rights reserved. A Momencraft venture.', ar: '© 2026 cliniq.one. جميع الحقوق محفوظة. إحدى مشاريع Momencraft.' },
     'footer.terms': { en: 'Terms of Service', ar: 'شروط الاستخدام' },
     'footer.privacy': { en: 'Privacy Policy', ar: 'سياسة الخصوصية' },
@@ -372,6 +379,21 @@ const translations: Record<string, Record<Locale, string>> = {
     'cookie.learn_more': { en: 'Learn more', ar: 'تعرّف على المزيد' },
     'cookie.accept': { en: 'Accept', ar: 'قبول' },
     'cookie.decline': { en: 'Decline', ar: 'رفض' },
+
+    // ─── APP SHOWCASE ───
+    'showcase.tag': { en: 'Experience the Platform', ar: 'جرّب المنصة' },
+    'showcase.h2_1': { en: 'See Our', ar: 'تعرّف على' },
+    'showcase.h2_2': { en: 'Apps in Action', ar: 'تطبيقاتنا عملياً' },
+    'showcase.sub': { en: 'Explore interactive demos of the Patient, Doctor, and Admin experiences. Click any app to try the full interactive mockup.', ar: 'استكشف عروضاً تفاعلية لتجارب المريض والطبيب والإدارة. اضغط على أي تطبيق لتجربة النموذج التفاعلي الكامل.' },
+    'showcase.patient_title': { en: 'Patient App', ar: 'تطبيق المريض' },
+    'showcase.patient_desc': { en: 'AI-powered medical intake, smart specialty routing, consultations, wallet, and e-prescriptions — all in one app.', ar: 'استقبال طبي بالذكاء الاصطناعي، توجيه ذكي للتخصصات، استشارات، محفظة، ووصفات إلكترونية — كل ذلك في تطبيق واحد.' },
+    'showcase.doctor_title': { en: 'Doctor Dashboard', ar: 'لوحة الطبيب' },
+    'showcase.doctor_desc': { en: 'Review AI-generated clinical notes, manage patient queue, submit reports with e-prescriptions, and track performance analytics.', ar: 'راجع الملاحظات السريرية المولّدة بالذكاء الاصطناعي، أدِر قائمة المرضى، قدّم التقارير مع الوصفات الإلكترونية، وتابع تحليلات الأداء.' },
+    'showcase.admin_title': { en: 'Admin Panel', ar: 'لوحة الإدارة' },
+    'showcase.admin_desc': { en: 'Full platform control — AI prompt management, doctor onboarding, patient oversight, safety protocols, and real-time analytics.', ar: 'تحكم كامل بالمنصة — إدارة توجيهات الذكاء الاصطناعي، تسجيل الأطباء، متابعة المرضى، بروتوكولات السلامة، وتحليلات لحظية.' },
+    'showcase.try_it': { en: 'Try it', ar: 'جرّبه' },
+    'showcase.explore': { en: 'Open Interactive Demo', ar: 'افتح العرض التفاعلي' },
+    'showcase.note': { en: 'Interactive mockups — click to explore the full app experience', ar: 'نماذج تفاعلية — اضغط لاستكشاف تجربة التطبيق الكاملة' },
 };
 
 const I18nContext = createContext<I18nContextType | null>(null);

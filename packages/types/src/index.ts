@@ -99,7 +99,8 @@ export type ConsultationStatus =
     | 'inquiry_sent'
     | 'report_ready'
     | 'completed'
-    | 'cancelled';
+    | 'cancelled'
+    | 'refunded';
 
 export type ConsultationPriority = 'routine' | 'high' | 'urgent';
 
@@ -1177,3 +1178,90 @@ export const ORTHO_VISIT_TYPES = [
     { id: 'imaging_review', label: 'Imaging Review', label_ar: 'مراجعة الأشعة', token_cost: 2 },
     { id: 'second_opinion', label: 'Second Opinion', label_ar: 'رأي ثانٍ', token_cost: 3 },
 ] as const;
+
+// ──────────────────────────────────────────
+// Refund System
+// ──────────────────────────────────────────
+
+export type RefundRequestStatus = 'pending' | 'approved' | 'rejected' | 'auto_approved' | 'processed';
+export type RefundRequesterRole = 'patient' | 'doctor' | 'admin';
+
+export type DoctorRefundReason =
+    | 'insufficient_info'
+    | 'inappropriate_case'
+    | 'outside_specialty'
+    | 'patient_unresponsive'
+    | 'technical_issue'
+    | 'duplicate_consultation'
+    | 'other';
+
+export type PatientRefundReason =
+    | 'unsatisfactory_response'
+    | 'delayed_response'
+    | 'wrong_specialty'
+    | 'technical_issue'
+    | 'accidental_submission'
+    | 'other';
+
+export type AdminRefundReason =
+    | 'quality_issue'
+    | 'system_error'
+    | 'policy_violation'
+    | 'patient_complaint'
+    | 'doctor_complaint'
+    | 'other';
+
+export type RefundReasonCategory = DoctorRefundReason | PatientRefundReason | AdminRefundReason;
+
+export interface RefundRequest {
+    id: string;
+    consultation_id: string;
+    requested_by: string;
+    requester_role: RefundRequesterRole;
+    reason_category: RefundReasonCategory;
+    reason_text: string | null;
+    refund_amount: number;
+    status: RefundRequestStatus;
+    reviewed_by: string | null;
+    review_notes: string | null;
+    reviewed_at: string | null;
+    created_at: string;
+}
+
+// ── Refund Reason Labels (Bilingual) ─────────
+
+export const DOCTOR_REFUND_REASON_LABELS: Record<DoctorRefundReason, { en: string; ar: string }> = {
+    insufficient_info: { en: 'Insufficient Patient Information', ar: 'معلومات المريض غير كافية' },
+    inappropriate_case: { en: 'Inappropriate for Teleconsultation', ar: 'غير مناسب للاستشارة عن بُعد' },
+    outside_specialty: { en: 'Outside My Specialty', ar: 'خارج تخصصي' },
+    patient_unresponsive: { en: 'Patient Unresponsive', ar: 'المريض لا يستجيب' },
+    technical_issue: { en: 'Technical Issue', ar: 'مشكلة تقنية' },
+    duplicate_consultation: { en: 'Duplicate Consultation', ar: 'استشارة مكررة' },
+    other: { en: 'Other', ar: 'أخرى' },
+};
+
+export const PATIENT_REFUND_REASON_LABELS: Record<PatientRefundReason, { en: string; ar: string }> = {
+    unsatisfactory_response: { en: 'Unsatisfactory Response', ar: 'استجابة غير مرضية' },
+    delayed_response: { en: 'Delayed Response', ar: 'تأخر في الاستجابة' },
+    wrong_specialty: { en: 'Wrong Specialty', ar: 'تخصص خاطئ' },
+    technical_issue: { en: 'Technical Issue', ar: 'مشكلة تقنية' },
+    accidental_submission: { en: 'Accidental Submission', ar: 'إرسال بالخطأ' },
+    other: { en: 'Other', ar: 'أخرى' },
+};
+
+export const ADMIN_REFUND_REASON_LABELS: Record<AdminRefundReason, { en: string; ar: string }> = {
+    quality_issue: { en: 'Quality Issue', ar: 'مشكلة في الجودة' },
+    system_error: { en: 'System Error', ar: 'خطأ في النظام' },
+    policy_violation: { en: 'Policy Violation', ar: 'مخالفة للسياسة' },
+    patient_complaint: { en: 'Patient Complaint', ar: 'شكوى مريض' },
+    doctor_complaint: { en: 'Doctor Complaint', ar: 'شكوى طبيب' },
+    other: { en: 'Other', ar: 'أخرى' },
+};
+
+export const REFUND_STATUS_LABELS: Record<RefundRequestStatus, { en: string; ar: string; color: string; icon: string }> = {
+    pending: { en: 'Pending Review', ar: 'بانتظار المراجعة', color: '#F59E0B', icon: '⏳' },
+    approved: { en: 'Approved', ar: 'تمت الموافقة', color: '#3B82F6', icon: '✅' },
+    rejected: { en: 'Rejected', ar: 'مرفوض', color: '#EF4444', icon: '❌' },
+    auto_approved: { en: 'Auto-Approved', ar: 'موافقة تلقائية', color: '#10B981', icon: '⚡' },
+    processed: { en: 'Refund Processed', ar: 'تم الاسترداد', color: '#22C55E', icon: '💰' },
+};

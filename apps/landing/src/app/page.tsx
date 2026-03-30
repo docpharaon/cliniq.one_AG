@@ -9,6 +9,7 @@ import Innovation from '@/components/Innovation';
 import Story from '@/components/Story';
 import HowItWorks from '@/components/HowItWorks';
 import About from '@/components/About';
+import AppShowcase from '@/components/AppShowcase';
 import Safety from '@/components/Safety';
 import ForWho from '@/components/ForWho';
 import AppAvailability from '@/components/AppAvailability';
@@ -53,6 +54,7 @@ function PageContent() {
                 <Innovation />
                 <Story />
                 <HowItWorks />
+                <AppShowcase />
                 <About />
                 <Safety />
                 <ForWho />

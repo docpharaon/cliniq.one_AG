@@ -29,6 +29,7 @@ import {
     Lightbulb,
     FlaskConical,
     Crown,
+    RotateCcw,
     type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -76,6 +77,7 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
     {
         title: 'Finance',
         items: [
+            { label: 'Refunds', href: '/dashboard/refunds', icon: RotateCcw },
             { label: 'Pricing', href: '/dashboard/pricing', icon: DollarSign, superadminOnly: true },
             { label: 'Tokens', href: '/dashboard/tokens', icon: Coins, superadminOnly: true },
         ],

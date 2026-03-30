@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '@cliniqone/ui';
 import { useConsultationDetail } from '../../hooks/useDoctorData';
+import RefundRequestModal from '../../components/RefundRequestModal';
 
 export default function PatientFileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const { data: consultation, isLoading, error } = useConsultationDetail(id || '');
+    const [showRefund, setShowRefund] = useState(false);
+    const canRefund = consultation && ['assigned', 'in_progress', 'report_ready'].includes(consultation.status);
 
     if (isLoading) {
         return (
@@ -151,6 +155,16 @@ export default function PatientFileScreen() {
                     <InfoRow label="Token Cost" value={`💎 ${consultation.token_cost || 3}`} />
                 </Section>
 
+                {/* Refund Request */}
+                {canRefund && (
+                    <TouchableOpacity
+                        style={styles.refundButton}
+                        onPress={() => setShowRefund(true)}
+                    >
+                        <Text style={styles.refundText}>⚠️ Request Refund</Text>
+                    </TouchableOpacity>
+                )}
+
                 {/* CTA */}
                 <TouchableOpacity
                     style={styles.composeButton}
@@ -162,6 +176,18 @@ export default function PatientFileScreen() {
                     <Text style={styles.composeText}>✍️ Compose Medical Response</Text>
                 </TouchableOpacity>
             </ScrollView>
+
+            {/* Refund Modal */}
+            {canRefund && (
+                <RefundRequestModal
+                    visible={showRefund}
+                    onClose={() => setShowRefund(false)}
+                    consultationId={consultation.id}
+                    doctorUserId={consultation.doctor_id || ''}
+                    tokenCost={consultation.token_cost || 3}
+                    onSuccess={() => router.back()}
+                />
+            )}
         </SafeAreaView>
     );
 }
@@ -226,4 +252,6 @@ const styles = StyleSheet.create({
     dxPercent: { ...typography.caption, color: colors.textSecondary, width: 36, textAlign: 'right' },
     composeButton: { backgroundColor: colors.accentTeal, borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginTop: 8 },
     composeText: { ...typography.button, color: colors.bgPrimary, fontWeight: '700', fontSize: 16 },
+    refundButton: { backgroundColor: colors.warningFaded, borderWidth: 1, borderColor: colors.warning, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
+    refundText: { ...typography.button, color: colors.warning, fontWeight: '700', fontSize: 14 },
 });

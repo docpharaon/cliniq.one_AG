@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { Consultation, Message, SenderRole } from '@cliniqone/types';
+import type { Consultation, Message, SenderRole, RefundRequest, PatientRefundReason } from '@cliniqone/types';
 
 // ── Fetch patient's consultations ────────────────
 export async function getConsultations(patientId: string) {
@@ -301,4 +301,64 @@ export function subscribeToMessages(
             (payload) => onMessage(payload.new as Message),
         )
         .subscribe();
+}
+
+// ──────────────────────────────────────────
+// Patient Refund Requests
+// ──────────────────────────────────────────
+
+/**
+ * Request a refund for a consultation (patient-initiated).
+ * Creates a refund_request with requester_role='patient'.
+ */
+export async function requestPatientRefund(params: {
+    consultationId: string;
+    patientId: string;
+    reasonCategory: PatientRefundReason;
+    reasonText?: string;
+}): Promise<RefundRequest> {
+    // Get the consultation to find the token cost and validate ownership
+    const { data: consultation, error: consultationError } = await supabase
+        .from('consultations')
+        .select('token_cost, status, patient_id')
+        .eq('id', params.consultationId)
+        .eq('patient_id', params.patientId)
+        .single();
+
+    if (consultationError) throw consultationError;
+
+    const { data, error } = await supabase
+        .from('refund_requests')
+        .insert({
+            consultation_id: params.consultationId,
+            requested_by: params.patientId,
+            requester_role: 'patient',
+            reason_category: params.reasonCategory,
+            reason_text: params.reasonText || null,
+            refund_amount: consultation.token_cost,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data as RefundRequest;
+}
+
+/**
+ * Get refund requests for a patient (across all their consultations).
+ */
+export async function getPatientRefundRequests(patientId: string): Promise<RefundRequest[]> {
+    const { data, error } = await supabase
+        .from('refund_requests')
+        .select(`
+            *,
+            consultation:consultations!refund_requests_consultation_id_fkey(
+                id, specialty, chief_complaint, status, token_cost
+            )
+        `)
+        .eq('requested_by', patientId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as RefundRequest[];
 }

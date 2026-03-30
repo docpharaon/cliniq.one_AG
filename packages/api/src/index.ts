@@ -36,6 +36,8 @@ export {
     deleteIntakeSession,
     lookupDoctorByCode,
     searchDoctorsForPatient,
+    requestPatientRefund,
+    getPatientRefundRequests,
 } from './consultations';
 
 // ── Doctor ──
@@ -55,6 +57,9 @@ export {
     getDoctorInquiries,
     getPatientPendingInquiries,
     submitInquiryResponse,
+    requestDoctorRefund,
+    getDoctorRefundRequests,
+    hasRefundPending,
 } from './doctor';
 
 // ── Admin ──
@@ -78,4 +83,9 @@ export {
     adminExemptUser,
     adminResetKyc,
     getKycUsers,
+    getAllRefundRequests,
+    reviewRefundRequest,
+    createAdminRefund,
+    processRefund,
+    getRefundStats,
 } from './admin';

@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { User, Doctor, Consultation, TokenTransaction, ProtocolLog } from '@cliniqone/types';
+import type { User, Doctor, Consultation, TokenTransaction, ProtocolLog, RefundRequest, AdminRefundReason, RefundRequestStatus } from '@cliniqone/types';
 
 // ──────────────────────────────────────────
 // Admin API Functions
@@ -418,4 +418,181 @@ export async function getKycUsers(params?: {
     const { data, error, count } = await query;
     if (error) throw error;
     return { users: data || [], total: count || 0 };
+}
+
+// ── Refund Management ──────────────────────────
+
+/**
+ * Get all refund requests with filtering (admin view).
+ */
+export async function getAllRefundRequests(params?: {
+    status?: RefundRequestStatus;
+    requesterRole?: string;
+    limit?: number;
+    offset?: number;
+}) {
+    let query = supabase
+        .from('refund_requests')
+        .select(`
+            *,
+            requester:users!refund_requests_requested_by_fkey(id, nickname, email, role),
+            reviewer:users!refund_requests_reviewed_by_fkey(id, nickname, email),
+            consultation:consultations!refund_requests_consultation_id_fkey(
+                id, specialty, chief_complaint, status, token_cost, patient_id, doctor_id,
+                patient:users!consultations_patient_id_fkey(id, nickname, email),
+                doctor:doctors!consultations_doctor_id_fkey(id, display_name, specialty)
+            )
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+    if (params?.status) query = query.eq('status', params.status);
+    if (params?.requesterRole) query = query.eq('requester_role', params.requesterRole);
+    if (params?.limit) query = query.limit(params.limit);
+    if (params?.offset) query = query.range(params.offset, params.offset + (params.limit || 20) - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { refundRequests: data as any[], total: count || 0 };
+}
+
+/**
+ * Review (approve or reject) a refund request.
+ */
+export async function reviewRefundRequest(params: {
+    requestId: string;
+    adminUserId: string;
+    decision: 'approved' | 'rejected';
+    notes?: string;
+    adjustedAmount?: number;
+}): Promise<RefundRequest> {
+    const updates: Record<string, unknown> = {
+        status: params.decision,
+        reviewed_by: params.adminUserId,
+        review_notes: params.notes || null,
+        reviewed_at: new Date().toISOString(),
+    };
+
+    // Allow admin to adjust the refund amount (partial refund)
+    if (params.adjustedAmount !== undefined && params.decision === 'approved') {
+        updates.refund_amount = params.adjustedAmount;
+    }
+
+    const { data, error } = await supabase
+        .from('refund_requests')
+        .update(updates)
+        .eq('id', params.requestId)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // Audit log
+    const refund = data as RefundRequest;
+    await supabase.from('consultation_audit_log').insert({
+        consultation_id: refund.consultation_id,
+        action: params.decision === 'approved' ? 'refund_approved' : 'refund_rejected',
+        performed_by: params.adminUserId,
+        metadata: {
+            refund_request_id: params.requestId,
+            decision: params.decision,
+            notes: params.notes,
+            adjusted_amount: params.adjustedAmount,
+        },
+    });
+
+    return refund;
+}
+
+/**
+ * Create an admin-initiated refund (auto-approved, immediate).
+ * Used from ConsultationDetailPanel or PatientDetailPanel.
+ */
+export async function createAdminRefund(params: {
+    consultationId: string;
+    adminUserId: string;
+    reasonCategory: AdminRefundReason;
+    reasonText: string;
+    customAmount?: number;
+}): Promise<RefundRequest> {
+    // Get consultation token cost
+    const { data: consultation, error: consultationError } = await supabase
+        .from('consultations')
+        .select('token_cost')
+        .eq('id', params.consultationId)
+        .single();
+
+    if (consultationError) throw consultationError;
+
+    const refundAmount = params.customAmount ?? consultation.token_cost;
+
+    const { data, error } = await supabase
+        .from('refund_requests')
+        .insert({
+            consultation_id: params.consultationId,
+            requested_by: params.adminUserId,
+            requester_role: 'admin',
+            reason_category: params.reasonCategory,
+            reason_text: params.reasonText,
+            refund_amount: refundAmount,
+            status: 'auto_approved', // Admin refunds are auto-approved
+            reviewed_by: params.adminUserId,
+            reviewed_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data as RefundRequest;
+}
+
+/**
+ * Process an approved refund — executes the token transfer atomically.
+ * Calls the process_refund RPC function.
+ */
+export async function processRefund(refundRequestId: string, adminUserId: string) {
+    const { data, error } = await supabase.rpc('process_refund', {
+        p_refund_request_id: refundRequestId,
+        p_admin_user_id: adminUserId,
+    });
+
+    if (error) throw error;
+
+    const result = data as { success: boolean; error?: string; refund_amount?: number; patient_new_balance?: number };
+    if (!result.success) {
+        throw new Error(result.error || 'Refund processing failed');
+    }
+
+    return result;
+}
+
+/**
+ * Get refund statistics for the admin dashboard.
+ */
+export async function getRefundStats() {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [
+        { count: pendingCount },
+        { count: approvedToday },
+        { count: rejectedToday },
+        { data: monthlyRefunds },
+    ] = await Promise.all([
+        supabase.from('refund_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('refund_requests').select('*', { count: 'exact', head: true }).in('status', ['approved', 'auto_approved', 'processed']).gte('reviewed_at', todayStart),
+        supabase.from('refund_requests').select('*', { count: 'exact', head: true }).eq('status', 'rejected').gte('reviewed_at', todayStart),
+        supabase.from('refund_requests').select('refund_amount').in('status', ['processed']).gte('created_at', monthStart),
+    ]);
+
+    const totalTokensRefundedMonth = (monthlyRefunds || []).reduce(
+        (sum: number, r: { refund_amount: number }) => sum + r.refund_amount, 0
+    );
+
+    return {
+        pendingCount: pendingCount || 0,
+        approvedToday: approvedToday || 0,
+        rejectedToday: rejectedToday || 0,
+        totalTokensRefundedMonth,
+    };
 }

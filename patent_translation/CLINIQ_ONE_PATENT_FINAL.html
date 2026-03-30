@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cliniq.one — طلب براءة اختراع</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --text: #1a1a2e;
+    --muted: #555;
+    --accent: #0d7377;
+    --accent-bg: #f0fafa;
+    --border: #ddd;
+    --bg: #ffffff;
+    --section-gap: 3rem;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Naskh Arabic', 'Inter', serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 2;
+    font-size: 15px;
+    direction: rtl;
+    text-align: right;
+  }
+
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 30px;
+  }
+
+  /* Header */
+  .patent-header {
+    text-align: center;
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+    border-bottom: 3px solid var(--accent);
+  }
+  .patent-header .logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .patent-header .subtitle {
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Section titles */
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: var(--section-gap);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    margin-bottom: 1rem;
+    text-align: justify;
+    text-justify: inter-word;
+  }
+
+  ul, ol {
+    margin-bottom: 1rem;
+    padding-right: 1.5rem;
+  }
+  li {
+    margin-bottom: 0.4rem;
+  }
+
+  /* Figure list */
+  .figure-list {
+    background: var(--accent-bg);
+    border: 1px solid #c8e6e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .figure-list p {
+    margin-bottom: 0.6rem;
+    text-align: right;
+    font-size: 0.95rem;
+  }
+  .figure-list strong {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Figure images */
+  .figure-block {
+    margin: 2.5rem 0;
+    page-break-inside: avoid;
+  }
+  .figure-block .fig-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  .figure-block .fig-desc {
+    font-size: 0.9rem;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 0.8rem;
+  }
+  .figure-block img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+
+  /* Divider */
+  .section-divider {
+    height: 2px;
+    background: linear-gradient(to left, var(--accent), transparent);
+    margin: var(--section-gap) 0;
+  }
+
+  /* English section */
+  .english-section {
+    direction: ltr;
+    text-align: left;
+    font-family: 'Inter', 'Noto Naskh Arabic', sans-serif;
+  }
+  .english-section h1 {
+    text-align: left;
+  }
+  .english-section p {
+    text-align: justify;
+  }
+  .english-section ul, .english-section ol {
+    padding-left: 1.5rem;
+    padding-right: 0;
+  }
+
+  /* Print */
+  /* Print PDF button */
+  .print-btn {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    background: linear-gradient(135deg, #0d7377, #14919b);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(13,115,119,0.35);
+    z-index: 9999;
+    font-family: 'Inter', sans-serif;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .print-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(13,115,119,0.45);
+  }
+
+  @media print {
+    body { font-size: 12pt; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .container { max-width: 100%; padding: 20px; }
+    .figure-block { page-break-inside: avoid; }
+    h1 { page-break-before: always; }
+    h1:first-of-type { page-break-before: avoid; }
+    .print-btn { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== COVER PAGE (Dark Style) ===== -->
+<div style="
+  min-height: 100vh;
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 60px;
+  page-break-after: always;
+  color: #ffffff;
+  direction: ltr;
+  text-align: left;
+">
+  <div style="margin-bottom: 4rem;">
+    <span style="font-size: 3.2rem; font-weight: 800; font-family: 'Inter', sans-serif; color: #2dd4a8; letter-spacing: -1px;">cliniq.</span><span style="font-size: 3.2rem; font-weight: 800; font-family: 'Inter', sans-serif; color: #ffffff; letter-spacing: -1px;">one</span>
+    <div style="font-size: 1.2rem; color: #8899aa; margin-top: 8px; font-family: 'Inter', sans-serif;">Patent Application - Full Bilingual Filing Document</div>
+  </div>
+
+  <div style="width: 60px; height: 4px; background: #2dd4a8; border-radius: 2px; margin-bottom: 3rem;"></div>
+
+  <div style="font-family: 'Inter', sans-serif; color: #8899aa; font-size: 0.95rem; line-height: 2.4;">
+    <div>Filing Authority: Saudi Authority for Intellectual Property (SAIP)</div>
+    <div>Application Type: Invention Patent</div>
+    <div>Total Figures: 17 (Arabic Screenshots)</div>
+    <div>Languages: Arabic + English (Full Bilingual)</div>
+    <div>Document Generated: March 30, 2026</div>
+    <div>Applicant: <span style="color: #ffffff; font-weight: 600;">Momen Ghassan Pharaon</span> — <span style="font-family: 'Noto Naskh Arabic', serif; color: #ffffff; font-weight: 600;">مؤمن غسان فرعون</span></div>
+    <div>National ID: <span style="color: #ffffff; font-weight: 600; letter-spacing: 1px;">1040249078</span></div>
+    <div>Nationality: Saudi — سعودي</div>
+  </div>
+</div>
+
+<!-- ===== TABLE OF CONTENTS ===== -->
+<div style="
+  min-height: 100vh;
+  padding: 60px 40px;
+  page-break-after: always;
+  direction: ltr;
+  text-align: left;
+  font-family: 'Inter', 'Noto Naskh Arabic', sans-serif;
+">
+  <div style="color: #0d7377; font-size: 0.85rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 0.5rem;">TABLE OF CONTENTS</div>
+  <div style="font-size: 1.6rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem;">Document Structure</div>
+  <div style="width: 100%; height: 3px; background: linear-gradient(to right, #0d7377, transparent); margin-bottom: 2rem;"></div>
+
+  <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 2rem; line-height: 2.6; font-size: 0.95rem; color: #333;">
+    <div>1. عنوان الاختراع / Title of the Invention</div>
+    <div>2. الملخص / Abstract</div>
+    <div>3. مجال الاختراع / Field of the Invention</div>
+    <div>4. خلفية الاختراع / Background of the Invention</div>
+    <div>5. ملخص الاختراع / Summary of the Invention</div>
+    <div>6. الوصف التفصيلي / Detailed Description</div>
+    <div style="padding-right: 1.5rem; color: #666; font-size: 0.9rem;">
+      — معمارية النظام / System Architecture<br>
+      — طبقة التنظيم بالذكاء الاصطناعي / AI Orchestration Layer<br>
+      — العُقد الذكية / AI-Executable Nodes<br>
+      — المسارات التخصصية / Specialty Pathways<br>
+      — الموجهات السريرية / Clinical Prompts<br>
+      — التوجيه التخصصي / Specialty Routing<br>
+      — الأمان السلوكي / Behavioral Safety<br>
+      — الصور السريرية والأدوية / Clinical Images &amp; Medications<br>
+      — التأمين والتحقق / Insurance &amp; KYC<br>
+      — الخصوصية / Privacy
+    </div>
+    <div>7. الاستفادة العملية والاقتصادية / Operational &amp; Economic Benefits</div>
+    <div>8. الخلاصة / Conclusion</div>
+    <div>9. قائمة الرسومات / List of Figures (17 Figures)</div>
+    <div style="padding-right: 1.5rem; color: #666; font-size: 0.9rem;">
+      📱 Patient App (FIG. 1a, 3–5, 10–11, 13)<br>
+      🩺 Doctor App (FIG. 1b, 8, 12, 16)<br>
+      🖥️ Admin Panel (FIG. 1c, 2, 6–7, 9, 14–15, 17)
+    </div>
+    <div>10. الرسومات التوضيحية / Figures (Arabic Screenshots)</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ===== HEADER ===== -->
+<div class="patent-header">
+  <div class="logo">cliniq.one</div>
+  <div class="subtitle">طلب براءة اختراع — الهيئة السعودية للملكية الفكرية (SAIP)</div>
+</div>
+
+<!-- ===== ARABIC SECTION ===== -->
+
+<h1>عنوان الاختراع</h1>
+<p>نظام ومنصة تنظيم سريري مدفوع بالذكاء الاصطناعي لإجراء الإدخال الطبي التكيفي القائم على العُقد، مع مسارات تخصصية ديناميكية وبنية خصوصية لحماية البيانات.</p>
+
+<h1>الملخص</h1>
+<p>يتعلق هذا الاختراع بمنصة صحية رقمية مُنفذة حاسوبيًا تستخدم طبقة تنظيم وتحكم مركزية مدفوعة بالذكاء الاصطناعي (AI-driven orchestration layer) لإدارة تدفقات العمل السريرية بصورة تكيفية ومنظمة. يعتمد النظام على بنية تسلسلية-مسارية (sequence-pathway architecture) مكوّنة من عُقد ذكية قابلة للتنفيذ بالذكاء الاصطناعي (AI-executable nodes)، بحيث تعمل كل عقدة كوحدة قرار قادرة على توليد موجهات سريرية، وتقييم مدخلات المريض، وتحديد الانتقال الشرطي داخل مخطط تفاعلي غير خطي. كما يتضمن النظام موجهات سريرية مصممة بشريًا وفق معايير أخذ التاريخ المرضي والمقابلة الطبية، بما يضمن جودة جمع المعلومات الطبية واتساقها. ويشمل النظام أيضًا عُقدًا مشتركة بين التخصصات وعُقدًا خاصة بكل تخصص، وآليات أمان سلوكية، ورفع الصور السريرية مثل صور الآفات الجلدية، واستخراج معلومات الأدوية من النصوص غير المنظمة، والتكامل مع شركات التأمين، والتحقق من الهوية (KYC)، إضافة إلى بنية خصوصية تعتمد على المعالجة المؤقتة للبيانات في السحابة ثم حذفها بعد انتهاء نافذة الاستشارة وإصدار التقرير الطبي، مع قصر الحفظ طويل الأمد على الخادم المحلي أو النسخة الورقية وفق المتطلبات المديكو-قانونية (medico-legal standards).</p>
+
+<h1>مجال الاختراع</h1>
+<p>يتعلق هذا الاختراع بأنظمة ومنصات الرعاية الصحية الرقمية والطب عن بُعد المُنفذة حاسوبيًا، وبشكل أكثر تحديدًا بمنصة مدفوعة بالذكاء الاصطناعي لإجراء الإدخال الطبي التكيفي، وتنظيم المقابلة السريرية، وتوجيه المرضى إلى التخصص المناسب، وإدارة التدخلات الطبية، والتعامل الآمن مع بيانات المرضى.</p>
+
+<h1>خلفية الاختراع</h1>
+<p>تعتمد منصات الطب عن بُعد الحالية في الغالب على المحادثة المباشرة أو مكالمات الفيديو أو نماذج إدخال بسيطة وثابتة لجمع معلومات المريض قبل الاستشارة الطبية. وفي هذه الأنظمة لا توجد عادةً بنية ذكية تضبط مجريات المقابلة الطبية، أو تنظّم تسلسل جمع المعلومات السريرية، أو تضمن اكتمال التاريخ المرضي بطريقة معيارية؛ بل يظل ذلك معتمدًا بدرجة كبيرة على العامل البشري وخبرة الطبيب الفردية. ونتيجة لذلك قد تختلف جودة المقابلات من حالة إلى أخرى، وقد تُفقد معلومات سريرية مهمة، ويُستهلك وقت الطبيب في أسئلة غير منظمة أو غير مرتبطة، كما تغيب آليات كافية لتأمين الحوار الطبي واكتشاف الحالات الطارئة أو المدخلات غير المفهومة أو السلوك غير التعاوني في الزمن الحقيقي.</p>
+
+<p>كما أن الأنظمة التقليدية لا تراعي تعقيد الحالة الطبية أو تعدد التخصصات عند التسعير، وتعتمد غالبًا على نموذج زيارة موحد. كذلك فإن طلب الفحوصات أو الإحالات أو الإجراءات الطبية في الأنظمة الحالية يتطلب تنسيقًا يدويًا بين الطبيب والمريض والمختبر وشركة التأمين، دون تتبع آلي لدورة الحياة. كما تفتقر هذه الأنظمة إلى توجيه تخصصي ذكي، مما يجبر المريض على اختيار التخصص بنفسه أو بدء الرحلة من طبيب عام ثم إعادة توجيهه لاحقًا، وهو ما يؤدي إلى زيارات غير مناسبة، ورسوم مكررة، وتأخير في الوصول إلى الرعاية الصحيحة. وفي الحالات متعددة التخصصات، لا يستطيع الطبيب في كثير من المنصات التقليدية طلب تدخلات من تخصصات أخرى ضمن نفس الجلسة، ما يفرض على المريض فتح استشارات إضافية ودفع تكاليف جديدة.</p>
+
+<p>ورغم وجود حلول صحية مدعومة بالذكاء الاصطناعي، فإنها عادةً تستخدم الذكاء الاصطناعي كأداة منفصلة أو محدودة، مثل التصنيف أو المحادثة، دون تقديم منصة موحدة تجمع بين تنظيم المقابلة بشكل تكيفي، وبنية عُقد ذكية، ومسارات تخصصية ديناميكية، وموجهات سريرية مصممة بشريًا وفق المعايير الطبية، وبروتوكول أمان تدريجي متعدد الطبقات، وإدارة تدخلات متعددة التخصصات، وبنية خصوصية تعتمد على الحذف من السحابة بعد اكتمال الاستشارة.</p>
+
+<h1>ملخص الاختراع</h1>
+<p>يوفر الاختراع الحالي منصة صحية رقمية متكاملة تتضمن طبقة تنظيم وتحكم مركزية مدفوعة بالذكاء الاصطناعي تعمل كمحرك قرار شامل يتحكم في تدفقات العمل السريرية عبر كامل دورة التفاعل مع المريض. وتقوم هذه الطبقة بتنسيق تسلسل المقابلة الطبية، وتفعيل العُقد المناسبة، واختيار المسار التخصصي، وتطبيق بروتوكولات الأمان، وإدارة انتقال الحالة من الإدخال الطبي إلى التقرير النهائي.</p>
+
+<p>ويعتمد النظام على بنية تسلسلية-مسارية مكوّنة من عُقد ذكية، حيث تمثل كل عقدة وحدة قرار مستقلة قادرة على معالجة مدخلات المريض، وتوليد موجهات سريرية مناسبة، وتقييم الإجابات، وتحديد الانتقال إلى العقدة التالية. وتُنظَّم هذه العُقد ضمن مسارات تخصصية تشمل عُقدًا مشتركة بين أكثر من تخصص، مثل البيانات الأساسية والتاريخ العام، وعُقدًا خاصة بكل تخصص، مثل العُقد الجلدية أو القلبية أو غيرها، بحيث يستطيع النظام الدمج بين العُقد المشتركة والعُقد الخاصة بالتخصص وفق حالة المريض.</p>
+
+<p>ويتميز النظام بأن الموجهات السريرية ليست موجهات عامة يولدها الذكاء الاصطناعي بشكل حر، وإنما هي موجهات سريرية مصممة بشريًا (human-engineered clinical prompts) وفق معايير أخذ التاريخ المرضي والمقابلة الطبية، بما يضمن جودة جمع المعلومات السريرية ويجعل التفاعل الطبي منظمًا ومتسقًا وقابلًا للاستخدام السريري والإداري.</p>
+
+<h1>الوصف التفصيلي للاختراع</h1>
+
+<h2>1. معمارية النظام</h2>
+<p>يتكون النظام من واجهة للمريض، وواجهة للطبيب، ولوحة تحكم إدارية، ونظام معالجة على جانب الخادم. وتعمل هذه المكونات ضمن منصة موحدة تُدار بواسطة طبقة التنظيم المركزية بالذكاء الاصطناعي، والتي تتولى التحكم في مجريات التفاعل السريري منذ بداية الإدخال الطبي وحتى اكتمال التقرير أو الانتقال إلى التدخلات التالية.</p>
+
+<h2>2. طبقة التنظيم والتحكم بالذكاء الاصطناعي</h2>
+<p>تعمل طبقة التنظيم والتحكم بالذكاء الاصطناعي كعقل مركزي للنظام، وهي مسؤولة عن تحديد العقد التي يجب تفعيلها، وتسلسل الانتقال بينها، وتعديل المسار السريري بناءً على مدخلات المريض، وحالة الجلسة، ونتائج التصنيف السريري. وبهذا لا يقتصر دور الذكاء الاصطناعي على الرد أو التصنيف، بل يمتد إلى تنظيم كامل مجريات المقابلة الطبية وضبطها وفق بنية معيارية قابلة للتكيف.</p>
+
+<h2>3. بنية العُقد الذكية (AI Nodes)</h2>
+<p>يعتمد النظام على مجموعة من عُقد المقابلة، وتمثل كل عقدة وحدة قرار ذكية مستقلة قادرة على:</p>
+<ul>
+  <li>معالجة مدخلات المريض</li>
+  <li>توليد أسئلة أو موجهات سريرية مرتبطة بالسياق</li>
+  <li>تقييم اكتمال وصحة الإجابة</li>
+  <li>تحديد ما إذا كان يجب الانتقال إلى عقدة لاحقة أو فرع تخصصي مختلف</li>
+</ul>
+<p>ولا تعمل هذه العُقد ضمن تسلسل خطي ثابت، بل ضمن مخطط تفاعلي غير خطي يسمح بالتشعب والدمج وإعادة التوجيه بحسب الحاجة السريرية.</p>
+
+<h2>4. المسارات التخصصية والعُقد المشتركة والخاصة</h2>
+<p>يدعم النظام جميع المسارات التخصصية الطبية والجراحية من خلال بنية تجمع بين:</p>
+<ul>
+  <li>عُقد مشتركة (shared AI nodes) تستخدم عبر أكثر من تخصص، مثل معلومات المريض الأساسية، الشكوى الرئيسية، التاريخ المرضي العام، الأدوية، الحساسية، وبعض عناصر مراجعة الأنظمة.</li>
+  <li>عُقد خاصة بالتخصص (specialty-specific AI nodes) تُفعّل فقط عند تحديد مسار تخصصي معين، مثل عقد الجلدية للآفات الجلدية، أو عقد القلب للأعراض القلبية، أو غيرها من العقد المصممة سريريًا لكل مجال.</li>
+</ul>
+<p>ويتيح هذا التصميم إعادة استخدام الأجزاء المشتركة من المقابلة الطبية مع الحفاظ على العمق التخصصي عند الحاجة، كما يسمح بالانتقال من مسار إلى آخر أو دمج أكثر من مسار داخل نفس الجلسة إذا كانت الحالة متعددة التخصصات.</p>
+
+<h2>5. الموجهات السريرية المصممة بشريًا</h2>
+<p>ترتبط كل عقدة بموجه سريري مصمم بشريًا وفق المعايير الطبية المعتمدة في أخذ التاريخ المرضي وتنظيم المقابلة الطبية. وهذه الموجهات لا تهدف فقط إلى طرح الأسئلة، بل إلى ضبط جودة التفاعل السريري وتوحيد طريقة جمع المعلومات الطبية وتقليل تفاوتها من طبيب إلى آخر أو من جلسة إلى أخرى. وبهذا يجمع النظام بين مرونة الذكاء الاصطناعي وبين الانضباط السريري المستمد من الخبرة البشرية والمعايير الطبية.</p>
+
+<h2>6. التصنيف السريري والتوجيه التخصصي</h2>
+<p>يتضمن النظام محرك تصنيف مدفوع بالذكاء الاصطناعي يقوم بتحليل مدخلات المريض وتصنيفها إلى تخصص طبي أو جراحي مناسب، مع إنتاج درجة ثقة (confidence score) ونتيجة تصنيف تساعد على اختيار المسار الأنسب. ونتيجة لذلك يتم تقليل توجيه الحالات إلى التخصص الخطأ، وتقليل الإحالات غير الضرورية، وتسريع الوصول إلى الطبيب المناسب من المحاولة الأولى.</p>
+
+<h2>7. بروتوكول الأمان السلوكي</h2>
+<p>يطبّق النظام بروتوكول أمان متعدد الطبقات يعمل على جانب العميل وجانب الخادم، ويشمل اكتشاف الحالات الطارئة، ورصد المدخلات غير المفهومة، واكتشاف التكرار أو الرفض أو السلوك غير التعاوني، مع نظام تصعيد تدريجي وآلية تعافٍ تعاوني (cooperative decay) تسمح بخفض مستوى التصعيد عند عودة المريض للتفاعل الصحيح. ويساهم هذا في منع وصول الجلسات غير المنتجة إلى الطبيب، ويحافظ على جودة الاستشارات التي يتم إنجازها فعليًا.</p>
+
+<h2>8. الصور السريرية واكتشاف الأدوية</h2>
+<p>يدعم النظام رفع الصور السريرية، مثل صور الآفات الجلدية (skin lesions) أو الطفح أو أي حالة تستفيد من التقييم البصري، ويتم ربط هذه الصور بالعقدة أو المسار السريري المناسب. كما يتضمن النظام وحدة لاستخراج معلومات الأدوية من النصوص غير المنظمة، بحيث يستطيع التعرف على اسم الدواء وبياناته الأساسية وإدراجها ضمن التمثيل السريري المنظم.</p>
+
+<h2>9. التكامل مع شركات التأمين والتحقق من الهوية</h2>
+<p>يتضمن النظام وحدة تكامل مع شركات التأمين تتيح إرسال طلبات الموافقة على التدخلات الطبية ومتابعة حالة الموافقة أو الرفض، ودمج النتيجة ضمن سير العمل السريري والتدخلات المطلوبة. كما يشتمل على وحدة للتحقق من الهوية (KYC) للتحقق من هوية المريض باستخدام الوثائق أو الوسائل الحيوية أو الخدمات الخارجية، وربط حالة التحقق بالجلسة السريرية والوظائف المتاحة. وتساعد هذه الطبقات على رفع موثوقية النظام وتقليل الرفض الإداري وتعزيز الامتثال.</p>
+
+<h2>10. الخصوصية وحفظ البيانات</h2>
+<p>يعتمد النظام على بنية خصوصية حافظة للبيانات، بحيث لا يتم الاحتفاظ طويل الأمد ببيانات المريض في السحابة. وتُستخدم البيئة السحابية فقط خلال نافذة زمنية تشغيلية لازمة لإكمال الاستشارة وإصدار التقرير الطبي. وبعد انتهاء هذه النافذة، يتم حذف البيانات من السحابة تلقائيًا، بينما يقتصر الحفظ طويل الأمد على:</p>
+<ul>
+  <li>خادم محلي (local server)</li>
+  <li>أو نسخة ورقية (hardcopy)</li>
+</ul>
+<p>وذلك تماشيًا مع المتطلبات المديكو-قانونية ومعايير الخصوصية وتقليل تعرض البيانات الطبية الحساسة للأنظمة السحابية على المدى الطويل.</p>
+
+<h1>الاستفادة العملية والاقتصادية من الاختراع</h1>
+<p>يحقق هذا الاختراع فوائد تشغيلية واقتصادية واضحة للطبيب والمريض وشركات التأمين. فمن جهة، يزيد النظام من كفاءة الطبيب من خلال تنظيم المعلومات الطبية تلقائيًا، وتوحيد طريقة أخذ التاريخ المرضي، وتقليل الوقت المستغرق في مراجعة المدخلات غير المنظمة أو غير المكتملة، مما يتيح للطبيب مراجعة عدد أكبر من الحالات بصورة أكثر انتظامًا ودقة وفي وقت أقل. كما أن وجود ملخص سريري منظم وموجهات سريرية معيارية يقلل العبء الإداري على الطبيب ويجعله أكثر تركيزًا على القرار الطبي بدلًا من إدارة المقابلة من الصفر.</p>
+
+<p>ومن جهة أخرى، يخفّض النظام الكلفة على المريض وشركات التأمين عبر:</p>
+<ul>
+  <li>تقليل الزيارات الطبية للحالات التي جرى توجيهها إلى التخصص الخاطئ</li>
+  <li>توجيه المريض إلى التخصص الصحيح من البداية</li>
+  <li>تقليل الحاجة إلى استشارات مكررة أو منفصلة للحالات متعددة التخصصات</li>
+  <li>خفض تكرار الفحوصات أو الصور بسبب ضعف التنسيق بين مقدمي الخدمة</li>
+  <li>تقليل رفض المطالبات التأمينية من خلال دمج الموافقة المسبقة ضمن سير العمل</li>
+  <li>تقليل الجلسات غير المنتجة التي لا تصلح سريريًا أو إداريًا للاعتماد</li>
+</ul>
+
+<p>كما يوفّر النظام نموذج وحدات رقمية مُسعّرة (Tokens) يتوافق مع تعقيد الحالة الطبية ومع تعدد التخصصات، بحيث يكون المقابل المالي أكثر عدالة وارتباطًا بالحمل السريري الفعلي بدلًا من نموذج زيارة موحّد لا يميز بين الحالات البسيطة والمعقدة.</p>
+
+<h1>الخلاصة</h1>
+<p>بخلاف المنصات التقليدية التي تعتمد على المحادثة أو الفيديو والعامل البشري في تنظيم التاريخ المرضي ومسار المقابلة، يقدّم هذا الاختراع منصة موحدة تضبط سير التفاعل الطبي عبر طبقة تنظيم مركزية بالذكاء الاصطناعي، وعُقد ذكية، ومسارات تخصصية تجمع بين العُقد المشتركة والعُقد الخاصة بكل تخصص، وموجهات سريرية مصممة بشريًا وفق المعايير الطبية، مع طبقات أمان، وتكامل مع التأمين، والتحقق من الهوية، وبنية خصوصية قائمة على الحذف من السحابة بعد انتهاء الاستشارة. ويؤدي ذلك إلى رفع كفاءة الطبيب، وتحسين جودة الرعاية، وتقليل التكاليف على المريض وشركات التأمين، وتحسين دقة التوجيه الطبي والتسعير المرتبط بالتعقيد السريري.</p>
+
+<!-- ===== FIGURE LIST ===== -->
+<h1>قائمة الرسومات</h1>
+
+<div class="figure-list">
+  <p><strong>FIG. 1</strong> — نظرة عامة على معمارية النظام، تشمل تطبيق المريض، وتطبيق الطبيب، ولوحة التحكم الإدارية، وطبقة التنظيم على جانب الخادم، وحدود التعامل مع البيانات.</p>
+  <p><strong>FIG. 2</strong> — طبقة التنظيم المركزية بالذكاء الاصطناعي باعتبارها محرك التحكم الرئيسي في المنصة.</p>
+  <p><strong>FIG. 3</strong> — بنية المقابلة القائمة على العُقد الذكية، مع بيان كل عقدة كوحدة قرار مستقلة.</p>
+  <p><strong>FIG. 4</strong> — مخطط البنية التسلسلية-المسارية موضحًا التفرع والدمج والانتقال غير الخطي.</p>
+  <p><strong>FIG. 5</strong> — إطار العُقد المشتركة مقابل العُقد الخاصة بالتخصصات عبر مختلف المسارات الطبية.</p>
+  <p><strong>FIG. 6</strong> — إطار الموجهات السريرية المصممة بشريًا وربطها بالعُقد.</p>
+  <p><strong>FIG. 7</strong> — مسار تنظيم الموجهات على جانب الخادم، بما يشمل القوالب والقيود السلوكية والحواجز الوقائية ومنطق المسار.</p>
+  <p><strong>FIG. 8</strong> — آلية التوجيه التخصصي بالذكاء الاصطناعي، بما يشمل التصنيف ودرجة الثقة واختيار المسار وقائمة الأطباء المصفاة.</p>
+  <p><strong>FIG. 9</strong> — نظام الأمان السلوكي، بما يشمل اكتشاف الطوارئ، واكتشاف الإدخال غير الصالح، والتصعيد، والتعافي التعاوني.</p>
+  <p><strong>FIG. 10</strong> — سير العمل الخاص برفع الصور السريرية في حالات الجلدية، بما في ذلك ربط الصورة بالعقدة المناسبة.</p>
+  <p><strong>FIG. 11</strong> — سير عمل اكتشاف الأدوية من النص الحر وتحويلها إلى بيانات منظمة.</p>
+  <p><strong>FIG. 12</strong> — سير عمل إدارة التدخلات متعددة التخصصات ضمن جلسة موحدة.</p>
+  <p><strong>FIG. 13</strong> — سير عمل التكامل مع شركات التأمين، بما في ذلك طلب الموافقة وتكييف سير العمل بناءً على النتيجة.</p>
+  <p><strong>FIG. 14</strong> — سير عمل التحقق من الهوية (KYC) وتأثيره على صلاحيات الوصول إلى الوظائف السريرية.</p>
+  <p><strong>FIG. 15</strong> — دورة حياة البيانات في بنية الخصوصية، من المعالجة المؤقتة في السحابة إلى إصدار التقرير ثم الحذف من السحابة والحفظ المحلي أو الورقي.</p>
+  <p><strong>FIG. 16</strong> — سير عمل استفسارات الطبيب، بما يشمل تحسين السؤال بالذكاء الاصطناعي ورد المريض المحدود الأدوار.</p>
+  <p><strong>FIG. 17</strong> — مخطط الفوائد التشغيلية والاقتصادية، موضحًا تقليل الاستشارات الخاطئة، ورفع كفاءة الطبيب، وخفض العبء على المريض وشركات التأمين.</p>
+</div>
+
+<!-- ===== ENGLISH SECTION ===== -->
+<div class="section-divider"></div>
+
+<div class="english-section">
+
+<h1>TITLE OF THE INVENTION</h1>
+<p>AI-Driven Clinical Orchestration Platform with Adaptive Node-Based Medical Intake, Specialty Pathways, and Privacy-Preserving Data Handling</p>
+
+<h1>ABSTRACT</h1>
+<p>The present invention relates to a computer-implemented healthcare and telemedicine platform that uses a centralized AI-driven orchestration layer to govern adaptive clinical interaction workflows. The system employs a sequence-pathway architecture composed of AI-executable nodes, wherein each node functions as a decision unit capable of generating clinically structured prompts, evaluating patient responses, and determining conditional progression within a non-linear interaction graph. The platform includes both shared AI nodes used across multiple medical specialties and specialty-specific AI nodes activated according to clinical pathway determination. Each node is associated with a human-engineered clinical prompt developed according to medical history-taking and documentation standards, thereby ensuring structured, medically reliable, and consistent data collection rather than uncontrolled generic AI conversation. The system further includes specialty routing, behavioral safety controls, medication detection from free text, clinical image upload including skin lesion documentation, insurance integration, identity verification (KYC), and a privacy-preserving data architecture in which patient data is processed temporarily in cloud infrastructure only during the consultation window and is automatically purged after conclusion of the consultation and generation of the medical report, with long-term retention restricted to local server storage or hardcopy records according to medico-legal standards. The invention improves physician efficiency, increases the number of clinically reviewable cases, reduces misrouted consultations, lowers costs for patients and insurers, and provides pricing aligned with case complexity and multi-specialty requirements.</p>
+
+<h1>FIELD OF THE INVENTION</h1>
+<p>The present invention relates to computer-implemented healthcare systems and telemedicine platforms, and more specifically to artificial intelligence-driven systems for adaptive medical intake, specialty-based clinical interaction control, structured history-taking, healthcare workflow orchestration, and secure handling of patient data.</p>
+
+<h1>BACKGROUND OF THE INVENTION</h1>
+<p>Current telemedicine platforms are predominantly built around basic chat or video consultation models. In these systems, the physician typically conducts the consultation manually, manages the conversation flow manually, determines what history to take manually, and decides whether relevant clinical information has been captured based largely on personal experience. These systems do not provide a structured mechanism for controlling the progression of the medical interview, standardizing data collection, securing the clinical interaction, or ensuring that the history-taking process is performed according to a medically engineered framework. As a result, the quality of medical intake varies between physicians and between consultations, relevant clinical details may be missed, and physician time may be consumed by unstructured or irrelevant exchanges.</p>
+
+<p>Conventional telemedicine systems also suffer from additional deficiencies. Static forms do not adapt to patient responses and often result in incomplete medical histories. Existing systems generally lack real-time safety monitoring sufficient to detect emergencies, nonsensical input, or abusive or non-cooperative behavior. Typical pricing models are based on a flat visit structure and do not adequately reflect differences in clinical complexity or multi-specialty needs. In addition, intervention ordering often requires manual coordination among physicians, patients, laboratories, service providers, and insurance companies, with little or no automated lifecycle tracking. Existing telemedicine systems also lack intelligent specialty routing, forcing the patient either to self-select a specialty or to begin with a general consultation before later redirection, thereby creating misrouted consultations, wasted fees, and delayed care.</p>
+
+<p>In conventional systems, a physician from one discipline often cannot directly order diagnostic tests, referrals, or interventions associated with another specialty during the same consultation. This frequently forces the patient to initiate and pay for additional consultations merely to obtain standard diagnostic or specialty-directed actions. These inefficiencies increase costs for both patients and insurance providers through redundant specialist visits, duplicate laboratory and imaging tests, poor pre-authorization handling, and excessive administrative overhead arising from unstructured clinical documentation.</p>
+
+<p>Although AI-assisted healthcare solutions have been proposed, none combine an adaptive sequence-node-based interview architecture, server-side prompt orchestration, progressive behavioral safety, specialty-aware node activation, cross-specialty intervention ordering, and privacy-preserving consultation data handling within a single unified telemedicine platform.</p>
+
+<h1>SUMMARY OF THE INVENTION</h1>
+<p>The present invention provides a computer-implemented healthcare platform comprising a centralized AI-driven orchestration layer configured to govern all stages of a clinical interaction workflow. The orchestration layer controls interview sequencing, pathway determination, AI node activation, progression logic, response evaluation, safety enforcement, specialty routing, and workflow state management based on patient input, system state, and clinical classification outputs.</p>
+
+<p>The system employs a sequence-pathway architecture made up of AI-executable nodes. Each node is an intelligent decision unit configured to process patient input, generate context-aware clinical prompts, evaluate response completeness and validity, and determine conditional transition to subsequent nodes. Nodes are not limited to a fixed linear order. Instead, they are organized within a non-linear adaptive graph that allows conditional branching, pathway switching, merging of clinical flows, and specialty-specific progression.</p>
+
+<p>The invention further provides a clinically structured prompt framework in which each node is associated with a human-engineered clinical prompt developed according to medical history-taking and documentation standards. These prompts are not uncontrolled generic prompts; they are designed to guide clinically relevant questioning patterns, standardize the acquisition of medical information, and preserve medical consistency even where the underlying AI model may vary.</p>
+
+<p>The platform supports all medical specialty pathways through a combination of shared AI nodes and specialty-specific AI nodes. Shared nodes may include demographics, chief complaint capture, general history, medications, allergies, and common review-of-systems elements. Specialty-specific nodes are activated when the patient is routed into a defined specialty pathway such as dermatology, cardiology, psychiatry, pulmonology, gastroenterology, family medicine, surgery, or other medical or surgical disciplines. The system may also support multi-disciplinary cases by merging or switching pathways within the same consultation.</p>
+
+<p>The system further includes a behavioral safety layer operating on both client and server sides, a clinical image input module that may be triggered dynamically for visually relevant conditions such as skin lesions, a medication extraction module for identifying medication information from free text, an insurance integration layer for authorization workflows, an identity verification module (KYC), and a privacy-preserving architecture under which patient data is not retained long-term in cloud storage. Instead, cloud processing is temporary and limited to the consultation window necessary to conclude the consultation and generate the medical report, after which the data is purged from cloud systems. Long-term retention is restricted to local server storage or hardcopy records in accordance with medico-legal requirements.</p>
+
+<h1>DETAILED DESCRIPTION OF THE INVENTION</h1>
+
+<h2>1. System Architecture</h2>
+<p>The system comprises a patient application, a doctor application, an administrative dashboard, and a server-side computing environment with edge processing capability. In the existing filing, the preferred embodiment is implemented as a monorepo containing four applications and five shared packages, with patient and doctor applications built using Expo and React Native, administrative and web interfaces built using Next.js, and a backend using Supabase, PostgreSQL, object storage, and edge functions.</p>
+
+<h2>2. AI-Driven Orchestration Layer</h2>
+<p>At the core of the invention is an AI-driven orchestration layer acting as the central control intelligence of the platform. This orchestration layer governs system-wide clinical interaction flow, including which node is activated, what prompt is used, which pathway is selected, whether the patient should remain in a shared node set or enter specialty-specific nodes, and when a section is complete. Unlike current platforms where the physician manually controls the consultation through open-ended chat or video discussion, the present invention imposes structured orchestration over the medical interview.</p>
+
+<h2>3. AI-Executable Nodes</h2>
+<p>The system uses a plurality of AI-executable nodes, each corresponding to a clinical section or decision point. Each node can process input, generate a prompt, evaluate the patient response, detect whether required data has been captured, and determine the next clinical step. Nodes are therefore not mere user-interface steps; they are intelligent decision units within the orchestration framework.</p>
+
+<h2>4. Sequence-Pathway Architecture</h2>
+<p>Nodes are arranged in a sequence-pathway architecture that forms a non-linear clinical interaction graph. The system dynamically recalculates applicable nodes based on pathway conditions, demographic filters, specialty routing, and patient context. The existing filing already describes pathway detection, pathway-based filtering, demographic filtering, and recalculation of the active node set once the pathway is known.</p>
+
+<h2>5. Shared and Specialty-Specific Nodes</h2>
+<p>The invention supports all medical specialty pathways through a combination of shared AI nodes and specialty-specific AI nodes. Shared nodes support standardized intake across multiple disciplines. Specialty-specific nodes are activated for discipline-specific history-taking and data collection. For example, dermatology pathways may activate image-related nodes and skin-specific questioning, while family medicine pathways may activate broader systemic review nodes. This architecture allows reuse of standard clinical logic while preserving specialty depth.</p>
+
+<h2>6. Human-Engineered Clinical Prompts</h2>
+<p>A key aspect of the invention is that the prompts associated with nodes are human-engineered clinical prompts developed according to medical standards. They are not generic free-form prompts. They are structured to guide proper clinical questioning, standardize history-taking, isolate sections, and maintain medically relevant conversation patterns. In the existing filing, prompts are paired with pathway logic, behavioral suffixes, global safety guards, and draft-to-active lifecycle management, which supports this human-engineered and clinically controlled prompt framework.</p>
+
+<h2>7. AI Classification and Specialty Routing</h2>
+<p>The platform includes an AI-driven classification engine that analyzes the patient's chief complaint and associated responses, classifies the concern into a medical or surgical specialty, assigns a confidence score, and sets the specialty pathway for the remainder of the workflow. The current filing already describes real-time triage, specialty-pathway control tags, pre-forced specialty pathways when a doctor is preselected, and specialty-filtered doctor queues.</p>
+
+<h2>8. Behavioral Safety and Controlled Interaction</h2>
+<p>The invention includes a client-side and server-side behavioral safety framework. It detects emergencies, gibberish, refusal phrases, repeated messages, off-topic deflection, and other non-cooperative behavior. It applies configurable escalation, including warning, cooldown, and termination logic, and also includes cooperative recovery when valid, constructive inputs resume. This safety layer is crucial because it protects the clinical process and prevents waste of physician time on non-productive interactions.</p>
+
+<h2>9. Medication Detection</h2>
+<p>The system supports medication detection from free text, converting unstructured patient input into structured medication information that can be included in the clinical summary. The current filing expressly identifies medication detection as one of the supported AI action types.</p>
+
+<h2>10. Clinical Image Upload</h2>
+<p>The system supports clinical image upload, particularly for conditions requiring visual assessment such as dermatologic lesions, rashes, swelling, or other visible findings. Photo-capture nodes can be activated according to specialty pathway determination, and the uploaded images can be incorporated into the clinical workflow and associated report. The routing section of the filing already notes photo capture nodes in dermatology-specific flows.</p>
+
+<h2>11. Insurance Integration</h2>
+<p>The system integrates with insurance workflows, including pre-authorization handling and status-aware clinical progression. The filing already describes integrated insurance pre-authorization within intervention ordering, multi-stage lifecycle management, and the resulting reduction in denied or resubmitted claims.</p>
+
+<h2>12. KYC and Identity Verification</h2>
+<p>The current bilingual figure set includes a dedicated KYC Verification screen in the admin panel, supporting inclusion of identity validation as part of the broader platform workflow. In the refined invention narrative, this layer verifies patient identity through document, biometric, or third-party mechanisms and associates that status with access to consultation functions and clinical workflow eligibility.</p>
+
+<h2>13. Privacy-Preserving Data Handling</h2>
+<p>A critical feature of the refined invention is that there is no long-term storage of patient-identifiable consultation data in cloud infrastructure. Cloud processing is transient and is used only for the limited operational window necessary to conclude the consultation and generate the medical report. Once that process is complete, the cloud copy is purged. Long-term retention is restricted to a local server or hardcopy records according to medico-legal standards. This architecture materially reduces cloud exposure of sensitive health data while preserving legal record-keeping requirements.</p>
+
+<h2>14. Operational and Economic Benefits</h2>
+<p>The invention provides significant practical and economic benefits. It increases physician efficiency by organizing patient history and structuring clinical review before the physician enters the case. It enables physicians to review more cases with greater consistency and less time spent on unstructured interaction. It reduces costs for patients by reducing misrouted specialty visits, reducing repeated consultations, and allowing pricing to align with case complexity and multi-specialty involvement. It reduces costs for insurers by improving first-time specialty matching, reducing duplicate tests, integrating pre-authorization handling, and preventing billing for clinically non-productive interactions. The filing already explicitly ties specialty routing, intervention lifecycle tracking, and insurer workflow integration to cost reduction for both patients and insurers.</p>
+
+</div><!-- end english-section -->
+
+<!-- ===== FIGURES (Arabic Only) ===== -->
+<div class="section-divider"></div>
+
+<h1>الرسومات التوضيحية</h1>
+
+<!-- FIG. 1a -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 1a — تطبيق المريض</div>
+  <div class="fig-desc">الشاشة الرئيسية لتطبيق المريض — الاستشارات، الفحوصات، الملف الشخصي</div>
+  <img src="figures/fig1_patient.png" alt="تطبيق المريض — الرئيسية">
+</div>
+
+<!-- FIG. 1b -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 1b — تطبيق الطبيب</div>
+  <div class="fig-desc">الشاشة الرئيسية لتطبيق الطبيب — قائمة المرضى، الجلسات، التحليلات</div>
+  <img src="figures/fig1_doctor.png" alt="تطبيق الطبيب — الرئيسية">
+</div>
+
+<!-- FIG. 1c -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 1c — لوحة التحكم الإدارية</div>
+  <div class="fig-desc">لوحة الإدارة — إحصائيات النظام، الأطباء، الاستشارات، الذكاء الاصطناعي</div>
+  <img src="figures/fig1_admin.png" alt="لوحة التحكم الإدارية">
+</div>
+
+<!-- FIG. 2 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 2 — طبقة التنظيم المركزية بالذكاء الاصطناعي</div>
+  <div class="fig-desc">إدارة الذكاء الاصطناعي — نموذج GPT-4o، قوالب الموجهات، تسلسلات المقابلة</div>
+  <img src="figures/fig2.png" alt="إدارة الذكاء الاصطناعي">
+</div>
+
+<!-- FIG. 3 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 3 — بنية المقابلة القائمة على العُقد الذكية</div>
+  <div class="fig-desc">عقدة الترحيب ← اكتشاف المسار التخصصي ← عقدة تاريخ المرض الحالي</div>
+  <img src="figures/fig3.png" alt="المقابلة الطبية الذكية — العُقد">
+</div>
+
+<!-- FIG. 4 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 4 — البنية التسلسلية-المسارية والتفرع غير الخطي</div>
+  <div class="fig-desc">تفرع المسار من تاريخ المرض الحالي إلى أسئلة تفصيلية متعددة</div>
+  <img src="figures/fig4.png" alt="التفرع والدمج في المسار">
+</div>
+
+<!-- FIG. 5 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 5 — العُقد المشتركة مقابل العُقد الخاصة بالتخصص</div>
+  <div class="fig-desc">التاريخ العائلي، التاريخ الاجتماعي، مراجعة الأنظمة — عُقد مشتركة عبر التخصصات</div>
+  <img src="figures/fig5.png" alt="العُقد المشتركة والخاصة">
+</div>
+
+<!-- FIG. 6 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 6 — إطار الموجهات السريرية المصممة بشريًا</div>
+  <div class="fig-desc">قوالب الموجهات المرتبطة بالعُقد — System Prompt (Intake / Summary)</div>
+  <img src="figures/fig6.png" alt="قوالب الموجهات السريرية">
+</div>
+
+<!-- FIG. 7 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 7 — تنظيم الموجهات على جانب الخادم</div>
+  <div class="fig-desc">تسلسلات المقابلة (Node Logic) — Greeting, Chief Complaint, HPI, PMH, Meds, Allergy, Family, Social</div>
+  <img src="figures/fig7.png" alt="تسلسلات المقابلة على جانب الخادم">
+</div>
+
+<!-- FIG. 8 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 8 — التوجيه التخصصي بالذكاء الاصطناعي</div>
+  <div class="fig-desc">قائمة المرضى مع درجات الثقة (AI Score) والتوجيه التلقائي للتخصص</div>
+  <img src="figures/fig8.png" alt="قائمة الانتظار — التوجيه التخصصي">
+</div>
+
+<!-- FIG. 9 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 9 — نظام الأمان السلوكي</div>
+  <div class="fig-desc">بروتوكول الطوارئ + بروتوكول اكتشاف الإدخال غير الصالح + سجل الانتهاكات</div>
+  <img src="figures/fig9.png" alt="بروتوكولات السلامة">
+</div>
+
+<!-- FIG. 10 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 10 — رفع الصور السريرية (الجلدية)</div>
+  <div class="fig-desc">عقدة التصوير — طلب رفع صورة للمنطقة المتأثرة مع إقرار موافقة الخصوصية</div>
+  <img src="figures/fig10.png" alt="رفع الصور السريرية — الجلدية">
+</div>
+
+<!-- FIG. 11 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 11 — اكتشاف الأدوية من النص الحر</div>
+  <div class="fig-desc">عقدة الأدوية — استخراج اسم الدواء من إجابة المريض غير المنظمة</div>
+  <img src="figures/fig11.png" alt="اكتشاف الأدوية">
+</div>
+
+<!-- FIG. 12 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 12 — إدارة التدخلات متعددة التخصصات</div>
+  <div class="fig-desc">طلب فحوصات مخبرية من تخصصات متعددة ضمن جلسة واحدة</div>
+  <img src="figures/fig12.png" alt="إجراءات الجلدية — طلب فحوصات">
+</div>
+
+<!-- FIG. 13 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 13 — التكامل مع شركات التأمين</div>
+  <div class="fig-desc">فحوصاتي والإحالات — حالة التأمين (Pending Insurance) وتتبع دورة الحياة</div>
+  <img src="figures/fig13.png" alt="التكامل مع التأمين">
+</div>
+
+<!-- FIG. 14 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 14 — التحقق من الهوية (KYC)</div>
+  <div class="fig-desc">قائمة التحقق — مراجعة الهويات والوثائق المقدمة</div>
+  <img src="figures/fig14.png" alt="التحقق من الهوية">
+</div>
+
+<!-- FIG. 15 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 15 — دورة حياة البيانات وبنية الخصوصية</div>
+  <div class="fig-desc">استشارات في انتظار الأرشفة — سياسة الاحتفاظ بالبيانات ٩٠ يومًا — صحة النظام</div>
+  <img src="figures/fig15.png" alt="دورة حياة البيانات">
+</div>
+
+<!-- FIG. 16 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 16 — الاستجابة السريرية للطبيب</div>
+  <div class="fig-desc">التشخيص الرئيسي، رمز ICD-10، التشخيص التفريقي، خطة العلاج</div>
+  <img src="figures/fig16.png" alt="الاستجابة السريرية">
+</div>
+
+<!-- FIG. 17 -->
+<div class="figure-block">
+  <div class="fig-title">FIG. 17 — الفوائد التشغيلية والاقتصادية</div>
+  <div class="fig-desc">التحليلات — المستخدمون النشطون، نسبة الإكمال، الإيرادات، التخصصات الأعلى</div>
+  <img src="figures/fig17.png" alt="التحليلات والفوائد الاقتصادية">
+</div>
+
+</div><!-- end container -->
+
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+
+</body>
+</html>

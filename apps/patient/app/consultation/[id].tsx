@@ -9,6 +9,7 @@ import type { Consultation, Message as MessageType, CatalogIntervention } from '
 import { INTERVENTION_TYPE_LABELS } from '@cliniqone/types';
 import { useConsultation, useMessages, useSendMessage } from '../../hooks/useConsultations';
 import { useAuthStore } from '../../stores/authStore';
+import { PatientRefundModal } from '../../components/PatientRefundModal';
 
 /** Compute initials from a doctor display name, e.g. "Dr. Sarah Ahmed" → "SA" */
 function getInitials(name: string): string {
@@ -23,6 +24,7 @@ export default function ConsultationDetailScreen() {
     const { user } = useAuthStore();
     const scrollRef = useRef<ScrollView>(null);
     const [messageText, setMessageText] = useState('');
+    const [showRefund, setShowRefund] = useState(false);
 
     // Live data from API
     const { data: consultation, isLoading: loadingConsult } = useConsultation(id);
@@ -240,7 +242,7 @@ export default function ConsultationDetailScreen() {
 
                     {/* Follow-up CTA */}
                     {consultation.status === 'completed' && (
-                        <View style={{ marginTop: spacing.xl, marginBottom: spacing['2xl'] }}>
+                        <View style={{ marginTop: spacing.xl, marginBottom: spacing.md }}>
                             <Button
                                 title={t('consultDetail.startFollowUp')}
                                 onPress={() => router.push('/intake')}
@@ -248,6 +250,16 @@ export default function ConsultationDetailScreen() {
                                 size="lg"
                             />
                         </View>
+                    )}
+
+                    {/* Refund Request */}
+                    {(consultation.status === 'report_ready' || consultation.status === 'completed') && (
+                        <TouchableOpacity
+                            style={styles.refundButton}
+                            onPress={() => setShowRefund(true)}
+                        >
+                            <Text style={styles.refundButtonText}>↩️ Request Refund</Text>
+                        </TouchableOpacity>
                     )}
                 </ScrollView>
 
@@ -275,6 +287,16 @@ export default function ConsultationDetailScreen() {
                     </View>
                 )}
             </KeyboardAvoidingView>
+
+            {/* Refund Modal */}
+            <PatientRefundModal
+                visible={showRefund}
+                onClose={() => setShowRefund(false)}
+                consultationId={consultation.id}
+                patientId={user?.id || ''}
+                tokenCost={consultation.token_cost || 3}
+                onSuccess={() => setShowRefund(false)}
+            />
         </SafeAreaView>
     );
 }
@@ -470,4 +492,16 @@ const styles = StyleSheet.create({
     },
     sendButtonDisabled: { opacity: 0.4 },
     sendButtonText: { fontSize: 18, color: '#fff' },
+
+    // Refund
+    refundButton: {
+        backgroundColor: colors.warningFaded,
+        borderWidth: 1,
+        borderColor: colors.warning,
+        borderRadius: radius.lg,
+        paddingVertical: spacing.md,
+        alignItems: 'center',
+        marginBottom: spacing['2xl'],
+    },
+    refundButtonText: { ...typography.button, color: colors.warning, fontWeight: '600', fontSize: 14 },
 });

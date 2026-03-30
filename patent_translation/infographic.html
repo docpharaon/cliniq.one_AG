@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>cliniq.one — Patent Technical Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0e14;
+    color: #c8d1dc;
+    min-height: 100vh;
+    padding: 30px;
+  }
+
+  .doc {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ===== COVER ===== */
+  .cover {
+    background: linear-gradient(160deg, #0f1923 0%, #121a28 50%, #0d1520 100%);
+    border: 1px solid rgba(45,212,168,0.12);
+    border-radius: 16px;
+    padding: 60px;
+    margin-bottom: 24px;
+    page-break-after: always;
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover .brand {
+    font-size: 2.6rem;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+  .cover .brand .t { color: #2dd4a8; }
+  .cover .brand .w { color: #fff; }
+  .cover .subtitle {
+    font-size: 0.85rem;
+    color: #506070;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    font-weight: 600;
+  }
+  .cover .divider {
+    width: 50px;
+    height: 3px;
+    background: #2dd4a8;
+    margin-bottom: 28px;
+  }
+  .cover h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e6edf3;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    max-width: 800px;
+  }
+  .cover .ar-title {
+    font-family: 'Noto Naskh Arabic', serif;
+    font-size: 1.05rem;
+    color: #506070;
+    direction: rtl;
+    line-height: 2;
+    margin-bottom: 40px;
+  }
+  .cover .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: #506070;
+    line-height: 2.2;
+  }
+  .cover .meta strong { color: #c8d1dc; font-weight: 600; }
+
+  /* ===== SECTION CARD ===== */
+  .card {
+    background: #0f1923;
+    border: 1px solid rgba(48,54,61,0.5);
+    border-radius: 14px;
+    padding: 40px;
+    margin-bottom: 24px;
+    page-break-inside: avoid;
+  }
+  .card-sm { padding: 28px 32px; }
+
+  .sec-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #2dd4a8;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .sec-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 20px;
+  }
+  .sec-title .ar {
+    font-family: 'Noto Naskh Arabic', serif;
+    font-size: 0.9rem;
+    color: #506070;
+    font-weight: 400;
+    margin-right: 12px;
+  }
+
+  /* ===== ARCHITECTURE DIAGRAM ===== */
+  .arch-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .arch-layer {
+    border: 1px solid rgba(48,54,61,0.6);
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+  }
+  .arch-layer .layer-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: #2dd4a8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .arch-layer .layer-items {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .arch-chip {
+    background: rgba(45,212,168,0.08);
+    border: 1px solid rgba(45,212,168,0.2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #c8d1dc;
+  }
+  .arch-chip.highlight {
+    background: rgba(45,212,168,0.15);
+    border-color: rgba(45,212,168,0.4);
+    color: #2dd4a8;
+    font-weight: 600;
+  }
+  .arch-arrow {
+    text-align: center;
+    color: #2dd4a8;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .layer-client { border-color: rgba(96,165,250,0.3); }
+  .layer-client .layer-label { color: #60a5fa; }
+  .layer-orch { border-color: rgba(45,212,168,0.3); }
+  .layer-server { border-color: rgba(244,114,182,0.3); }
+  .layer-server .layer-label { color: #f472b6; }
+  .layer-data { border-color: rgba(251,191,36,0.3); }
+  .layer-data .layer-label { color: #fbbf24; }
+
+  /* ===== CLAIMS TABLE ===== */
+  .claims-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    margin-top: 12px;
+  }
+  .claims-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: #2dd4a8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(48,54,61,0.6);
+    font-weight: 600;
+  }
+  .claims-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(48,54,61,0.3);
+    vertical-align: top;
+    color: #c8d1dc;
+  }
+  .claims-table tr:last-child td { border-bottom: none; }
+  .claims-table .claim-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #2dd4a8;
+    white-space: nowrap;
+  }
+  .claims-table .figs {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #8899aa;
+  }
+
+  /* ===== TECH SPECS ===== */
+  .specs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .spec-item {
+    background: rgba(15,25,35,0.6);
+    border: 1px solid rgba(48,54,61,0.4);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .spec-item .spec-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: #506070;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .spec-item .spec-val {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e6edf3;
+  }
+
+  /* ===== NODE FLOW ===== */
+  .node-flow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+  .node-box {
+    background: rgba(15,25,35,0.8);
+    border: 1px solid rgba(48,54,61,0.6);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #c8d1dc;
+    text-align: center;
+  }
+  .node-box.active {
+    border-color: rgba(45,212,168,0.5);
+    color: #2dd4a8;
+  }
+  .node-arrow {
+    color: #333d48;
+    font-size: 0.9rem;
+  }
+  .branch-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: #f472b6;
+    padding: 4px 10px;
+    border: 1px dashed rgba(244,114,182,0.4);
+    border-radius: 4px;
+  }
+
+  /* ===== SAFETY MATRIX ===== */
+  .safety-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .safety-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(15,25,35,0.5);
+    border: 1px solid rgba(48,54,61,0.3);
+    border-radius: 8px;
+  }
+  .safety-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+  .safety-item .s-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 2px;
+  }
+  .safety-item .s-desc {
+    font-size: 0.7rem;
+    color: #7d8590;
+    line-height: 1.4;
+  }
+
+  /* ===== FIGURES GALLERY ===== */
+  .fig-gallery-header {
+    text-align: center;
+    margin: 40px 0 30px;
+    page-break-before: always;
+  }
+  .fig-card {
+    background: #0f1923;
+    border: 1px solid rgba(48,54,61,0.5);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+    page-break-inside: avoid;
+    text-align: center;
+  }
+  .fig-card .fig-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #2dd4a8;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .fig-card .fig-desc {
+    font-family: 'Noto Naskh Arabic', serif;
+    font-size: 0.82rem;
+    color: #7d8590;
+    direction: rtl;
+    margin-bottom: 14px;
+  }
+  .fig-card img {
+    border-radius: 10px;
+    border: 1px solid rgba(48,54,61,0.4);
+  }
+  .fig-card img.mobile { max-width: 380px; width: 100%; }
+  .fig-card img.desktop { max-width: 100%; }
+
+  /* ===== PRINT ===== */
+  .print-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #2dd4a8;
+    color: #0a0e14;
+    border: none;
+    padding: 12px 24px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    z-index: 9999;
+  }
+  @media print {
+    body { background: #0a0e14; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 0; }
+    .card, .cover { border: none; }
+    .print-btn { display: none !important; }
+    .fig-card { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+<!-- ============================================================ -->
+<!--  COVER PAGE                                                   -->
+<!-- ============================================================ -->
+<div class="cover">
+  <div class="brand"><span class="t">cliniq.</span><span class="w">one</span></div>
+  <div class="subtitle">Invention Patent — Technical Architecture Overview</div>
+  <div class="divider"></div>
+  <h1>AI-Driven Clinical Orchestration Platform with Adaptive Node-Based Medical Intake, Specialty Pathways, and Privacy-Preserving Data Handling</h1>
+  <div class="ar-title">نظام ومنصة تنظيم سريري مدفوع بالذكاء الاصطناعي لإجراء الإدخال الطبي التكيفي القائم على العُقد، مع مسارات تخصصية ديناميكية وبنية خصوصية لحماية البيانات</div>
+  <div class="meta">
+    <div>filing_authority: <strong>Saudi Authority for Intellectual Property (SAIP)</strong></div>
+    <div>application_type: <strong>Invention Patent</strong></div>
+    <div>applicant: <strong>Momen Ghassan Pharaon</strong> — مؤمن غسان فرعون</div>
+    <div>national_id: <strong>1040249078</strong></div>
+    <div>nationality: <strong>Saudi</strong></div>
+    <div>figures: <strong>17</strong> (Arabic UI evidence)</div>
+    <div>languages: <strong>English + Arabic</strong> (Full Bilingual)</div>
+    <div>generated: <strong>2026-03-30</strong></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  SYSTEM ARCHITECTURE                                          -->
+<!-- ============================================================ -->
+<div class="card">
+  <div class="sec-label">Section 1 — System Architecture</div>
+  <div class="sec-title">Four-Layer Platform Architecture <span class="ar">البنية المعمارية ذات الطبقات الأربع</span></div>
+
+  <div class="arch-diagram">
+    <div class="arch-layer layer-client">
+      <div class="layer-label">Layer 1 — Client Applications (Flutter / Capacitor)</div>
+      <div class="layer-items">
+        <div class="arch-chip">📱 Patient App</div>
+        <div class="arch-chip">🩺 Doctor App</div>
+        <div class="arch-chip">🖥️ Admin Dashboard</div>
+        <div class="arch-chip">AI Chat Interface</div>
+        <div class="arch-chip">Photo Capture Module</div>
+        <div class="arch-chip">Medication Scanner</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↕</div>
+
+    <div class="arch-layer layer-orch">
+      <div class="layer-label">Layer 2 — AI Orchestration Engine (Server-Side)</div>
+      <div class="layer-items">
+        <div class="arch-chip highlight">Node Executor</div>
+        <div class="arch-chip highlight">Sequence Manager</div>
+        <div class="arch-chip highlight">Pathway Router</div>
+        <div class="arch-chip">Prompt Assembler</div>
+        <div class="arch-chip">Safety Guard Pipeline</div>
+        <div class="arch-chip">Specialty Classifier</div>
+        <div class="arch-chip">Confidence Scorer</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↕</div>
+
+    <div class="arch-layer layer-server">
+      <div class="layer-label">Layer 3 — Clinical Logic & Integration</div>
+      <div class="layer-items">
+        <div class="arch-chip">Intervention Catalog</div>
+        <div class="arch-chip">Insurance Pre-Auth</div>
+        <div class="arch-chip">KYC Verification</div>
+        <div class="arch-chip">ICD-10 Mapper</div>
+        <div class="arch-chip">Report Generator</div>
+        <div class="arch-chip">Scheduling Engine</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↕</div>
+
+    <div class="arch-layer layer-data">
+      <div class="layer-label">Layer 4 — Data & Privacy (Transient Cloud + Local Retention)</div>
+      <div class="layer-items">
+        <div class="arch-chip">Supabase (PostgreSQL + RLS)</div>
+        <div class="arch-chip">Edge Functions</div>
+        <div class="arch-chip">90-Day Retention Policy</div>
+        <div class="arch-chip">Auto-Archive & Purge</div>
+        <div class="arch-chip">Consent Ledger</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  NODE-BASED INTERVIEW ARCHITECTURE                            -->
+<!-- ============================================================ -->
+<div class="card">
+  <div class="sec-label">Section 2 — Core Innovation</div>
+  <div class="sec-title">Node-Based AI Interview Architecture <span class="ar">بنية المقابلة القائمة على العُقد الذكية</span></div>
+
+  <p style="font-size: 0.82rem; color: #7d8590; line-height: 1.7; margin-bottom: 16px;">
+    Each clinical question is encapsulated as an independent <strong style="color:#2dd4a8;">AI-Executable Node</strong> — a discrete computational unit with its own system prompt, validation rules, response parser, branching logic, and retry behavior. Nodes are composed into <strong style="color:#2dd4a8;">Sequences</strong> (ordered chains) that are dynamically activated by <strong style="color:#2dd4a8;">Pathways</strong> (specialty-specific routes), enabling non-linear interview progression with conditional branching, merging, and skip logic.
+  </p>
+
+  <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #506070; margin-bottom: 8px;">EXECUTION FLOW: Sequence → Pathway Activation</div>
+  
+  <div class="node-flow">
+    <div class="node-box active">greeting</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box active">chief_complaint</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box active">hpi</div>
+    <div class="node-arrow">→</div>
+    <div class="branch-indicator">⑂ BRANCH</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">hpi_detail_1</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">hpi_detail_2</div>
+  </div>
+  <div class="node-flow">
+    <div class="node-box">pmh</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">medications</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">allergies</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">family_hx</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">social_hx</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box">ros</div>
+    <div class="node-arrow">→</div>
+    <div class="branch-indicator">⑂ PATHWAY</div>
+  </div>
+  <div class="node-flow">
+    <div class="node-arrow">  </div>
+    <div class="node-box" style="border-color: rgba(244,114,182,0.4); color: #f472b6;">derma_photo_upload</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box" style="border-color: rgba(244,114,182,0.4); color: #f472b6;">derma_location</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box" style="border-color: rgba(244,114,182,0.4); color: #f472b6;">derma_duration</div>
+    <div class="node-arrow" style="color: #506070;">  (Dermatology Pathway)</div>
+  </div>
+  <div class="node-flow">
+    <div class="node-arrow">  </div>
+    <div class="node-box" style="border-color: rgba(96,165,250,0.4); color: #60a5fa;">ortho_rom</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box" style="border-color: rgba(96,165,250,0.4); color: #60a5fa;">ortho_mechanism</div>
+    <div class="node-arrow">→</div>
+    <div class="node-box" style="border-color: rgba(96,165,250,0.4); color: #60a5fa;">ortho_severity</div>
+    <div class="node-arrow" style="color: #506070;">  (Orthopedic Pathway)</div>
+  </div>
+
+  <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+    <div class="spec-item">
+      <div class="spec-key">Node Properties</div>
+      <div class="spec-val" style="font-size: 0.72rem; color: #c8d1dc; font-weight: 400; line-height: 1.5;">system_prompt, validation_rules, response_parser, max_retries, branching_conditions, skip_logic</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">Shared Nodes</div>
+      <div class="spec-val" style="font-size: 0.72rem; color: #c8d1dc; font-weight: 400; line-height: 1.5;">greeting, chief_complaint, hpi, pmh, medications, allergies, family_hx, social_hx, ros</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">Specialty Nodes</div>
+      <div class="spec-val" style="font-size: 0.72rem; color: #c8d1dc; font-weight: 400; line-height: 1.5;">derma_photo, derma_location, ortho_rom, cardio_exercise, neuro_focal — activate per pathway</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  PROMPT ENGINEERING & SERVER-SIDE ORCHESTRATION               -->
+<!-- ============================================================ -->
+<div class="card card-sm">
+  <div class="sec-label">Section 3 — Prompt Framework</div>
+  <div class="sec-title">Human-Engineered Clinical Prompts <span class="ar">الموجهات السريرية المصممة بشريًا</span></div>
+
+  <p style="font-size: 0.82rem; color: #7d8590; line-height: 1.7; margin-bottom: 16px;">
+    All prompts are <strong style="color:#e6edf3;">medically authored</strong> templates stored server-side. The client never sees raw prompts. The <code style="background:rgba(45,212,168,0.1); color:#2dd4a8; padding: 2px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">PromptAssembler</code> constructs the final LLM input by injecting node context, patient state, conversation history, and behavioral constraints at runtime.
+  </p>
+
+  <div style="background: rgba(10,14,20,0.8); border: 1px solid rgba(48,54,61,0.4); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #7d8590; line-height: 1.8;">
+    <span style="color:#506070;">// Server-side prompt assembly (simplified)</span><br>
+    <span style="color:#f472b6;">const</span> <span style="color:#c8d1dc;">finalPrompt</span> = <span style="color:#2dd4a8;">PromptAssembler</span>.<span style="color:#60a5fa;">build</span>({<br>
+    &nbsp;&nbsp;template: <span style="color:#fbbf24;">node.systemPrompt</span>,<br>
+    &nbsp;&nbsp;patientContext: <span style="color:#fbbf24;">session.demographics</span>,<br>
+    &nbsp;&nbsp;conversationHistory: <span style="color:#fbbf24;">session.messages</span>,<br>
+    &nbsp;&nbsp;behavioralGuards: [<span style="color:#e879f9;">'no_diagnosis'</span>, <span style="color:#e879f9;">'no_prescription'</span>, <span style="color:#e879f9;">'emergency_detect'</span>],<br>
+    &nbsp;&nbsp;turnsRemaining: <span style="color:#fbbf24;">node.maxTurns</span> - <span style="color:#fbbf24;">session.currentTurn</span>,<br>
+    &nbsp;&nbsp;language: <span style="color:#fbbf24;">session.locale</span><br>
+    });<br>
+    <span style="color:#f472b6;">const</span> <span style="color:#c8d1dc;">response</span> = <span style="color:#f472b6;">await</span> <span style="color:#2dd4a8;">LLMProvider</span>.<span style="color:#60a5fa;">complete</span>(finalPrompt);
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  SPECIALTY ROUTING                                            -->
+<!-- ============================================================ -->
+<div class="card card-sm">
+  <div class="sec-label">Section 4 — AI Scoring</div>
+  <div class="sec-title">Multi-Specialty Routing with Confidence Scoring <span class="ar">التوجيه التخصصي بدرجات الثقة</span></div>
+
+  <p style="font-size: 0.82rem; color: #7d8590; line-height: 1.7; margin-bottom: 16px;">
+    Post-interview, the <code style="background:rgba(45,212,168,0.1); color:#2dd4a8; padding: 2px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">SpecialtyClassifier</code> analyzes the structured clinical summary to produce a confidence-scored specialty assignment. Multi-specialty cases generate ranked referrals. The doctor queue is sorted by AI confidence score, urgency flags, and waiting time.
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+    <div class="spec-item"><div class="spec-key">Scoring Model</div><div class="spec-val">GPT-4o + Clinical Rules</div></div>
+    <div class="spec-item"><div class="spec-key">Confidence Range</div><div class="spec-val">0.0 – 1.0 (Float)</div></div>
+    <div class="spec-item"><div class="spec-key">Multi-Specialty</div><div class="spec-val">Ranked Referral List</div></div>
+    <div class="spec-item"><div class="spec-key">Queue Sort</div><div class="spec-val">Score × Urgency × Wait</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  BEHAVIORAL SAFETY                                            -->
+<!-- ============================================================ -->
+<div class="card">
+  <div class="sec-label">Section 5 — Safety Architecture</div>
+  <div class="sec-title">Multi-Layer Behavioral Safety System <span class="ar">نظام الأمان السلوكي متعدد الطبقات</span></div>
+
+  <div class="safety-grid">
+    <div class="safety-item">
+      <div class="safety-icon">🚨</div>
+      <div><div class="s-title">Emergency Detection Protocol</div><div class="s-desc">Real-time keyword matching + LLM classification for suicidal ideation, chest pain, severe bleeding. Triggers immediate escalation with emergency service contact info.</div></div>
+    </div>
+    <div class="safety-item">
+      <div class="safety-icon">🔄</div>
+      <div><div class="s-title">Turn Limit Safety Net</div><div class="s-desc">Per-node maximum turn count prevents infinite loops. Exhausted nodes auto-transition to next sequence item with partial data capture.</div></div>
+    </div>
+    <div class="safety-item">
+      <div class="safety-icon">🚫</div>
+      <div><div class="s-title">Scope Boundary Enforcement</div><div class="s-desc">AI is constrained to data-gathering only. System-level prompts prohibit diagnosis, treatment recommendations, and prescriptions.</div></div>
+    </div>
+    <div class="safety-item">
+      <div class="safety-icon">🗑️</div>
+      <div><div class="s-title">Gibberish & Abuse Detection</div><div class="s-desc">Input validation pipeline with whitelisted medical terms. Detects nonsense input, off-topic content, and adversarial prompt injection attempts.</div></div>
+    </div>
+    <div class="safety-item">
+      <div class="safety-icon">📊</div>
+      <div><div class="s-title">Violation Logging & Audit</div><div class="s-desc">Every safety event is logged with timestamp, trigger type, session context. Admin dashboard provides real-time violation analytics.</div></div>
+    </div>
+    <div class="safety-item">
+      <div class="safety-icon">🔒</div>
+      <div><div class="s-title">Server-Side Enforcement</div><div class="s-desc">All safety rules execute in edge functions. Client devices have zero ability to modify, bypass, or inspect safety constraints.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  CLINICAL FEATURES                                            -->
+<!-- ============================================================ -->
+<div class="card card-sm">
+  <div class="sec-label">Section 6 — Clinical Integrations</div>
+  <div class="sec-title">Imaging, Medications, Interventions & Insurance <span class="ar">التصوير، الأدوية، التدخلات، والتأمين</span></div>
+
+  <div class="specs-grid">
+    <div class="spec-item">
+      <div class="spec-key">Photo Capture</div>
+      <div class="spec-val">Dermatology Upload + Consent</div>
+      <div style="font-size: 0.68rem; color: #506070; margin-top: 4px;">Privacy disclaimer → Camera → Upload → AI receives image metadata</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">Medication Detection</div>
+      <div class="spec-val">Free-Text NLP Extraction</div>
+      <div style="font-size: 0.68rem; color: #506070; margin-top: 4px;">Patient types medication → AI parses drug name, dose, frequency from unstructured text</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">Intervention Network</div>
+      <div class="spec-val">Cross-Specialty Catalog</div>
+      <div style="font-size: 0.68rem; color: #506070; margin-top: 4px;">Labs, imaging, Rx shared across specialties. Doctor orders from unified catalog per session.</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">Insurance Pre-Auth</div>
+      <div class="spec-val">Status-Aware Lifecycle</div>
+      <div style="font-size: 0.68rem; color: #506070; margin-top: 4px;">Pending → Approved → Denied with automated resubmission tracking</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">KYC Verification</div>
+      <div class="spec-val">Document + Biometric</div>
+      <div style="font-size: 0.68rem; color: #506070; margin-top: 4px;">Identity docs → Admin review → Status gating for consultation access</div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-key">Privacy Architecture</div>
+      <div class="spec-val">Transient Cloud Model</div>
+      <div style="font-size: 0.68rem; color: #506070; margin-top: 4px;">90-day cloud retention → Auto-purge → Local/hardcopy long-term per medico-legal</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  CLAIM-FIGURE MAPPING                                         -->
+<!-- ============================================================ -->
+<div class="card">
+  <div class="sec-label">Section 7 — Patent Evidence</div>
+  <div class="sec-title">Innovation-to-Figure Cross-Reference <span class="ar">جدول الادعاءات-الرسومات</span></div>
+
+  <table class="claims-table">
+    <thead>
+      <tr>
+        <th>Innovation</th>
+        <th>Description</th>
+        <th>Figures</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="claim-id">INV-01</td><td>Central AI Orchestration Layer with admin-configurable model selection</td><td class="figs">FIG. 2</td></tr>
+      <tr><td class="claim-id">INV-02</td><td>AI-Executable Node architecture with independent prompt/validation per node</td><td class="figs">FIG. 3, 4, 5</td></tr>
+      <tr><td class="claim-id">INV-03</td><td>Sequence-Pathway system with non-linear branching and conditional activation</td><td class="figs">FIG. 4, 7</td></tr>
+      <tr><td class="claim-id">INV-04</td><td>Human-engineered clinical prompt templates (medically authored, not generated)</td><td class="figs">FIG. 6</td></tr>
+      <tr><td class="claim-id">INV-05</td><td>Server-side prompt orchestration — zero client-side prompt exposure</td><td class="figs">FIG. 6, 7</td></tr>
+      <tr><td class="claim-id">INV-06</td><td>AI specialty routing with confidence scoring and multi-specialty triage</td><td class="figs">FIG. 8</td></tr>
+      <tr><td class="claim-id">INV-07</td><td>Multi-layer behavioral safety system with emergency protocol</td><td class="figs">FIG. 9</td></tr>
+      <tr><td class="claim-id">INV-08</td><td>Clinical image capture with consent workflow (dermatology pathway)</td><td class="figs">FIG. 10</td></tr>
+      <tr><td class="claim-id">INV-09</td><td>Medication detection from free-text patient input via NLP</td><td class="figs">FIG. 11</td></tr>
+      <tr><td class="claim-id">INV-10</td><td>Cross-specialty intervention ordering network</td><td class="figs">FIG. 12</td></tr>
+      <tr><td class="claim-id">INV-11</td><td>Insurance pre-authorization lifecycle integration</td><td class="figs">FIG. 13</td></tr>
+      <tr><td class="claim-id">INV-12</td><td>KYC identity verification with access gating</td><td class="figs">FIG. 14</td></tr>
+      <tr><td class="claim-id">INV-13</td><td>Privacy-preserving transient cloud architecture with auto-purge</td><td class="figs">FIG. 15</td></tr>
+      <tr><td class="claim-id">INV-14</td><td>Structured clinical response with ICD-10 mapping</td><td class="figs">FIG. 16</td></tr>
+      <tr><td class="claim-id">INV-15</td><td>System-wide real-time analytics and operational dashboard</td><td class="figs">FIG. 17</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!--  TECHNICAL SPECIFICATIONS                                     -->
+<!-- ============================================================ -->
+<div class="card card-sm">
+  <div class="sec-label">Section 8 — Technical Stack</div>
+  <div class="sec-title">Implementation Specifications</div>
+
+  <div class="specs-grid">
+    <div class="spec-item"><div class="spec-key">Frontend</div><div class="spec-val">Next.js 15 + React 19</div></div>
+    <div class="spec-item"><div class="spec-key">Mobile</div><div class="spec-val">Capacitor (iOS + Android)</div></div>
+    <div class="spec-item"><div class="spec-key">Backend</div><div class="spec-val">Supabase Edge Functions</div></div>
+    <div class="spec-item"><div class="spec-key">Database</div><div class="spec-val">PostgreSQL + Row-Level Security</div></div>
+    <div class="spec-item"><div class="spec-key">AI Provider</div><div class="spec-val">OpenAI GPT-4o (configurable)</div></div>
+    <div class="spec-item"><div class="spec-key">Auth</div><div class="spec-val">Supabase Auth + Google OAuth</div></div>
+    <div class="spec-item"><div class="spec-key">Storage</div><div class="spec-val">Supabase Storage (encrypted)</div></div>
+    <div class="spec-item"><div class="spec-key">Hosting</div><div class="spec-val">Vercel (Edge Network)</div></div>
+    <div class="spec-item"><div class="spec-key">CI/CD</div><div class="spec-val">Codemagic (mobile builds)</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  FIGURES                                                      -->
+<!-- ============================================================ -->
+<div class="fig-gallery-header">
+  <div class="sec-label">Appendix — Patent Figures</div>
+  <div class="sec-title" style="color: #e6edf3;">الرسومات التوضيحية — 17 Arabic UI Evidence Screenshots</div>
+</div>
+
+<div class="fig-card"><div class="fig-id">FIG. 1a — Patient Application Dashboard</div><div class="fig-desc">الشاشة الرئيسية لتطبيق المريض — الاستشارات، الفحوصات، الملف الشخصي</div><img src="figures/fig1_patient.png" alt="Patient App" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 1b — Doctor Application Dashboard</div><div class="fig-desc">الشاشة الرئيسية لتطبيق الطبيب — قائمة المرضى، الجلسات، التحليلات</div><img src="figures/fig1_doctor.png" alt="Doctor App" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 1c — Admin Dashboard</div><div class="fig-desc">لوحة الإدارة — إحصائيات النظام، الأطباء، الاستشارات، الذكاء الاصطناعي</div><img src="figures/fig1_admin.png" alt="Admin Panel" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 2 — AI Orchestration Layer Configuration</div><div class="fig-desc">إدارة الذكاء الاصطناعي — نموذج GPT-4o، قوالب الموجهات، تسلسلات المقابلة</div><img src="figures/fig2.png" alt="AI Management" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 3 — Node-Based Interview: Greeting → HPI</div><div class="fig-desc">عقدة الترحيب ← اكتشاف المسار التخصصي ← عقدة تاريخ المرض الحالي</div><img src="figures/fig3.png" alt="Interview Nodes" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 4 — Sequence-Pathway Branching Logic</div><div class="fig-desc">تفرع المسار من تاريخ المرض الحالي إلى أسئلة تفصيلية متعددة</div><img src="figures/fig4.png" alt="Branching" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 5 — Shared vs Specialty-Specific Nodes</div><div class="fig-desc">التاريخ العائلي، التاريخ الاجتماعي، مراجعة الأنظمة — عُقد مشتركة عبر التخصصات</div><img src="figures/fig5.png" alt="Shared Nodes" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 6 — Human-Engineered Prompt Templates</div><div class="fig-desc">قوالب الموجهات المرتبطة بالعُقد — System Prompt (Intake / Summary)</div><img src="figures/fig6.png" alt="Prompt Templates" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 7 — Server-Side Sequence Configuration</div><div class="fig-desc">تسلسلات المقابلة — Greeting, Chief Complaint, HPI, PMH, Meds, Allergy, Family, Social</div><img src="figures/fig7.png" alt="Sequences" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 8 — AI Specialty Routing & Confidence Scoring</div><div class="fig-desc">قائمة المرضى مع درجات الثقة (AI Score) والتوجيه التلقائي للتخصص</div><img src="figures/fig8.png" alt="Specialty Routing" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 9 — Behavioral Safety Protocol Configuration</div><div class="fig-desc">بروتوكول الطوارئ + بروتوكول اكتشاف الإدخال غير الصالح + سجل الانتهاكات</div><img src="figures/fig9.png" alt="Safety Protocols" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 10 — Clinical Image Capture with Consent</div><div class="fig-desc">عقدة التصوير — طلب رفع صورة للمنطقة المتأثرة مع إقرار موافقة الخصوصية</div><img src="figures/fig10.png" alt="Photo Capture" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 11 — Medication Detection via NLP</div><div class="fig-desc">عقدة الأدوية — استخراج اسم الدواء من إجابة المريض غير المنظمة</div><img src="figures/fig11.png" alt="Medication Detection" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 12 — Cross-Specialty Intervention Ordering</div><div class="fig-desc">طلب فحوصات مخبرية من تخصصات متعددة ضمن جلسة واحدة</div><img src="figures/fig12.png" alt="Interventions" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 13 — Insurance Pre-Authorization Lifecycle</div><div class="fig-desc">فحوصاتي والإحالات — حالة التأمين وتتبع دورة الحياة</div><img src="figures/fig13.png" alt="Insurance" class="mobile"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 14 — KYC Identity Verification Workflow</div><div class="fig-desc">قائمة التحقق — مراجعة الهويات والوثائق المقدمة</div><img src="figures/fig14.png" alt="KYC" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 15 — Privacy Data Lifecycle & Auto-Purge</div><div class="fig-desc">استشارات في انتظار الأرشفة — سياسة الاحتفاظ بالبيانات ٩٠ يومًا</div><img src="figures/fig15.png" alt="Privacy" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 16 — Doctor Clinical Response (ICD-10)</div><div class="fig-desc">التشخيص الرئيسي، رمز ICD-10، التشخيص التفريقي، خطة العلاج</div><img src="figures/fig16.png" alt="Clinical Response" class="desktop"></div>
+
+<div class="fig-card"><div class="fig-id">FIG. 17 — System Analytics Dashboard</div><div class="fig-desc">لوحة التحليلات — حجم الاستشارات، دقة الذكاء الاصطناعي، كفاءة التوجيه</div><img src="figures/fig17.png" alt="Analytics" class="desktop"></div>
+
+</div><!-- end .doc -->
+
+<button class="print-btn" onclick="window.print()">PRINT / SAVE PDF</button>
+
+</body>
+</html>
