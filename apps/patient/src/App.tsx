@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { supabase } from '@cliniqone/api';
-import { colors, OfflineBanner, ThemeProvider } from '@cliniqone/ui';
+import { OfflineBanner, ThemeProvider } from '@cliniqone/ui';
 import { initLocale, t } from '@cliniqone/i18n';
 import { App as CapApp } from '@capacitor/app';
 import { haptic } from './hooks/useHaptics';
@@ -27,6 +27,7 @@ import { InterventionsPage } from './pages/InterventionsPage';
 import { TabBar } from './components/TabBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/ToastProvider';
+import { BrandSpinner } from './components/BrandSpinner';
 
 // Intake pages
 import IntakeIndexPage from './pages/intake/IntakeIndexPage';
@@ -238,11 +239,7 @@ export function App() {
     }, []);
 
     if (!isReady) {
-        return (
-            <div style={{ display: 'flex', flex: 1, height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary }}>
-                <div className="spinner spinner-lg" style={{ color: colors.accentTeal }} />
-            </div>
-        );
+        return <BrandSpinner />;
     }
 
     return <ErrorBoundary><ThemeProvider><AppInner /></ThemeProvider></ErrorBoundary>;

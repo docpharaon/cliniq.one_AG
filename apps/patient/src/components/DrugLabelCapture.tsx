@@ -38,7 +38,7 @@ export function DrugLabelCapture({ onCaptured, onCancel, analyzing }: DrugLabelC
             zIndex: 1000, padding: 20,
         }}>
             <div style={{
-                backgroundColor: '#0F172A', borderRadius: 16, padding: 24,
+                backgroundColor: 'var(--bg-primary)', borderRadius: 16, padding: 24,
                 maxWidth: 400, width: '100%', textAlign: 'center',
             }}>
                 <h3 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>

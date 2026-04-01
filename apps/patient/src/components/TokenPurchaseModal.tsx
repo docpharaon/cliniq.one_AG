@@ -116,7 +116,7 @@ const styles: Record<string, React.CSSProperties> = {
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000,
     },
     bottomSheet: {
-        backgroundColor: '#0F172A', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        backgroundColor: 'var(--bg-primary)', borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '12px 20px 32px', width: '100%', maxWidth: 500,
     },
     handle: {

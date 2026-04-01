@@ -4,6 +4,7 @@ import { supabase, safeFetch } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
+import { BrandSpinner } from '../../components/BrandSpinner';
 
 export default function InterventionBookingPage() {
     const { id } = useParams<{ id: string }>();
@@ -37,7 +38,7 @@ export default function InterventionBookingPage() {
         }
     }
 
-    if (loading) return <div className="slide-in-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>Loading…</div>;
+    if (loading) return <BrandSpinner />;
 
     return (
         <div className="slide-in-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>

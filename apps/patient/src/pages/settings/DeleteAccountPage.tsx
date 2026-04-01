@@ -3,6 +3,7 @@ import { supabase } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
+import { t } from '@cliniqone/i18n';
 
 export default function DeleteAccountPage() {
     const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function DeleteAccountPage() {
         <div className="slide-in-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
             <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 20px 48px' }}>
                 <BackButton />
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: '#DC2626', margin: '20px 0 16px' }}>Delete Account</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: '#DC2626', margin: '20px 0 16px' }}>{t('settings.deleteAccountTitle')}</h1>
                 <div style={{ backgroundColor: '#DC262615', borderRadius: 14, padding: 18, marginBottom: 20, border: '1px solid #DC262640' }}>
                     <p style={{ fontSize: 14, color: '#DC2626', margin: 0, lineHeight: '22px', fontWeight: 600 }}>Warning: This action is irreversible</p>
                     <ul style={{ color: '#FCA5A5', fontSize: 13, lineHeight: '22px', paddingLeft: 20, marginTop: 8, marginBottom: 0 }}>
@@ -41,7 +42,7 @@ export default function DeleteAccountPage() {
                 </div>
                 <button onClick={handleDelete}
                     style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', backgroundColor: '#DC2626', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
-                    Delete My Account Permanently
+                    {t('settings.deleteForever')}
                 </button>
             </div>
         </div>

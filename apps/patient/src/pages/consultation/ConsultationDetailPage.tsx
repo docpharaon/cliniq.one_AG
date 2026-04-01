@@ -7,6 +7,7 @@ import { BackButton } from '../../components/BackButton';
 import { PatientRefundModal } from '../../components/PatientRefundModal';
 import { FadeIn } from '../../components/FadeIn';
 import type { Consultation } from '@cliniqone/types';
+import { BrandSpinner } from '../../components/BrandSpinner';
 
 export default function ConsultationDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -28,7 +29,7 @@ export default function ConsultationDetailPage() {
         })();
     }, [id]);
 
-    if (loading) return <div className="slide-in-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>{t('common.loading')}</div>;
+    if (loading) return <BrandSpinner />;
     if (!consultation) return <div className="slide-in-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: '#DC2626' }}>{t('consultDetail.notFound')}</p></div>;
 
     const report = consultation.report as Record<string, any> | null;

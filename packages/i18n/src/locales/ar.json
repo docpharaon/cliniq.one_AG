@@ -638,7 +638,19 @@
         "rightDelete": "حق حذف حسابك",
         "rightExport": "حق تصدير بياناتك",
         "rightWithdraw": "حق سحب الموافقة",
-        "lastUpdated": "آخر تحديث: مارس ٢٠٢٦"
+        "lastUpdated": "آخر تحديث: مارس ٢٠٢٦",
+        "appearanceTitle": "المظهر",
+        "themeDark": "داكن",
+        "themeLight": "فاتح",
+        "themeSystem": "النظام",
+        "themeActive": "نشط",
+        "themePreview": "معاينة",
+        "themeSampleCard": "بطاقة عينة",
+        "themeSampleDesc": "يعرض المظهر الحالي",
+        "deleteAccountTitle": "حذف الحساب",
+        "identityVerification": "التحقق من الهوية",
+        "dataProtection": "حماية البيانات",
+        "dataRights": "حقوق البيانات"
     },
     "protocol": {
         "emergencyDetected": "رسالتك تشير إلى أن الحالة قد تكون طارئة. اتصل بخدمات الطوارئ فوراً.",

@@ -5,7 +5,7 @@ import { t, getLocale, setLocale, toLocalNum, localDate, useLocale } from '@clin
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
 import { useConsultations } from '../../hooks/useConsultations';
 import { useHomeContent } from '../../hooks/useHomeContent';
-import { DashboardSkeleton } from '../../components/Skeleton';
+import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { FadeIn } from '../../components/FadeIn';
 import { haptic } from '../../hooks/useHaptics';
@@ -74,7 +74,7 @@ export default function HomePage() {
         else if (action.route) navigate(action.route);
     }
 
-    if (isLoading) return <DashboardSkeleton />;
+    if (isLoading) return <BrandSpinner />;
 
     return (
         <div style={styles.container}>

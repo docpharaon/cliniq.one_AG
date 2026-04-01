@@ -5,6 +5,7 @@ import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
+import { BrandSpinner } from '../../components/BrandSpinner';
 
 export default function DoctorSelectPage() {
     const navigate = useNavigate();
@@ -58,7 +59,7 @@ export default function DoctorSelectPage() {
 
                 {/* Doctor List */}
                 {loading ? (
-                    <p style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: 20 }}>Loading doctors…</p>
+                    <BrandSpinner fullScreen={false} />
                 ) : doctors.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 20 }}>No doctors available right now</p>
                 ) : (

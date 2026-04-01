@@ -3,7 +3,7 @@ import { t, toLocalNum } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useTokenHistory } from '../../hooks/useConsultations';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
-import { WalletSkeleton } from '../../components/Skeleton';
+import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { TOKEN_PACKAGES } from '@cliniqone/types';
 import type { TokenTransaction } from '@cliniqone/types';
@@ -43,7 +43,7 @@ export default function WalletPage() {
         haptic.success();
     }, [refetch]);
 
-    if (isLoading) return <WalletSkeleton />;
+    if (isLoading) return <BrandSpinner />;
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
@@ -117,7 +117,7 @@ export default function WalletPage() {
                 </div>
 
                 {isLoading ? (
-                    <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>Loading…</div>
+                    <BrandSpinner fullScreen={false} />
                 ) : filteredTx.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {filteredTx.map(tx => (

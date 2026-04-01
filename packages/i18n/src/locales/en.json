@@ -638,7 +638,19 @@
         "rightDelete": "Right to delete your account",
         "rightExport": "Right to export your data",
         "rightWithdraw": "Right to withdraw consent",
-        "lastUpdated": "Last updated: March 2026"
+        "lastUpdated": "Last updated: March 2026",
+        "appearanceTitle": "Appearance",
+        "themeDark": "Dark",
+        "themeLight": "Light",
+        "themeSystem": "System",
+        "themeActive": "Active",
+        "themePreview": "Preview",
+        "themeSampleCard": "Sample Card",
+        "themeSampleDesc": "This shows the current appearance",
+        "deleteAccountTitle": "Delete Account",
+        "identityVerification": "Identity Verification",
+        "dataProtection": "Data Protection",
+        "dataRights": "Data Rights"
     },
     "protocol": {
         "emergencyDetected": "Your message suggests a medical emergency. Please call emergency services immediately.",

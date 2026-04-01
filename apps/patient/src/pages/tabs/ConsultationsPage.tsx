@@ -5,7 +5,7 @@ import type { Consultation, ConsultationStatus } from '@cliniqone/types';
 import { useAuthStore } from '../../stores/authStore';
 import { useConsultations } from '../../hooks/useConsultations';
 import { FadeIn } from '../../components/FadeIn';
-import { ConsultationListSkeleton } from '../../components/Skeleton';
+import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { haptic } from '../../hooks/useHaptics';
 import { Search, Stethoscope, ClipboardList, Refresh, Download, Share } from '@cliniqone/ui';
@@ -113,7 +113,7 @@ export default function ConsultationsPage() {
         haptic.success();
     }, [refetch]);
 
-    if (isLoading) return <ConsultationListSkeleton />;
+    if (isLoading) return <BrandSpinner />;
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>

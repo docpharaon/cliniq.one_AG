@@ -3,7 +3,7 @@ import { t, localDate } from '@cliniqone/i18n';
 import { usePatientNotifications, PatientNotification } from '../../hooks/usePatientNotifications';
 import { useNavigate } from 'react-router-dom';
 import { FadeIn } from '../../components/FadeIn';
-import { NotificationsSkeleton } from '../../components/Skeleton';
+import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { Bell, Doctor, ClipboardList, MessageSquare, Info, Refresh } from '@cliniqone/ui';
 
@@ -48,7 +48,7 @@ export default function NotificationsPage() {
                 </div>
 
                 {loading ? (
-                    <NotificationsSkeleton />
+                    <BrandSpinner fullScreen={false} />
                 ) : notifications.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '48px 16px', backgroundColor: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
