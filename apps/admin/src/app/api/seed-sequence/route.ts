@@ -560,15 +560,15 @@ const SEQUENCE_NODES: { step_key: string; label: string; emoji: string; sort_ord
 ];
 
 // ══════════════════════════════════════════════════════════════
-// POST — DELETE ALL then RESEED cleanly
+// POST — DELETE Default Flow only, then RESEED cleanly
+// Preserves specialty flows (Dermatology, Psychiatry, etc.)
 // ══════════════════════════════════════════════════════════════
 
 export async function POST() {
    try {
       const results: string[] = [];
 
-      // ── STEP 1: Delete everything (order matters for FK constraints) ──
-      // Use .gte('created_at', '1900-01-01') to match ALL rows reliably
+      // ── STEP 1: Delete ONLY the Default Intake Flow (preserve specialty flows) ──
 
       // Count existing rows first for logging
       const { count: existingNodes } = await supabase.from('prompt_sequence_nodes').select('*', { count: 'exact', head: true });
@@ -577,20 +577,34 @@ export async function POST() {
       const { count: existingPrompts } = await supabase.from('ai_prompts').select('*', { count: 'exact', head: true });
       results.push(`📊 Found: ${existingNodes ?? '?'} nodes, ${existingSeqs ?? '?'} sequences, ${existingVersions ?? '?'} versions, ${existingPrompts ?? '?'} prompts`);
 
-      const { error: delNodes } = await supabase
-         .from('prompt_sequence_nodes')
-         .delete()
-         .gte('created_at', '1900-01-01');
-      if (delNodes) results.push(`⚠️ Error deleting nodes: ${delNodes.message}`);
-      else results.push('🗑️ Deleted all sequence nodes');
-
-      const { error: delSeqs } = await supabase
+      // Find the Default Intake Flow ID
+      const { data: defaultSeq } = await supabase
          .from('prompt_sequences')
-         .delete()
-         .gte('created_at', '1900-01-01');
-      if (delSeqs) results.push(`⚠️ Error deleting sequences: ${delSeqs.message}`);
-      else results.push('🗑️ Deleted all sequences');
+         .select('id')
+         .eq('name', 'Default Intake Flow')
+         .maybeSingle();
 
+      if (defaultSeq) {
+         // Delete nodes belonging to the Default flow only
+         const { error: delNodes } = await supabase
+            .from('prompt_sequence_nodes')
+            .delete()
+            .eq('sequence_id', defaultSeq.id);
+         if (delNodes) results.push(`⚠️ Error deleting default nodes: ${delNodes.message}`);
+         else results.push('🗑️ Deleted Default Intake Flow nodes');
+
+         // Delete the Default sequence itself
+         const { error: delSeq } = await supabase
+            .from('prompt_sequences')
+            .delete()
+            .eq('id', defaultSeq.id);
+         if (delSeq) results.push(`⚠️ Error deleting default sequence: ${delSeq.message}`);
+         else results.push('🗑️ Deleted Default Intake Flow sequence');
+      } else {
+         results.push('ℹ️ No existing "Default Intake Flow" found — creating fresh');
+      }
+
+      // Delete ONLY general-specialty prompts (not dermatology, psychiatry, etc.)
       const { error: delVersions } = await supabase
          .from('ai_prompt_versions')
          .delete()
@@ -601,16 +615,9 @@ export async function POST() {
       const { error: delPrompts } = await supabase
          .from('ai_prompts')
          .delete()
-         .gte('created_at', '1900-01-01');
-      if (delPrompts) results.push(`⚠️ Error deleting prompts: ${delPrompts.message}`);
-      else results.push('🗑️ Deleted all prompts');
-
-      // Verify deletion was successful
-      const { count: remainingNodes } = await supabase.from('prompt_sequence_nodes').select('*', { count: 'exact', head: true });
-      const { count: remainingPrompts } = await supabase.from('ai_prompts').select('*', { count: 'exact', head: true });
-      if ((remainingNodes ?? 0) > 0 || (remainingPrompts ?? 0) > 0) {
-         results.push(`⚠️ WARNING: After deletion, still have ${remainingNodes ?? '?'} nodes and ${remainingPrompts ?? '?'} prompts remaining!`);
-      }
+         .eq('specialty', 'general');
+      if (delPrompts) results.push(`⚠️ Error deleting general prompts: ${delPrompts.message}`);
+      else results.push('🗑️ Deleted general-specialty prompts (specialty flows preserved)');
 
       // ── STEP 2: Create all prompts ────────────────────────────────────
 

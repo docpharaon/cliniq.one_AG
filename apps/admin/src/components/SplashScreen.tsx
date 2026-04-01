@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const SPLASH_DURATION = 10000; // 10 seconds — matches video duration

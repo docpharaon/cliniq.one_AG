@@ -1,5 +1,3 @@
-'use client';
-
 import Header from '@/components/Header';
 import { Bell, Send, Users, Stethoscope, Search, X, CheckCircle, XCircle, Loader2, User } from 'lucide-react';
 import { useState, useCallback, useRef } from 'react';

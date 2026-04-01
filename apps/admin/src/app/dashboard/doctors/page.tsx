@@ -1,7 +1,7 @@
-'use client';
+
 
 import Header from '@/components/Header';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
 import StatCard from '@/components/StatCard';
 import AddDoctorModal from '@/components/AddDoctorModal';
@@ -169,8 +169,7 @@ export default function DoctorsPage() {
                             </p>
                         </div>
                         <div className="flex gap-2">
-                            <Link
-                                href="/dashboard/doctors/locum"
+                            <Link to="/dashboard/doctors/locum"
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-sm font-semibold hover:-translate-y-0.5 transition-all self-start"
                             >
                                 <QrCode className="w-4 h-4" />

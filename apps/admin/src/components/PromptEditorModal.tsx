@@ -1,8 +1,7 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { X, Save, Trash2, Plus, AlertTriangle, Loader2, History, RotateCcw, ChevronDown, ChevronUp, Clock, Sparkles, Check, Columns } from 'lucide-react';
 import { createPrompt, updatePrompt, deletePrompt, fetchPromptVersions, rollbackToVersion } from '@/lib/actions';
+import { callAdminApi } from '@/lib/admin-api';
 
 // ── Types ─────────────────────────────────
 type PromptData = {
@@ -38,11 +37,10 @@ const SPECIALTIES = [
     { value: 'general', label: 'General' },
     { value: 'dermatology', label: 'Dermatology' },
     { value: 'family_medicine', label: 'Family Medicine' },
-    { value: 'internal_medicine', label: 'Internal Medicine' },
     { value: 'pediatrics', label: 'Pediatrics' },
     { value: 'psychiatry', label: 'Psychiatry' },
     { value: 'orthopedics', label: 'Orthopedics' },
-    { value: 'cardiology', label: 'Cardiology' },
+    { value: 'diet', label: 'Diet & Nutrition' },
 ];
 
 const PROMPT_TYPES = [
@@ -50,6 +48,8 @@ const PROMPT_TYPES = [
     { value: 'intake', label: 'Intake', color: 'text-emerald-400' },
     { value: 'summary', label: 'Summary', color: 'text-amber-400' },
     { value: 'triage', label: 'Triage', color: 'text-gray-400' },
+    { value: 'global_guard', label: 'Global Guard', color: 'text-red-400' },
+    { value: 'locum_greeting', label: 'Locum Greeting', color: 'text-purple-400' },
 ];
 
 // ── Component ─────────────────────────────
@@ -202,13 +202,10 @@ export default function PromptEditorModal({ mode, initial, onClose, onSaved }: P
         setImproveError('');
         setImprovedContent(null);
         try {
-            const res = await fetch('/api/improve-prompt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: form.content, promptType: form.prompt_type }),
+            const data = await callAdminApi<{ improved: string }>('improve-prompt', {
+                content: form.content,
+                promptType: form.prompt_type,
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to improve prompt');
             if (!data.improved?.trim()) throw new Error('AI returned empty result');
             setImprovedContent(data.improved);
         } catch (err) {

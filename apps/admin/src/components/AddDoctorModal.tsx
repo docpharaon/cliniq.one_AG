@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import { X, UserPlus, Loader2, Eye, EyeOff } from 'lucide-react';
 import { addDoctor } from '@/lib/actions';
@@ -12,7 +10,7 @@ type DoctorForm = {
     display_name: string;
     license_number: string;
     license_authority: string;
-    specialty: 'dermatology' | 'family_medicine';
+    specialty: 'dermatology' | 'family_medicine' | 'pediatrics' | 'psychiatry' | 'orthopedics' | 'diet';
     sub_specialty: string;
     years_experience: string;
     languages: string[];
@@ -31,7 +29,11 @@ type Props = {
 
 const SPECIALTIES = [
     { value: 'dermatology', label: 'Dermatology' },
-    { value: 'family_medicine', label: 'Family Medicine' },
+    { value: 'family_medicine', label: 'Family Medicine / Internal / General' },
+    { value: 'pediatrics', label: 'Pediatrics' },
+    { value: 'psychiatry', label: 'Psychiatry' },
+    { value: 'orthopedics', label: 'Orthopedics' },
+    { value: 'diet', label: 'Diet & Nutrition' },
 ];
 
 const LANGUAGES = [

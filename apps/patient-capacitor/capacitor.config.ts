@@ -33,7 +33,7 @@ const config: CapacitorConfig = {
       backgroundColor: '#0A0E1A',
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'native',
       resizeOnFullScreen: true,
     },
     LocalNotifications: {

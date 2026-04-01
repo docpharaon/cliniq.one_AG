@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-    Pressable,
-    Text,
-    ActivityIndicator,
-    StyleSheet,
-    ViewStyle,
-    TextStyle,
-} from 'react-native';
+import type { CSSProperties } from 'react';
 import { colors, radius, spacing, typography } from '../tokens';
 
 interface ButtonProps {
@@ -17,97 +10,55 @@ interface ButtonProps {
     disabled?: boolean;
     loading?: boolean;
     icon?: React.ReactNode;
-    style?: ViewStyle;
+    style?: CSSProperties;
 }
 
-export function Button({
-    title,
-    onPress,
-    variant = 'primary',
-    size = 'md',
-    disabled = false,
-    loading = false,
-    icon,
-    style,
-}: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', size = 'md', disabled = false, loading = false, icon, style }: ButtonProps) {
     const isDisabled = disabled || loading;
+    const btnStyle: CSSProperties = { ...styles.base, ...sizeStyles[size], ...variantStyles[variant], ...(isDisabled ? styles.disabled : {}), ...style };
+    const textStyle: CSSProperties = { ...styles.text, ...sizeTextStyles[size], ...variantTextStyles[variant], ...(isDisabled ? styles.disabledText : {}) };
 
     return (
-        <Pressable
-            onPress={onPress}
-            disabled={isDisabled}
-            style={({ pressed }) => [
-                styles.base,
-                sizeStyles[size],
-                variantStyles[variant],
-                isDisabled && styles.disabled,
-                pressed && !isDisabled && { opacity: 0.8 },
-                style,
-            ]}
-        >
+        <button style={btnStyle} onClick={onPress} disabled={isDisabled}>
             {loading ? (
-                <ActivityIndicator
-                    size="small"
-                    color={variant === 'outline' || variant === 'ghost' ? colors.accentTeal : colors.textInverse}
-                />
+                <div className="spinner" style={{ color: variant === 'outline' || variant === 'ghost' ? colors.accentTeal : colors.textInverse }} />
             ) : (
                 <>
                     {icon}
-                    <Text
-                        style={[
-                            styles.text,
-                            sizeTextStyles[size],
-                            variantTextStyles[variant],
-                            isDisabled && styles.disabledText,
-                        ]}
-                    >
-                        {title}
-                    </Text>
+                    <span style={textStyle}>{title}</span>
                 </>
             )}
-        </Pressable>
+        </button>
     );
 }
 
-const styles = StyleSheet.create({
-    base: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: radius.lg,
-        gap: spacing.sm,
-    },
-    text: {
-        ...typography.button,
-    },
-    disabled: {
-        opacity: 0.5,
-    },
-    disabledText: {
-        opacity: 0.7,
-    },
-});
-
-const sizeStyles: Record<string, ViewStyle> = {
-    sm: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
-    md: { paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
-    lg: { paddingVertical: spacing.lg, paddingHorizontal: spacing['2xl'], width: '100%' },
+const styles: Record<string, CSSProperties> = {
+    base: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg, gap: spacing.sm, cursor: 'pointer', border: 'none' },
+    text: { fontWeight: typography.button.fontWeight, fontSize: typography.button.fontSize },
+    disabled: { opacity: 0.5, cursor: 'not-allowed' },
+    disabledText: { opacity: 0.7 },
 };
 
-const sizeTextStyles: Record<string, TextStyle> = {
-    sm: { ...typography.buttonSm },
-    md: { ...typography.button },
-    lg: { ...typography.button, fontSize: 17 },
+const sizeStyles: Record<string, CSSProperties> = {
+    sm: { paddingBlock: spacing.sm, paddingInline: spacing.lg },
+    md: { paddingBlock: spacing.md, paddingInline: spacing.xl },
+    lg: { paddingBlock: spacing.lg, paddingInline: spacing['2xl'], width: '100%' },
 };
 
-const variantStyles: Record<string, ViewStyle> = {
+const sizeTextStyles: Record<string, CSSProperties> = {
+    sm: { fontSize: typography.buttonSm.fontSize },
+    md: { fontSize: typography.button.fontSize },
+    lg: { fontSize: 17 },
+};
+
+const variantStyles: Record<string, CSSProperties> = {
     primary: { backgroundColor: colors.accentTeal },
     secondary: { backgroundColor: colors.bgElevated },
-    outline: { backgroundColor: colors.transparent, borderWidth: 1.5, borderColor: colors.accentTeal },
-    ghost: { backgroundColor: colors.transparent },
+    outline: { backgroundColor: 'transparent', border: `1.5px solid ${colors.accentTeal}` },
+    ghost: { backgroundColor: 'transparent' },
 };
 
-const variantTextStyles: Record<string, TextStyle> = {
+const variantTextStyles: Record<string, CSSProperties> = {
     primary: { color: colors.textInverse },
     secondary: { color: colors.textPrimary },
     outline: { color: colors.accentTeal },

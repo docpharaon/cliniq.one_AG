@@ -1,10 +1,8 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import SplashScreen from '@/components/SplashScreen';
-import { useRouter } from 'next/navigation';
 import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { createBrowserSupabase } from '@/lib/supabase';
+import { haptic } from '@/lib/useHaptics';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -13,7 +11,6 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [checkingOAuth, setCheckingOAuth] = useState(false);
     const [showSplash, setShowSplash] = useState(false);
-    const router = useRouter();
 
     // Show splash only once per session
     useEffect(() => {
@@ -102,6 +99,10 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        if (!navigator.onLine) {
+            setError('No internet connection. Please check your network and try again.');
+            return;
+        }
         setLoading(true);
 
         try {
@@ -138,13 +139,17 @@ export default function LoginPage() {
 
     const handleOAuth = async (provider: 'google' | 'apple') => {
         setError('');
+        if (!navigator.onLine) {
+            setError('No internet connection. Please check your network and try again.');
+            return;
+        }
         setLoading(true);
         try {
             const supabase = createBrowserSupabase();
             const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: window.location.origin + '/login',
+                    redirectTo: window.location.origin + '/auth/callback',
                     queryParams: provider === 'google'
                         ? { prompt: 'select_account' }
                         : { prompt: 'consent' },
@@ -245,7 +250,8 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={isDisabled}
-                                className="w-full py-3 rounded-xl bg-gradient-to-r from-accent to-purple text-white font-bold text-sm hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(45,212,191,0.4)] transition-all disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+                                onClick={() => haptic.medium()}
+                                className="pressable w-full py-3 rounded-xl bg-gradient-to-r from-accent to-purple text-white font-bold text-sm hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(45,212,191,0.4)] transition-all disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
                             >
                                 {loading ? (
                                     <>
@@ -270,8 +276,8 @@ export default function LoginPage() {
                             <button
                                 type="button"
                                 disabled={isDisabled}
-                                onClick={() => handleOAuth('google')}
-                                className="flex-1 py-3 rounded-xl bg-bg-elevated border border-border text-text-primary text-sm font-semibold hover:bg-bg-elevated/80 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                                onClick={() => { haptic.medium(); handleOAuth('google'); }}
+                                className="pressable flex-1 py-3 rounded-xl bg-bg-elevated border border-border text-text-primary text-sm font-semibold hover:bg-bg-elevated/80 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -284,8 +290,8 @@ export default function LoginPage() {
                             <button
                                 type="button"
                                 disabled={isDisabled}
-                                onClick={() => handleOAuth('apple')}
-                                className="flex-1 py-3 rounded-xl bg-black border border-[#333] text-white text-sm font-semibold hover:bg-black/80 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                                onClick={() => { haptic.medium(); handleOAuth('apple'); }}
+                                className="pressable flex-1 py-3 rounded-xl bg-black border border-[#333] text-white text-sm font-semibold hover:bg-black/80 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="white"/>

@@ -23,6 +23,7 @@ export interface User {
     avatar_url: string | null;
     insurance_provider: string | null;
     insurance_policy_number: string | null;
+    total_consultations?: number;
     onboarding_completed: boolean;
     kyc_status: KycStatus;
     kyc_applicant_id: string | null;
@@ -39,15 +40,12 @@ export interface User {
 
 export type DoctorStatus = 'pending' | 'active' | 'probation' | 'limited' | 'suspended' | 'inactive';
 export type Specialty =
-    | 'general'
     | 'dermatology'
     | 'family_medicine'
-    | 'internal_medicine'
     | 'pediatrics'
     | 'psychiatry'
-    | 'ent'
-    | 'ophthalmology'
-    | 'orthopedics';
+    | 'orthopedics'
+    | 'diet';
 
 export interface Doctor {
     id: string;
@@ -690,7 +688,6 @@ export interface CatalogIntervention {
 }
 
 export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> = {
-    general: [],
     dermatology: [
         { name: 'Skin Biopsy', type: 'lab_test', category: 'Dermatopathology', estimated_cost_sar: 450, instructions: 'Keep area clean and dry before biopsy' },
         { name: 'Patch Testing (Allergy)', type: 'lab_test', category: 'Allergy', estimated_cost_sar: 600, instructions: 'Do not apply creams 48h before test' },
@@ -718,19 +715,11 @@ export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> =
         { name: 'Chest X-Ray', type: 'imaging', category: 'X-Ray', estimated_cost_sar: 200, instructions: 'Remove jewelry and metal objects' },
         { name: 'Abdominal Ultrasound', type: 'imaging', category: 'Ultrasound', estimated_cost_sar: 350, instructions: 'Fast for 6 hours before scan' },
         { name: 'ECG', type: 'imaging', category: 'Cardiology', estimated_cost_sar: 150 },
+        { name: 'Echocardiogram', type: 'imaging', category: 'Cardiology', estimated_cost_sar: 500 },
         { name: 'Cardiology Referral', type: 'referral', category: 'Cardiology', estimated_cost_sar: 300 },
         { name: 'Gastroenterology Referral', type: 'referral', category: 'Gastroenterology', estimated_cost_sar: 300 },
-        { name: 'Family Medicine Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
-    ],
-    internal_medicine: [
-        { name: 'CBC (Complete Blood Count)', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 80 },
-        { name: 'Comprehensive Metabolic Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 150 },
-        { name: 'Lipid Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 100, instructions: 'Fast for 12 hours before test' },
-        { name: 'HbA1c', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 90 },
-        { name: 'Chest X-Ray', type: 'imaging', category: 'X-Ray', estimated_cost_sar: 200 },
-        { name: 'Echocardiogram', type: 'imaging', category: 'Cardiology', estimated_cost_sar: 500 },
         { name: 'Pulmonology Referral', type: 'referral', category: 'Pulmonology', estimated_cost_sar: 300 },
-        { name: 'Internal Medicine Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+        { name: 'Family Medicine Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
     ],
     pediatrics: [
         { name: 'CBC (Complete Blood Count)', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 80 },
@@ -761,24 +750,6 @@ export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> =
         { name: 'Psychology Referral', type: 'referral', category: 'Psychology', estimated_cost_sar: 300 },
         { name: 'Psychiatry Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 200 },
     ],
-    ent: [
-        { name: 'Audiometry', type: 'lab_test', category: 'Audiology', estimated_cost_sar: 250 },
-        { name: 'Tympanometry', type: 'lab_test', category: 'Audiology', estimated_cost_sar: 150 },
-        { name: 'Throat Swab Culture', type: 'lab_test', category: 'Microbiology', estimated_cost_sar: 120 },
-        { name: 'CT Sinuses', type: 'imaging', category: 'CT', estimated_cost_sar: 600 },
-        { name: 'Nasal Endoscopy', type: 'imaging', category: 'Endoscopy', estimated_cost_sar: 400 },
-        { name: 'Tonsillectomy Referral', type: 'referral', category: 'Surgery', estimated_cost_sar: 800 },
-        { name: 'ENT Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
-    ],
-    ophthalmology: [
-        { name: 'Visual Acuity Test', type: 'lab_test', category: 'Optometry', estimated_cost_sar: 100 },
-        { name: 'Intraocular Pressure', type: 'lab_test', category: 'Ophthalmology', estimated_cost_sar: 120 },
-        { name: 'Fundoscopy', type: 'imaging', category: 'Ophthalmology', estimated_cost_sar: 200 },
-        { name: 'OCT (Retinal Scan)', type: 'imaging', category: 'Ophthalmology', estimated_cost_sar: 400 },
-        { name: 'Visual Field Test', type: 'imaging', category: 'Ophthalmology', estimated_cost_sar: 250 },
-        { name: 'Cataract Surgery Referral', type: 'referral', category: 'Surgery', estimated_cost_sar: 3000 },
-        { name: 'Ophthalmology Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
-    ],
     orthopedics: [
         { name: 'X-Ray (Extremity)', type: 'imaging', category: 'X-Ray', estimated_cost_sar: 180 },
         { name: 'MRI (Joint)', type: 'imaging', category: 'MRI', estimated_cost_sar: 1200 },
@@ -788,6 +759,28 @@ export const SPECIALTY_INTERVENTIONS: Record<Specialty, CatalogIntervention[]> =
         { name: 'Physical Therapy', type: 'therapy', category: 'Rehabilitation', estimated_cost_sar: 200 },
         { name: 'Orthopedic Surgery Referral', type: 'referral', category: 'Surgery', estimated_cost_sar: 400 },
         { name: 'Orthopedics Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
+    ],
+    diet: [
+        { name: 'CBC (Complete Blood Count)', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 80 },
+        { name: 'Comprehensive Metabolic Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 150 },
+        { name: 'Lipid Panel', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 100, instructions: 'Fast for 12 hours before test' },
+        { name: 'HbA1c', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 90 },
+        { name: 'Thyroid Panel (TSH, T3, T4)', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 180 },
+        { name: 'Vitamin D', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 120 },
+        { name: 'Vitamin B12', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 100 },
+        { name: 'Iron Studies', type: 'lab_test', category: 'Hematology', estimated_cost_sar: 130 },
+        { name: 'Fasting Insulin', type: 'lab_test', category: 'Endocrinology', estimated_cost_sar: 110, instructions: 'Fast for 10-12 hours before test' },
+        { name: 'Food Allergy Panel (IgE)', type: 'lab_test', category: 'Allergy & Immunology', estimated_cost_sar: 450, instructions: 'No fasting required' },
+        { name: 'Food Intolerance Panel (IgG)', type: 'lab_test', category: 'Allergy & Immunology', estimated_cost_sar: 500 },
+        { name: 'Celiac Panel (tTG-IgA)', type: 'lab_test', category: 'Immunology', estimated_cost_sar: 200 },
+        { name: 'Zinc Level', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 80 },
+        { name: 'Magnesium Level', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 70 },
+        { name: 'Folate (Folic Acid)', type: 'lab_test', category: 'Chemistry', estimated_cost_sar: 90 },
+        { name: 'Body Composition Analysis (InBody)', type: 'imaging', category: 'Body Composition', estimated_cost_sar: 150 },
+        { name: 'DEXA Body Composition Scan', type: 'imaging', category: 'Body Composition', estimated_cost_sar: 400 },
+        { name: 'Endocrinology Referral', type: 'referral', category: 'Endocrinology', estimated_cost_sar: 300 },
+        { name: 'Gastroenterology Referral', type: 'referral', category: 'Gastroenterology', estimated_cost_sar: 300 },
+        { name: 'Diet & Nutrition Follow-up', type: 'follow_up', category: 'Follow-up', estimated_cost_sar: 150 },
     ],
 };
 
@@ -1264,4 +1257,93 @@ export const REFUND_STATUS_LABELS: Record<RefundRequestStatus, { en: string; ar:
     rejected: { en: 'Rejected', ar: 'مرفوض', color: '#EF4444', icon: '❌' },
     auto_approved: { en: 'Auto-Approved', ar: 'موافقة تلقائية', color: '#10B981', icon: '⚡' },
     processed: { en: 'Refund Processed', ar: 'تم الاسترداد', color: '#22C55E', icon: '💰' },
+};
+
+// ──────────────────────────────────────────
+// Specialty Override (Temporary Disable)
+// ──────────────────────────────────────────
+
+export type SpecialtyDisableMode = 'silent' | 'announced';
+
+export type SpecialtyDisableReason =
+    | 'doctor_unavailable'
+    | 'scheduling_conflict'
+    | 'system_maintenance'
+    | 'quality_review'
+    | 'regulatory'
+    | 'staffing_shortage'
+    | 'other';
+
+export interface SpecialtyOverride {
+    id: string;
+    specialty: Specialty;
+    is_disabled: boolean;
+    mode: SpecialtyDisableMode;
+    reason_code: SpecialtyDisableReason;
+    reason_text: string;
+    patient_message: string | null;
+    disabled_by: string;
+    disabled_at: string;
+    restored_by: string | null;
+    restored_at: string | null;
+    created_at: string;
+}
+
+export type SpecialtyIncidentStatus = 'open' | 'acknowledged' | 'resolved';
+
+export interface SpecialtyIncident {
+    id: string;
+    override_id: string;
+    patient_id: string;
+    specialty: Specialty;
+    chief_complaint: string;
+    ai_reasoning: string;
+    ai_confidence: number | null;
+    status: SpecialtyIncidentStatus;
+    admin_notes: string | null;
+    resolved_by: string | null;
+    resolved_at: string | null;
+    created_at: string;
+}
+
+// ── Specialty Disable Reason Labels (Bilingual) ─────────
+
+export const SPECIALTY_DISABLE_REASON_LABELS: Record<SpecialtyDisableReason, { en: string; ar: string; icon: string }> = {
+    doctor_unavailable: { en: 'Doctor Unavailable', ar: 'الطبيب غير متاح', icon: '👨‍⚕️' },
+    scheduling_conflict: { en: 'Scheduling Conflict', ar: 'تعارض في الجدول', icon: '📅' },
+    system_maintenance: { en: 'System Maintenance', ar: 'صيانة النظام', icon: '🔧' },
+    quality_review: { en: 'Quality Review', ar: 'مراجعة الجودة', icon: '🔍' },
+    regulatory: { en: 'Regulatory Requirement', ar: 'متطلب تنظيمي', icon: '⚖️' },
+    staffing_shortage: { en: 'Staffing Shortage', ar: 'نقص في الكادر', icon: '👥' },
+    other: { en: 'Other', ar: 'أخرى', icon: '📝' },
+};
+
+export const SPECIALTY_DISABLE_MODE_LABELS: Record<SpecialtyDisableMode, { en: string; ar: string; icon: string; description: string }> = {
+    silent: {
+        en: 'Silent',
+        ar: 'صامت',
+        icon: '🔇',
+        description: 'Patient is silently rerouted to Family Medicine without knowing the specialty was disabled',
+    },
+    announced: {
+        en: 'Announced',
+        ar: 'مُعلن',
+        icon: '📢',
+        description: 'Patient is informed of the situation and offered Family Medicine as a fallback option',
+    },
+};
+
+export const SPECIALTY_LABELS: Record<Specialty, { en: string; ar: string; icon: string; color: string }> = {
+    dermatology: { en: 'Dermatology', ar: 'الأمراض الجلدية', icon: '🧴', color: '#F472B6' },
+    family_medicine: { en: 'Family Medicine', ar: 'طب الأسرة', icon: '🏥', color: '#2DD4BF' },
+    pediatrics: { en: 'Pediatrics', ar: 'طب الأطفال', icon: '👶', color: '#60A5FA' },
+    psychiatry: { en: 'Psychiatry', ar: 'الطب النفسي', icon: '🧠', color: '#A78BFA' },
+    orthopedics: { en: 'Orthopedics', ar: 'جراحة العظام', icon: '🦴', color: '#FB923C' },
+    diet: { en: 'Diet & Nutrition', ar: 'التغذية', icon: '🥗', color: '#34D399' },
+};
+
+export const SPECIALTY_INCIDENT_STATUS_LABELS: Record<SpecialtyIncidentStatus, { en: string; ar: string; color: string; icon: string }> = {
+    open: { en: 'Open', ar: 'مفتوح', color: '#EF4444', icon: '🔴' },
+    acknowledged: { en: 'Acknowledged', ar: 'تم الإقرار', color: '#F59E0B', icon: '🟡' },
+    resolved: { en: 'Resolved', ar: 'تم الحل', color: '#22C55E', icon: '🟢' },
 };

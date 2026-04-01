@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { X, Calendar, Loader2 } from 'lucide-react';
 import { addSchedule, editSchedule } from '@/lib/actions';

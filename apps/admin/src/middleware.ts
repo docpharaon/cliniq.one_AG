@@ -59,9 +59,13 @@ function getRoleFromCookie(request: NextRequest): string | null {
 }
 
 export function middleware(request: NextRequest) {
-    // Check for Supabase auth cookie
-    const hasSession = request.cookies.getAll().some(
-        (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+    // Check for Supabase auth cookie (including chunked: sb-*-auth-token.0, .1, etc.)
+    const allCookies = request.cookies.getAll();
+    const hasSession = allCookies.some(
+        (c) => c.name.startsWith('sb-') && (
+            c.name.endsWith('-auth-token') ||
+            c.name.match(/-auth-token\.\d+$/)
+        )
     );
 
     const pathname = request.nextUrl.pathname;

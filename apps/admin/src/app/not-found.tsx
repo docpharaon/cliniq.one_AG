@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 export default function NotFound() {
     return (
@@ -12,7 +12,7 @@ export default function NotFound() {
                     </p>
                 </div>
                 <Link
-                    href="/dashboard"
+                    to="/dashboard"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-bg-primary font-semibold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all"
                 >
                     🏠 Back to Dashboard

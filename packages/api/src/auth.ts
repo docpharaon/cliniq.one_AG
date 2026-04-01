@@ -244,6 +244,62 @@ export async function signInWithApple(idToken: string, displayName?: string | nu
 }
 
 /**
+ * Ensure a public.users row exists for the given authenticated user.
+ * Called after OAuth redirect flows where Supabase auto-creates auth.users
+ * but the app's public.users row may not exist yet.
+ *
+ * @param userId  - The auth user's UUID
+ * @param email   - Email from auth metadata
+ * @param name    - Display name / nickname (falls back to email prefix)
+ * @param role    - Role to assign (default: 'patient')
+ * @returns The existing or newly-created public.users row, or null on failure
+ */
+export async function ensureUserProfile(
+    userId: string,
+    email?: string | null,
+    name?: string | null,
+    role: 'patient' | 'doctor' | 'admin' | 'superadmin' = 'patient',
+) {
+    // 1. Check if profile already exists
+    const { data: existing } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+    if (existing) return existing;
+
+    // 2. Profile doesn't exist — create one (first-time OAuth user)
+    const nickname = name || email?.split('@')[0] || 'User';
+    console.log(`[Auth] Creating public.users profile for OAuth user ${userId} (${role})`);
+
+    try {
+        const { data: newProfile, error } = await supabase.from('users').insert({
+            id: userId,
+            email: email || null,
+            nickname,
+            role,
+            status: 'active',
+            tokens_balance: role === 'patient' ? 100 : 0,
+            language: 'en',
+            onboarding_completed: false,
+        }).select('*').single();
+
+        if (error) {
+            console.warn('[Auth] ensureUserProfile insert failed:', error.message);
+            // Re-fetch in case of race condition (another tab/request created it)
+            const { data: reFetched } = await supabase.from('users').select('*').eq('id', userId).single();
+            return reFetched || null;
+        }
+
+        return newProfile;
+    } catch (err) {
+        console.warn('[Auth] ensureUserProfile error:', err);
+        return null;
+    }
+}
+
+/**
  * Request a Sumsub SDK access token for identity verification.
  * Calls the kyc-token edge function.
  */

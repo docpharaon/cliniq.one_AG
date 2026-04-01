@@ -1,6 +1,5 @@
-'use client';
-
 import { useEffect } from 'react';
+import { createBrowserSupabase } from '@/lib/supabase';
 
 /**
  * CapacitorNotificationListener
@@ -26,11 +25,15 @@ export default function CapacitorNotificationListener() {
                 const { LocalNotifications } = await import('@capacitor/local-notifications');
 
                 // Fetch unread admin notifications created after last check
-                const res = await fetch('/api/admin-notifications/recent?since=' + encodeURIComponent(lastCheckTime));
-                if (!res.ok) return;
-                const notifications = await res.json();
+                const supabase = createBrowserSupabase();
+                const { data: notifications } = await supabase
+                    .from('admin_notifications')
+                    .select('id, title, message')
+                    .gt('created_at', lastCheckTime)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
 
-                if (notifications.length > 0) {
+                if (notifications && notifications.length > 0) {
                     // Request permission if needed
                     const perm = await LocalNotifications.checkPermissions();
                     if (perm.display !== 'granted') {

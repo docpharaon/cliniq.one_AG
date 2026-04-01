@@ -1,0 +1,437 @@
+/* ────────────────────────────────────────────────────────────
+   cliniq.one Patient — Global Styles
+   ──────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+html, body, #root {
+    height: 100%;
+    width: 100%;
+    overscroll-behavior: none;
+    font-family: 'Inter', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+    overflow: hidden;
+}
+
+body {
+    overflow: hidden;
+    background-color: var(--bg-primary, #0B1120);
+    color: var(--text-primary, #F1F5F9);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Safe area insets for notched devices */
+#root {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollable containers */
+.scrollable {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Spinner ──────────────────────────────────────────────── */
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+}
+
+.spinner-lg {
+    width: 36px;
+    height: 36px;
+    border-width: 4px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── FadeIn animation ─────────────────────────────────────── */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+/* ── Pulsing dot animation ────────────────────────────────── */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.4); opacity: 1; }
+}
+
+.pulsing-dot {
+    animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* ── Skeleton loading ─────────────────────────────────────── */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Tab content crossfade ───────────────────────────────── */
+.tab-content {
+    animation: tabFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Pull to Refresh ─────────────────────────────────────── */
+@keyframes ptr-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── Slide-in Page Transition ────────────────────────────── */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(30%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.slide-in-page {
+    animation: slideInFromRight 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* ── Toast notification ───────────────────────────────────── */
+@keyframes toastIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toastOut {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-20px); opacity: 0; }
+}
+
+.toast-enter { animation: toastIn 0.3s ease-out forwards; }
+.toast-exit { animation: toastOut 0.3s ease-in forwards; }
+
+/* ── Slide animations ─────────────────────────────────────── */
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+.slide-in-up { animation: slideInUp 0.3s ease-out forwards; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+button {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    background: none;
+}
+
+button:active {
+    opacity: 0.8;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Inputs ───────────────────────────────────────────────── */
+input, textarea, select {
+    font-family: inherit;
+    outline: none;
+    border: none;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+}
+
+/* ── Links ────────────────────────────────────────────────── */
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* ── Video (suppress controls in WebView) ─────────────────── */
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls {
+    display: none !important;
+    -webkit-appearance: none;
+    opacity: 0;
+}
+
+video::-moz-media-controls { display: none !important; }
+video { pointer-events: none; }
+
+/* ── Scrollbar styling ────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 0;
+    display: none;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+
+/* ── Pressable element feedback ──────────────────────────── */
+.pressable {
+    transition: transform 0.12s ease, opacity 0.12s ease;
+    will-change: transform;
+}
+
+.pressable:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
+
+/* ── Page transition animations ──────────────────────────── */
+@keyframes pageSlideIn {
+    from { transform: translateX(30%); opacity: 0; }
+    to   { transform: translateX(0);   opacity: 1; }
+}
+
+@keyframes pageFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.page-enter {
+    animation: pageSlideIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.page-fade {
+    animation: pageFadeIn 0.2s ease-out forwards;
+}
+
+/* ── Pull-to-refresh indicator ───────────────────────────── */
+.pull-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: height 0.2s ease;
+}
+
+.pull-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid rgba(26, 138, 158, 0.2);
+    border-top-color: #1A8A9E;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* ── Chat-specific ────────────────────────────────────────── */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+}
+
+.chat-input-area {
+    border-top: 1px solid #E2E8F0;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+/* ── File input styling (camera) ──────────────────────────── */
+input[type="file"] {
+    display: none;
+}
+
+.file-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.file-upload-label:hover {
+    opacity: 0.8;
+}
+
+/* ── Material Symbols Rounded (icons from mockup) ────────── */
+.mi {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga';
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* RTL flip for directional icons (arrows, chevrons) */
+[dir="rtl"] .flip-rtl {
+    transform: scaleX(-1);
+}
+
+/* ── Glassmorphism utilities (from mockup) ────────────────── */
+.glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid #DEE5ED;
+}
+
+.glass-premium {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid #DEE5ED;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Card base (from mockup) ─────────────────────────────── */
+.card {
+    background: #FFFFFF;
+    border: 1px solid #DEE5ED;
+    border-radius: 18px;
+    padding: 20px;
+}
+
+/* ── Badge utilities (from mockup) ────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ── Mockup animations ───────────────────────────────────── */
+@keyframes screenIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bubbleIn {
+    0%   { opacity: 0; transform: scale(0.85) translateY(8px); }
+    60%  { opacity: 1; transform: scale(1.02) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(26, 138, 158, 0); }
+    50%      { box-shadow: 0 0 20px 4px rgba(26, 138, 158, 0.15); }
+}
+
+@keyframes typingDot {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30%           { opacity: 1;   transform: translateY(-4px); }
+}
+
+.screen-enter {
+    animation: screenIn 0.35s ease forwards;
+}
+
+.bubble-in {
+    animation: bubbleIn 0.4s ease forwards;
+}
+
+.pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* ── Typing indicator dots ───────────────────────────────── */
+.typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94A3B8;
+    margin: 0 2px;
+}
+
+.typing-dots span:nth-child(1) { animation: typingDot 1.4s ease-in-out infinite; }
+.typing-dots span:nth-child(2) { animation: typingDot 1.4s ease-in-out 0.2s infinite; }
+.typing-dots span:nth-child(3) { animation: typingDot 1.4s ease-in-out 0.4s infinite; }

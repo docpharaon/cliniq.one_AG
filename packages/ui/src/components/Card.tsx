@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import type { CSSProperties } from 'react';
 import { colors, radius, spacing, typography, shadows } from '../tokens';
 
 interface CardProps {
@@ -7,55 +7,32 @@ interface CardProps {
     title?: string;
     subtitle?: string;
     variant?: 'default' | 'elevated' | 'outlined';
-    style?: ViewStyle;
+    style?: CSSProperties;
 }
 
 export function Card({ children, title, subtitle, variant = 'default', style }: CardProps) {
     return (
-        <View style={[styles.base, variantStyles[variant], style]}>
+        <div style={{ ...styles.base, ...variantStyles[variant], ...style }}>
             {title && (
-                <View style={styles.header}>
-                    <Text style={styles.title}>{title}</Text>
-                    {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-                </View>
+                <div style={styles.header}>
+                    <span style={styles.title}>{title}</span>
+                    {subtitle && <span style={styles.subtitle}>{subtitle}</span>}
+                </div>
             )}
             {children}
-        </View>
+        </div>
     );
 }
 
-const styles = StyleSheet.create({
-    base: {
-        backgroundColor: colors.bgCard,
-        borderRadius: radius.xl,
-        padding: spacing.xl,
-        ...shadows.card,
-    },
-    header: {
-        marginBottom: spacing.lg,
-    },
-    title: {
-        ...typography.h4,
-        color: colors.textPrimary,
-    },
-    subtitle: {
-        ...typography.bodySm,
-        color: colors.textSecondary,
-        marginTop: spacing.xxs,
-    },
-});
+const styles: Record<string, CSSProperties> = {
+    base: { backgroundColor: colors.bgCard, borderRadius: radius.xl, padding: spacing.xl },
+    header: { marginBottom: spacing.lg },
+    title: { display: 'block', fontSize: typography.h4.fontSize, fontWeight: typography.h4.fontWeight, color: colors.textPrimary },
+    subtitle: { display: 'block', fontSize: typography.bodySm.fontSize, color: colors.textSecondary, marginTop: spacing.xxs },
+};
 
-const variantStyles: Record<string, ViewStyle> = {
+const variantStyles: Record<string, CSSProperties> = {
     default: {},
-    elevated: {
-        backgroundColor: colors.bgElevated,
-        ...shadows.elevated,
-    },
-    outlined: {
-        backgroundColor: colors.transparent,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowOpacity: 0,
-        elevation: 0,
-    },
+    elevated: { backgroundColor: colors.bgElevated },
+    outlined: { backgroundColor: 'transparent', border: `1px solid ${colors.border}` },
 };

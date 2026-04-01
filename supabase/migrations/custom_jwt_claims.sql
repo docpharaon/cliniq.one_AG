@@ -5,11 +5,12 @@
 -- can check roles without a DB call.
 -- =====================================================
 
--- 1. Create the function
+-- 1. Create the function (SECURITY DEFINER required for auth admin to read public.users)
 CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
+SECURITY DEFINER
 AS $$
 DECLARE
   claims jsonb;
@@ -41,7 +42,10 @@ $$;
 -- 2. Grant execute permission to supabase_auth_admin
 GRANT EXECUTE ON FUNCTION public.custom_access_token_hook TO supabase_auth_admin;
 
--- 3. Revoke from others for security
+-- 3. Grant SELECT on users table to auth admin (required for the hook to query roles)
+GRANT SELECT ON TABLE public.users TO supabase_auth_admin;
+
+-- 4. Revoke from others for security
 REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook FROM authenticated, anon, public;
 
 -- =====================================================

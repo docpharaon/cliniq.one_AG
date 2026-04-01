@@ -1,7 +1,4 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -30,11 +27,14 @@ import {
     FlaskConical,
     Crown,
     RotateCcw,
+    ShieldOff,
+    ClipboardCheck,
     type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useSidebar } from './SidebarContext';
 import { useAdminAuth } from './AdminAuthProvider';
+import { haptic } from '@/lib/useHaptics';
 
 const mainNav = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -59,6 +59,8 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
     {
         title: 'Operations',
         items: [
+            { label: 'Applications', href: '/dashboard/applications', icon: ClipboardCheck },
+            { label: 'Specialties', href: '/dashboard/specialties', icon: ShieldOff },
             { label: 'Testers', href: '/dashboard/testers', icon: FlaskConical, superadminOnly: true },
             { label: 'HR Management', href: '/dashboard/hr', icon: UserCog, superadminOnly: true },
             { label: 'Scheduling', href: '/dashboard/scheduling', icon: CalendarDays },
@@ -85,7 +87,7 @@ const managementGroups: { title: string; items: NavItem[] }[] = [
 ];
 
 export default function Sidebar() {
-    const pathname = usePathname();
+    const pathname = useLocation().pathname;
     const { collapsed, toggleCollapsed, mobileOpen, closeMobile, isMobile } = useSidebar();
     const { isSuperadmin, role, signOut } = useAdminAuth();
 
@@ -114,9 +116,9 @@ export default function Sidebar() {
     const renderNavLink = (item: NavItem, active: boolean) => (
         <Link
             key={item.href}
-            href={item.href}
-            onClick={isMobile ? closeMobile : undefined}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
+            to={item.href}
+            onClick={() => { haptic.select(); if (isMobile) closeMobile(); }}
+            className={`pressable flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
                 ? 'bg-accent-faded text-accent font-semibold border-l-4 border-accent'
                 : 'text-text-secondary hover:bg-accent/[0.08] hover:text-text-primary'
                 }`}
@@ -140,8 +142,8 @@ export default function Sidebar() {
                 )}
                 {isMobile ? (
                     <button
-                        onClick={closeMobile}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-faded transition-colors text-text-secondary"
+                        onClick={() => { haptic.light(); closeMobile(); }}
+                        className="pressable w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-faded transition-colors text-text-secondary"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -180,7 +182,7 @@ export default function Sidebar() {
                     return (
                         <div key={group.title} className="mb-1">
                             <button
-                                onClick={() => toggleGroup(group.title)}
+                                onClick={() => { haptic.light(); toggleGroup(group.title); }}
                                 className={`flex items-center w-full px-3 py-1.5 text-[12px] uppercase tracking-wider font-semibold rounded-lg transition-colors ${hasActive ? 'text-accent' : 'text-text-muted hover:text-text-secondary'
                                     }`}
                             >
@@ -215,8 +217,8 @@ export default function Sidebar() {
                     </div>
                 )}
                 <button
-                    onClick={signOut}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-text-muted hover:bg-error-faded hover:text-error transition-all duration-200"
+                    onClick={() => { haptic.warning(); signOut(); }}
+                    className="pressable flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-text-muted hover:bg-error-faded hover:text-error transition-all duration-200"
                 >
                     <LogOut className="w-5 h-5 flex-shrink-0" />
                     {(showLabels || isMobile) && <span className="text-[15px]">Logout</span>}

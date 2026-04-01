@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState, useCallback } from 'react';
 import {
     fetchPromptSequences,
@@ -22,6 +20,7 @@ import {
     Plus, Trash2, Save, Star, ChevronUp, ChevronDown,
     Loader2, GitBranchPlus, AlertTriangle, Edit3, X, Link2,
     History, RotateCcw, Clock, ChevronRight, Copy, ShieldCheck, CheckCircle2, Shield,
+    LayoutList, Workflow,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────
@@ -43,6 +42,7 @@ type SequenceNode = {
     parent_node_id: string | null;
     pathway_condition: string | null;
     gender_condition: string | null;
+    specialty_condition: string | null;
     ai_prompts: { id: string; name: string; prompt_type: string; is_active: boolean; version: number } | null;
 };
 
@@ -80,6 +80,16 @@ const GENDER_CONDITIONS = [
     { value: '', label: 'None (all genders)' },
     { value: 'female', label: '♀ Female Only' },
     { value: 'male', label: '♂ Male Only' },
+];
+
+const SPECIALTY_CONDITIONS = [
+    { value: '', label: 'None (global – all specialties)', color: '' },
+    { value: 'dermatology', label: '🦴 Dermatology', color: 'text-rose-400' },
+    { value: 'family_medicine', label: '🩺 Family Medicine', color: 'text-emerald-400' },
+    { value: 'pediatrics', label: '👶 Pediatrics', color: 'text-sky-400' },
+    { value: 'psychiatry', label: '🧠 Psychiatry', color: 'text-purple' },
+    { value: 'orthopedics', label: '🦴 Orthopedics', color: 'text-amber-400' },
+    { value: 'diet', label: '🥗 Diet & Nutrition', color: 'text-lime-400' },
 ];
 
 // ── Protocol Templates ──────────────────────
@@ -210,6 +220,9 @@ export default function SequenceBuilderContent() {
     const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
     const [acknowledgedDirectEdit, setAcknowledgedDirectEdit] = useState(false);
     const [cloning, setCloning] = useState(false);
+
+    // ── Pipeline view ──
+    const [viewMode, setViewMode] = useState<'pipeline' | 'detail'>('detail');
 
     const isActiveSequence = selectedId !== '' && (
         selectedId === activeProductionId ||
@@ -505,6 +518,19 @@ export default function SequenceBuilderContent() {
         await doIt();
     }
 
+    async function handleUpdateNodeSpecialty(nodeId: string, condition: string) {
+        const doIt = async () => {
+            const node = nodes.find(n => n.id === nodeId);
+            const specLabel = SPECIALTY_CONDITIONS.find(c => c.value === condition)?.label || 'None (global)';
+            if (!confirm(`Set specialty condition to "${specLabel}" for "${node?.label}"?`)) return;
+            saveSnapshot('specialty condition change');
+            await editSequenceNode(nodeId, { specialty_condition: condition || null });
+            await loadNodes();
+        };
+        if (!guardActiveSequence(doIt)) return;
+        await doIt();
+    }
+
     async function handleDeleteNode(nodeId: string) {
         const doIt = async () => {
             const node = nodes.find(n => n.id === nodeId);
@@ -669,6 +695,11 @@ export default function SequenceBuilderContent() {
         refill: nodes.filter(n => n.pathway_condition === 'refill'),
     };
     const hasBranches = branchNodes.new_visit.length > 0 || branchNodes.follow_up.length > 0 || branchNodes.refill.length > 0;
+    const specialtyBranchNodes = SPECIALTY_CONDITIONS.filter(s => s.value).map(s => ({
+        ...s,
+        nodes: nodes.filter(n => n.specialty_condition === s.value),
+    })).filter(s => s.nodes.length > 0);
+    const hasSpecialtyBranches = specialtyBranchNodes.length > 0;
 
     if (loading) {
         return (
@@ -816,6 +847,114 @@ export default function SequenceBuilderContent() {
                                 </div>
                             )}
 
+                            {/* Pipeline / Detail toggle */}
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="flex rounded-lg border border-border overflow-hidden">
+                                    <button
+                                        onClick={() => setViewMode('pipeline')}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                            viewMode === 'pipeline'
+                                                ? 'bg-accent text-bg-primary'
+                                                : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated'
+                                        }`}
+                                    >
+                                        <Workflow className="w-3.5 h-3.5" />
+                                        Pipeline
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('detail')}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                            viewMode === 'detail'
+                                                ? 'bg-accent text-bg-primary'
+                                                : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated'
+                                        }`}
+                                    >
+                                        <LayoutList className="w-3.5 h-3.5" />
+                                        Detail
+                                    </button>
+                                </div>
+                                <span className="text-[10px] text-text-muted">{nodes.length} node{nodes.length !== 1 ? 's' : ''}</span>
+                            </div>
+
+                            {/* ── Pipeline View ── */}
+                            {viewMode === 'pipeline' && nodes.length > 0 && (
+                                <div className="mb-6 glass rounded-2xl p-5 border border-accent/20 overflow-x-auto">
+                                    <div className="flex items-center gap-1 min-w-max">
+                                        {nodes.map((node, i) => {
+                                            const isSystem = (node as any).node_type === 'system_gate' || (node as any).node_type === 'system_analysis' || (node as any).node_type === 'system_integrity';
+                                            const hasPrompt = !!node.prompt_id;
+                                            const specColor = node.specialty_condition ? (SPECIALTY_CONDITIONS.find(s => s.value === node.specialty_condition)?.color || 'text-text-muted') : '';
+                                            return (
+                                                <div key={node.id} className="flex items-center gap-1">
+                                                    <div
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-default ${
+                                                            isSystem
+                                                                ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                                                                : hasPrompt
+                                                                    ? 'bg-bg-elevated border border-border text-text-primary hover:border-accent/40'
+                                                                    : 'bg-error/5 border border-error/30 text-error'
+                                                        }`}
+                                                        title={`${node.label}${node.pathway_condition ? ` (${node.pathway_condition})` : ''}${!hasPrompt && !isSystem ? ' — No prompt linked!' : ''}`}
+                                                    >
+                                                        <span className="text-base">{node.emoji || '📋'}</span>
+                                                        <span className="whitespace-nowrap">{node.label}</span>
+                                                        {isSystem && <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/20">⚡</span>}
+                                                        {node.pathway_condition && (
+                                                            <span className="text-[8px] px-1 py-0.5 rounded bg-accent-faded text-accent">{node.pathway_condition.replace('_', ' ')}</span>
+                                                        )}
+                                                        {node.gender_condition && (
+                                                            <span className="text-[8px]">{node.gender_condition === 'female' ? '♀' : '♂'}</span>
+                                                        )}
+                                                        {node.specialty_condition && (
+                                                            <span className={`text-[8px] px-1 py-0.5 rounded bg-purple-faded/30 ${specColor}`}>
+                                                                {SPECIALTY_CONDITIONS.find(s => s.value === node.specialty_condition)?.label?.split(' ')[0] || node.specialty_condition}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {i < nodes.length - 1 && (
+                                                        <ChevronRight className="w-4 h-4 text-text-muted/40 flex-shrink-0" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {/* Branching summary */}
+                                    {hasBranches && (
+                                        <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-3">
+                                            {branchNodes.new_visit.length > 0 && (
+                                                <div className="text-[10px] text-text-muted">
+                                                    <span className="text-emerald-400 font-semibold">🆕 New Visit:</span>{' '}
+                                                    {branchNodes.new_visit.map(n => n.label).join(' → ')}
+                                                </div>
+                                            )}
+                                            {branchNodes.follow_up.length > 0 && (
+                                                <div className="text-[10px] text-text-muted">
+                                                    <span className="text-blue-400 font-semibold">🔄 Follow-up:</span>{' '}
+                                                    {branchNodes.follow_up.map(n => n.label).join(' → ')}
+                                                </div>
+                                            )}
+                                            {branchNodes.refill.length > 0 && (
+                                                <div className="text-[10px] text-text-muted">
+                                                    <span className="text-purple font-semibold">💊 Refill:</span>{' '}
+                                                    {branchNodes.refill.map(n => n.label).join(' → ')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {/* Specialty branches */}
+                                    {hasSpecialtyBranches && (
+                                        <div className={`${hasBranches ? '' : 'mt-3'} pt-3 border-t border-border flex flex-wrap gap-3`}>
+                                            {specialtyBranchNodes.map(sb => (
+                                                <div key={sb.value} className="text-[10px] text-text-muted">
+                                                    <span className={`${sb.color} font-semibold`}>{sb.label}:</span>{' '}
+                                                    {sb.nodes.map(n => n.label).join(' → ')}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Node list */}
                             <div className="space-y-2 mb-4">
                                 {nodes.length === 0 ? (
@@ -848,24 +987,27 @@ export default function SequenceBuilderContent() {
                                     nodes.map((node, idx) => (
                                         <div
                                             key={node.id}
-                                            className={`rounded-xl border px-4 py-3 transition-all ${node.pathway_condition
-                                                ? 'ml-8 border-purple/30 bg-purple-faded/30'
-                                                : 'border-border bg-bg-elevated'
-                                                } ${editingNodeId === node.id ? 'ring-2 ring-accent/40' : ''}`}
+                                            className={`rounded-xl border px-4 py-3 transition-all ${
+                                                (node as any).node_type && (node as any).node_type !== 'chat'
+                                                    ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-amber-500/10'
+                                                    : node.pathway_condition
+                                                        ? 'ml-8 border-purple/30 bg-purple-faded/30'
+                                                        : 'border-border bg-bg-elevated'
+                                            } ${editingNodeId === node.id ? 'ring-2 ring-accent/40' : ''}`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                {/* Order arrows */}
+                                                {/* Order arrows — disabled for system nodes */}
                                                 <div className="flex flex-col gap-0.5">
                                                     <button
                                                         onClick={() => handleMoveNode(idx, 'up')}
-                                                        disabled={idx === 0}
+                                                        disabled={idx === 0 || ((node as any).node_type && (node as any).node_type !== 'chat')}
                                                         className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-accent disabled:opacity-20 disabled:cursor-default transition-colors"
                                                     >
                                                         <ChevronUp className="w-3 h-3" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleMoveNode(idx, 'down')}
-                                                        disabled={idx === nodes.length - 1}
+                                                        disabled={idx === nodes.length - 1 || ((node as any).node_type && (node as any).node_type !== 'chat')}
                                                         className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-accent disabled:opacity-20 disabled:cursor-default transition-colors"
                                                     >
                                                         <ChevronDown className="w-3 h-3" />
@@ -878,35 +1020,66 @@ export default function SequenceBuilderContent() {
                                                 {/* Emoji */}
                                                 <span className="text-lg">{node.emoji}</span>
 
-                                                {/* Label + key */}
+                                                {/* Label + key + SYSTEM badge */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-semibold text-text-primary">{node.label}</span>
                                                         <span className="text-[10px] text-text-muted font-mono bg-bg-tertiary px-1.5 py-0.5 rounded">{node.step_key}</span>
-                                                    </div>
-                                                    {/* Linked prompt */}
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        {node.ai_prompts ? (
-                                                            <>
-                                                                <span className="text-[10px] text-accent flex items-center gap-1">
-                                                                    <Link2 className="w-2.5 h-2.5" />
-                                                                    {node.ai_prompts.name} v{node.ai_prompts.version}
-                                                                </span>
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setPeekingPromptNodeId(peekingPromptNodeId === node.id ? null : node.id); }}
-                                                                    className={`text-[9px] px-1.5 py-0.5 rounded font-semibold transition-colors ${peekingPromptNodeId === node.id
-                                                                        ? 'bg-accent-faded text-accent'
-                                                                        : 'bg-bg-tertiary text-text-muted hover:text-accent hover:bg-accent-faded'
-                                                                        }`}
-                                                                    title="Preview prompt content"
-                                                                >
-                                                                    👁 Peek
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <span className="text-[10px] text-warning">⚠ No prompt linked</span>
+                                                        {(node as any).node_type && (node as any).node_type !== 'chat' && (
+                                                            <span className="text-[9px] px-2 py-0.5 rounded-md font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                                                ⚡ SYSTEM
+                                                            </span>
                                                         )}
                                                     </div>
+                                                    {/* System node description or linked prompt */}
+                                                    {(node as any).node_type === 'system_analysis' ? (
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-[10px] text-amber-400/70">
+                                                                🔍 Determines specialty from patient complaint
+                                                            </span>
+                                                        </div>
+                                                    ) : (node as any).node_type === 'system_gate' ? (
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-[10px] text-amber-400/70">
+                                                                🛡️ Checks specialty availability
+                                                            </span>
+                                                            <a
+                                                                href="/dashboard/specialties"
+                                                                className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-accent-faded text-accent hover:bg-accent/20 transition-colors"
+                                                            >
+                                                                Configure →
+                                                            </a>
+                                                        </div>
+                                                    ) : (node as any).node_type === 'system_integrity' ? (
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-[10px] text-amber-400/70">
+                                                                📊 Silent integrity analysis — generates doctor confidence score
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            {node.ai_prompts ? (
+                                                                <>
+                                                                    <span className="text-[10px] text-accent flex items-center gap-1">
+                                                                        <Link2 className="w-2.5 h-2.5" />
+                                                                        {node.ai_prompts.name} v{node.ai_prompts.version}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setPeekingPromptNodeId(peekingPromptNodeId === node.id ? null : node.id); }}
+                                                                        className={`text-[9px] px-1.5 py-0.5 rounded font-semibold transition-colors ${peekingPromptNodeId === node.id
+                                                                            ? 'bg-accent-faded text-accent'
+                                                                            : 'bg-bg-tertiary text-text-muted hover:text-accent hover:bg-accent-faded'
+                                                                            }`}
+                                                                        title="Preview prompt content"
+                                                                    >
+                                                                        👁 Peek
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-[10px] text-warning">⚠ No prompt linked</span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Pathway badge */}
@@ -921,6 +1094,13 @@ export default function SequenceBuilderContent() {
                                                     </span>
                                                 )}
 
+                                                {/* Specialty badge */}
+                                                {node.specialty_condition && (
+                                                    <span className={`text-[10px] px-2 py-1 rounded-md font-semibold bg-purple-faded/50 ${SPECIALTY_CONDITIONS.find(s => s.value === node.specialty_condition)?.color || 'text-purple'}`}>
+                                                        {SPECIALTY_CONDITIONS.find(s => s.value === node.specialty_condition)?.label || node.specialty_condition}
+                                                    </span>
+                                                )}
+
                                                 {/* Gender badge */}
                                                 {node.gender_condition && (
                                                     <span className={`text-[10px] px-2 py-1 rounded-md font-semibold ${node.gender_condition === 'female' ? 'bg-pink-500/10 text-pink-400' : 'bg-blue-500/10 text-blue-400'}`}>
@@ -928,19 +1108,28 @@ export default function SequenceBuilderContent() {
                                                     </span>
                                                 )}
 
-                                                {/* Actions */}
-                                                <button
-                                                    onClick={() => setEditingNodeId(editingNodeId === node.id ? null : node.id)}
-                                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-accent hover:bg-accent-faded transition-colors"
-                                                >
-                                                    <Edit3 className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteNode(node.id)}
-                                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-error hover:bg-error-faded transition-colors"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                                {/* Actions — HIDDEN for system nodes */}
+                                                {(!((node as any).node_type) || (node as any).node_type === 'chat') ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => setEditingNodeId(editingNodeId === node.id ? null : node.id)}
+                                                            className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-accent hover:bg-accent-faded transition-colors"
+                                                        >
+                                                            <Edit3 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteNode(node.id)}
+                                                            className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-error hover:bg-error-faded transition-colors"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-[10px] text-text-muted flex items-center gap-1">
+                                                        <Shield className="w-3 h-3" />
+                                                        🔒
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Inline prompt peek */}
@@ -1015,6 +1204,18 @@ export default function SequenceBuilderContent() {
                                                                 className="w-full bg-bg-primary border border-border rounded-lg px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent appearance-none cursor-pointer"
                                                             >
                                                                 {GENDER_CONDITIONS.map(c => (
+                                                                    <option key={c.value} value={c.value}>{c.label}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-text-muted uppercase tracking-wider block mb-1">Specialty Branch</label>
+                                                            <select
+                                                                value={node.specialty_condition || ''}
+                                                                onChange={e => handleUpdateNodeSpecialty(node.id, e.target.value)}
+                                                                className="w-full bg-bg-primary border border-border rounded-lg px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent appearance-none cursor-pointer"
+                                                            >
+                                                                {SPECIALTY_CONDITIONS.map(c => (
                                                                     <option key={c.value} value={c.value}>{c.label}</option>
                                                                 ))}
                                                             </select>

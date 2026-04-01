@@ -20,6 +20,8 @@ export const metadata: Metadata = {
     publisher: 'cliniq.one',
 };
 
+import OfflineBannerClient from '@/components/OfflineBannerClient';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en" className={inter.variable}>
@@ -27,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
             </head>
             <body className="min-h-screen bg-bg-primary overflow-x-hidden">
+                <OfflineBannerClient />
                 {children}
             </body>
         </html>

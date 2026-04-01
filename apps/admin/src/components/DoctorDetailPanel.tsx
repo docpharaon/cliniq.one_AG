@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import {
     X, Edit3, Save, Trash2, Shield, ShieldCheck, ShieldAlert, ShieldOff,

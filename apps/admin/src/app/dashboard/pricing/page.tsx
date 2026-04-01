@@ -1,5 +1,3 @@
-'use client';
-
 import Header from '@/components/Header';
 import { DollarSign, Coins, ArrowRightLeft, ShoppingCart, Tag } from 'lucide-react';
 import StatCard from '@/components/StatCard';

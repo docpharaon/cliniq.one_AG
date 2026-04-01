@@ -2,9 +2,8 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
         "outDir": "dist",
-        "types": [
-            "react-native"
-        ]
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "types": []
     },
     "include": [
         "src"

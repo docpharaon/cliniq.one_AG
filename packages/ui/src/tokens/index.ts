@@ -18,7 +18,7 @@ export const lightColors = {
     bgPrimary: '#FFFFFF',
     bgSecondary: '#F5F8FA',
     bgTertiary: '#EDF2F7',
-    bgCard: '#FFFFFF',
+    bgCard: '#F8FAFC',
     bgElevated: '#FFFFFF',
 
     // Accent — Teal (unified with landing page)
@@ -82,7 +82,7 @@ export const lightColors = {
 
 export const darkColors = {
     // Backgrounds
-    bgPrimary: '#0A0E1A',
+    bgPrimary: '#0B1120',
     bgSecondary: '#111827',
     bgTertiary: '#1A2235',
     bgCard: '#1E293B',
@@ -129,7 +129,7 @@ export const darkColors = {
     infoFaded: 'rgba(59, 130, 246, 0.15)',
 
     // Borders
-    border: '#1E293B',
+    border: '#334155',
     borderFocused: '#2DD4BF',
     borderError: '#EF4444',
 

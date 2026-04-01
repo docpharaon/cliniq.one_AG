@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors, type ColorTokens } from '../tokens';
 
 // ── Types ────────────────────────────────────────
@@ -18,7 +17,7 @@ export interface ThemeState {
     setMode: (mode: ThemeMode) => void;
     /** Set system preference (called by ThemeProvider) */
     setSystemPreference: (isDark: boolean) => void;
-    /** Load persisted theme from AsyncStorage */
+    /** Load persisted theme from localStorage */
     initialize: () => Promise<void>;
 }
 
@@ -38,17 +37,17 @@ function resolveColors(mode: ThemeMode, systemIsDark: boolean): { resolved: 'lig
 let _systemIsDark = false;
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-    mode: 'light',
-    resolvedTheme: 'light',
-    colors: lightColors,
+    mode: 'dark',
+    resolvedTheme: 'dark',
+    colors: darkColors,
     isReady: false,
 
     setMode: (mode: ThemeMode) => {
         const { resolved, colors } = resolveColors(mode, _systemIsDark);
         set({ mode, resolvedTheme: resolved, colors });
 
-        // Persist to AsyncStorage (fire-and-forget)
-        AsyncStorage.setItem(STORAGE_KEY, mode).catch(() => {});
+        // Persist to localStorage (fire-and-forget)
+        try { localStorage.setItem(STORAGE_KEY, mode); } catch {}
     },
 
     setSystemPreference: (isDark: boolean) => {
@@ -62,10 +61,10 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
     initialize: async () => {
         try {
-            const stored = await AsyncStorage.getItem(STORAGE_KEY);
+            const stored = localStorage.getItem(STORAGE_KEY);
             const mode = (stored === 'light' || stored === 'dark' || stored === 'system')
                 ? stored as ThemeMode
-                : 'light'; // default to light
+                : 'dark'; // default to dark
             const { resolved, colors } = resolveColors(mode, _systemIsDark);
             set({ mode, resolvedTheme: resolved, colors, isReady: true });
         } catch {

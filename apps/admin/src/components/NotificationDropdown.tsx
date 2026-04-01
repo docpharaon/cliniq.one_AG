@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Bell, CheckCheck, FileText, UserPlus, LogIn, Info, X } from 'lucide-react';
 import {

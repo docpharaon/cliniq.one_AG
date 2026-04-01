@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState, useCallback } from 'react';
 import DashboardShell from '@/components/DashboardShell';
 import { supabaseAdmin } from '@/lib/supabase';

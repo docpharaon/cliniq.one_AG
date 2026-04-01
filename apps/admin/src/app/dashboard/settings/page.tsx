@@ -1,5 +1,3 @@
-'use client';
-
 import Header from '@/components/Header';
 import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap, Camera, RotateCcw, Clock, Coins, Heart, Plus, Trash2, GripVertical, Power, Bell, FileText, UserPlus, LogIn } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';

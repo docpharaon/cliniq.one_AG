@@ -1,38 +1,35 @@
-import { I18nManager, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Platform-agnostic I18n — works on web (Vite/Next.js) and React Native
 import en from './locales/en.json';
 import ar from './locales/ar.json';
 
 export type TranslationKeys = typeof en;
 
-/**
- * Translation engine with RTL support.
- * Supports English (LTR) and Arabic (RTL).
- * Persists locale choice via AsyncStorage.
- */
-
 const LOCALE_KEY = '@cliniqone_locale';
 let currentLocale: 'en' | 'ar' = 'en';
 const translations: Record<string, typeof en> = { en, ar };
+
+// Reactive locale change listeners
+type LocaleListener = (locale: 'en' | 'ar') => void;
+const listeners = new Set<LocaleListener>();
+
+export function onLocaleChange(fn: LocaleListener) {
+    listeners.add(fn);
+    return () => { listeners.delete(fn); };
+}
+
+function notifyListeners() {
+    listeners.forEach(fn => fn(currentLocale));
+}
+
+// Detect platform
+const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
 
 /**
  * Initialize locale from storage. Call once at app startup.
  */
 export async function initLocale(): Promise<'en' | 'ar'> {
     try {
-        // On web, also try synchronous localStorage first for faster init
-        if (Platform.OS === 'web') {
-            const ls = (globalThis as any).localStorage;
-            if (ls) {
-                const webSaved = ls.getItem(LOCALE_KEY);
-                if (webSaved === 'ar' || webSaved === 'en') {
-                    currentLocale = webSaved;
-                    applyDirection(webSaved);
-                    return currentLocale;
-                }
-            }
-        }
-        const saved = await AsyncStorage.getItem(LOCALE_KEY);
+        const saved = isWeb ? localStorage.getItem(LOCALE_KEY) : null;
         if (saved === 'ar' || saved === 'en') {
             currentLocale = saved;
             applyDirection(saved);
@@ -45,13 +42,9 @@ export async function setLocale(locale: 'en' | 'ar') {
     currentLocale = locale;
     applyDirection(locale);
     try {
-        // On web, write synchronously to localStorage so it survives page reload
-        if (Platform.OS === 'web') {
-            const ls = (globalThis as any).localStorage;
-            if (ls) ls.setItem(LOCALE_KEY, locale);
-        }
-        await AsyncStorage.setItem(LOCALE_KEY, locale);
+        if (isWeb) localStorage.setItem(LOCALE_KEY, locale);
     } catch { /* storage write failed — locale still set in memory */ }
+    notifyListeners();
 }
 
 export function getLocale() {
@@ -64,21 +57,12 @@ export function isRTL() {
 
 /**
  * Apply text direction for RTL/LTR.
- * On web, sets document.documentElement.dir.
- * On native, uses I18nManager.
  */
 function applyDirection(locale: 'en' | 'ar') {
     const shouldBeRTL = locale === 'ar';
-    if (Platform.OS === 'web') {
-        const doc = (globalThis as any).document;
-        if (doc?.documentElement) {
-            doc.documentElement.dir = shouldBeRTL ? 'rtl' : 'ltr';
-            doc.documentElement.lang = locale;
-        }
-    }
-    if (I18nManager.isRTL !== shouldBeRTL) {
-        I18nManager.forceRTL(shouldBeRTL);
-        I18nManager.allowRTL(shouldBeRTL);
+    if (isWeb && document?.documentElement) {
+        document.documentElement.dir = shouldBeRTL ? 'rtl' : 'ltr';
+        document.documentElement.lang = locale;
     }
 }
 
@@ -142,3 +126,12 @@ export function localDate(
 
 export { en, ar };
 
+// React hook — use in components to get reactive locale updates
+import { useState, useEffect } from 'react';
+export function useLocale(): 'en' | 'ar' {
+    const [locale, setLoc] = useState(currentLocale);
+    useEffect(() => {
+        return onLocaleChange((newLocale) => setLoc(newLocale));
+    }, []);
+    return locale;
+}

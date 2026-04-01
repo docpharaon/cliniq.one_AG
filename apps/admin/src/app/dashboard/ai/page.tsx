@@ -1,5 +1,3 @@
-'use client';
-
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
@@ -9,7 +7,7 @@ import ChatTestWindow from '@/components/ChatTestWindow';
 import SequenceBuilderContent from '@/components/SequenceBuilderContent';
 import ChatReportsPanel from '@/components/ChatReportsPanel';
 import { useEffect, useState, useCallback } from 'react';
-import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts, fetchRecentPromptActivity } from '@/lib/actions';
+import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts, fetchRecentPromptActivity, fetchLocumCodeDoctors, doGenerateLocumCode, doAssignLocumCode, doRevokeLocumCode, doSearchDoctorsForLocum, fetchIntegrityStats } from '@/lib/actions';
 import {
     Bot,
     Cpu,
@@ -29,8 +27,10 @@ import {
     Sparkles,
     BrainCircuit,
     Shield,
+    ShieldOff,
     Play,
     ChevronDown,
+    ChevronUp,
     Settings2,
     Info,
     Languages,
@@ -41,6 +41,7 @@ import {
     Clock,
     Upload,
     FlaskConical,
+    Users,
 } from 'lucide-react';
 
 type PromptRow = {
@@ -69,6 +70,8 @@ type SequenceNode = {
     prompt_id: string | null;
     sort_order: number;
     pathway_condition: string | null;
+    specialty_condition: string | null;
+    node_type?: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | null;
     ai_prompts: { id: string; name: string; version: number; is_active: boolean } | null;
 };
 
@@ -78,9 +81,10 @@ const typeMap: Record<string, { variant: 'success' | 'info' | 'warning' | 'neutr
     summary: { variant: 'warning', label: 'Summary' },
     triage: { variant: 'neutral', label: 'Triage' },
     global_guard: { variant: 'neutral', label: '🛡️ Guard' },
+    locum_greeting: { variant: 'info', label: '🏥 Locum' },
 };
 
-type TabId = 'dashboard' | 'settings' | 'prompts' | 'sequences' | 'sandbox' | 'translation';
+type TabId = 'dashboard' | 'settings' | 'prompts' | 'sequences' | 'sandbox' | 'translation' | 'analytics';
 
 export default function AIPage() {
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
@@ -159,6 +163,24 @@ export default function AIPage() {
     const [translationTestOutput, setTranslationTestOutput] = useState('');
     const [translationTesting, setTranslationTesting] = useState(false);
 
+    // Safety collapsible
+    const [safetyCollapsed, setSafetyCollapsed] = useState(true);
+
+    // Integrity analytics
+    type IntegrityStats = { avgConfidence: number; avgFluidity: number; avgCompletion: number; totalRedFlags: number; totalReports: number };
+    const [integrityStats, setIntegrityStats] = useState<IntegrityStats | null>(null);
+    const [integrityLoading, setIntegrityLoading] = useState(false);
+
+    // Locum codes management
+    type LocumDoc = { id: string; display_name: string; full_name: string; specialty: string; locum_code: string; doctor_type: string; status: string; created_at: string };
+    type SearchDoc = { id: string; display_name: string; full_name: string; specialty: string; doctor_type: string; locum_code: string | null };
+    const [locumDoctors, setLocumDoctors] = useState<LocumDoc[]>([]);
+    const [locumLoading, setLocumLoading] = useState(false);
+    const [locumSearch, setLocumSearch] = useState('');
+    const [locumSearchResults, setLocumSearchResults] = useState<SearchDoc[]>([]);
+    const [locumSearching, setLocumSearching] = useState(false);
+    const [locumMsg, setLocumMsg] = useState('');
+
     const loadPrompts = useCallback(async () => {
         setLoading(true);
         const { data, count } = await fetchAIPrompts(1, 200);
@@ -172,6 +194,21 @@ export default function AIPage() {
 
     useEffect(() => { loadPrompts(); }, [loadPrompts]);
 
+    // Load integrity stats when analytics tab is selected
+    useEffect(() => {
+        if (activeTab === 'analytics' && !integrityStats && !integrityLoading) {
+            setIntegrityLoading(true);
+            fetchIntegrityStats()
+                .then(({ stats }) => setIntegrityStats(stats))
+                .catch(() => {})
+                .finally(() => setIntegrityLoading(false));
+        }
+    }, [activeTab, integrityStats, integrityLoading]);
+
+    // Load locum codes on mount
+    useEffect(() => {
+        fetchLocumCodeDoctors().then(docs => setLocumDoctors(docs as LocumDoc[]));
+    }, []);
     // Load API key + activation state on mount
     useEffect(() => {
         fetchPlatformSetting('openai_api_key').then(val => {
@@ -522,10 +559,11 @@ export default function AIPage() {
     const tabs: { id: TabId; label: string; icon: typeof Bot }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: Sparkles },
         { id: 'settings', label: 'Settings', icon: Settings2 },
-        { id: 'prompts', label: 'Prompts & Safety', icon: FileCode },
+        { id: 'prompts', label: 'Prompts', icon: FileCode },
         { id: 'sequences', label: 'Interview Flow', icon: GitBranchPlus },
         { id: 'sandbox', label: 'Sandbox', icon: FlaskConical },
         { id: 'translation', label: 'Translation', icon: Languages },
+        { id: 'analytics', label: 'Analytics', icon: BrainCircuit },
     ];
 
     const DEFAULT_TRANSLATION_PROMPT = `You are a professional medical translator. Translate the following English medical text into Modern Standard Arabic (العربية الفصحى).
@@ -671,6 +709,39 @@ RULES:
                             </div>
                         </div>
 
+                        {/* ── Health Alerts ───────── */}
+                        <div className="space-y-3">
+                            {/* Specialty Alert */}
+                            <a
+                                href="/dashboard/specialties"
+                                className="flex items-center gap-3 glass rounded-2xl p-4 border border-amber-500/20 hover:border-amber-500/40 transition-all group cursor-pointer"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                    <ShieldOff className="w-5 h-5 text-amber-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-sm font-bold text-text-primary">Specialty Management</h3>
+                                    <p className="text-xs text-text-muted">View and manage specialty availability, disablements & incidents</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </a>
+
+                            {/* Locum Codes Alert */}
+                            <button
+                                onClick={() => setActiveTab('settings')}
+                                className="w-full flex items-center gap-3 glass rounded-2xl p-4 border border-purple/20 hover:border-purple/40 transition-all group text-left"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-purple-faded flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                    <Users className="w-5 h-5 text-purple" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-sm font-bold text-text-primary">Locum Doctor Codes {locumDoctors.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-faded text-purple font-semibold ml-1">{locumDoctors.length}</span>}</h3>
+                                    <p className="text-xs text-text-muted">Manage locum access codes for patient-direct routing</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-purple opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                        </div>
+
                         {/* ── Draft Publishing Card ───────── */}
                         {draftCount > 0 && (
                             <div className="glass rounded-2xl p-5 border-2 border-amber-500/30 bg-amber-500/5 animate-fade-in">
@@ -712,7 +783,7 @@ RULES:
                         )}
 
                         {/* ── Quick Actions Row ───────── */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <button
                                 onClick={() => setActiveTab('sandbox')}
                                 className="group glass rounded-2xl p-5 text-left border border-border hover:border-purple/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(155,114,207,0.15)]"
@@ -733,7 +804,7 @@ RULES:
                                 <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                     <BrainCircuit className="w-5 h-5 text-blue-400" />
                                 </div>
-                                <h3 className="text-sm font-bold text-text-primary mb-1">Prompts & Safety</h3>
+                                <h3 className="text-sm font-bold text-text-primary mb-1">Prompts</h3>
                                 <p className="text-xs text-text-muted leading-relaxed">{totalCount} prompts, {activeCount} active</p>
                                 <div className="flex items-center gap-1 mt-3 text-xs text-blue-400 font-semibold">
                                     Manage <ArrowRight className="w-3 h-3" />
@@ -750,6 +821,19 @@ RULES:
                                 <p className="text-xs text-text-muted leading-relaxed">API Key, Model, Production toggle</p>
                                 <div className="flex items-center gap-1 mt-3 text-xs text-accent font-semibold">
                                     Configure <ArrowRight className="w-3 h-3" />
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('analytics')}
+                                className="group glass rounded-2xl p-5 text-left border border-border hover:border-amber-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(251,191,36,0.15)]"
+                            >
+                                <div className="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                    <BrainCircuit className="w-5 h-5 text-amber-400" />
+                                </div>
+                                <h3 className="text-sm font-bold text-text-primary mb-1">Flow Analytics</h3>
+                                <p className="text-xs text-text-muted leading-relaxed">Integrity scores, fluidity metrics, red flags</p>
+                                <div className="flex items-center gap-1 mt-3 text-xs text-amber-400 font-semibold">
+                                    View Analytics <ArrowRight className="w-3 h-3" />
                                 </div>
                             </button>
                         </div>
@@ -1035,6 +1119,144 @@ RULES:
                             </div>
                         </div>
 
+                        {/* ═══ Locum Codes ═══ */}
+                        <div className="glass rounded-2xl p-4 md:p-6 border border-purple/20">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-11 h-11 rounded-xl bg-purple-faded flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-purple" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-base font-bold text-text-primary">Locum Doctor Codes</h3>
+                                    <p className="text-xs text-text-muted">Codes that allow patients to be routed directly to a specific doctor&apos;s specialty pathway</p>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        setLocumLoading(true);
+                                        const docs = await fetchLocumCodeDoctors();
+                                        setLocumDoctors(docs as LocumDoc[]);
+                                        setLocumLoading(false);
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg text-accent hover:bg-accent-faded transition-colors"
+                                >
+                                    <Loader2 className={`w-3 h-3 ${locumLoading ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </button>
+                            </div>
+
+                            {locumMsg && (
+                                <div className={`mb-4 px-3 py-2 rounded-lg text-xs font-medium animate-fade-in ${
+                                    locumMsg.startsWith('✅') ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
+                                }`}>{locumMsg}</div>
+                            )}
+
+                            {/* Active Locum Codes Table */}
+                            {locumDoctors.length > 0 ? (
+                                <div className="space-y-2 mb-6">
+                                    {locumDoctors.map(doc => (
+                                        <div key={doc.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-elevated border border-border">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold text-text-primary truncate">{doc.display_name || doc.full_name}</span>
+                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
+                                                        doc.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/15 text-warning'
+                                                    }`}>{doc.status}</span>
+                                                </div>
+                                                <p className="text-[10px] text-text-muted">{doc.specialty?.replace('_', ' ')} · {doc.doctor_type}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <code className="px-3 py-1.5 rounded-lg bg-purple-faded text-purple text-sm font-bold font-mono tracking-wider">
+                                                    {doc.locum_code}
+                                                </code>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm(`Revoke code "${doc.locum_code}" from ${doc.display_name || doc.full_name}? Patients will no longer be able to use this code.`)) return;
+                                                        const res = await doRevokeLocumCode(doc.id);
+                                                        if (res.error) { setLocumMsg(`Error: ${res.error}`); }
+                                                        else { setLocumMsg(`✅ Code revoked from ${doc.display_name || doc.full_name}`); }
+                                                        const docs = await fetchLocumCodeDoctors();
+                                                        setLocumDoctors(docs as LocumDoc[]);
+                                                        setTimeout(() => setLocumMsg(''), 4000);
+                                                    }}
+                                                    className="p-1.5 rounded-lg text-error/60 hover:text-error hover:bg-error/10 transition-colors"
+                                                    title="Revoke code"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 border border-dashed border-border rounded-xl mb-6">
+                                    <Users className="w-8 h-8 text-text-muted/30 mx-auto mb-2" />
+                                    <p className="text-xs text-text-muted">No locum codes assigned yet</p>
+                                    <p className="text-[10px] text-text-muted/60 mt-1">Search for a doctor below to assign a code</p>
+                                </div>
+                            )}
+
+                            {/* Assign New Code */}
+                            <div className="border-t border-border pt-4">
+                                <label className="text-xs text-text-muted font-semibold mb-2 block">Assign Code to Doctor</label>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={locumSearch}
+                                            onChange={async (e) => {
+                                                setLocumSearch(e.target.value);
+                                                if (e.target.value.length >= 2) {
+                                                    setLocumSearching(true);
+                                                    const results = await doSearchDoctorsForLocum(e.target.value);
+                                                    setLocumSearchResults(results as SearchDoc[]);
+                                                    setLocumSearching(false);
+                                                } else {
+                                                    setLocumSearchResults([]);
+                                                }
+                                            }}
+                                            placeholder="Search doctor by name..."
+                                            className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-purple focus:ring-2 focus:ring-purple/20 transition-all"
+                                        />
+                                        {locumSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted animate-spin" />}
+                                    </div>
+                                </div>
+
+                                {/* Search Results Dropdown */}
+                                {locumSearchResults.length > 0 && (
+                                    <div className="mt-2 bg-bg-elevated rounded-xl border border-border overflow-hidden shadow-lg">
+                                        {locumSearchResults.map(doc => (
+                                            <button
+                                                key={doc.id}
+                                                disabled={!!doc.locum_code}
+                                                onClick={async () => {
+                                                    const code = await doGenerateLocumCode();
+                                                    if (!confirm(`Assign locum code "${code}" to ${doc.display_name || doc.full_name}?`)) return;
+                                                    const res = await doAssignLocumCode(doc.id, code);
+                                                    if (res.error) { setLocumMsg(`Error: ${res.error}`); }
+                                                    else { setLocumMsg(`✅ Code ${code} assigned to ${doc.display_name || doc.full_name}`); }
+                                                    setLocumSearch('');
+                                                    setLocumSearchResults([]);
+                                                    const docs = await fetchLocumCodeDoctors();
+                                                    setLocumDoctors(docs as LocumDoc[]);
+                                                    setTimeout(() => setLocumMsg(''), 4000);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-bg-tertiary transition-colors border-b border-border last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-sm font-medium text-text-primary">{doc.display_name || doc.full_name}</span>
+                                                    <span className="text-[10px] text-text-muted ml-2">{doc.specialty?.replace('_', ' ')} · {doc.doctor_type}</span>
+                                                </div>
+                                                {doc.locum_code ? (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded bg-purple-faded text-purple font-semibold">Has code: {doc.locum_code}</span>
+                                                ) : (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded bg-accent-faded text-accent font-semibold">+ Assign Code</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                     </div>
                 )}
 
@@ -1106,19 +1328,29 @@ RULES:
                                         <div className="mt-4 pt-4 border-t border-border/50">
                                             <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-2">Flow Steps ({sequenceNodes.length})</p>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {linearNodes.map(node => (
+                                                {linearNodes.map(node => {
+                                                    const isSystem = node.node_type === 'system_gate' || node.node_type === 'system_analysis';
+                                                    return (
                                                     <div
                                                         key={node.id}
-                                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-bg-elevated border border-border text-[11px]"
-                                                        title={node.ai_prompts ? `Prompt: ${node.ai_prompts.name} v${node.ai_prompts.version}` : 'No prompt linked'}
+                                                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] ${
+                                                            isSystem
+                                                                ? 'bg-amber-500/10 border-amber-500/30'
+                                                                : 'bg-bg-elevated border-border'
+                                                        }`}
+                                                        title={isSystem ? `System: ${node.label} (auto-processed)` : node.ai_prompts ? `Prompt: ${node.ai_prompts.name} v${node.ai_prompts.version}` : 'No prompt linked'}
                                                     >
                                                         <span>{node.emoji}</span>
-                                                        <span className="text-text-primary font-medium">{node.label}</span>
-                                                        {node.ai_prompts && (
+                                                        <span className={`font-medium ${isSystem ? 'text-amber-400' : 'text-text-primary'}`}>{node.label}</span>
+                                                        {isSystem && (
+                                                            <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">⚡ AUTO</span>
+                                                        )}
+                                                        {!isSystem && node.ai_prompts && (
                                                             <span className="text-purple text-[9px] ml-0.5">v{node.ai_prompts.version}</span>
                                                         )}
                                                     </div>
-                                                ))}
+                                                    );
+                                                })}
                                                 {branchNodes.length > 0 && (
                                                     <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-faded/30 border border-purple/20 text-[11px] text-purple">
                                                         +{branchNodes.length} branch nodes
@@ -1314,17 +1546,27 @@ RULES:
                             />
                         )}
 
-                        {/* ═══ Safety & Protocols ═══ */}
+                        {/* ═══ Safety & Protocols (Collapsible) ═══ */}
                         <div className="mt-6 bg-bg-card rounded-2xl border border-border overflow-hidden shadow-card">
-                            <div className="p-6 border-b border-border bg-gradient-to-r from-orange-500/5 to-red-500/5">
-                                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                                    <Shield className="w-5 h-5 text-orange-400" />
-                                    Safety & Protocol Configuration
-                                </h2>
-                                <p className="text-sm text-text-secondary mt-1">
-                                    Manage emergency detection keywords, non-cooperation patterns, and escalation thresholds.
-                                </p>
-                            </div>
+                            <button
+                                onClick={() => setSafetyCollapsed(!safetyCollapsed)}
+                                className="w-full p-6 border-b border-border bg-gradient-to-r from-orange-500/5 to-red-500/5 flex items-center justify-between hover:from-orange-500/10 hover:to-red-500/10 transition-all"
+                            >
+                                <div>
+                                    <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                        <Shield className="w-5 h-5 text-orange-400" />
+                                        Safety & Protocol Configuration
+                                    </h2>
+                                    <p className="text-sm text-text-secondary mt-1 text-left">
+                                        Manage emergency detection keywords, non-cooperation patterns, and escalation thresholds.
+                                    </p>
+                                </div>
+                                {safetyCollapsed
+                                    ? <ChevronDown className="w-5 h-5 text-text-muted flex-shrink-0" />
+                                    : <ChevronUp className="w-5 h-5 text-text-muted flex-shrink-0" />
+                                }
+                            </button>
+                            {!safetyCollapsed && (
                             <div className="p-6 space-y-8">
                                 {/* Protocol A: Emergency Keywords EN */}
                                 <div>
@@ -1459,6 +1701,7 @@ RULES:
                                     )}
                                 </div>
                             </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1635,6 +1878,161 @@ RULES:
 
                 {/* ── Protocols Tab ─────────────────── */}
                 {/* Old Protocols tab — now merged into Prompts & Safety tab above */}
+
+                {/* ══════════════ TAB: Analytics ══════════════ */}
+                {activeTab === 'analytics' && (
+                    <div className="space-y-6 animate-fade-in">
+                        {/* ── Header ── */}
+                        <div className="glass rounded-2xl p-6 border border-border">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple/20 to-accent/20 flex items-center justify-center">
+                                    <BrainCircuit className="w-5 h-5 text-purple" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-text-primary">Chat Integrity Analytics</h2>
+                                    <p className="text-sm text-text-secondary">
+                                        AI-powered analysis of intake conversation quality, fluidity, and reliability
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                                <div className="bg-bg-tertiary rounded-xl p-4 border border-border">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Shield className="w-4 h-4 text-success" />
+                                        <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Confidence Score</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-success">{integrityStats ? `${integrityStats.avgConfidence}%` : '—'}</p>
+                                    <p className="text-xs text-text-muted mt-1">Doctor reliability metric</p>
+                                </div>
+                                <div className="bg-bg-tertiary rounded-xl p-4 border border-border">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Zap className="w-4 h-4 text-accent" />
+                                        <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Fluidity Score</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-accent">{integrityStats ? `${integrityStats.avgFluidity}%` : '—'}</p>
+                                    <p className="text-xs text-text-muted mt-1">Conversation smoothness</p>
+                                </div>
+                                <div className="bg-bg-tertiary rounded-xl p-4 border border-border">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <CheckCircle2 className="w-4 h-4 text-info" />
+                                        <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Completion Rate</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-info">{integrityStats ? `${integrityStats.avgCompletion}%` : '—'}</p>
+                                    <p className="text-xs text-text-muted mt-1">Information gathered</p>
+                                </div>
+                                <div className="bg-bg-tertiary rounded-xl p-4 border border-border">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <XCircle className="w-4 h-4 text-warning" />
+                                        <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Red Flags</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-warning">{integrityStats ? integrityStats.totalRedFlags : '—'}</p>
+                                    <p className="text-xs text-text-muted mt-1">{integrityStats ? `From ${integrityStats.totalReports} sessions` : 'Issues detected'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── How It Works ── */}
+                        <div className="glass rounded-2xl p-6 border border-border">
+                            <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                                <Info className="w-4 h-4 text-info" />
+                                How Chat Integrity Analysis Works
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-bg-tertiary rounded-xl p-4">
+                                    <div className="text-lg mb-2">🔇</div>
+                                    <h4 className="text-sm font-semibold text-text-primary mb-1">Silent Analysis</h4>
+                                    <p className="text-xs text-text-secondary">
+                                        Runs automatically after Patient Addendum — completely invisible to the patient. No extra questions asked.
+                                    </p>
+                                </div>
+                                <div className="bg-bg-tertiary rounded-xl p-4">
+                                    <div className="text-lg mb-2">📊</div>
+                                    <h4 className="text-sm font-semibold text-text-primary mb-1">Structured Report</h4>
+                                    <p className="text-xs text-text-secondary">
+                                        Analyzes conversation transcript, section timings, gibberish strikes, and interruptions to generate a structured JSONB report.
+                                    </p>
+                                </div>
+                                <div className="bg-bg-tertiary rounded-xl p-4">
+                                    <div className="text-lg mb-2">👨‍⚕️</div>
+                                    <h4 className="text-sm font-semibold text-text-primary mb-1">Doctor Confidence</h4>
+                                    <p className="text-xs text-text-secondary">
+                                        Provides doctors a 0-100 confidence score so they can gauge intake reliability before writing their medical report.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── Report Schema ── */}
+                        <div className="glass rounded-2xl p-6 border border-border">
+                            <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                                <FileCode className="w-4 h-4 text-accent" />
+                                Integrity Report Schema
+                            </h3>
+                            <div className="bg-bg-tertiary rounded-xl p-4 font-mono text-xs text-text-secondary overflow-x-auto">
+                                <pre>{`{
+  "confidence_score": 0-100,     // Doctor reliability metric
+  "fluidity_score": 0-100,       // Conversation smoothness
+  "completion_rate": 0-100,      // % of expected info gathered
+  "red_flags": [...],            // Concerning patterns
+  "section_quality": {           // Per-section breakdown
+    "greeting": { "score": 85, "note": "..." },
+    "hpi": { "score": 72, "note": "..." }
+  },
+  "patient_engagement": "low|medium|high",
+  "response_consistency": "low|medium|high",
+  "estimated_reliability": "unreliable|low|moderate|high|very_high",
+  "summary": "Brief overall assessment",
+  "interruption_count": 0,
+  "avg_response_time_category": "fast|normal|slow|very_slow"
+}`}</pre>
+                            </div>
+                            <p className="text-xs text-text-muted mt-3">
+                                💡 This report is stored in <code className="bg-bg-tertiary px-1.5 py-0.5 rounded text-accent">consultations.integrity_report</code> as JSONB.
+                                Data will populate here once live intake sessions generate integrity reports.
+                            </p>
+                        </div>
+
+                        {/* ── Node Configuration Status ── */}
+                        <div className="glass rounded-2xl p-6 border border-border">
+                            <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                                <Settings2 className="w-4 h-4 text-warning" />
+                                System Integrity Node Status
+                            </h3>
+                            {(() => {
+                                const integrityNode = sequenceNodes.find(
+                                    (n: any) => n.node_type === 'system_integrity'
+                                );
+                                return integrityNode ? (
+                                    <div className="flex items-center gap-3 bg-success/5 border border-success/20 rounded-xl p-4">
+                                        <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-text-primary">
+                                                {integrityNode.emoji} {integrityNode.label}
+                                            </p>
+                                            <p className="text-xs text-text-secondary">
+                                                Active in the current sequence • Node type: <code className="bg-bg-tertiary px-1 rounded">system_integrity</code> • Runs silently after Patient Addendum
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 bg-warning/5 border border-warning/20 rounded-xl p-4">
+                                        <XCircle className="w-5 h-5 text-warning flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-text-primary">
+                                                No system_integrity node found
+                                            </p>
+                                            <p className="text-xs text-text-secondary">
+                                                Add a node with type <code className="bg-bg-tertiary px-1 rounded">system_integrity</code> to your active sequence (after Patient Addendum) to enable integrity analysis.
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                )}
+
             </div>
 
             {/* Prompt Editor Modal */}

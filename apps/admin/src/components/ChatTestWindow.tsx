@@ -1,8 +1,7 @@
-'use client';
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, RotateCcw, Bot, User, ChevronDown, FileCode, Loader2, Copy, Download, Play, Square, ClipboardList, Brain, Check, Sparkles, FileEdit, ArrowRight, Zap, Bug } from 'lucide-react';
 import { fetchDefaultSequence, fetchSequenceWithNodes, updatePrompt, addPromptSequence, addSequenceNode, createPrompt, fetchPlatformSetting } from '@/lib/actions';
+import { callAdminApi, callAdminApiStream } from '@/lib/admin-api';
 
 // ── Types ────────────────────────────────────
 type DebugPayload = {
@@ -39,6 +38,8 @@ type SequenceNode = {
     parent_node_id: string | null;
     pathway_condition: string | null;
     gender_condition: string | null;
+    specialty_condition: string | null;
+    node_type?: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | null;
     ai_prompts: { id: string; name: string; prompt_type: string; is_active: boolean; version: number } | null;
 };
 
@@ -383,13 +384,19 @@ export default function ChatTestWindow({
     function buildInitialFlow(nodes: SequenceNode[]) {
         const pathwayNode = nodes.find(n => n.step_key === 'pathway');
         const sex = patientSexRef.current || '';
+        // Filter out system nodes — they're handled automatically in the patient app
+        const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
+        // Also filter out specialty-specific nodes unless they match the sandbox specialty
+        const specFilter = (n: SequenceNode) => !n.specialty_condition;
         const beforePathway = nodes.filter(n =>
             !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0)
             && (!n.gender_condition || n.gender_condition === sex)
+            && isChat(n) && specFilter(n)
         );
         const afterPathway = nodes.filter(n =>
             !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999)
             && (!n.gender_condition || n.gender_condition === sex)
+            && isChat(n) && specFilter(n)
         );
 
         const flow = [
@@ -403,12 +410,16 @@ export default function ChatTestWindow({
         const pathwayNode = allNodes.find(n => n.step_key === 'pathway');
         const sex = patientSexRef.current || '';
         const genderFilter = (n: SequenceNode) => !n.gender_condition || n.gender_condition === sex;
+        // Filter out system nodes
+        const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
+        // Filter by specialty — only global (null) nodes + nodes matching detected specialty
+        const specFilter = (n: SequenceNode) => !n.specialty_condition;
         const beforePathway = allNodes.filter(n =>
-            !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0) && genderFilter(n)
+            !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0) && genderFilter(n) && isChat(n) && specFilter(n)
         );
-        const branchNodes = allNodes.filter(n => n.pathway_condition === pathway && genderFilter(n));
+        const branchNodes = allNodes.filter(n => n.pathway_condition === pathway && genderFilter(n) && isChat(n) && specFilter(n));
         const afterPathway = allNodes.filter(n =>
-            !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999) && genderFilter(n)
+            !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999) && genderFilter(n) && isChat(n) && specFilter(n)
         );
 
         const flow = [
@@ -449,20 +460,16 @@ export default function ChatTestWindow({
         // Send the full conversation to the backend. The backend handles:
         // 1. Section isolation (only uses current-section messages for AI context)
         // 2. Patient context injection (extracts prior patient statements into the system prompt)
-        const res = await fetch('/api/chat-test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: chatMessages.map(m => ({
-                    role: m.role === 'ai' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
-                    content: m.content,
-                })),
-                section,
-                promptId: promptId ?? (selectedPromptId || undefined),
-                stream: true,
-                language: chatLanguageRef.current,
-                debug: debugModeRef.current,
-            }),
+        const res = await callAdminApiStream('chat-test', {
+            messages: chatMessages.map(m => ({
+                role: m.role === 'ai' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
+                content: m.content,
+            })),
+            section,
+            promptId: promptId ?? (selectedPromptId || undefined),
+            stream: true,
+            language: chatLanguageRef.current,
+            debug: debugModeRef.current,
         });
 
         if (!res.ok) {
@@ -545,6 +552,19 @@ export default function ChatTestWindow({
                 timestamp: Date.now(),
             };
 
+            // Show which system nodes are auto-skipped in sandbox
+            const systemNodeNames = allNodes
+                .filter(n => n.node_type === 'system_gate' || n.node_type === 'system_analysis' || n.node_type === 'system_integrity')
+                .map(n => `${n.emoji} ${n.label}${n.node_type === 'system_integrity' ? ' (📊 silent analysis)' : ''}`);
+            // Count specialty-specific nodes that are filtered out
+            const specialtyNodeCount = allNodes.filter(n => !!n.specialty_condition).length;
+            const systemSkipMsg: Message | null = systemNodeNames.length > 0 ? {
+                id: uid(),
+                role: 'system',
+                content: `⚡ System nodes (auto-processed in production): ${systemNodeNames.join(', ')}${specialtyNodeCount > 0 ? `\n🔀 ${specialtyNodeCount} specialty-specific nodes available (filtered by detected specialty in production)` : ''}`,
+                timestamp: Date.now(),
+            } : null;
+
             const greetingNode = activeFlow[0] || FALLBACK_SECTIONS[0];
             const aiMsgId = uid();
             const aiMsg: Message = {
@@ -553,7 +573,7 @@ export default function ChatTestWindow({
                 content: '',
                 timestamp: Date.now(),
             };
-            setMessages([versionMsg, aiMsg]);
+            setMessages([versionMsg, ...(systemSkipMsg ? [systemSkipMsg] : []), aiMsg]);
 
             const result = await callAI([], greetingNode.step_key, greetingNode.prompt_id ?? undefined, (token) => {
                 setMessages(prev => prev.map(m =>
@@ -869,21 +889,10 @@ export default function ChatTestWindow({
                 content: m.content,
             }));
 
-        const res = await fetch('/api/simulate-patient', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: chatMsgs,
-                profileSystemPrompt: profile.systemPrompt,
-            }),
+        const data = await callAdminApi<{ reply: string }>('simulate-patient', {
+            messages: chatMsgs,
+            profileSystemPrompt: profile.systemPrompt,
         });
-
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(err.error || `HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
         return data.reply || 'I\'m not sure what to say.';
     }
 
@@ -1165,20 +1174,10 @@ export default function ChatTestWindow({
         setMessages([versionMsg]);
 
         try {
-            const res = await fetch('/api/chat-test-instant', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    patientProfile: profile.systemPrompt,
-                    language: chatLanguageRef.current,
-                }),
-                signal: abort.signal,
+            const res = await callAdminApiStream('chat-test-instant', {
+                patientProfile: profile.systemPrompt,
+                language: chatLanguageRef.current,
             });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(err.error || `HTTP ${res.status}`);
-            }
 
             if (!res.body) throw new Error('No response body');
 
@@ -1413,18 +1412,10 @@ export default function ChatTestWindow({
         setAnalysisResult(null);
 
         try {
-            const res = await fetch('/api/analyze-prompts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ report, guidance: userGuidance || undefined }),
+            const data = await callAdminApi<{ analysis: AnalysisResult }>('analyze-prompts', {
+                report,
+                guidance: userGuidance || undefined,
             });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(err.error || `HTTP ${res.status}`);
-            }
-
-            const data = await res.json();
             setAnalysisResult(data.analysis);
         } catch (err) {
             setAnalysisResult({

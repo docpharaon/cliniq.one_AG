@@ -1,14 +1,12 @@
-'use client';
-
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 
 // Ads have been merged into Campaigns — redirect
 export default function AdsPage() {
-    const router = useRouter();
+    const navigate = useNavigate();
     useEffect(() => {
-        router.replace('/dashboard/news');
-    }, [router]);
+        navigate('/dashboard/news', { replace: true });
+    }, [navigate]);
 
     return (
         <div className="flex items-center justify-center h-64">

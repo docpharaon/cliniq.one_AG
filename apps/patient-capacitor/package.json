@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build:web": "cd ../patient && npx expo export --platform web",
+    "build:web": "cd ../patient && npm run build",
     "cap:sync": "npx cap sync",
     "cap:build": "cd android && .\\gradlew.bat assembleRelease",
     "cap:build:aab": "cd android && .\\gradlew.bat bundleRelease"

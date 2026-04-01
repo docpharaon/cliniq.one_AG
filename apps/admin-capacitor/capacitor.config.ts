@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.cliniqone.admin',
   appName: 'cliniq.one Admin',
-  webDir: '../admin/out',
+  webDir: '../admin/dist',
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
@@ -32,7 +32,7 @@ const config: CapacitorConfig = {
       backgroundColor: '#0A0E1A',
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'native',
       resizeOnFullScreen: true,
     },
     LocalNotifications: {

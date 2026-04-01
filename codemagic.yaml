@@ -24,10 +24,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor web (Expo export)
+      - name: Build doctor web (Vite)
         script: |
           cd apps/doctor
-          npx expo export --platform web
+          npm run build
           echo "=== doctor/dist contents ==="
           ls -la dist/ | head -20
       - name: Add and sync iOS platform
@@ -271,10 +271,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build patient web (Expo export)
+      - name: Build patient web (Vite)
         script: |
           cd apps/patient
-          npx expo export --platform web
+          npm run build
           echo "=== patient/dist contents ==="
           ls -la dist/ | head -20
       - name: Add and sync iOS platform
@@ -397,10 +397,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor web (Expo export)
+      - name: Build doctor web (Vite)
         script: |
           cd apps/doctor
-          npx expo export --platform web
+          npm run build
           echo "=== doctor/dist contents ==="
           ls -la dist/ | head -20
       - name: Add and sync Android platform
@@ -511,10 +511,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build patient web (Expo export)
+      - name: Build patient web (Vite)
         script: |
           cd apps/patient
-          npx expo export --platform web
+          npm run build
           echo "=== patient/dist contents ==="
           ls -la dist/ | head -20
       - name: Add and sync Android platform
@@ -565,10 +565,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor web for locum (Expo export)
+      - name: Build doctor web for locum (Vite)
         script: |
           cd apps/doctor
-          npx expo export --platform web
+          npm run build
           echo "=== doctor/dist contents (for locum) ==="
           ls -la dist/ | head -20
       - name: Add and sync iOS platform
@@ -673,10 +673,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci --legacy-peer-deps
-      - name: Build doctor web for locum (Expo export)
+      - name: Build doctor web for locum (Vite)
         script: |
           cd apps/doctor
-          npx expo export --platform web
+          npm run build
           echo "=== doctor/dist contents (for locum) ==="
           ls -la dist/ | head -20
       - name: Add and sync Android platform

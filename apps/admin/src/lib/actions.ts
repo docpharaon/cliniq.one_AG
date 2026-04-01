@@ -30,6 +30,11 @@ import {
     getActiveLocums,
     suspendLocum,
     toggleLocumSandbox,
+    getLocumCodeDoctors,
+    generateLocumCode,
+    assignLocumCode,
+    revokeLocumCode,
+    searchDoctorsForLocum,
     getConsultations,
     getConsultationById,
     getConsultationStats,
@@ -75,6 +80,7 @@ import {
     updateSequenceNode,
     deleteSequenceNode,
     reorderSequenceNodes,
+    getIntegrityReportStats,
     getErrorReports,
     getSettings,
     upsertPlatformSetting,
@@ -118,6 +124,26 @@ import {
     broadcastToAllDoctors,
     sendNotificationToUsers,
     searchUsersForNotification,
+    getApplications,
+    getApplicationById,
+    getApplicationStats,
+    moveApplicationToDocumentsReview,
+    scheduleInterview,
+    completeInterview,
+    approveApplication,
+    rejectApplication,
+    requestApplicationResubmission,
+    getApplicationDocumentsAdmin,
+    getApplicationDocumentSignedUrl,
+    getActiveSpecialtyOverrides,
+    getSpecialtyOverrideHistory,
+    disableSpecialty,
+    restoreSpecialty,
+    getSpecialtyIncidents,
+    updateSpecialtyIncident,
+    getOpenSpecialtyIncidentCount,
+    getDisabledSpecialtyCount,
+    getAuditLog,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -455,6 +481,8 @@ export async function addSequenceNode(node: {
     parent_node_id?: string | null;
     pathway_condition?: string | null;
     gender_condition?: string | null;
+    specialty_condition?: string | null;
+    node_type?: string;
 }) {
     return createSequenceNode(node);
 }
@@ -468,6 +496,8 @@ export async function editSequenceNode(id: string, updates: {
     parent_node_id?: string | null;
     pathway_condition?: string | null;
     gender_condition?: string | null;
+    specialty_condition?: string | null;
+    node_type?: string;
 }) {
     return updateSequenceNode(id, updates);
 }
@@ -478,6 +508,10 @@ export async function removeSequenceNode(id: string) {
 
 export async function reorderNodes(sequenceId: string, orderedIds: string[]) {
     return reorderSequenceNodes(sequenceId, orderedIds);
+}
+
+export async function fetchIntegrityStats() {
+    return getIntegrityReportStats();
 }
 
 export async function fetchErrorReports(page = 1, perPage = 50, search?: string) {
@@ -710,10 +744,131 @@ export async function doSearchUsersForNotification(search: string, role?: 'patie
 }
 
 // ── Audit Log ─────────────────────────────
-// Stub: audit_log table not yet created — returns empty data to unblock builds
 
 export async function fetchAuditLog(page = 1, perPage = 20, search?: string) {
-    // TODO: implement once audit_log table is created
-    void page; void perPage; void search;
-    return { data: [], error: null };
+    return getAuditLog(page, perPage, search);
+}
+
+// ── Doctor Applications ────────────────────
+
+export async function fetchApplications(status?: string, page = 1, perPage = 20, search?: string) {
+    return getApplications(status, page, perPage, search);
+}
+
+export async function fetchApplicationById(id: string) {
+    return getApplicationById(id);
+}
+
+export async function fetchApplicationStats() {
+    return getApplicationStats();
+}
+
+export async function doMoveToDocumentsReview(applicationId: string, adminId: string) {
+    return moveApplicationToDocumentsReview(applicationId, adminId);
+}
+
+export async function doScheduleInterview(
+    applicationId: string,
+    adminId: string,
+    scheduledAt: string,
+    interviewType: 'video_call' | 'phone_call',
+    meetingUrl?: string,
+    phoneNumber?: string,
+    notes?: string,
+) {
+    return scheduleInterview(applicationId, adminId, scheduledAt, interviewType, meetingUrl, phoneNumber, notes);
+}
+
+export async function doCompleteInterview(applicationId: string, adminId: string, notes?: string) {
+    return completeInterview(applicationId, adminId, notes);
+}
+
+export async function doApproveApplication(applicationId: string, adminId: string, reviewNotes?: string) {
+    return approveApplication(applicationId, adminId, reviewNotes);
+}
+
+export async function doRejectApplication(applicationId: string, adminId: string, reason: string) {
+    return rejectApplication(applicationId, adminId, reason);
+}
+
+export async function doRequestResubmission(applicationId: string, adminId: string, feedback: string) {
+    return requestApplicationResubmission(applicationId, adminId, feedback);
+}
+
+export async function fetchApplicationDocuments(applicationId: string) {
+    return getApplicationDocumentsAdmin(applicationId);
+}
+
+export async function fetchDocumentSignedUrl(storagePath: string) {
+    return getApplicationDocumentSignedUrl(storagePath);
+}
+
+// ── Specialty Overrides (Temporary Disable) ────────
+
+export async function fetchActiveSpecialtyOverrides() {
+    return getActiveSpecialtyOverrides();
+}
+
+export async function fetchSpecialtyOverrideHistory(specialty?: string) {
+    return getSpecialtyOverrideHistory(specialty);
+}
+
+export async function doDisableSpecialty(params: {
+    specialty: string;
+    mode: 'silent' | 'announced';
+    reasonCode: string;
+    reasonText: string;
+    patientMessage?: string;
+    adminUserId: string;
+}) {
+    return disableSpecialty(params);
+}
+
+export async function doRestoreSpecialty(overrideId: string, adminUserId: string) {
+    return restoreSpecialty(overrideId, adminUserId);
+}
+
+export async function fetchSpecialtyIncidents(params?: {
+    status?: string;
+    specialty?: string;
+    limit?: number;
+}) {
+    return getSpecialtyIncidents(params);
+}
+
+export async function doUpdateSpecialtyIncident(incidentId: string, updates: {
+    status?: string;
+    admin_notes?: string;
+    resolved_by?: string;
+}) {
+    return updateSpecialtyIncident(incidentId, updates);
+}
+
+export async function fetchOpenSpecialtyIncidentCount() {
+    return getOpenSpecialtyIncidentCount();
+}
+
+export async function fetchDisabledSpecialtyCount() {
+    return getDisabledSpecialtyCount();
+}
+
+// ── Locum Code Management ───────────────────
+export async function fetchLocumCodeDoctors() {
+    return getLocumCodeDoctors();
+}
+
+export async function doGenerateLocumCode() {
+    return generateLocumCode();
+}
+
+export async function doAssignLocumCode(doctorId: string, code: string) {
+    return assignLocumCode(doctorId, code);
+}
+
+export async function doRevokeLocumCode(doctorId: string) {
+    return revokeLocumCode(doctorId);
+}
+
+export async function doSearchDoctorsForLocum(query: string) {
+    return searchDoctorsForLocum(query);
 }

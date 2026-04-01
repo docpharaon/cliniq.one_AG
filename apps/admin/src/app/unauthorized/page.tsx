@@ -1,5 +1,3 @@
-'use client';
-
 import { ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
 import { createBrowserSupabase } from '@/lib/supabase';
 

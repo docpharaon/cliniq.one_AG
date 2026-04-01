@@ -197,6 +197,40 @@ body {
     align-items: center;
     justify-content: center;
   }
+
+  /* ── Native-feel: disable text selection ── */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input, textarea, select, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* ── Native-feel: overscroll ── */
+  html, body {
+    overscroll-behavior: none;
+  }
+
+  /* ── Native-feel: hidden scrollbars ── */
+  ::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
+
+  /* ── Native-feel: pressable feedback ── */
+  .pressable {
+    transition: transform 0.12s ease, opacity 0.12s ease;
+    will-change: transform;
+  }
+
+  .pressable:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
 }
 
 /* ══════════════════════════════════════════

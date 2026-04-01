@@ -1,4 +1,4 @@
-'use client';
+
 
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserSupabase } from '@/lib/supabase';
@@ -23,7 +23,7 @@ import {
     ChevronDown, ChevronUp, Eye, ShieldAlert, RefreshCw, ToggleLeft, ToggleRight,
     UserCheck,
 } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 
 // ── Types ────────────────────────────────────
@@ -242,7 +242,7 @@ export default function LocumManagementPage() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Link href="/dashboard/doctors" className="p-2 rounded-lg hover:bg-bg-elevated transition-colors">
+                <Link to="/dashboard/doctors" className="p-2 rounded-lg hover:bg-bg-elevated transition-colors">
                     <ArrowLeft className="w-5 h-5 text-text-secondary" />
                 </Link>
                 <div>

@@ -1,5 +1,3 @@
-'use client';
-
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';

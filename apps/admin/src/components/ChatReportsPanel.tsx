@@ -1,11 +1,10 @@
-'use client';
-
 import { useEffect, useState, useCallback } from 'react';
 import {
     Flag, Loader2, CheckCircle2, Eye, Copy, Check,
     AlertTriangle, RefreshCw, ChevronDown, ChevronUp,
     MessageSquare, X,
 } from 'lucide-react';
+import { createBrowserSupabase } from '@/lib/supabase';
 
 type ChatMessage = {
     id: string;
@@ -73,10 +72,17 @@ export default function ChatReportsPanel() {
     const loadReports = useCallback(async () => {
         setLoading(true);
         try {
-            const url = filter === 'all' ? '/api/chat-reports' : `/api/chat-reports?status=${filter}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            setReports(data.reports || []);
+            const supabase = createBrowserSupabase();
+            let query = supabase
+                .from('chat_reports')
+                .select('*, users(nickname, email)')
+                .order('created_at', { ascending: false })
+                .limit(100);
+            if (filter !== 'all') {
+                query = query.eq('status', filter);
+            }
+            const { data } = await query;
+            setReports((data as ChatReport[]) || []);
         } catch (err) {
             console.error('Failed to load reports:', err);
         }
@@ -88,11 +94,15 @@ export default function ChatReportsPanel() {
     async function updateReport(id: string, status: string) {
         setUpdating(true);
         try {
-            await fetch('/api/chat-reports', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status, admin_note: adminNote || undefined }),
-            });
+            const supabase = createBrowserSupabase();
+            await supabase
+                .from('chat_reports')
+                .update({
+                    status,
+                    admin_note: adminNote || null,
+                    reviewed_at: new Date().toISOString(),
+                })
+                .eq('id', id);
             await loadReports();
             setAdminNote('');
         } catch (err) {

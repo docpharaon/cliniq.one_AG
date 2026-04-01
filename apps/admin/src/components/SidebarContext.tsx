@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 
 interface SidebarContextType {
@@ -54,8 +52,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const closeMobile = useCallback(() => setMobileOpen(false), []);
 
     return (
-        <SidebarContext value={{ collapsed, toggleCollapsed, mobileOpen, openMobile, closeMobile, isMobile, isTablet }}>
+        <SidebarContext.Provider value={{ collapsed, toggleCollapsed, mobileOpen, openMobile, closeMobile, isMobile, isTablet }}>
             {children}
-        </SidebarContext>
+        </SidebarContext.Provider>
     );
 }

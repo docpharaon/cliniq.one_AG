@@ -1,4 +1,4 @@
-'use client';
+
 
 import Header from '@/components/Header';
 import StatCard from '@/components/StatCard';
@@ -24,8 +24,9 @@ import {
     BarChart3,
     Archive,
     Printer,
+    ShieldOff,
 } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import {
     LineChart,
     Line,
@@ -38,7 +39,7 @@ import {
     Bar,
 } from 'recharts';
 import { useEffect, useState } from 'react';
-import { fetchDashboardStats, fetchConsultationFlow, fetchSpecialtyBreakdown, fetchRecentActivity, fetchPendingArchiveCount } from '@/lib/actions';
+import { fetchDashboardStats, fetchConsultationFlow, fetchSpecialtyBreakdown, fetchRecentActivity, fetchPendingArchiveCount, fetchDisabledSpecialtyCount, fetchOpenSpecialtyIncidentCount } from '@/lib/actions';
 
 // System health (static indicators — no live monitoring API yet)
 const systemHealth = [
@@ -111,6 +112,14 @@ const managementCards = [
         subtitle: 'Promotions & featured content',
         gradient: 'from-red-500 to-orange-600',
     },
+    {
+        href: '/dashboard/specialties',
+        icon: ShieldOff,
+        emoji: '🛡️',
+        title: 'Specialty Management',
+        subtitle: 'Disable, fallback & incident control',
+        gradient: 'from-yellow-500 to-orange-500',
+    },
 ];
 
 type DashboardStats = {
@@ -127,6 +136,8 @@ export default function DashboardPage() {
     const [specialtyData, setSpecialtyData] = useState<{ name: string; count: number; fill: string }[]>([]);
     const [recentActivity, setRecentActivity] = useState<{ id: string; text: string; time: string; type: 'info' | 'success' | 'error' }[]>([]);
     const [pendingArchiveCount, setPendingArchiveCount] = useState(0);
+    const [disabledSpecialtyCount, setDisabledSpecialtyCount] = useState(0);
+    const [openIncidentCount, setOpenIncidentCount] = useState(0);
 
     useEffect(() => {
         Promise.all([
@@ -135,6 +146,8 @@ export default function DashboardPage() {
             fetchSpecialtyBreakdown().then(setSpecialtyData),
             fetchRecentActivity().then(setRecentActivity),
             fetchPendingArchiveCount().then(setPendingArchiveCount),
+            fetchDisabledSpecialtyCount().then(setDisabledSpecialtyCount),
+            fetchOpenSpecialtyIncidentCount().then(setOpenIncidentCount),
         ]);
     }, []);
 
@@ -187,8 +200,7 @@ export default function DashboardPage() {
                                     {stats.unresolvedProtocols} unresolved protocol violation{stats.unresolvedProtocols !== 1 ? 's' : ''}
                                 </span>
                             </div>
-                            <Link
-                                href="/dashboard/protocols"
+                            <Link to="/dashboard/protocols"
                                 className="text-sm text-error font-medium hover:underline flex items-center gap-1"
                             >
                                 Review <ArrowRight className="w-3.5 h-3.5" />
@@ -219,13 +231,46 @@ export default function DashboardPage() {
                                 </p>
                             </div>
                         </div>
-                        <Link
-                            href="/dashboard/consultations"
+                        <Link to="/dashboard/consultations"
                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition-all whitespace-nowrap"
                             style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}
                         >
                             <Printer className="w-3.5 h-3.5" />
                             Go to Consultations <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                    </div>
+                )}
+
+                {/* Disabled Specialties Alert */}
+                {disabledSpecialtyCount > 0 && (
+                    <div
+                        className="flex items-center justify-between px-5 py-4 rounded-2xl border animate-fade-in"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(251,146,60,0.15), rgba(251,146,60,0.05))',
+                            borderColor: 'rgba(251,146,60,0.3)',
+                        }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,146,60,0.15)' }}>
+                                <ShieldOff className="w-5 h-5" style={{ color: '#FB923C' }} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold" style={{ color: '#FB923C' }}>
+                                    🛡️ {disabledSpecialtyCount} specialt{disabledSpecialtyCount !== 1 ? 'ies' : 'y'} temporarily disabled
+                                </p>
+                                {openIncidentCount > 0 && (
+                                    <p className="text-xs text-error mt-0.5 font-medium">
+                                        ⚠ {openIncidentCount} open incident{openIncidentCount !== 1 ? 's' : ''} require attention
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <Link to="/dashboard/specialties"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition-all whitespace-nowrap"
+                            style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C' }}
+                        >
+                            <ShieldOff className="w-3.5 h-3.5" />
+                            Manage <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                     </div>
                 )}
@@ -292,28 +337,28 @@ export default function DashboardPage() {
 
                 {/* Quick Navigation Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                    <Link href="/dashboard/doctors" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link to="/dashboard/doctors" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-accent-faded rounded-xl flex items-center justify-center">
                             <Stethoscope className="w-6 h-6 text-accent" />
                         </div>
                         <p className="text-sm font-semibold text-accent">Doctors</p>
                         <p className="text-xs text-text-muted">Manage staff</p>
                     </Link>
-                    <Link href="/dashboard/users" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link to="/dashboard/users" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-info-faded rounded-xl flex items-center justify-center">
                             <Users className="w-6 h-6 text-info" />
                         </div>
                         <p className="text-sm font-semibold text-info">Patients</p>
                         <p className="text-xs text-text-muted">User management</p>
                     </Link>
-                    <Link href="/dashboard/consultations" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link to="/dashboard/consultations" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-purple-faded rounded-xl flex items-center justify-center">
                             <FileText className="w-6 h-6 text-purple" />
                         </div>
                         <p className="text-sm font-semibold text-purple">Consultations</p>
                         <p className="text-xs text-text-muted">View all cases</p>
                     </Link>
-                    <Link href="/dashboard/analytics" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
+                    <Link to="/dashboard/analytics" className="glass rounded-2xl p-4 sm:p-5 flex flex-col items-center gap-2 sm:gap-3 hover:-translate-y-1 transition-all duration-200">
                         <div className="w-12 h-12 bg-gold-faded rounded-xl flex items-center justify-center">
                             <BarChart3 className="w-6 h-6 text-gold" />
                         </div>

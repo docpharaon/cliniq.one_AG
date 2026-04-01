@@ -19,6 +19,7 @@ export {
     updateUserProfile,
     acceptLegalTerms,
     requestKycToken,
+    ensureUserProfile,
 } from './auth';
 
 // ── Consultations (Patient) ──
@@ -89,3 +90,20 @@ export {
     processRefund,
     getRefundStats,
 } from './admin';
+
+// ── Doctor Applications ──
+export {
+    getMyApplication,
+    getMyApplicationWithDocs,
+    createApplication,
+    updateApplication,
+    uploadApplicationDocument,
+    removeApplicationDocument,
+    getApplicationDocuments,
+    acceptDisclaimer,
+    submitApplication,
+    resubmitApplication,
+    getDocumentUrl,
+    getMyApplicationAudit,
+} from './applications';
+export type { ApplicationData, ApplicationDocument, DoctorApplication } from './applications';

@@ -1,5 +1,3 @@
-'use client';
-
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 
 export default function Error({

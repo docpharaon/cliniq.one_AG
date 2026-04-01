@@ -447,7 +447,7 @@ async function chatWithConversation(
 
 async function analyzeConcern(concern: string, language: string) {
     const system = `You are a medical triage AI for cliniq.one. Analyze the patient's concern and determine:
-1. Which specialty to route to (dermatology, family_medicine, psychiatry, or orthopedics)
+1. Which specialty to route to (dermatology, family_medicine, psychiatry, orthopedics, pediatrics, or diet)
 2. The urgency level (routine, urgent, or emergency)
 3. Key medical keywords extracted
 
@@ -455,6 +455,8 @@ Routing rules:
 - Skin/hair/nail/rash/acne/eczema/psoriasis/cosmetic concerns → dermatology
 - Joint pain/bone pain/muscle pain/back pain/neck pain/knee/shoulder/hip/ankle/wrist/elbow/spine/fracture/sprain/arthritis/osteoporosis/gout/tendon/ligament/cartilage/disc/sciatica/orthopedic concerns → orthopedics
 - Mental health/depression/anxiety/mood/sleep disturbance/psychiatric/ADHD/bipolar/psychosis/stress/trauma → psychiatry
+- Child health/infant/toddler/baby/newborn/childhood illness/pediatric fever/growth/development/vaccination/teething/colic/childhood rash/ear infection in children → pediatrics
+- Weight management/nutrition/diet plan/eating habits/obesity/underweight/meal planning/calorie/BMI/food allergy/dietary supplement/malnutrition/metabolic diet/cholesterol diet/diabetes diet → diet
 - General illness/fever/pain/chronic disease/multi-system → family_medicine
 - Life-threatening symptoms → emergency (specialty = null)
 
@@ -679,6 +681,133 @@ serve(async (req: Request) => {
                     (params.text || '').slice(0, MAX_MESSAGE_LENGTH),
                 );
                 break;
+            case 'check-specialty-gate': {
+                // ── Specialty Disable Gate ───────────────────────
+                // Called after analyze-concern to check if the target
+                // specialty is temporarily disabled. Returns routing decision.
+                const targetSpecialty = params.specialty || '';
+                const concern = (params.concern || '').slice(0, MAX_MESSAGE_LENGTH);
+                const language = params.language || 'en';
+                const patientId = params.patientId || auth.userId;
+
+                // 1. Check if specialty is disabled
+                const { data: override } = await supabaseAdmin
+                    .from('specialty_overrides')
+                    .select('*')
+                    .eq('specialty', targetSpecialty)
+                    .eq('is_disabled', true)
+                    .maybeSingle();
+
+                if (!override) {
+                    // Specialty is active — proceed normally
+                    result = { allowed: true, specialty: targetSpecialty };
+                    break;
+                }
+
+                // 2. Specialty IS disabled — AI triage: can FM handle this?
+                const triageSystem = `You are a medical triage AI for cliniq.one. A medical specialty ("${targetSpecialty}") has been temporarily disabled on the platform.
+
+Determine if this patient's complaint could reasonably be managed by a Family Medicine / General Practitioner (GP) instead.
+
+GUIDELINES:
+- FM/GP CAN handle: common musculoskeletal pain (back pain, mild sprains, non-surgical joint pain), mild-moderate skin conditions (rashes, acne), general wellness, chronic disease management (diabetes, hypertension, cholesterol), common infections, minor acute illness, headaches, mild anxiety/stress, nutritional counseling, routine pediatric illnesses (cold, fever, ear infection)
+- FM/GP CANNOT adequately handle: active psychosis, severe psychiatric crises (suicidal ideation, self-harm), complex surgical conditions, fractures requiring specialist assessment, severe eating disorders, specialized pediatric conditions (developmental delays, congenital issues), conditions explicitly requiring specialist diagnostics or procedures
+
+Be GENEROUS toward FM capability — GPs are broadly trained. Only flag as "cannot manage" if specialist care is truly essential.
+
+Respond in JSON:
+{
+  "canBeManaged": boolean,
+  "confidence": number (0-100),
+  "reasoning": string (1-2 sentences explaining why FM can or cannot handle this),
+  "riskLevel": "low" | "medium" | "high"
+}`;
+
+                const triageResult = await callOpenAI(
+                    triageSystem,
+                    `Patient complaint: "${concern}"\nDisabled specialty: ${targetSpecialty}`,
+                    400,
+                );
+                const triage = safeJsonParse(triageResult, {
+                    canBeManaged: false,
+                    confidence: 50,
+                    reasoning: 'Unable to determine',
+                    riskLevel: 'medium' as const,
+                });
+
+                if (triage.canBeManaged) {
+                    // 3a. FM CAN handle — reroute
+                    if (override.mode === 'silent') {
+                        result = {
+                            allowed: false,
+                            redirected: true,
+                            mode: 'silent',
+                            fallback: 'family_medicine',
+                            originalSpecialty: targetSpecialty,
+                        };
+                    } else {
+                        // Announced mode — include admin reason + patient message
+                        const adminReasonLabel = override.reason_code === 'doctor_unavailable' ? 'The doctor for this specialty is currently unavailable'
+                            : override.reason_code === 'scheduling_conflict' ? 'There is a scheduling conflict for this specialty'
+                            : override.reason_code === 'system_maintenance' ? 'This specialty service is undergoing maintenance'
+                            : override.reason_code === 'quality_review' ? 'This specialty is currently under quality review'
+                            : override.reason_code === 'regulatory' ? 'Regulatory requirements have temporarily paused this specialty'
+                            : override.reason_code === 'staffing_shortage' ? 'We are experiencing a temporary staffing shortage in this specialty'
+                            : 'This specialty is temporarily unavailable';
+
+                        // Generate patient-friendly message if admin didn't provide one
+                        const patientMessage = override.patient_message || (
+                            language === 'ar'
+                                ? `نعتذر، خدمة ${targetSpecialty === 'orthopedics' ? 'جراحة العظام' : targetSpecialty === 'psychiatry' ? 'الطب النفسي' : targetSpecialty === 'dermatology' ? 'الأمراض الجلدية' : targetSpecialty === 'pediatrics' ? 'طب الأطفال' : targetSpecialty === 'diet' ? 'التغذية' : targetSpecialty} غير متاحة مؤقتاً. يمكننا تحويل استشارتك إلى طبيب أسرة مؤهل يمكنه مساعدتك.`
+                                : `We apologize, but our ${targetSpecialty.replace(/_/g, ' ')} service is temporarily unavailable. We can route your consultation to a qualified Family Medicine doctor who can assist you.`
+                        );
+
+                        result = {
+                            allowed: false,
+                            redirected: true,
+                            mode: 'announced',
+                            fallback: 'family_medicine',
+                            originalSpecialty: targetSpecialty,
+                            adminReason: adminReasonLabel,
+                            patientMessage,
+                            reasonText: override.reason_text,
+                        };
+                    }
+                } else {
+                    // 3b. FM CANNOT handle — block and log incident
+                    try {
+                        await supabaseAdmin
+                            .from('specialty_incidents')
+                            .insert({
+                                override_id: override.id,
+                                patient_id: patientId,
+                                specialty: targetSpecialty,
+                                chief_complaint: concern,
+                                ai_reasoning: triage.reasoning,
+                                ai_confidence: triage.confidence,
+                                status: 'open',
+                            });
+                    } catch (incidentErr) {
+                        console.error('Failed to log specialty incident:', incidentErr);
+                    }
+
+                    const apologyMessage = language === 'ar'
+                        ? `نعتذر بشدة، خدمة ${targetSpecialty === 'orthopedics' ? 'جراحة العظام' : targetSpecialty === 'psychiatry' ? 'الطب النفسي' : targetSpecialty === 'dermatology' ? 'الأمراض الجلدية' : targetSpecialty === 'pediatrics' ? 'طب الأطفال' : targetSpecialty === 'diet' ? 'التغذية' : targetSpecialty} غير متاحة حالياً، وشكواك تتطلب أخصائياً. نعتذر عن الإزعاج وقد تم إبلاغ الإدارة. سيتم التواصل معك في أقرب وقت.`
+                        : `We sincerely apologize, but our ${targetSpecialty.replace(/_/g, ' ')} service is currently unavailable, and your concern requires specialist attention that cannot be addressed by a general practitioner. Our administration has been notified and we will reach out to you as soon as this service is restored.`;
+
+                    result = {
+                        allowed: false,
+                        redirected: false,
+                        blocked: true,
+                        mode: override.mode,
+                        originalSpecialty: targetSpecialty,
+                        fallback: null,
+                        apologyMessage,
+                        riskLevel: triage.riskLevel,
+                    };
+                }
+                break;
+            }
             case 'chat':
                 // Legacy: client sends admin-configured prompt + conversation
                 result = {
@@ -1067,6 +1196,109 @@ Respond in JSON: { "improved": "the improved question text" }`;
                 const improveResult = await callOpenAI(improveSystem, `Doctor's question: ${rawQuestion}`, 300);
                 const parsed = safeJsonParse(improveResult, { improved: rawQuestion });
                 result = { improved: parsed.improved || rawQuestion };
+                break;
+            }
+            case 'resolve-locum': {
+                // ── Locum Doctor Code Lookup ────────────────────
+                // Patient enters a doctor code on the intake index page.
+                // We resolve it to a doctor record and return a locum greeting prompt.
+                const code = (params.code || '').trim().toUpperCase();
+
+                if (!code) {
+                    return new Response(
+                        JSON.stringify({ error: 'code is required' }),
+                        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                    );
+                }
+
+                // Look up doctor by locum_code
+                const { data: doctor, error: docErr } = await supabaseAdmin
+                    .from('doctors')
+                    .select('id, display_name, specialty, locum_code')
+                    .eq('locum_code', code)
+                    .eq('status', 'active')
+                    .maybeSingle();
+
+                if (docErr || !doctor) {
+                    result = { found: false };
+                    break;
+                }
+
+                // Fetch the locum greeting prompt template
+                const locumPrompt = await getPromptByType('locum_greeting');
+                const greetingPrompt = locumPrompt
+                    ? locumPrompt
+                        .replace(/\{\{doctor_name\}\}/g, doctor.display_name || '')
+                        .replace(/\{\{doctor_specialty\}\}/g, (doctor.specialty || '').replace(/_/g, ' '))
+                        .replace(/\{\{language\}\}/g, params.language === 'ar' ? 'Arabic' : 'English')
+                    : null;
+
+                result = {
+                    found: true,
+                    doctor: {
+                        id: doctor.id,
+                        display_name: doctor.display_name,
+                        specialty: doctor.specialty,
+                        locum_code: doctor.locum_code,
+                    },
+                    greetingPrompt,
+                };
+                break;
+            }
+            case 'analyze-integrity': {
+                // ── Chat Integrity Analysis ─────────────────────
+                // Silent node that runs after Patient Addendum.
+                // Analyzes the entire conversation for quality, timing, and fluidity.
+                // Returns a structured report for doctor confidence + admin analytics.
+                const conversationHistory = params.conversationHistory || [];
+                const sectionTimings = params.sectionTimings || {};
+                const metadata = params.metadata || {};
+
+                const integritySystemPrompt = `You are a medical AI intake quality analyst. Analyze the following patient intake conversation and return a JSON report assessing its integrity and quality.
+
+CONVERSATION METADATA:
+- Total duration: ${metadata.totalDurationMs ? Math.round(metadata.totalDurationMs / 1000) : 'unknown'}s
+- Pathway: ${metadata.pathway || 'unknown'}
+- Detected specialty: ${metadata.detectedSpecialty || 'unknown'}
+- Strike count (gibberish/violation): ${metadata.strikeCount ?? 0}
+- Violation types: ${JSON.stringify(metadata.violationTypes || [])}
+
+SECTION TIMINGS:
+${JSON.stringify(sectionTimings, null, 2)}
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "confidence_score": <number 0-100, overall confidence the intake data is reliable>,
+  "fluidity_score": <number 0-100, how smoothly the conversation flowed>,
+  "completion_rate": <number 0-100, percentage of expected information gathered>,
+  "red_flags": [<array of string descriptions of any concerning patterns>],
+  "section_quality": {
+    "<section_key>": { "score": <0-100>, "note": "<brief assessment>" }
+  },
+  "patient_engagement": "<low|medium|high>",
+  "response_consistency": "<low|medium|high>",
+  "estimated_reliability": "<unreliable|low|moderate|high|very_high>",
+  "summary": "<1-2 sentence overall assessment>",
+  "interruption_count": <number of apparent session interruptions>,
+  "avg_response_time_category": "<fast|normal|slow|very_slow>"
+}`;
+
+                const integrityUserPrompt = `Analyze this intake conversation:\n\n${JSON.stringify(conversationHistory.slice(-60))}`;
+
+                const integrityRaw = await callOpenAI(integritySystemPrompt, integrityUserPrompt, 1500);
+                result = safeJsonParse(integrityRaw, {
+                    confidence_score: 50,
+                    fluidity_score: 50,
+                    completion_rate: 50,
+                    red_flags: [],
+                    section_quality: {},
+                    patient_engagement: 'medium',
+                    response_consistency: 'medium',
+                    estimated_reliability: 'moderate',
+                    summary: 'Analysis could not be completed.',
+                    interruption_count: 0,
+                    avg_response_time_category: 'normal',
+                });
                 break;
             }
             default:

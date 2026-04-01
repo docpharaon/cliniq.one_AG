@@ -1,5 +1,3 @@
-'use client';
-
 import { Search, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useState } from 'react';
 

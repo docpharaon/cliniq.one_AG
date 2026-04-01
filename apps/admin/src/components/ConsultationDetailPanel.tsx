@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import {
     X, Clock, AlertTriangle, CheckCircle2, Archive, Trash2,

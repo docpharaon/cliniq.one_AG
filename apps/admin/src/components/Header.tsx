@@ -1,8 +1,7 @@
-'use client';
-
 import { Search, Settings, Menu } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import NotificationDropdown from './NotificationDropdown';
+import { haptic } from '@/lib/useHaptics';
 
 interface HeaderProps {
     title: string;
@@ -27,8 +26,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <div className="flex items-center gap-3 min-w-0">
                 {isMobile && (
                     <button
-                        onClick={openMobile}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent-faded transition-colors text-text-secondary flex-shrink-0"
+                        onClick={() => { haptic.light(); openMobile(); }}
+                        className="pressable w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent-faded transition-colors text-text-secondary flex-shrink-0"
                         aria-label="Open menu"
                     >
                         <Menu className="w-5 h-5" />

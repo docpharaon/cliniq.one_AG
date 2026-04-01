@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { fetchAuditLog } from '@/lib/actions';
 import { Loader2, Search, Shield, Clock, ChevronLeft, ChevronRight } from 'lucide-react';

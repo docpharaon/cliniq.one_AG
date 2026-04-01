@@ -13,23 +13,30 @@ function pickEnv(...candidates: (string | undefined)[]): string {
     return '';
 }
 
+// Safely read import.meta.env (Vite) — not available in all environments
+const viteEnv: Record<string, string | undefined> = typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env : {};
+
 export const ENV = {
     SUPABASE_URL: pickEnv(
+        viteEnv.VITE_SUPABASE_URL,
         process.env.EXPO_PUBLIC_SUPABASE_URL,
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_URL,
     ),
     SUPABASE_ANON_KEY: pickEnv(
+        viteEnv.VITE_SUPABASE_ANON_KEY,
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         process.env.SUPABASE_ANON_KEY,
     ),
     GOOGLE_WEB_CLIENT_ID: pickEnv(
+        viteEnv.VITE_GOOGLE_WEB_CLIENT_ID,
         process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         process.env.GOOGLE_WEB_CLIENT_ID,
     ),
     APP_ENV: (pickEnv(
+        viteEnv.VITE_APP_ENV,
         process.env.EXPO_PUBLIC_APP_ENV,
         process.env.NEXT_PUBLIC_APP_ENV,
         process.env.APP_ENV,

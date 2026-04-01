@@ -547,6 +547,52 @@ export async function getActiveLocums() {
     return (data ?? []).map(d => ({ ...d, consultation_count: countMap[d.id] || 0 }));
 }
 
+// ── Locum Codes (AI Routing) ─────────────────
+export async function getLocumCodeDoctors() {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, locum_code, doctor_type, status, created_at')
+        .not('locum_code', 'is', null)
+        .order('created_at', { ascending: false });
+    if (error) { console.error('[getLocumCodeDoctors]', error.message); return []; }
+    return data ?? [];
+}
+
+export function generateLocumCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = 'LC-';
+    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+export async function assignLocumCode(doctorId: string, code: string) {
+    const { error } = await supabaseAdmin
+        .from('doctors')
+        .update({ locum_code: code })
+        .eq('id', doctorId);
+    if (error) { console.error('[assignLocumCode]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function revokeLocumCode(doctorId: string) {
+    const { error } = await supabaseAdmin
+        .from('doctors')
+        .update({ locum_code: null })
+        .eq('id', doctorId);
+    if (error) { console.error('[revokeLocumCode]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function searchDoctorsForLocum(query: string) {
+    const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, doctor_type, locum_code')
+        .or(`display_name.ilike.%${query}%,full_name.ilike.%${query}%`)
+        .limit(10);
+    if (error) { console.error('[searchDoctorsForLocum]', error.message); return []; }
+    return data ?? [];
+}
+
 export async function suspendLocum(doctorId: string) {
     const { data: doc } = await supabaseAdmin.from('doctors').select('status').eq('id', doctorId).single();
     const newStatus = doc?.status === 'suspended' ? 'active' : 'suspended';
@@ -1572,6 +1618,8 @@ export async function clonePromptSequence(sourceId: string, newName: string) {
                 sort_order: node.sort_order,
                 pathway_condition: node.pathway_condition,
                 gender_condition: node.gender_condition,
+                specialty_condition: node.specialty_condition,
+                node_type: node.node_type,
                 parent_node_id: null, // set in second pass
             })
             .select()
@@ -1608,6 +1656,8 @@ export async function createSequenceNode(node: {
     parent_node_id?: string | null;
     pathway_condition?: string | null;
     gender_condition?: string | null;
+    specialty_condition?: string | null;
+    node_type?: string;
 }) {
     const { data, error } = await supabaseAdmin
         .from('prompt_sequence_nodes')
@@ -1627,6 +1677,8 @@ export async function updateSequenceNode(id: string, updates: {
     parent_node_id?: string | null;
     pathway_condition?: string | null;
     gender_condition?: string | null;
+    specialty_condition?: string | null;
+    node_type?: string;
 }) {
     const { data, error } = await supabaseAdmin
         .from('prompt_sequence_nodes')
@@ -1657,6 +1709,57 @@ export async function reorderSequenceNodes(sequenceId: string, orderedIds: strin
     );
     await Promise.all(updates);
     return { success: true };
+}
+
+// ──────────────────────────────────────────
+// Integrity Report Analytics
+// ──────────────────────────────────────────
+
+export async function getIntegrityReportStats() {
+    // Fetch the most recent integrity reports from intake_sessions
+    const { data, error } = await supabaseAdmin
+        .from('intake_sessions')
+        .select('id, integrity_report, created_at, specialty, status')
+        .not('integrity_report', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+    if (error) {
+        console.error('[getIntegrityReportStats]', error.message);
+        return { reports: [], stats: null };
+    }
+
+    const reports = data ?? [];
+    if (reports.length === 0) {
+        return { reports: [], stats: null };
+    }
+
+    // Compute aggregate stats
+    let totalConfidence = 0;
+    let totalFluidity = 0;
+    let totalCompletion = 0;
+    let totalRedFlags = 0;
+
+    for (const r of reports) {
+        const ir = r.integrity_report as Record<string, unknown> | null;
+        if (!ir) continue;
+        totalConfidence += (ir.confidence_score as number) || 0;
+        totalFluidity += (ir.fluidity_score as number) || 0;
+        totalCompletion += (ir.completion_rate as number) || 0;
+        totalRedFlags += ((ir.red_flags as unknown[]) || []).length;
+    }
+
+    const count = reports.length;
+    return {
+        reports: reports.slice(0, 20), // Return top 20 for display
+        stats: {
+            avgConfidence: Math.round(totalConfidence / count),
+            avgFluidity: Math.round(totalFluidity / count),
+            avgCompletion: Math.round(totalCompletion / count),
+            totalRedFlags,
+            totalReports: count,
+        },
+    };
 }
 
 // ──────────────────────────────────────────
@@ -2422,4 +2525,642 @@ export async function searchUsersForNotification(search: string, role?: 'patient
     const { data, error } = await query;
     if (error) { console.error('[searchUsersForNotification]', error.message); return []; }
     return data ?? [];
+}
+
+// ──────────────────────────────────────────
+// Doctor Applications (Admin Review Pipeline)
+// ──────────────────────────────────────────
+
+/** Fire-and-forget email notification via the application-notification edge function */
+async function sendApplicationNotification(payload: {
+    type: 'application_received' | 'interview_scheduled' | 'approved' | 'rejected' | 'resubmission_requested';
+    doctor_name: string;
+    doctor_email: string;
+    interview_date?: string;
+    interview_type?: string;
+    interview_url?: string;
+    interview_phone?: string;
+    rejection_reason?: string;
+    resubmission_feedback?: string;
+}) {
+    try {
+        const { error } = await supabaseAdmin.functions.invoke('application-notification', {
+            body: payload,
+        });
+        if (error) console.error('[sendApplicationNotification]', error.message);
+    } catch (err) {
+        // Non-blocking — don't fail the status transition if email fails
+        console.error('[sendApplicationNotification] edge function error:', err);
+    }
+}
+
+export async function getApplications(
+    status?: string, page = 1, perPage = 20, search?: string
+) {
+    let query = supabaseAdmin
+        .from('doctor_applications')
+        .select('*', { count: 'exact' })
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .range((page - 1) * perPage, page * perPage - 1);
+
+    if (status && status !== 'all') {
+        query = query.eq('status', status);
+    }
+    if (search) {
+        query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,license_number.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query;
+    if (error) { console.error('[getApplications]', error.message); return { data: [], total: 0, error: error.message }; }
+    return { data: data ?? [], total: count ?? 0, error: null };
+}
+
+export async function getApplicationById(id: string) {
+    const { data, error } = await supabaseAdmin
+        .from('doctor_applications')
+        .select(`
+            *,
+            documents:doctor_application_documents(*),
+            audit:doctor_application_audit(*)
+        `)
+        .eq('id', id)
+        .single();
+
+    if (error) { console.error('[getApplicationById]', error.message); return null; }
+    return data;
+}
+
+export async function getApplicationStats() {
+    const statuses = ['submitted', 'documents_review', 'interview_scheduled', 'interview_completed', 'approved', 'rejected', 'resubmission_requested'];
+    const result: Record<string, number> = {};
+
+    for (const status of statuses) {
+        const { count } = await supabaseAdmin
+            .from('doctor_applications')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', status);
+        result[status] = count ?? 0;
+    }
+    return result;
+}
+
+export async function moveApplicationToDocumentsReview(applicationId: string, adminId: string) {
+    const { data: app } = await supabaseAdmin
+        .from('doctor_applications')
+        .select('status')
+        .eq('id', applicationId)
+        .single();
+
+    const oldStatus = app?.status || 'submitted';
+
+    const { error } = await supabaseAdmin
+        .from('doctor_applications')
+        .update({ status: 'documents_review', reviewed_by: adminId })
+        .eq('id', applicationId);
+
+    if (error) { console.error('[moveToDocumentsReview]', error.message); return { error: error.message }; }
+
+    await supabaseAdmin.from('doctor_application_audit').insert({
+        application_id: applicationId,
+        action: 'documents_review',
+        performed_by: adminId,
+        old_status: oldStatus,
+        new_status: 'documents_review',
+    });
+
+    return { error: null };
+}
+
+export async function scheduleInterview(
+    applicationId: string,
+    adminId: string,
+    scheduledAt: string,
+    interviewType: 'video_call' | 'phone_call',
+    meetingUrl?: string,
+    phoneNumber?: string,
+    notes?: string,
+) {
+    const { data: app } = await supabaseAdmin
+        .from('doctor_applications')
+        .select('status')
+        .eq('id', applicationId)
+        .single();
+
+    const oldStatus = app?.status || 'documents_review';
+
+    const { error } = await supabaseAdmin
+        .from('doctor_applications')
+        .update({
+            status: 'interview_scheduled',
+            interview_scheduled_at: scheduledAt,
+            interview_type: interviewType,
+            interview_meeting_url: meetingUrl || null,
+            interview_phone_number: phoneNumber || null,
+            interview_notes: notes || null,
+            reviewed_by: adminId,
+        })
+        .eq('id', applicationId);
+
+    if (error) { console.error('[scheduleInterview]', error.message); return { error: error.message }; }
+
+    await supabaseAdmin.from('doctor_application_audit').insert({
+        application_id: applicationId,
+        action: 'interview_scheduled',
+        performed_by: adminId,
+        old_status: oldStatus,
+        new_status: 'interview_scheduled',
+        metadata: { scheduled_at: scheduledAt, type: interviewType },
+    });
+
+    // Notify doctor
+    const { data: appData } = await supabaseAdmin.from('doctor_applications').select('full_name, email').eq('id', applicationId).single();
+    if (appData) {
+        sendApplicationNotification({
+            type: 'interview_scheduled',
+            doctor_name: appData.full_name,
+            doctor_email: appData.email,
+            interview_date: scheduledAt,
+            interview_type: interviewType,
+            interview_url: meetingUrl,
+            interview_phone: phoneNumber,
+        });
+    }
+
+    return { error: null };
+}
+
+export async function completeInterview(applicationId: string, adminId: string, notes?: string) {
+    const { error } = await supabaseAdmin
+        .from('doctor_applications')
+        .update({
+            status: 'interview_completed',
+            interview_completed_at: new Date().toISOString(),
+            interview_notes: notes || null,
+            reviewed_by: adminId,
+        })
+        .eq('id', applicationId);
+
+    if (error) { console.error('[completeInterview]', error.message); return { error: error.message }; }
+
+    await supabaseAdmin.from('doctor_application_audit').insert({
+        application_id: applicationId,
+        action: 'interview_completed',
+        performed_by: adminId,
+        old_status: 'interview_scheduled',
+        new_status: 'interview_completed',
+    });
+
+    return { error: null };
+}
+
+export async function approveApplication(applicationId: string, adminId: string, reviewNotes?: string) {
+    // 1. Get the application
+    const { data: app, error: fetchErr } = await supabaseAdmin
+        .from('doctor_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+
+    if (fetchErr || !app) {
+        return { error: fetchErr?.message || 'Application not found' };
+    }
+
+    const oldStatus = app.status;
+
+    // 2. Create the doctors row
+    const isLocum = app.doctor_type === 'locum';
+    const { error: doctorErr } = await supabaseAdmin.from('doctors').insert({
+        user_id: app.user_id,
+        full_name: app.full_name,
+        display_name: app.display_name,
+        license_number: app.license_number,
+        license_authority: app.license_authority,
+        specialty: app.specialty,
+        sub_specialty: app.sub_specialty,
+        years_experience: app.years_experience,
+        languages: app.languages,
+        hospital: app.hospital,
+        city: app.city,
+        bio: app.bio,
+        status: 'active',
+        verified_at: new Date().toISOString(),
+        verified_by: adminId,
+        doctor_type: app.doctor_type || 'permanent',
+        disclaimer_accepted_at: app.disclaimer_accepted_at,
+        // Locum-specific fields
+        ...(isLocum ? {
+            onboarding_status: 'approved',
+            credential_expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
+        } : {}),
+    });
+
+    if (doctorErr) {
+        console.error('[approveApplication:doctors]', doctorErr.message);
+        return { error: 'Failed to create doctor profile: ' + doctorErr.message };
+    }
+
+    // 3. Update users row
+    await supabaseAdmin.from('users').update({
+        role: 'doctor',
+        status: 'active',
+    }).eq('id', app.user_id);
+
+    // 4. Mark application as approved
+    const { error: updateErr } = await supabaseAdmin
+        .from('doctor_applications')
+        .update({
+            status: 'approved',
+            reviewed_by: adminId,
+            review_notes: reviewNotes || null,
+        })
+        .eq('id', applicationId);
+
+    if (updateErr) { console.error('[approveApplication:update]', updateErr.message); }
+
+    // 5. Verify all documents
+    await supabaseAdmin
+        .from('doctor_application_documents')
+        .update({ verified: true, verified_by: adminId, verified_at: new Date().toISOString() })
+        .eq('application_id', applicationId);
+
+    // 6. Audit trail
+    await supabaseAdmin.from('doctor_application_audit').insert({
+        application_id: applicationId,
+        action: 'approved',
+        performed_by: adminId,
+        old_status: oldStatus,
+        new_status: 'approved',
+        metadata: { review_notes: reviewNotes },
+    });
+
+    // Notify doctor
+    sendApplicationNotification({
+        type: 'approved',
+        doctor_name: app.full_name,
+        doctor_email: app.email,
+    });
+
+    return { error: null };
+}
+
+export async function rejectApplication(applicationId: string, adminId: string, reason: string) {
+    const { data: app } = await supabaseAdmin
+        .from('doctor_applications')
+        .select('status')
+        .eq('id', applicationId)
+        .single();
+
+    const oldStatus = app?.status || 'submitted';
+
+    const { error } = await supabaseAdmin
+        .from('doctor_applications')
+        .update({
+            status: 'rejected',
+            reviewed_by: adminId,
+            rejection_reason: reason,
+        })
+        .eq('id', applicationId);
+
+    if (error) { console.error('[rejectApplication]', error.message); return { error: error.message }; }
+
+    await supabaseAdmin.from('doctor_application_audit').insert({
+        application_id: applicationId,
+        action: 'rejected',
+        performed_by: adminId,
+        old_status: oldStatus,
+        new_status: 'rejected',
+        metadata: { reason },
+    });
+
+    // Notify doctor
+    const { data: rejApp } = await supabaseAdmin.from('doctor_applications').select('full_name, email').eq('id', applicationId).single();
+    if (rejApp) {
+        sendApplicationNotification({
+            type: 'rejected',
+            doctor_name: rejApp.full_name,
+            doctor_email: rejApp.email,
+            rejection_reason: reason,
+        });
+    }
+
+    return { error: null };
+}
+
+export async function requestApplicationResubmission(applicationId: string, adminId: string, feedback: string) {
+    const { data: app } = await supabaseAdmin
+        .from('doctor_applications')
+        .select('status')
+        .eq('id', applicationId)
+        .single();
+
+    const oldStatus = app?.status || 'submitted';
+
+    const { error } = await supabaseAdmin
+        .from('doctor_applications')
+        .update({
+            status: 'resubmission_requested',
+            reviewed_by: adminId,
+            resubmission_feedback: feedback,
+        })
+        .eq('id', applicationId);
+
+    if (error) { console.error('[requestResubmission]', error.message); return { error: error.message }; }
+
+    await supabaseAdmin.from('doctor_application_audit').insert({
+        application_id: applicationId,
+        action: 'resubmission_requested',
+        performed_by: adminId,
+        old_status: oldStatus,
+        new_status: 'resubmission_requested',
+        metadata: { feedback },
+    });
+
+    // Notify doctor
+    const { data: resubApp } = await supabaseAdmin.from('doctor_applications').select('full_name, email').eq('id', applicationId).single();
+    if (resubApp) {
+        sendApplicationNotification({
+            type: 'resubmission_requested',
+            doctor_name: resubApp.full_name,
+            doctor_email: resubApp.email,
+            resubmission_feedback: feedback,
+        });
+    }
+
+    return { error: null };
+}
+
+export async function getApplicationDocumentsAdmin(applicationId: string) {
+    const { data, error } = await supabaseAdmin
+        .from('doctor_application_documents')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('uploaded_at', { ascending: true });
+
+    if (error) { console.error('[getApplicationDocuments]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function getApplicationDocumentSignedUrl(storagePath: string) {
+    const { data, error } = await supabaseAdmin.storage
+        .from('doctor-applications')
+        .createSignedUrl(storagePath, 3600);
+
+    if (error) { console.error('[getDocumentSignedUrl]', error.message); return null; }
+    return data.signedUrl;
+}
+
+// ──────────────────────────────────────────
+// Specialty Overrides (Temporary Disable)
+// ──────────────────────────────────────────
+
+/**
+ * Get all active specialty overrides (disabled specialties).
+ */
+export async function getActiveSpecialtyOverrides() {
+    const { data, error } = await supabaseAdmin
+        .from('specialty_overrides')
+        .select('*, admin:users!specialty_overrides_disabled_by_fkey(nickname, email)')
+        .eq('is_disabled', true)
+        .order('disabled_at', { ascending: false });
+
+    if (error) { console.error('[getActiveSpecialtyOverrides]', error.message); return []; }
+    return (data ?? []).map((o: Record<string, unknown>) => ({
+        ...o,
+        admin_name: (o.admin as { nickname?: string } | null)?.nickname ?? 'Unknown',
+        admin: undefined,
+    }));
+}
+
+/**
+ * Get all specialty overrides (active + history).
+ */
+export async function getSpecialtyOverrideHistory(specialty?: string) {
+    let query = supabaseAdmin
+        .from('specialty_overrides')
+        .select('*, admin:users!specialty_overrides_disabled_by_fkey(nickname)')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+    if (specialty) {
+        query = query.eq('specialty', specialty);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('[getSpecialtyOverrideHistory]', error.message); return []; }
+    return (data ?? []).map((o: Record<string, unknown>) => ({
+        ...o,
+        admin_name: (o.admin as { nickname?: string } | null)?.nickname ?? 'Unknown',
+        admin: undefined,
+    }));
+}
+
+/**
+ * Disable a specialty.
+ */
+export async function disableSpecialty(params: {
+    specialty: string;
+    mode: 'silent' | 'announced';
+    reasonCode: string;
+    reasonText: string;
+    patientMessage?: string;
+    adminUserId: string;
+}) {
+    // Safety: family_medicine can never be disabled
+    if (params.specialty === 'family_medicine') {
+        return { data: null, error: 'Family Medicine is the universal fallback and cannot be disabled.' };
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from('specialty_overrides')
+        .insert({
+            specialty: params.specialty,
+            is_disabled: true,
+            mode: params.mode,
+            reason_code: params.reasonCode,
+            reason_text: params.reasonText,
+            patient_message: params.patientMessage || null,
+            disabled_by: params.adminUserId,
+            disabled_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+    if (error) {
+        // Unique constraint violation = specialty already disabled
+        if (error.code === '23505') {
+            return { data: null, error: 'This specialty is already disabled.' };
+        }
+        console.error('[disableSpecialty]', error.message);
+        return { data: null, error: error.message };
+    }
+
+    // Best-effort audit
+    try {
+        await supabaseAdmin.from('consultation_audit_log').insert({
+            consultation_id: null,
+            action: 'specialty_disabled',
+            performed_by: params.adminUserId,
+            metadata: {
+                specialty: params.specialty,
+                mode: params.mode,
+                reason_code: params.reasonCode,
+                reason_text: params.reasonText,
+            },
+        });
+    } catch { /* non-blocking */ }
+
+    return { data, error: null };
+}
+
+/**
+ * Restore (re-enable) a specialty.
+ */
+export async function restoreSpecialty(overrideId: string, adminUserId: string) {
+    const { data, error } = await supabaseAdmin
+        .from('specialty_overrides')
+        .update({
+            is_disabled: false,
+            restored_by: adminUserId,
+            restored_at: new Date().toISOString(),
+        })
+        .eq('id', overrideId)
+        .eq('is_disabled', true)
+        .select()
+        .single();
+
+    if (error) { console.error('[restoreSpecialty]', error.message); return { data: null, error: error.message }; }
+
+    // Best-effort audit
+    try {
+        await supabaseAdmin.from('consultation_audit_log').insert({
+            consultation_id: null,
+            action: 'specialty_restored',
+            performed_by: adminUserId,
+            metadata: {
+                specialty: data.specialty,
+                override_id: overrideId,
+            },
+        });
+    } catch { /* non-blocking */ }
+
+    return { data, error: null };
+}
+
+/**
+ * Get specialty incidents with optional filters.
+ */
+export async function getSpecialtyIncidents(params?: {
+    status?: string;
+    specialty?: string;
+    limit?: number;
+}) {
+    let query = supabaseAdmin
+        .from('specialty_incidents')
+        .select(`
+            *,
+            patient:users!specialty_incidents_patient_id_fkey(nickname, email),
+            override:specialty_overrides!specialty_incidents_override_id_fkey(mode, reason_code, reason_text)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(params?.limit ?? 50);
+
+    if (params?.status && params.status !== 'all') {
+        query = query.eq('status', params.status);
+    }
+    if (params?.specialty) {
+        query = query.eq('specialty', params.specialty);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('[getSpecialtyIncidents]', error.message); return []; }
+    return (data ?? []).map((inc: Record<string, unknown>) => ({
+        ...inc,
+        patient_name: (inc.patient as { nickname?: string } | null)?.nickname ?? 'Unknown',
+        patient_email: (inc.patient as { email?: string } | null)?.email ?? '',
+        override_mode: (inc.override as { mode?: string } | null)?.mode ?? 'unknown',
+        override_reason: (inc.override as { reason_code?: string } | null)?.reason_code ?? 'unknown',
+        patient: undefined,
+        override: undefined,
+    }));
+}
+
+/**
+ * Update an incident (acknowledge, add notes, resolve).
+ */
+export async function updateSpecialtyIncident(incidentId: string, updates: {
+    status?: string;
+    admin_notes?: string;
+    resolved_by?: string;
+}) {
+    const updatePayload: Record<string, unknown> = {};
+    if (updates.status) updatePayload.status = updates.status;
+    if (updates.admin_notes !== undefined) updatePayload.admin_notes = updates.admin_notes;
+    if (updates.status === 'resolved' && updates.resolved_by) {
+        updatePayload.resolved_by = updates.resolved_by;
+        updatePayload.resolved_at = new Date().toISOString();
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from('specialty_incidents')
+        .update(updatePayload)
+        .eq('id', incidentId)
+        .select()
+        .single();
+
+    if (error) { console.error('[updateSpecialtyIncident]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+/**
+ * Get open incident count (for dashboard alert badge).
+ */
+export async function getOpenSpecialtyIncidentCount() {
+    const { count, error } = await supabaseAdmin
+        .from('specialty_incidents')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'open');
+
+    if (error) { console.error('[getOpenSpecialtyIncidentCount]', error.message); return 0; }
+    return count ?? 0;
+}
+
+/**
+ * Get count of currently disabled specialties (for dashboard alert).
+ */
+export async function getDisabledSpecialtyCount() {
+    const { count, error } = await supabaseAdmin
+        .from('specialty_overrides')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_disabled', true);
+
+    if (error) { console.error('[getDisabledSpecialtyCount]', error.message); return 0; }
+    return count ?? 0;
+}
+
+// ──────────────────────────────────────────
+// Audit Log
+// ──────────────────────────────────────────
+
+export async function getAuditLog(page = 1, perPage = 20, search?: string) {
+    let query = supabaseAdmin
+        .from('audit_log')
+        .select('*, actor:users!audit_log_actor_id_fkey(nickname, email)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range((page - 1) * perPage, page * perPage - 1);
+
+    if (search) {
+        query = query.or(`action.ilike.%${search}%,entity_type.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query;
+    if (error) { console.error('[getAuditLog]', error.message); return { data: [], total: 0, error: error.message }; }
+
+    const rows = (data ?? []).map((row: Record<string, unknown>) => ({
+        ...row,
+        actor_name: (row.actor as { nickname?: string } | null)?.nickname ?? 'System',
+        actor_email: (row.actor as { email?: string } | null)?.email ?? '',
+        actor: undefined,
+    }));
+
+    return { data: rows, total: count ?? 0, error: null };
 }
