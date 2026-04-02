@@ -111,10 +111,28 @@ function detectSoftRedirect(aiResponse: string): string | null {
     return isRedirect ? 'off_topic' : null;
 }
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-key',
-};
+// ── CORS: restrict to known origins ──────────────────────
+const ALLOWED_ORIGINS = [
+    'http://localhost:3001',    // admin panel dev
+    'http://localhost:5173',    // vite dev
+    'http://localhost:8081',    // expo dev
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:8081',
+    'capacitor://localhost',    // iOS Capacitor
+    'http://localhost',         // Android Capacitor
+];
+
+function getCorsHeaders(req: Request) {
+    const origin = req.headers.get('origin') || '';
+    // Allow null origin for mobile apps (Capacitor sends no origin)
+    const isAllowed = !origin || ALLOWED_ORIGINS.includes(origin);
+    return {
+        'Access-Control-Allow-Origin': isAllowed ? (origin || '*') : ALLOWED_ORIGINS[0],
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-key',
+        'Vary': 'Origin',
+    };
+}
 
 // ── Singleton Supabase admin client ─────────────
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -127,20 +145,30 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 async function verifyAuth(req: Request): Promise<{ userId: string; isAdmin?: boolean } | null> {
     // Admin bypass via service-role key header
     const adminKey = req.headers.get('x-admin-key');
+    console.log('[verifyAuth] x-admin-key present:', !!adminKey, 'serviceKey present:', !!supabaseServiceKey, 'match:', adminKey === supabaseServiceKey);
     if (adminKey && adminKey === supabaseServiceKey) {
         return { userId: 'admin', isAdmin: true };
     }
 
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) return null;
+    if (!authHeader) { console.log('[verifyAuth] no authorization header'); return null; }
+
+    const token = authHeader.replace('Bearer ', '');
+    console.log('[verifyAuth] token length:', token.length, 'serviceKey length:', supabaseServiceKey.length, 'bearer match:', token === supabaseServiceKey);
+
+    // Admin bypass: service-role key passed as Bearer token
+    if (token === supabaseServiceKey) {
+        return { userId: 'admin', isAdmin: true };
+    }
 
     try {
-        const token = authHeader.replace('Bearer ', '');
         // Use admin client to verify user token (avoids anon key format issues)
         const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+        console.log('[verifyAuth] getUser result:', { userId: user?.id, error: error?.message });
         if (error || !user) return null;
         return { userId: user.id };
-    } catch {
+    } catch (e) {
+        console.log('[verifyAuth] getUser exception:', e);
         return null;
     }
 }
@@ -613,6 +641,8 @@ Respond in JSON: [{ "name": string, "genericName": string|null, "dose": string|n
 
 // ── Main Handler ────────────────────────────────
 serve(async (req: Request) => {
+    const corsHeaders = getCorsHeaders(req);
+
     // CORS preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });

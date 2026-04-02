@@ -15,7 +15,7 @@ html, body, #root {
     height: 100%;
     width: 100%;
     overscroll-behavior: none;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -26,8 +26,9 @@ html {
 
 body {
     overflow: hidden;
-    background-color: #FFFFFF;
-    color: #1E293B;
+    background-color: var(--bg-primary, #FFFFFF);
+    color: var(--text-primary, #1E293B);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 /* Safe area insets for notched devices */
@@ -107,6 +108,44 @@ body {
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
     border-radius: 8px;
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Tab content crossfade ───────────────────────────────── */
+.tab-content {
+    animation: tabFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Pull to Refresh ─────────────────────────────────────── */
+@keyframes ptr-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── Slide-in Page Transition ────────────────────────────── */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(30%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.slide-in-page {
+    animation: slideInFromRight 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 /* ── Toast notification ───────────────────────────────────── */
@@ -288,3 +327,173 @@ input[type="file"] {
 .file-upload-label:hover {
     opacity: 0.8;
 }
+
+/* ── Material Symbols Rounded (icons) ────────────────────── */
+.mi {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga';
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* RTL flip for directional icons (arrows, chevrons) */
+[dir="rtl"] .flip-rtl {
+    transform: scaleX(-1);
+}
+
+/* ── Glassmorphism utilities ──────────────────────────────── */
+.glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid #DEE5ED;
+}
+
+.glass-premium {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid #DEE5ED;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Card base ───────────────────────────────────────────── */
+.card {
+    background: #FFFFFF;
+    border: 1px solid #DEE5ED;
+    border-radius: 18px;
+    padding: 20px;
+}
+
+/* ── Badge utilities ──────────────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ── Mockup animations ───────────────────────────────────── */
+@keyframes screenIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bubbleIn {
+    0%   { opacity: 0; transform: scale(0.85) translateY(8px); }
+    60%  { opacity: 1; transform: scale(1.02) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(26, 138, 158, 0); }
+    50%      { box-shadow: 0 0 20px 4px rgba(26, 138, 158, 0.15); }
+}
+
+@keyframes typingDot {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30%           { opacity: 1;   transform: translateY(-4px); }
+}
+
+.screen-enter {
+    animation: screenIn 0.35s ease forwards;
+}
+
+.bubble-in {
+    animation: bubbleIn 0.4s ease forwards;
+}
+
+.pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* ── Typing indicator dots ───────────────────────────────── */
+.typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94A3B8;
+    margin: 0 2px;
+}
+
+.typing-dots span:nth-child(1) { animation: typingDot 1.4s ease-in-out infinite; }
+.typing-dots span:nth-child(2) { animation: typingDot 1.4s ease-in-out 0.2s infinite; }
+.typing-dots span:nth-child(3) { animation: typingDot 1.4s ease-in-out 0.4s infinite; }
+
+/* ── Brand Spinner (transition overlay) ──────────────────── */
+@keyframes brandSpinRing {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes brandLogoPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.04); opacity: 0.9; }
+}
+
+@keyframes brandDotBounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+    40%           { transform: translateY(-6px); opacity: 1; }
+}
+
+.brand-spinner-container {
+    animation: pageFadeIn 0.3s ease-out forwards;
+}
+
+.brand-spinner-ring-wrapper {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-spinner-ring {
+    position: absolute;
+    inset: 0;
+    animation: brandSpinRing 2s linear infinite;
+}
+
+.brand-spinner-logo {
+    position: relative;
+    z-index: 2;
+    animation: brandLogoPulse 2.4s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-spinner-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 20px;
+}
+
+.brand-spinner-dots span {
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1A8A9E, #3EC6D5);
+}
+
+.brand-spinner-dots span:nth-child(1) { animation: brandDotBounce 1.4s ease-in-out infinite; }
+.brand-spinner-dots span:nth-child(2) { animation: brandDotBounce 1.4s ease-in-out 0.16s infinite; }
+.brand-spinner-dots span:nth-child(3) { animation: brandDotBounce 1.4s ease-in-out 0.32s infinite; }

@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { createBrowserClient as createSSRBrowserClient } from '@supabase/ssr';
 
 // ──────────────────────────────────────────
 // Environment (client-safe — no server-only imports)
@@ -16,26 +15,46 @@ const supabaseAnonKey =
     '';
 
 // ──────────────────────────────────────────
-// Browser client — for client components (auth flow)
+// Browser client — singleton for SPA (localStorage-based)
+// Uses standard createClient which stores auth tokens and
+// PKCE code verifiers in localStorage, reliable across redirects.
 // ──────────────────────────────────────────
 
+let _browserClient: ReturnType<typeof createClient> | null = null;
+
 export function createBrowserSupabase() {
-    return createSSRBrowserClient(supabaseUrl, supabaseAnonKey);
+    if (!_browserClient) {
+        _browserClient = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                detectSessionInUrl: true,
+            },
+        });
+    }
+    return _browserClient;
 }
 
-/** Legacy browser client (kept for backward compat) */
+/** Legacy browser client — alias to singleton */
 export const supabase = supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
+    ? createBrowserSupabase()
     : (null as unknown as ReturnType<typeof createClient>);
 
 // ──────────────────────────────────────────
-// Admin client — bypasses RLS (server-side only)
-// On client side falls back to anon key so the import doesn't crash.
+// Admin client — bypasses RLS (uses service role key)
+// Auth management is disabled to avoid multiple GoTrueClient conflicts
+// in the browser (the auth singleton handles sessions).
 // ──────────────────────────────────────────
 
 const supabaseServiceKey =
-    (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) || supabaseAnonKey;
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY) ||
+    (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
+    supabaseAnonKey;
 export const supabaseAdmin = supabaseUrl && supabaseServiceKey
-    ? createClient(supabaseUrl, supabaseServiceKey)
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false,
+        },
+    })
     : (null as unknown as ReturnType<typeof createClient>);
 

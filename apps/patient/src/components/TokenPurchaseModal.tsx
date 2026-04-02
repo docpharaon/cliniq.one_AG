@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TOKEN_PACKAGES } from '@cliniqone/types';
 import type { TokenPackage } from '@cliniqone/types';
-import { t } from '@cliniqone/i18n';
+import { t, toLocalNum } from '@cliniqone/i18n';
 import { useToast } from './ToastProvider';
 import { usePurchase } from '../hooks/usePurchase';
 import { useAuthStore } from '../stores/authStore';
@@ -47,7 +47,7 @@ export function TokenPurchaseModal({ visible, onClose, currentBalance }: TokenPu
 
                 <h2 style={styles.title}>{t('tokens.buyTokens')}</h2>
                 <p style={styles.subtitle}>
-                    {t('tokens.currentBalance')}: <strong style={{ color: '#1A8A9E' }}>{currentBalance}</strong> {t('tokens.tokensLabel')}
+                    {t('tokens.currentBalance')}: <strong style={{ color: '#1A8A9E' }}>{toLocalNum(currentBalance)}</strong> {t('tokens.tokensLabel')}
                 </p>
 
                 <div style={styles.packages}>
@@ -71,11 +71,11 @@ export function TokenPurchaseModal({ visible, onClose, currentBalance }: TokenPu
                                     </span>
                                 )}
                                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, marginBottom: 4 }}>{pkg.name}</span>
-                                <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)' }}>{pkg.tokens}</span>
+                                <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)' }}>{toLocalNum(pkg.tokens)}</span>
                                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>{t('tokens.tokensLabel')}</span>
-                                <span style={{ fontSize: 17, fontWeight: 700, color: '#1A8A9E' }}>${pkg.price_usd.toFixed(2)}</span>
-                                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>({pkg.price_sar.toFixed(2)} SAR)</span>
-                                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>${perToken}/{t('tokens.perToken')}</span>
+                                <span style={{ fontSize: 17, fontWeight: 700, color: '#1A8A9E' }}>{toLocalNum(pkg.price_sar.toFixed(2))} <span style={{ fontSize: 12 }}>ر.س</span></span>
+                                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>(${toLocalNum(pkg.price_usd.toFixed(2))})</span>
+                                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>{toLocalNum(perToken)} {t('tokens.perToken')}</span>
                                 {isSelected && <span style={styles.checkmark}>✓</span>}
                             </button>
                         );

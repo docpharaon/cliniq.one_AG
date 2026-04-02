@@ -35,6 +35,7 @@ export default function ComplaintPage() {
                     onChange={e => setComplaint(e.target.value)}
                     placeholder={t('intake.complaintPlaceholder')}
                     rows={4}
+                    maxLength={500}
                     style={{
                         width: '100%', padding: '14px 16px', borderRadius: 12,
                         border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)',

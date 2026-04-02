@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import { colors, OfflineBanner } from '@cliniqone/ui';
+import { supabase } from '@cliniqone/api';
+import { OfflineBanner, ThemeProvider } from '@cliniqone/ui';
+import { initLocale } from '@cliniqone/i18n';
+import { App as CapApp } from '@capacitor/app';
+import { haptic } from './hooks/useHaptics';
 
 // Pages
 import { SplashPage } from './pages/SplashPage';
@@ -24,18 +28,44 @@ import { InterventionOrderPage } from './pages/consultation/InterventionOrderPag
 // Components
 import { TabBar } from './components/TabBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './components/ToastProvider';
+import { BrandSpinner } from './components/BrandSpinner';
 
 // ── Splash gate ──────────────────────────────────────────────
 let splashShown = false;
 export function markSplashShown() { splashShown = true; }
 
+// ── Session timeout (15 min inactivity lock) ─────────────────
+function useSessionTimeout(timeoutMs: number) {
+    const navigate = useNavigate();
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout>;
+        const reset = () => {
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                const { doctor } = useAuthStore.getState();
+                if (!doctor) return;
+                try { await supabase.auth.signOut(); } catch {}
+                useAuthStore.getState().clear();
+                navigate('/auth/landing', { replace: true });
+            }, timeoutMs);
+        };
+        const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+        events.forEach(e => window.addEventListener(e, reset, { passive: true }));
+        reset();
+        return () => {
+            clearTimeout(timer);
+            events.forEach(e => window.removeEventListener(e, reset));
+        };
+    }, [timeoutMs, navigate]);
+}
+
 // ── Tab layout wrapper ───────────────────────────────────────
 function TabLayout() {
+    const location = useLocation();
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-                <Outlet />
-            </div>
+            <div key={location.pathname} className="tab-content" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}><Outlet /></div>
             <TabBar />
         </div>
     );
@@ -81,32 +111,31 @@ function RootRedirect() {
     return <Navigate to="/tabs" replace />;
 }
 
-// ── Main App ─────────────────────────────────────────────────
-export function App() {
-    const { isReady, initialize } = useAuthStore();
+// ── App inner (with session timeout) ─────────────────────────
+function AppInner() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    useSessionTimeout(15 * 60 * 1000);
 
+    // Android hardware back button handler
     useEffect(() => {
-        initialize();
-    }, []);
-
-    if (!isReady) {
-        return (
-            <div style={{
-                display: 'flex',
-                flex: 1,
-                height: '100%',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: colors.bgPrimary,
-            }}>
-                <div className="spinner spinner-lg" style={{ color: colors.accentTeal }} />
-            </div>
-        );
-    }
+        const handler = CapApp.addListener('backButton', ({ canGoBack }) => {
+            haptic.light();
+            if (canGoBack) {
+                navigate(-1);
+            } else {
+                CapApp.exitApp();
+            }
+        });
+        return () => { handler.then(h => h.remove()); };
+    }, [navigate]);
 
     return (
-        <ErrorBoundary>
-            <OfflineBanner />
+        <ToastProvider>
+            <OfflineBanner
+                offlineText="No internet connection"
+                onlineText="Back online"
+            />
             <Routes>
                 <Route path="/" element={<RootRedirect />} />
                 <Route path="/splash" element={<SplashPage />} />
@@ -137,6 +166,22 @@ export function App() {
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-        </ErrorBoundary>
+        </ToastProvider>
     );
+}
+
+// ── Main App ─────────────────────────────────────────────────
+export function App() {
+    const { isReady, initialize } = useAuthStore();
+
+    useEffect(() => {
+        initLocale().catch(() => {});
+        initialize();
+    }, []);
+
+    if (!isReady) {
+        return <BrandSpinner />;
+    }
+
+    return <ErrorBoundary><ThemeProvider><AppInner /></ThemeProvider></ErrorBoundary>;
 }

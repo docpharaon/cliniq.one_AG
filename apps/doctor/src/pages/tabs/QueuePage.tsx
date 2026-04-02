@@ -4,6 +4,10 @@ import { haptic } from '../../hooks/useHaptics';
 import { colors, typography, ClipboardList, PartyPopper, Siren, Bot, Gem, CheckCircle, Clock } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { usePendingQueue, useClaimConsultation, useDoctorConsultations } from '../../hooks/useDoctorData';
+import { BrandSpinner } from '../../components/BrandSpinner';
+import { PullToRefresh } from '../../components/PullToRefresh';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { useToast } from '../../components/ToastProvider';
 import type { CSSProperties } from 'react';
 
 const sortOptions = ['By Priority', 'By Time', 'By Specialty'];
@@ -39,17 +43,31 @@ export function QueuePage() {
         return 0;
     });
 
+    const [showClaimDialog, setShowClaimDialog] = useState(false);
+    const [claimTargetId, setClaimTargetId] = useState<string | null>(null);
+    const toast = useToast((s) => s.show);
+
     const handleClaim = (consultationId: string) => {
         if (!doctor?.id) return;
-        if (!confirm('Accept this consultation?')) return;
+        setClaimTargetId(consultationId);
+        setShowClaimDialog(true);
+    };
+
+    const confirmClaim = () => {
+        if (!claimTargetId || !doctor?.id) return;
+        setShowClaimDialog(false);
         claimMutation.mutate(
-            { consultationId, doctorId: doctor.id },
+            { consultationId: claimTargetId, doctorId: doctor.id },
             {
-                onSuccess: () => alert('Consultation assigned to you.'),
-                onError: (err) => alert(err.message || 'Failed to claim'),
+                onSuccess: () => toast('Consultation assigned to you.', 'success'),
+                onError: (err) => toast(err.message || 'Failed to claim', 'error'),
             },
         );
     };
+
+    const onRefresh = useCallback(async () => {
+        await Promise.all([refetchPending(), refetchMy()]);
+    }, [refetchPending, refetchMy]);
 
     const getWaitTime = (createdAt: string) => {
         const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
@@ -58,6 +76,7 @@ export function QueuePage() {
     };
 
     return (
+        <PullToRefresh onRefresh={onRefresh}>
         <div style={s.container}>
             <div style={s.headerBar}>
                 <span style={s.title}><ClipboardList size={20} color={colors.textPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Consultation Queue</span>
@@ -87,7 +106,7 @@ export function QueuePage() {
                 <div style={s.listContent}>
                     {isLoading ? (
                         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40 }}>
-                            <div className="spinner" style={{ color: colors.accentTeal }} />
+                            <BrandSpinner fullScreen={false} />
                         </div>
                     ) : sorted.length === 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60 }}>
@@ -137,6 +156,17 @@ export function QueuePage() {
                 </div>
             </div>
         </div>
+
+        <ConfirmDialog
+            visible={showClaimDialog}
+            title="Accept Consultation"
+            message="This will assign the consultation to you. You'll need to respond within the SLA window."
+            confirmLabel="Accept"
+            cancelLabel="Cancel"
+            onConfirm={confirmClaim}
+            onCancel={() => setShowClaimDialog(false)}
+        />
+        </PullToRefresh>
     );
 }
 

@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap, Camera, RotateCcw, Clock, Coins, Heart, Plus, Trash2, GripVertical, Power, Bell, FileText, UserPlus, LogIn } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import { fetchSettings, savePlatformSetting, fetchAvgResponseTime, fetchHealthTips, addHealthTip, editHealthTip, removeHealthTip, fetchNotificationToggles, doSetNotificationToggle } from '@/lib/actions';
+import { fetchSettings, savePlatformSetting, fetchAvgResponseTime, fetchHealthTips, addHealthTip, editHealthTip, removeHealthTip, fetchNotificationToggles, doSetNotificationToggle, doTestOpenAIConnection } from '@/lib/actions';
 import { AI, CONSULT, PAYOUT, EXCHANGE, SECURITY, COUNTRIES } from '@cliniqone/config';
 
 type Setting = { id: string; key: string; value: string; category: string; description: string | null };
@@ -17,7 +17,7 @@ const AI_MODELS = [
 // Fallback to config values when DB settings table is empty
 const defaultSettings: Record<string, { label: string; items: { key: string; value: string }[] }> = {
     ai: {
-        label: '🤖 AI Configuration',
+        label: 'AI Configuration',
         items: [
             { key: 'Max Intake Rounds', value: String(AI.MAX_INTAKE_ROUNDS) },
             { key: 'Max Input Tokens', value: String(AI.MAX_INPUT_TOKENS) },
@@ -28,7 +28,7 @@ const defaultSettings: Record<string, { label: string; items: { key: string; val
         ],
     },
     consultations: {
-        label: '🩺 Consultations',
+        label: 'Consultations',
         items: [
             { key: 'Doctor Response Target', value: `${CONSULT.DOCTOR_RESPONSE_TARGET_MINUTES} min` },
             { key: 'Max Wait Time', value: `${CONSULT.MAX_WAIT_HOURS} hours` },
@@ -37,7 +37,7 @@ const defaultSettings: Record<string, { label: string; items: { key: string; val
         ],
     },
     payouts: {
-        label: '💸 Payouts',
+        label: 'Payouts',
         items: [
             { key: 'Min Balance (Tokens)', value: String(PAYOUT.MIN_BALANCE_TOKENS) },
             { key: 'Schedule', value: PAYOUT.SCHEDULE },
@@ -46,7 +46,7 @@ const defaultSettings: Record<string, { label: string; items: { key: string; val
         ],
     },
     pricing: {
-        label: '💰 Exchange Rates',
+        label: 'Exchange Rates',
         items: [
             { key: '1 Token = SAR', value: String(EXCHANGE.TOKEN_TO_SAR) },
             { key: '1 Token = USD', value: String(EXCHANGE.TOKEN_TO_USD) },
@@ -54,7 +54,7 @@ const defaultSettings: Record<string, { label: string; items: { key: string; val
         ],
     },
     security: {
-        label: '🔒 Security',
+        label: 'Security',
         items: [
             { key: 'Max Login Attempts', value: String(SECURITY.MAX_LOGIN_ATTEMPTS) },
             { key: 'Lockout Duration', value: `${SECURITY.LOCKOUT_MINUTES} min` },
@@ -64,7 +64,7 @@ const defaultSettings: Record<string, { label: string; items: { key: string; val
         ],
     },
     countries: {
-        label: '🌍 Supported Countries',
+        label: 'Supported Countries',
         items: COUNTRIES.map(c => ({
             key: `${c.flag} ${c.name}`,
             value: `${c.dialCode} / ${c.code}`,
@@ -139,24 +139,17 @@ function AIServiceConfig({
     };
 
     const handleTestConnection = async () => {
-        if (!apiKey.trim()) {
-            showToast('error', 'Enter an API key first');
-            return;
-        }
         setTesting(true);
         try {
-            const res = await fetch('https://api.openai.com/v1/models', {
-                headers: { Authorization: `Bearer ${apiKey.trim()}` },
-            });
-            if (res.ok) {
+            // C3 Fix: Test server-side — API key never sent to browser
+            const result = await doTestOpenAIConnection();
+            if (result.success) {
                 showToast('success', 'Connection successful — API key is valid ✓');
-            } else if (res.status === 401) {
-                showToast('error', 'Invalid API key — authentication failed');
             } else {
-                showToast('error', `OpenAI returned status ${res.status}`);
+                showToast('error', result.error || 'Connection test failed');
             }
         } catch {
-            showToast('error', 'Network error — could not reach OpenAI');
+            showToast('error', 'Failed to test connection');
         } finally {
             setTesting(false);
         }

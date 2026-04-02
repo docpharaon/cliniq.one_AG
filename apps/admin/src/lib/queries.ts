@@ -1828,6 +1828,85 @@ export async function getPlatformSetting(key: string) {
     return data?.value ?? null;
 }
 
+/**
+ * C3 Fix: Test OpenAI API key server-side.
+ * The key never leaves the server — the browser only gets a pass/fail result.
+ */
+export async function testOpenAIConnection(): Promise<{ success: boolean; error?: string }> {
+    try {
+        const apiKey = await getPlatformSetting('openai_api_key');
+        if (!apiKey) return { success: false, error: 'No API key configured' };
+
+        const res = await fetch('https://api.openai.com/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+        });
+
+        if (res.ok) return { success: true };
+        if (res.status === 401) return { success: false, error: 'Invalid API key — authentication failed' };
+        return { success: false, error: `OpenAI returned status ${res.status}` };
+    } catch {
+        return { success: false, error: 'Network error — could not reach OpenAI' };
+    }
+}
+
+/**
+ * H2 Fix: Invite a user as admin/superadmin using service role.
+ * Handles both existing users (role upgrade) and unknown emails (creates pending entry).
+ */
+export async function inviteAdminUser(
+    email: string,
+    role: 'admin' | 'superadmin',
+): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+        const trimmedEmail = email.trim().toLowerCase();
+
+        // 1. Check if user exists in users table
+        const { data: existingUser } = await supabaseAdmin
+            .from('users')
+            .select('id, role')
+            .eq('email', trimmedEmail)
+            .single();
+
+        if (existingUser) {
+            // User exists — update their role
+            const { error } = await supabaseAdmin
+                .from('users')
+                .update({ role })
+                .eq('id', existingUser.id);
+            if (error) return { success: false, error: error.message };
+            return { success: true, message: `${trimmedEmail} has been updated to ${role}` };
+        }
+
+        // 2. Check if auth user exists but no profile row
+        const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+        const authUser = authData?.users?.find(u => u.email === trimmedEmail);
+
+        if (authUser) {
+            const { error } = await supabaseAdmin.from('users').insert({
+                id: authUser.id,
+                email: trimmedEmail,
+                nickname: trimmedEmail.split('@')[0],
+                role,
+                status: 'active',
+                tokens_balance: 0,
+                language: 'en',
+                onboarding_completed: true,
+            });
+            if (error) return { success: false, error: error.message };
+            return { success: true, message: `${trimmedEmail} has been added as ${role}` };
+        }
+
+        // 3. No auth user — cannot create a proper entry without a valid auth.users ID
+        // Instead of a placeholder UUID (which violates FK), we return an instruction
+        return {
+            success: false,
+            error: `No account found for ${trimmedEmail}. Ask them to sign in via OAuth first, then you can assign the role.`,
+        };
+    } catch (err: any) {
+        return { success: false, error: err?.message || 'Failed to invite admin' };
+    }
+}
+
 // ──────────────────────────────────────────
 // Interventions
 // ──────────────────────────────────────────

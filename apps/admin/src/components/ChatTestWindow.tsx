@@ -157,25 +157,109 @@ const FM_CC = [
     'stomach pain after eating 3 weeks, bloating. New diet high in dairy.',
     'knee pain climbing stairs 1 month, mild swelling. Started running 5K.',
 ];
-const MEDS = ['none', 'birth control pills', 'lisinopril 10mg daily', 'metformin 500mg 2x/day', 'sertraline 50mg daily', 'albuterol inhaler PRN', 'levothyroxine 75mcg daily'];
-const ALLERG = ['no known allergies', 'penicillin (rash)', 'sulfa drugs (hives)', 'latex (swelling)', 'ibuprofen (stomach upset)', 'seasonal allergies only'];
-const FAM_HX = ['mother had eczema', 'father had stroke at 62', 'grandmother had RA', 'uncle had melanoma', 'mother has type 2 diabetes', 'no significant family hx', 'sister has asthma'];
+const PSYCH_CC = [
+    'feeling anxious and unable to sleep for 3 weeks. Racing thoughts at night. No appetite changes.',
+    'low mood and loss of interest in daily activities for 2 months. Difficulty concentrating at work.',
+    'panic attacks 2-3 times a week for 1 month. Heart races, chest tightness, feel like dying.',
+    'can\'t stop worrying about everything for 6 weeks. Stomach always upset. Muscle tension in shoulders.',
+    'mood swings getting worse over 3 months. Very irritable one day, then crying the next.',
+    'stress from work causing burnout for 2 months. Headaches, exhaustion, feeling detached from life.',
+];
+const ORTHO_CC = [
+    'sharp pain in right shoulder when lifting arm above head for 3 weeks. No injury recalled.',
+    'knee swelling and stiffness after playing football 2 days ago. Heard a pop during the game.',
+    'lower back pain radiating down left leg for 1 month. Numbness in toes. Desk job.',
+    'wrist pain and weakness for 2 weeks, worse typing. Tingling at night. Uses computer 8hrs/day.',
+    'hip pain when walking or climbing stairs for 6 weeks. Morning stiffness lasts 30 minutes.',
+    'ankle sprain 3 weeks ago not improving. Still swollen. Can walk but painful on uneven surfaces.',
+];
+const PEDS_CC = [
+    'my 4-year-old has had a fever of 38.5°C for 3 days with runny nose and cough. Not eating well.',
+    'my 8-year-old complains of stomach pain around the belly button for 1 week. No diarrhea or vomiting.',
+    'my 2-year-old has a rash on the trunk spreading to arms for 2 days. No fever. Daycare exposure.',
+    'my 6-year-old has ear pain and keeps crying at night for 4 days. Had a cold last week.',
+    'my 10-year-old has been wetting the bed again for 2 months after being dry for 3 years. Stressed about school.',
+    'my 1-year-old is not gaining weight well. Eats but seems to spit up frequently after feeds.',
+];
+const DIET_CC = [
+    'gained 10kg over the past year. Want help with a meal plan. History of yo-yo dieting.',
+    'recently diagnosed with type 2 diabetes and need dietary guidance. Currently eating fast food 4x/week.',
+    'want to lose weight for upcoming surgery in 3 months. BMI 34. Sedentary lifestyle.',
+    'feeling bloated and gassy after most meals for 2 months. Suspect food intolerances.',
+    'vegetarian for 6 months and feeling tired. Worried about iron and B12 levels.',
+    'high cholesterol on last blood work. Doctor suggested dietary changes before starting medication.',
+];
+const MEDS = ['none', 'birth control pills', 'lisinopril 10mg daily', 'metformin 500mg 2x/day', 'sertraline 50mg daily', 'albuterol inhaler PRN', 'levothyroxine 75mcg daily', 'escitalopram 10mg daily', 'ibuprofen 400mg PRN', 'omeprazole 20mg daily', 'multivitamin daily', 'iron supplement'];
+const ALLERG = ['no known allergies', 'penicillin (rash)', 'sulfa drugs (hives)', 'latex (swelling)', 'ibuprofen (stomach upset)', 'seasonal allergies only', 'shellfish (anaphylaxis)', 'amoxicillin (hives)', 'dust mite allergy'];
+const FAM_HX = ['mother had eczema', 'father had stroke at 62', 'grandmother had RA', 'uncle had melanoma', 'mother has type 2 diabetes', 'no significant family hx', 'sister has asthma', 'father has depression', 'mother had knee replacement at 58', 'brother has ADHD', 'grandmother had osteoporosis', 'family history of obesity'];
 
 function pick<T>(a: T[]): T { return a[Math.floor(Math.random() * a.length)]; }
 
-function generatePatientProfile(type: 'dermatology' | 'family_medicine' | 'mixed', overrides?: { name?: string; age?: string; sex?: 'male' | 'female' | '' }): AutoBotProfile {
+type SpecialtyType = 'dermatology' | 'family_medicine' | 'psychiatry' | 'orthopedics' | 'pediatrics' | 'diet' | 'mixed';
+
+const CC_POOLS: Record<Exclude<SpecialtyType, 'mixed'>, string[]> = {
+    dermatology: DERMA_CC,
+    family_medicine: FM_CC,
+    psychiatry: PSYCH_CC,
+    orthopedics: ORTHO_CC,
+    pediatrics: PEDS_CC,
+    diet: DIET_CC,
+};
+
+const SPECIALTY_LABELS: Record<SpecialtyType, string> = {
+    dermatology: 'Derma',
+    family_medicine: 'FM',
+    psychiatry: 'Psych',
+    orthopedics: 'Ortho',
+    pediatrics: 'Peds',
+    diet: 'Diet',
+    mixed: 'Mixed',
+};
+
+const SPECIALTY_EMOJIS: Record<SpecialtyType, string> = {
+    dermatology: '🩺',
+    family_medicine: '👨‍⚕️',
+    psychiatry: '🧠',
+    orthopedics: '🦴',
+    pediatrics: '👶',
+    diet: '🥗',
+    mixed: '🔀',
+};
+
+const PEDS_AGES = [1, 2, 3, 4, 6, 8, 10, 12];
+
+function generatePatientProfile(type: SpecialtyType, overrides?: { name?: string; age?: string; sex?: 'male' | 'female' | '' }): AutoBotProfile {
+    const isPeds = type === 'pediatrics';
     const g = overrides?.sex || (Math.random() < 0.4 ? 'female' : Math.random() < 0.75 ? 'male' : 'non-binary');
     const name = overrides?.name || (g === 'female' ? pick(NAMES_F) : g === 'male' ? pick(NAMES_M) : pick(NAMES_NB));
-    const age = overrides?.age ? parseInt(overrides.age) : pick(AGES);
-    const cc = type === 'dermatology' ? pick(DERMA_CC) : type === 'family_medicine' ? pick(FM_CC) : `${pick(DERMA_CC)} Also: ${pick(FM_CC)}`;
-    const labels: Record<string, string> = { dermatology: 'Derma', family_medicine: 'FM', mixed: 'Mixed' };
-    const emojis: Record<string, string> = { dermatology: '\ud83e\ude7a', family_medicine: '\ud83d\udc68\u200d\u2695\ufe0f', mixed: '\ud83d\udd00' };
+    const age = overrides?.age ? parseInt(overrides.age) : (isPeds ? pick(PEDS_AGES) : pick(AGES));
+
+    let cc: string;
+    if (type === 'mixed') {
+        // Pick two random different specialties for the mixed profile
+        const specKeys = Object.keys(CC_POOLS) as Array<Exclude<SpecialtyType, 'mixed'>>;
+        const s1 = pick(specKeys);
+        let s2 = pick(specKeys);
+        while (s2 === s1) s2 = pick(specKeys);
+        cc = `${pick(CC_POOLS[s1])} Also: ${pick(CC_POOLS[s2])}`;
+    } else {
+        cc = pick(CC_POOLS[type]);
+    }
+
+    const parentName = isPeds ? pick([...NAMES_F, ...NAMES_M]) : undefined;
+    const childAge = isPeds ? age : undefined;
+    const roleDesc = isPeds
+        ? `You are ${parentName}, a parent bringing your ${childAge}-year-old child to the doctor. Answer as the parent.`
+        : `You are a ${age}-year-old ${g} patient named ${name}.`;
+
+    const labelName = isPeds ? `${parentName}'s child, ${age}y` : `${name}, ${age}`;
+
     return {
         id: `${type}_${Date.now()}`,
-        label: `${labels[type]} (${name}, ${age})`,
-        emoji: emojis[type],
+        label: `${SPECIALTY_LABELS[type]} (${labelName})`,
+        emoji: SPECIALTY_EMOJIS[type],
         category: 'patient',
-        systemPrompt: `You are a ${age}-year-old ${g} patient named ${name}. Answer concisely (1-3 sentences).
+        systemPrompt: `${roleDesc} Answer concisely (1-3 sentences).
 
 Profile: ${pick(JOBS)}. Complaint: ${cc}
 Meds: ${pick(MEDS)}. Allergies: ${pick(ALLERG)}. Family: ${pick(FAM_HX)}. ${pick(SMOKE)}, ${pick(DRINK)}.
@@ -231,6 +315,10 @@ function buildProfiles(overrides?: { name?: string; age?: string; sex?: 'male' |
     return [
         generatePatientProfile('dermatology', overrides),
         generatePatientProfile('family_medicine', overrides),
+        generatePatientProfile('psychiatry', overrides),
+        generatePatientProfile('orthopedics', overrides),
+        generatePatientProfile('pediatrics', overrides),
+        generatePatientProfile('diet', overrides),
         generatePatientProfile('mixed', overrides),
         ...ADVERSARIAL_PROFILES,
     ];
@@ -450,86 +538,52 @@ export default function ChatTestWindow({
         if (!loadingSequence) startChat();
     }, [loadingSequence]);
 
-    // ── API call (streaming) ─────────────────────────────
+    // ── API call — routes through admin-api edge function ──
+    // The admin-api 'chat-test' action resolves prompts from DB, applies guards,
+    // and calls OpenAI directly. This mirrors the old Next.js /api/chat-test route.
     async function callAI(
         chatMessages: Message[],
         section: string,
         promptId?: string,
-        onToken?: (token: string) => void,
+        _onToken?: (token: string) => void,
     ): Promise<{ content: string; sectionComplete: boolean; violation: string | null; debug?: DebugPayload }> {
-        // Send the full conversation to the backend. The backend handles:
-        // 1. Section isolation (only uses current-section messages for AI context)
-        // 2. Patient context injection (extracts prior patient statements into the system prompt)
-        const res = await callAdminApiStream('chat-test', {
-            messages: chatMessages.map(m => ({
-                role: m.role === 'ai' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
-                content: m.content,
-            })),
-            section,
-            promptId: promptId ?? (selectedPromptId || undefined),
-            stream: true,
-            language: chatLanguageRef.current,
-            debug: debugModeRef.current,
-        });
+        console.log(`[ChatTest] callAI section=${section} messages=${chatMessages.length}`);
 
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(err.error || `HTTP ${res.status}`);
-        }
+        try {
+            console.log(`[ChatTest] → admin-api chat-test section=${section}`);
 
-        // If the response is SSE, parse the stream
-        const contentType = res.headers.get('Content-Type') || '';
-        if (contentType.includes('text/event-stream') && res.body) {
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let fullContent = '';
-            let sectionComplete = false;
-            let violation: string | null = null;
-            let debugData: DebugPayload | undefined;
-            let buffer = '';
+            // Call admin-api edge function (already has auth + OpenAI logic)
+            const data = await callAdminApi<any>('chat-test', {
+                messages: chatMessages.map(m => ({
+                    role: m.role === 'ai' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
+                    content: m.content,
+                })),
+                section,
+                promptId: promptId ?? (selectedPromptId || undefined),
+                language: chatLanguageRef.current,
+                debug: debugModeRef.current,
+            });
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            console.log('[ChatTest] ← admin-api response:', {
+                hasResponse: !!data?.response,
+                sectionComplete: data?.sectionComplete,
+                section,
+            });
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
-                    const data = trimmed.slice(6);
-
-                    try {
-                        const parsed = JSON.parse(data);
-
-                        if (parsed.done) {
-                            // Final event with clean content
-                            fullContent = parsed.fullContent || fullContent;
-                            sectionComplete = parsed.sectionComplete || false;
-                            violation = parsed.violation || null;
-                            if (parsed.debug) debugData = parsed.debug;
-                        } else if (parsed.token) {
-                            fullContent += parsed.token;
-                            onToken?.(parsed.token);
-                        } else if (parsed.error) {
-                            throw new Error(parsed.error);
-                        }
-                    } catch (e) {
-                        if (e instanceof Error && e.message !== 'Stream interrupted') {
-                            // Skip JSON parse errors for partial data
-                        }
-                    }
-                }
+            if (data?.error) {
+                throw new Error(data.error);
             }
 
-            return { content: fullContent, sectionComplete, violation, debug: debugData };
+            return {
+                content: data?.response || data?.content || '',
+                sectionComplete: data?.sectionComplete || false,
+                violation: data?.violation || null,
+                debug: data?.debug,
+            };
+        } catch (err: any) {
+            console.error(`[ChatTest] callAI failed:`, err);
+            throw err;
         }
-
-        // Fallback: non-streaming JSON response
-        const data = await res.json();
-        return { content: data.content, sectionComplete: data.sectionComplete, violation: data.violation || null, debug: data.debug };
     }
 
     // ── Start chat ───────────────────────────
@@ -575,6 +629,7 @@ export default function ChatTestWindow({
             };
             setMessages([versionMsg, ...(systemSkipMsg ? [systemSkipMsg] : []), aiMsg]);
 
+            console.log('[ChatTest] Starting AI call for greeting:', greetingNode.step_key);
             const result = await callAI([], greetingNode.step_key, greetingNode.prompt_id ?? undefined, (token) => {
                 setMessages(prev => prev.map(m =>
                     m.id === aiMsgId ? { ...m, content: m.content + token } : m
@@ -585,7 +640,8 @@ export default function ChatTestWindow({
             setMessages(prev => prev.map(m =>
                 m.id === aiMsgId ? { ...m, content: result.content, debug: result.debug } : m
             ));
-        } catch {
+        } catch (err) {
+            console.error('[ChatTest] startChat failed:', err);
             setMessages([{
                 id: uid(),
                 role: 'ai',
@@ -1837,7 +1893,7 @@ export default function ChatTestWindow({
 
                         {/* Patient Profiles */}
                         <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Patient Scenarios</span>
-                        <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="grid grid-cols-4 gap-2 mb-3">
                             {AUTO_BOT_PROFILES.filter(p => p.category === 'patient').map(p => (
                                 <button
                                     key={p.id}

@@ -9,7 +9,7 @@ interface AdminAuth {
     role: AdminRole;
     isSuperadmin: boolean;
     isLoading: boolean;
-    signOut: () => Promise<void>;
+    signOut: () => void;
 }
 
 const AdminAuthContext = createContext<AdminAuth>({
@@ -29,28 +29,48 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     const [role, setRole] = useState<AdminRole>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const INITIAL_SUPERADMIN = import.meta.env.VITE_INITIAL_SUPERADMIN || 'momen@momencrafts.com';
+
+    function resolveRole(session: { user: { email?: string | null }; access_token: string }, dbRole?: string | null): AdminRole {
+        const email = session.user.email;
+        console.log('[AdminAuth] resolveRole:', { email, dbRole });
+        // Bootstrap superadmin — always grant superadmin
+        if (email === INITIAL_SUPERADMIN) {
+            console.log('[AdminAuth] → superadmin (email match)');
+            return 'superadmin';
+        }
+        // JWT claim
+        const jwtRole = extractRoleFromToken(session.access_token);
+        if (jwtRole === 'admin' || jwtRole === 'superadmin') return jwtRole as AdminRole;
+        // DB fallback
+        if (dbRole === 'admin' || dbRole === 'superadmin') return dbRole as AdminRole;
+        return null;
+    }
+
     useEffect(() => {
         const supabase = createBrowserSupabase();
 
         // Get initial session
         supabase.auth.getSession().then(async ({ data: { session } }) => {
+            console.log('[AdminAuth] getSession:', session?.user?.email, session ? 'has session' : 'no session');
             if (session?.user) {
                 setUser(session.user);
-
-                // Try JWT claim first
-                const jwtRole = extractRoleFromToken(session.access_token);
-                if (jwtRole === 'admin' || jwtRole === 'superadmin') {
-                    setRole(jwtRole);
-                } else {
-                    // Fallback: query users table
-                    const { data } = await supabase
+                try {
+                    const { data, error } = await supabase
                         .from('users')
                         .select('role')
                         .eq('id', session.user.id)
-                        .single();
-                    if (data?.role === 'admin' || data?.role === 'superadmin') {
-                        setRole(data.role);
-                    }
+                        .single() as { data: { role: string } | null; error: any };
+                    console.log('[AdminAuth] DB query:', { data, error: error?.message });
+                    const resolved = resolveRole(session, data?.role);
+                    console.log('[AdminAuth] resolved role:', resolved);
+                    setRole(resolved);
+                } catch (err) {
+                    console.error('[AdminAuth] DB query error:', err);
+                    // Fallback: resolve without DB
+                    const resolved = resolveRole(session, null);
+                    console.log('[AdminAuth] fallback resolved role:', resolved);
+                    setRole(resolved);
                 }
             }
             setIsLoading(false);
@@ -61,19 +81,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
             async (event, session) => {
                 if (session?.user) {
                     setUser(session.user);
-                    const jwtRole = extractRoleFromToken(session.access_token);
-                    if (jwtRole === 'admin' || jwtRole === 'superadmin') {
-                        setRole(jwtRole);
-                    } else {
-                        const { data } = await supabase
-                            .from('users')
-                            .select('role')
-                            .eq('id', session.user.id)
-                            .single();
-                        if (data?.role === 'admin' || data?.role === 'superadmin') {
-                            setRole(data.role);
-                        }
-                    }
+                    const { data } = await supabase
+                        .from('users')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .single() as { data: { role: string } | null };
+                    setRole(resolveRole(session, data?.role));
                 } else {
                     setUser(null);
                     setRole(null);
@@ -84,11 +97,21 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return () => subscription.unsubscribe();
     }, []);
 
-    const signOut = async () => {
-        const supabase = createBrowserSupabase();
-        await supabase.auth.signOut();
-        setUser(null);
-        setRole(null);
+    const signOut = () => {
+        console.log('[AdminAuth] signOut called');
+        // 1. Clear all Supabase auth storage synchronously
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('sb-')) localStorage.removeItem(key);
+            });
+            sessionStorage.clear();
+        } catch { /* ignore */ }
+        // 2. Fire-and-forget the Supabase signOut API call
+        try {
+            const supabase = createBrowserSupabase();
+            supabase.auth.signOut().catch(() => {});
+        } catch { /* ignore */ }
+        // 3. Redirect immediately — don't wait for signOut
         window.location.href = '/login';
     };
 
@@ -99,7 +122,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         <Provider value={{
             user,
             role,
-            isSuperadmin: role === 'superadmin',
+            isSuperadmin: role === 'superadmin' || user?.email === INITIAL_SUPERADMIN,
             isLoading,
             signOut,
         }}>

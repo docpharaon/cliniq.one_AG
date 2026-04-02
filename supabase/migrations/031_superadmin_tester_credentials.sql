@@ -81,7 +81,7 @@ CREATE POLICY "Admin manage schedules"
 -- ── 5. Upgrade platform owner to superadmin ─────────────────
 UPDATE public.users
   SET role = 'superadmin'
-  WHERE email = 'docpharaon@gmail.com';
+  WHERE email = 'momen@momencrafts.com';
 
 -- ── 6. Tester credential columns ────────────────────────────
 ALTER TABLE tester_signups

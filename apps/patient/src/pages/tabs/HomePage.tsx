@@ -45,7 +45,7 @@ export default function HomePage() {
     const lang = useLocale();
 
     const { tips, campaigns, responseTime, responseTimeAr, refresh: refreshHome } = useHomeContent();
-    const { data: consultations, isLoading, refetch } = useConsultations(user?.id || '');
+    const { data: consultations, isLoading, isError, refetch } = useConsultations(user?.id || '');
     const recentConsultations = (consultations || []).slice(0, 3);
     const activeConsultation = (consultations || []).find((c: any) => ACTIVE_STATUSES.includes(c.status));
 
@@ -74,7 +74,7 @@ export default function HomePage() {
         else if (action.route) navigate(action.route);
     }
 
-    if (isLoading) return <BrandSpinner />;
+    if (isLoading && !isError) return <BrandSpinner />;
 
     return (
         <div style={styles.container}>
@@ -132,15 +132,23 @@ export default function HomePage() {
 
                 {/* Start Consultation CTA */}
                 <FadeIn delay={200}>
-                    <div onClick={() => { haptic.medium(); navigate('/intake'); }} className="pressable" style={styles.ctaCard}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <Stethoscope size={28} color="#2DD4BF" />
+                    <div
+                        onClick={() => { haptic.medium(); navigate('/intake'); }}
+                        className="cta-hero"
+                        style={styles.ctaCard}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative', zIndex: 1 }}>
+                            <div className="cta-hero-icon" style={styles.ctaIconWrap}>
+                                <Stethoscope size={30} color="#fff" />
+                            </div>
                             <div>
-                                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('dashboard.startConsultation')}</p>
-                                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{t('dashboard.aiIntakeSubtitle')}</p>
+                                <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.01em' }}>{t('dashboard.startConsultation')}</p>
+                                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', margin: '3px 0 0', fontWeight: 500 }}>{t('dashboard.aiIntakeSubtitle')}</p>
                             </div>
                         </div>
-                        <span style={{ fontSize: 20, color: '#1A8A9E' }}>→</span>
+                        <div className="cta-hero-arrow" style={{ position: 'relative', zIndex: 1 }}>
+                            <span style={{ fontSize: 18, color: '#fff', fontWeight: 700 }}>→</span>
+                        </div>
                     </div>
                 </FadeIn>
 
@@ -250,8 +258,16 @@ const styles: Record<string, React.CSSProperties> = {
     },
     ctaCard: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        backgroundColor: 'var(--bg-card)', borderRadius: 16, padding: '16px 18px',
-        marginBottom: 20, border: '1px solid var(--border)',
+        borderRadius: 18, padding: '20px 20px', cursor: 'pointer',
+        marginBottom: 20,
+    },
+    ctaIconWrap: {
+        width: 48, height: 48, borderRadius: 14,
+        background: 'rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
     },
     sectionTitle: { fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px' },
     actionsGrid: {

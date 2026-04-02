@@ -144,6 +144,8 @@ import {
     getOpenSpecialtyIncidentCount,
     getDisabledSpecialtyCount,
     getAuditLog,
+    testOpenAIConnection,
+    inviteAdminUser,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -528,6 +530,16 @@ export async function savePlatformSetting(key: string, value: string, category: 
 
 export async function fetchPlatformSetting(key: string) {
     return getPlatformSetting(key);
+}
+
+/** C3 Fix: Test OpenAI key server-side — key never sent to browser */
+export async function doTestOpenAIConnection() {
+    return testOpenAIConnection();
+}
+
+/** H2 Fix: Invite admin using service role — bypasses RLS safely */
+export async function doInviteAdmin(email: string, role: 'admin' | 'superadmin') {
+    return inviteAdminUser(email, role);
 }
 
 // ── Interventions ──────────────────────────

@@ -23,6 +23,7 @@ import {
     User,
     Stethoscope,
     Shield,
+    Gem,
 } from 'lucide-react';
 
 // ── Status → Badge variant mapping ──
@@ -216,7 +217,7 @@ export default function RefundsPage() {
             key: 'refund_amount',
             label: 'Amount',
             render: (row: RefundRow) => (
-                <span className="font-semibold text-accent">💎 {row.refund_amount}</span>
+                <span className="font-semibold text-accent flex items-center gap-1"><Gem className="w-3.5 h-3.5" /> {row.refund_amount}</span>
             ),
         },
         {
@@ -276,7 +277,7 @@ export default function RefundsPage() {
                     />
                     <StatCard
                         icon={Coins}
-                        value={`💎 ${stats.totalTokensRefundedMonth}`}
+                        value={`${stats.totalTokensRefundedMonth}`}
                         label="Refunded This Month"
                         iconColor="text-accent"
                         iconBg="bg-accent-faded"
@@ -364,7 +365,7 @@ export default function RefundsPage() {
                             </div>
                             <div className="bg-bg-elevated rounded-xl p-4">
                                 <p className="text-[10px] uppercase tracking-wider text-text-muted font-semibold mb-1">Refund Amount</p>
-                                <p className="text-lg font-bold text-accent">💎 {selectedRefund.refund_amount} tokens</p>
+                                <p className="text-lg font-bold text-accent flex items-center gap-1.5"><Gem className="w-5 h-5" /> {selectedRefund.refund_amount} tokens</p>
                             </div>
                             <div className="bg-bg-elevated rounded-xl p-4">
                                 <p className="text-[10px] uppercase tracking-wider text-text-muted font-semibold mb-1">Case</p>
@@ -431,7 +432,7 @@ export default function RefundsPage() {
                                         Adjust Amount (optional — leave blank for full refund)
                                     </label>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-text-muted">💎</span>
+                                        <Gem className="w-4 h-4 text-text-muted" />
                                         <input
                                             type="number"
                                             value={adjustedAmount}

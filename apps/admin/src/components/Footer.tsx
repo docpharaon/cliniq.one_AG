@@ -6,22 +6,18 @@ export default function Footer() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-text-muted text-xs">
                 <span>© {year} cliniq.one. All rights reserved.</span>
                 <div className="flex items-center gap-4">
-                    <a
-                        href="https://cliniq.one/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-accent transition-colors"
+                    <span
+                        className="hover:text-accent transition-colors cursor-default"
+                        title="Coming soon"
                     >
                         Terms of Service
-                    </a>
-                    <a
-                        href="https://cliniq.one/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-accent transition-colors"
+                    </span>
+                    <span
+                        className="hover:text-accent transition-colors cursor-default"
+                        title="Coming soon"
                     >
                         Privacy Policy
-                    </a>
+                    </span>
                 </div>
             </div>
         </footer>

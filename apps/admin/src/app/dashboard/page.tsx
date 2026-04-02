@@ -25,6 +25,8 @@ import {
     Archive,
     Printer,
     ShieldOff,
+    Shield,
+    Inbox,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -39,6 +41,7 @@ import {
     Bar,
 } from 'recharts';
 import { useEffect, useState } from 'react';
+import { useAdminAuth } from '@/components/AdminAuthProvider';
 import { fetchDashboardStats, fetchConsultationFlow, fetchSpecialtyBreakdown, fetchRecentActivity, fetchPendingArchiveCount, fetchDisabledSpecialtyCount, fetchOpenSpecialtyIncidentCount } from '@/lib/actions';
 
 // System health (static indicators — no live monitoring API yet)
@@ -51,15 +54,13 @@ const managementCards = [
     {
         href: '/dashboard/hr',
         icon: UserCog,
-        emoji: '👩‍💼',
         title: 'HR Management',
         subtitle: 'Add/Remove doctors & manage credentials',
         gradient: 'from-orange-500 to-red-500',
     },
     {
-        href: '/dashboard/ai-prompts',
+        href: '/dashboard/ai',
         icon: Bot,
-        emoji: '⚙️',
         title: 'AI Prompt Management',
         subtitle: 'System prompts & doctor suggestions',
         gradient: 'from-purple-500 to-blue-500',
@@ -67,7 +68,6 @@ const managementCards = [
     {
         href: '/dashboard/pricing',
         icon: DollarSign,
-        emoji: '💰',
         title: 'Pricing Management',
         subtitle: 'Token packages & consultation fees',
         gradient: 'from-green-500 to-emerald-500',
@@ -75,7 +75,6 @@ const managementCards = [
     {
         href: '/dashboard/protocols',
         icon: ShieldAlert,
-        emoji: '🛡️',
         title: 'Intervention Management',
         subtitle: 'Medical procedures & in-clinic services',
         gradient: 'from-teal-500 to-green-500',
@@ -83,7 +82,6 @@ const managementCards = [
     {
         href: '/dashboard/errors',
         icon: AlertTriangle,
-        emoji: '🧑‍🔧',
         title: 'Error Reports',
         subtitle: 'Patient-reported chat issues',
         gradient: 'from-red-600 to-orange-500',
@@ -91,7 +89,6 @@ const managementCards = [
     {
         href: '/dashboard/scheduling',
         icon: CalendarDays,
-        emoji: '📅',
         title: 'Doctor Scheduling',
         subtitle: 'Manage shifts & availability',
         gradient: 'from-indigo-500 to-purple-500',
@@ -99,7 +96,6 @@ const managementCards = [
     {
         href: '/dashboard/news',
         icon: Newspaper,
-        emoji: '📰',
         title: 'News Management',
         subtitle: 'Health updates & announcements',
         gradient: 'from-pink-500 to-rose-500',
@@ -107,7 +103,6 @@ const managementCards = [
     {
         href: '/dashboard/ads',
         icon: Megaphone,
-        emoji: '🎯',
         title: 'Advertisement Management',
         subtitle: 'Promotions & featured content',
         gradient: 'from-red-500 to-orange-600',
@@ -115,7 +110,6 @@ const managementCards = [
     {
         href: '/dashboard/specialties',
         icon: ShieldOff,
-        emoji: '🛡️',
         title: 'Specialty Management',
         subtitle: 'Disable, fallback & incident control',
         gradient: 'from-yellow-500 to-orange-500',
@@ -131,6 +125,7 @@ type DashboardStats = {
 };
 
 export default function DashboardPage() {
+    const { user, isSuperadmin } = useAdminAuth();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [consultationFlow, setConsultationFlow] = useState<{ time: string; consultations: number }[]>([]);
     const [specialtyData, setSpecialtyData] = useState<{ name: string; count: number; fill: string }[]>([]);
@@ -138,6 +133,11 @@ export default function DashboardPage() {
     const [pendingArchiveCount, setPendingArchiveCount] = useState(0);
     const [disabledSpecialtyCount, setDisabledSpecialtyCount] = useState(0);
     const [openIncidentCount, setOpenIncidentCount] = useState(0);
+
+    // Extract user info
+    const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+    const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Admin';
+    const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
     useEffect(() => {
         Promise.all([
@@ -170,17 +170,78 @@ export default function DashboardPage() {
 
             <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-4 md:space-y-8">
                 {/* Welcome Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p className="text-text-muted text-sm">System Administrator</p>
-                        <h2 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-                            Admin User
-                            <span className="text-lg">🛡️</span>
-                        </h2>
-                    </div>
-                    <div className="text-right mt-2 sm:mt-0">
-                        <p className="text-sm text-text-secondary">📅 {dateStr}</p>
-                        <p className="text-sm text-text-muted">{timeStr} AST</p>
+                <div
+                    className="rounded-2xl p-5 md:p-6 border"
+                    style={{
+                        background: isSuperadmin
+                            ? 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(217,119,6,0.03))'
+                            : 'var(--color-bg-elevated)',
+                        borderColor: isSuperadmin ? 'rgba(245,158,11,0.25)' : 'var(--color-border)',
+                    }}
+                >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            {/* Profile Picture */}
+                            {avatarUrl ? (
+                                <div className="relative flex-shrink-0">
+                                    <img
+                                        src={avatarUrl}
+                                        alt={fullName}
+                                        className="w-14 h-14 rounded-2xl object-cover border-2"
+                                        style={{ borderColor: isSuperadmin ? '#f59e0b' : 'var(--color-accent)' }}
+                                        referrerPolicy="no-referrer"
+                                    />
+                                    {isSuperadmin && (
+                                        <div
+                                            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg flex items-center justify-center shadow-lg"
+                                            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                                        >
+                                            <Shield className="w-3.5 h-3.5 text-white" />
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div
+                                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold text-white flex-shrink-0"
+                                    style={{
+                                        background: isSuperadmin
+                                            ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                                            : 'var(--color-accent)',
+                                    }}
+                                >
+                                    {fullName.charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-text-muted text-sm">{greeting},</p>
+                                <h2 className="text-xl md:text-2xl font-bold text-text-primary">
+                                    {fullName}
+                                </h2>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <span
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider"
+                                        style={{
+                                            background: isSuperadmin ? 'rgba(245,158,11,0.15)' : 'var(--color-accent-faded)',
+                                            color: isSuperadmin ? '#f59e0b' : 'var(--color-accent)',
+                                        }}
+                                    >
+                                        <Shield className="w-3 h-3" />
+                                        {isSuperadmin ? 'Superadmin' : 'Admin'}
+                                    </span>
+                                    {user?.email && (
+                                        <span className="text-xs text-text-muted hidden sm:inline">
+                                            {user.email}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm text-text-secondary flex items-center justify-end gap-1.5">
+                                <CalendarDays className="w-3.5 h-3.5" /> {dateStr}
+                            </p>
+                            <p className="text-sm text-text-muted">{timeStr} AST</p>
+                        </div>
                     </div>
                 </div>
 
@@ -195,7 +256,7 @@ export default function DashboardPage() {
                             }}
                         >
                             <div className="flex items-center gap-3">
-                                <span className="text-xl">🔴</span>
+                                <span className="w-3 h-3 rounded-full bg-error flex-shrink-0" />
                                 <span className="text-sm font-medium text-text-primary">
                                     {stats.unresolvedProtocols} unresolved protocol violation{stats.unresolvedProtocols !== 1 ? 's' : ''}
                                 </span>
@@ -256,7 +317,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-bold" style={{ color: '#FB923C' }}>
-                                    🛡️ {disabledSpecialtyCount} specialt{disabledSpecialtyCount !== 1 ? 'ies' : 'y'} temporarily disabled
+                                    {disabledSpecialtyCount} specialt{disabledSpecialtyCount !== 1 ? 'ies' : 'y'} temporarily disabled
                                 </p>
                                 {openIncidentCount > 0 && (
                                     <p className="text-xs text-error mt-0.5 font-medium">
@@ -374,7 +435,7 @@ export default function DashboardPage() {
                         return (
                             <Link
                                 key={card.href}
-                                href={card.href}
+                                to={card.href}
                                 className={`flex items-center gap-4 px-6 py-4 rounded-2xl bg-gradient-to-r ${card.gradient} hover:opacity-90 hover:scale-[1.01] transition-all duration-200 group`}
                             >
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -382,7 +443,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-white font-bold text-sm flex items-center gap-2">
-                                        {card.emoji} {card.title}
+                                        {card.title}
                                     </p>
                                     <p className="text-white/75 text-xs mt-0.5">{card.subtitle}</p>
                                 </div>
@@ -403,25 +464,25 @@ export default function DashboardPage() {
                         </div>
                         <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 260}>
                             <LineChart data={consultationFlow}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.1)" />
-                                <XAxis dataKey="time" stroke="#64748B" fontSize={12} />
-                                <YAxis stroke="#64748B" fontSize={12} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                <XAxis dataKey="time" stroke="var(--color-text-muted)" fontSize={12} />
+                                <YAxis stroke="var(--color-text-muted)" fontSize={12} />
                                 <Tooltip
                                     contentStyle={{
-                                        background: '#0F172A',
-                                        border: '1px solid #1E293B',
+                                        background: 'var(--color-bg-elevated)',
+                                        border: '1px solid var(--color-border)',
                                         borderRadius: '12px',
-                                        color: '#F1F5F9',
+                                        color: 'var(--color-text-primary)',
                                         fontSize: '13px',
                                     }}
                                 />
                                 <Line
                                     type="monotone"
                                     dataKey="consultations"
-                                    stroke="#2DD4BF"
+                                    stroke="var(--color-accent)"
                                     strokeWidth={3}
-                                    dot={{ fill: '#2DD4BF', r: 4 }}
-                                    activeDot={{ r: 6, fill: '#2DD4BF' }}
+                                    dot={{ fill: 'var(--color-accent)', r: 4 }}
+                                    activeDot={{ r: 6, fill: 'var(--color-accent)' }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
@@ -436,15 +497,15 @@ export default function DashboardPage() {
                         </div>
                         <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 260}>
                             <BarChart data={specialtyData} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.1)" />
-                                <XAxis type="number" stroke="#64748B" fontSize={12} />
-                                <YAxis dataKey="name" type="category" stroke="#64748B" fontSize={12} width={120} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                <XAxis type="number" stroke="var(--color-text-muted)" fontSize={12} />
+                                <YAxis dataKey="name" type="category" stroke="var(--color-text-muted)" fontSize={12} width={120} />
                                 <Tooltip
                                     contentStyle={{
-                                        background: '#0F172A',
-                                        border: '1px solid #1E293B',
+                                        background: 'var(--color-bg-elevated)',
+                                        border: '1px solid var(--color-border)',
                                         borderRadius: '12px',
-                                        color: '#F1F5F9',
+                                        color: 'var(--color-text-primary)',
                                         fontSize: '13px',
                                     }}
                                 />
@@ -462,7 +523,7 @@ export default function DashboardPage() {
                     </div>
                     {recentActivity.length === 0 ? (
                         <div className="flex flex-col items-center py-8 text-text-muted">
-                            <span className="text-3xl mb-2">📭</span>
+                            <Inbox className="w-8 h-8 mb-2" />
                             <p className="text-sm">No activity yet</p>
                         </div>
                     ) : (

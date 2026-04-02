@@ -4,6 +4,7 @@ import { colors, typography, AlertTriangle, User, MessageSquare, Bot, Ban, FileT
 import { useConsultationDetail } from '../../hooks/useDoctorData';
 import { RefundRequestModal } from '../../components/RefundRequestModal';
 import { BackButton } from '../../components/BackButton';
+import { BrandSpinner } from '../../components/BrandSpinner';
 import { haptic } from '../../hooks/useHaptics';
 import type { CSSProperties } from 'react';
 
@@ -39,14 +40,7 @@ export function ConsultationDetailPage() {
     const canRefund = consultation && ['assigned', 'in_progress', 'report_ready'].includes(consultation.status);
 
     if (isLoading) {
-        return (
-            <div style={s.container}>
-                <div style={{ display: 'flex', flex: 1, height: '100%', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-                    <div className="spinner spinner-lg" style={{ color: colors.accentTeal }} />
-                    <span style={{ fontSize: 14, color: colors.textTertiary, marginTop: 12 }}>Loading patient file...</span>
-                </div>
-            </div>
-        );
+        return <BrandSpinner message="Loading patient file..." />;
     }
 
     if (error || !consultation) {

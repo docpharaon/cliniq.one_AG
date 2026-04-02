@@ -4,6 +4,7 @@ import { supabase } from '@cliniqone/api';
 import { haptic } from '../../hooks/useHaptics';
 import { colors, typography, Settings as SettingsIcon, Bell, CreditCard, Smartphone, Info, BookOpen, Mail, FileText, Lock, LogOut } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import type { CSSProperties } from 'react';
 
 const NOTIFICATION_SETTINGS_KEY = 'doctor_notification_settings';
@@ -56,8 +57,14 @@ export function SettingsPage() {
         });
     }, []);
 
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
     const handleLogout = () => {
-        if (!confirm('Are you sure you want to sign out?')) return;
+        setShowLogoutDialog(true);
+    };
+
+    const confirmLogout = () => {
+        setShowLogoutDialog(false);
         supabase.auth.signOut().then(() => {
             useAuthStore.getState().clear();
             navigate('/auth/login', { replace: true });
@@ -65,6 +72,7 @@ export function SettingsPage() {
     };
 
     return (
+        <>
         <div style={s.container} className="scrollable">
             <div style={s.scroll}>
                 <span style={{ ...s.title, display: 'inline-flex', alignItems: 'center', gap: 8 }}><SettingsIcon size={22} color={colors.textPrimary} /> Settings</span>
@@ -121,6 +129,18 @@ export function SettingsPage() {
                 </button>
             </div>
         </div>
+
+        <ConfirmDialog
+            visible={showLogoutDialog}
+            title="Sign Out"
+            message="Are you sure you want to sign out? You'll need to log in again to access your dashboard."
+            confirmLabel="Sign Out"
+            cancelLabel="Cancel"
+            destructive
+            onConfirm={confirmLogout}
+            onCancel={() => setShowLogoutDialog(false)}
+        />
+        </>
     );
 }
 

@@ -241,7 +241,7 @@ export const useIntakeStore = create<IntakeState>((set) => ({
         progressPercent: snapshot.progressPercent ?? 0,
         sequenceNodes: snapshot.sequenceNodes || [],
         chiefComplaint: snapshot.chiefComplaint || '',
-        specialty: snapshot.specialty || 'dermatology',
+        specialty: snapshot.specialty || '',
         protocolFlags: snapshot.protocolFlags || [],
         gibberishCount: snapshot.gibberishCount ?? 0,
         medications: snapshot.medications || [],

@@ -1,6 +1,6 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { haptic } from '../hooks/useHaptics';
-import { colors, typography, Home, ClipboardList, BarChart, User, Settings } from '@cliniqone/ui';
+import { typography, Home, ClipboardList, BarChart, User, Settings, useTheme } from '@cliniqone/ui';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CliniqIconProps } from '@cliniqone/ui';
 
@@ -12,57 +12,49 @@ const tabs: { path: string; label: string; Icon: (p: CliniqIconProps) => ReactNo
     { path: '/tabs/settings', label: 'Settings',  Icon: Settings },
 ];
 
-const styles = {
-    bar: {
+export function TabBar() {
+    const { colors, isDark } = useTheme();
+
+    const tabBarStyle: CSSProperties = {
         display: 'flex',
-        flexDirection: 'row',
-        backgroundColor: colors.bgSecondary,
+        backgroundColor: isDark
+            ? 'rgba(30, 41, 59, 0.85)'
+            : 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderTop: `1px solid ${colors.border}`,
         height: 85,
         paddingBottom: 20,
         paddingTop: 8,
-    } as CSSProperties,
-    tab: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        textDecoration: 'none',
-    } as CSSProperties,
-    label: {
-        fontSize: typography.caption.fontSize,
-        fontWeight: 600,
-    } as CSSProperties,
-};
-
-export function TabBar() {
-    const location = useLocation();
+    };
 
     return (
-        <nav style={styles.bar}>
-            {tabs.map((tab) => {
-                const isActive = tab.end
-                    ? location.pathname === tab.path
-                    : location.pathname.startsWith(tab.path);
-                const color = isActive ? colors.accentTeal : colors.textTertiary;
-                return (
-                    <NavLink
-                        key={tab.path}
-                        to={tab.path}
-                        end={tab.end}
-                        style={styles.tab}
-                        className="pressable"
-                        onClick={() => haptic.select()}
-                    >
-                        <tab.Icon size={22} color={color} />
-                        <span style={{ ...styles.label, color }}>
-                            {tab.label}
-                        </span>
-                    </NavLink>
-                );
-            })}
+        <nav style={tabBarStyle}>
+            {tabs.map((tab) => (
+                <NavLink
+                    key={tab.path}
+                    to={tab.path}
+                    end={tab.end}
+                    onClick={() => haptic.select()}
+                    style={({ isActive }) => ({ ...s.tab, ...(isActive ? s.tabActive : {}) })}
+                >
+                    {({ isActive }) => {
+                        const color = isActive ? colors.accentTeal : colors.textTertiary;
+                        return (
+                            <>
+                                <tab.Icon size={22} color={color} />
+                                <span style={{ ...s.tabLabel, color }}>{tab.label}</span>
+                            </>
+                        );
+                    }}
+                </NavLink>
+            ))}
         </nav>
     );
 }
+
+const s: Record<string, CSSProperties> = {
+    tab: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, textDecoration: 'none' },
+    tabActive: {},
+    tabLabel: { fontSize: typography.caption.fontSize, fontWeight: 600 },
+};

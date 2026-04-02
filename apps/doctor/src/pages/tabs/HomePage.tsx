@@ -5,6 +5,8 @@ import { colors, typography, Clock, Siren, CheckCircle, Gem, ClipboardList, Part
 import type { CliniqIconProps } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useDoctorStats, usePendingQueue, useDoctorConsultations } from '../../hooks/useDoctorData';
+import { BrandSpinner } from '../../components/BrandSpinner';
+import { PullToRefresh } from '../../components/PullToRefresh';
 import type { CSSProperties, ReactNode } from 'react';
 
 function StatCard({ Icon, label, value, color }: { Icon: (p: CliniqIconProps) => ReactNode; label: string; value: number; color: string }) {
@@ -47,6 +49,7 @@ export function HomePage() {
     ];
 
     return (
+        <PullToRefresh onRefresh={onRefresh}>
         <div style={s.container} className="scrollable">
             <div style={s.scroll}>
                 {/* Header */}
@@ -101,7 +104,7 @@ export function HomePage() {
                     </div>
                     {queueLoading ? (
                         <div style={{ display: 'flex', justifyContent: 'center', paddingBlock: 20 }}>
-                            <div className="spinner" style={{ color: colors.accentTeal }} />
+                            <BrandSpinner fullScreen={false} />
                         </div>
                     ) : queuePreview.length === 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBlock: 24 }}>
@@ -141,6 +144,7 @@ export function HomePage() {
                 </div>
             </div>
         </div>
+        </PullToRefresh>
     );
 }
 

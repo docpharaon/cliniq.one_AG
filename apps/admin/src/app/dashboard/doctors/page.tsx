@@ -279,7 +279,7 @@ export default function DoctorsPage() {
                                                                 return (
                                                                     <div>
                                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                                                                            🟡 Locum
+                                                                            <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> Locum
                                                                         </span>
                                                                         {expiresAt && (
                                                                             <p className="text-[10px] text-text-muted mt-1">
@@ -294,7 +294,7 @@ export default function DoctorsPage() {
                                                             }
                                                             return (
                                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-accent/10 text-accent border border-accent/20">
-                                                                    🟢 Permanent
+                                                                    <span className="w-2 h-2 rounded-full bg-accent inline-block" /> Permanent
                                                                 </span>
                                                             );
                                                         })()}

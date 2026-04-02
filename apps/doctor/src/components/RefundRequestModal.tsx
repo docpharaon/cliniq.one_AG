@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { colors, typography, spacing, radius } from '@cliniqone/ui';
+import { colors, typography, spacing, radius, AlertTriangle, ClipboardList, Info, Gem, XCircle } from '@cliniqone/ui';
 import { DOCTOR_REFUND_REASON_LABELS } from '@cliniqone/types';
 import type { DoctorRefundReason } from '@cliniqone/types';
 import { requestDoctorRefund } from '@cliniqone/api';
@@ -43,7 +43,7 @@ export function RefundRequestModal({ visible, onClose, consultationId, doctorUse
                 <div style={s.header}>
                     <div style={s.handle} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>{step === 'reason' ? '⚠️ Request Refund' : '📋 Confirm Refund'}</span>
+                        <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary, display: 'inline-flex', alignItems: 'center', gap: 8 }}>{step === 'reason' ? <><AlertTriangle size={18} color={colors.warning} /> Request Refund</> : <><ClipboardList size={18} color={colors.textPrimary} /> Confirm Refund</>}</span>
                         <button onClick={() => { haptic.light(); handleClose(); }}><span style={{ fontSize: 20, color: colors.textTertiary, padding: 8 }}>✕</span></button>
                     </div>
                     <span style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4, display: 'block' }}>{step === 'reason' ? 'Select a reason for requesting a refund' : 'Review the details below'}</span>
@@ -74,14 +74,14 @@ export function RefundRequestModal({ visible, onClose, consultationId, doctorUse
                             <div style={s.summaryCard}>
                                 <div style={s.summaryRow}><span style={s.summaryLabel}>Reason</span><span style={{ fontSize: 14, color: colors.textPrimary, fontWeight: 600 }}>{selectedReason ? DOCTOR_REFUND_REASON_LABELS[selectedReason].en : ''}</span></div>
                                 <div style={s.divider} />
-                                <div style={s.summaryRow}><span style={s.summaryLabel}>Refund Amount</span><span style={{ fontSize: typography.h4.fontSize, color: colors.accentTeal, fontWeight: 700 }}>💎 {tokenCost} tokens</span></div>
+                                <div style={s.summaryRow}><span style={s.summaryLabel}>Refund Amount</span><span style={{ fontSize: typography.h4.fontSize, color: colors.accentTeal, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Gem size={16} color={colors.gold} /> {tokenCost} tokens</span></div>
                                 <div style={s.divider} />
                                 <div style={s.summaryRow}><span style={s.summaryLabel}>Explanation</span></div>
                                 <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: '22px', marginTop: 4 }}>{explanation}</p>
                             </div>
 
                             <div style={s.impactNotice}>
-                                <span style={{ fontSize: 18 }}>ℹ️</span>
+                                <Info size={18} color={colors.info} />
                                 <div style={{ flex: 1 }}>
                                     <span style={{ display: 'block', fontSize: 13, color: colors.info, fontWeight: 700, marginBottom: 4 }}>What happens next</span>
                                     <span style={{ fontSize: 11, color: colors.textSecondary, lineHeight: '18px' }}>
@@ -93,7 +93,7 @@ export function RefundRequestModal({ visible, onClose, consultationId, doctorUse
                                 </div>
                             </div>
 
-                            {error && <div style={s.errorBanner}><span style={{ fontSize: 13, color: colors.error }}>❌ {error}</span></div>}
+                            {error && <div style={s.errorBanner}><span style={{ fontSize: 13, color: colors.error, display: 'inline-flex', alignItems: 'center', gap: 4 }}><XCircle size={14} color={colors.error} /> {error}</span></div>}
 
                             <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
                                 <button style={s.backBtn} className="pressable" onClick={() => { haptic.light(); setStep('reason'); }}><span style={{ fontSize: 14, color: colors.textSecondary }}>← Back</span></button>

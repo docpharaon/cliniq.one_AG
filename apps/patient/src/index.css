@@ -497,3 +497,71 @@ input[type="file"] {
 .brand-spinner-dots span:nth-child(1) { animation: brandDotBounce 1.4s ease-in-out infinite; }
 .brand-spinner-dots span:nth-child(2) { animation: brandDotBounce 1.4s ease-in-out 0.16s infinite; }
 .brand-spinner-dots span:nth-child(3) { animation: brandDotBounce 1.4s ease-in-out 0.32s infinite; }
+
+/* ── Hero CTA (Start Consultation) ───────────────────────── */
+@keyframes ctaShimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes ctaGlow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(26, 138, 158, 0.25); }
+    50%      { box-shadow: 0 6px 32px rgba(26, 138, 158, 0.45), 0 0 0 1px rgba(45, 212, 191, 0.15); }
+}
+
+@keyframes ctaIconPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+}
+
+.cta-hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0F766E 0%, #1A8A9E 50%, #0D9488 100%);
+    border: 1px solid rgba(45, 212, 191, 0.3);
+    animation: ctaGlow 3s ease-in-out infinite;
+    transition: transform 0.12s ease, opacity 0.12s ease;
+    will-change: transform;
+}
+
+.cta-hero:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+.cta-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.12) 45%,
+        rgba(255, 255, 255, 0.18) 50%,
+        rgba(255, 255, 255, 0.12) 55%,
+        transparent 70%
+    );
+    animation: ctaShimmer 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.cta-hero-icon {
+    animation: ctaIconPulse 2.4s ease-in-out infinite;
+}
+
+.cta-hero-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    flex-shrink: 0;
+}
+
+[dir="rtl"] .cta-hero-arrow {
+    transform: scaleX(-1);
+}

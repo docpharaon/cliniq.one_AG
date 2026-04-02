@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { colors, spacing, radius } from '@cliniqone/ui';
+import { colors, spacing, radius, Stethoscope, Doctor, Brain, Bone, Hospital, User, Key, FileText, AlertTriangle, CheckCircle, Lightbulb, Info, Globe, Send, Refresh, PartyPopper, Edit } from '@cliniqone/ui';
 import { supabase, createApplication, uploadApplicationDocument, acceptDisclaimer, submitApplication } from '@cliniqone/api';
 import type { ApplicationData } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -10,10 +10,10 @@ const STEPS_PERMANENT = ['Type', 'Personal', 'Professional', 'Documents', 'Revie
 const STEPS_LOCUM = ['Type', 'Invite Code', 'Personal', 'Professional', 'Documents', 'Review'];
 
 const SPECIALTIES = [
-    { value: 'dermatology', label: '🩺 Dermatology' },
-    { value: 'family_medicine', label: '👨‍⚕️ Family Medicine' },
-    { value: 'psychiatry', label: '🧠 Psychiatry' },
-    { value: 'orthopedics', label: '🦴 Orthopedics' },
+    { value: 'dermatology', label: 'Dermatology', Icon: Stethoscope },
+    { value: 'family_medicine', label: 'Family Medicine', Icon: Doctor },
+    { value: 'psychiatry', label: 'Psychiatry', Icon: Brain },
+    { value: 'orthopedics', label: 'Orthopedics', Icon: Bone },
 ];
 
 const LANGUAGES = [
@@ -234,7 +234,7 @@ export function RegistrationPage() {
     function renderTypeStep() {
         return (
             <div style={s.stepContent}>
-                <h2 style={s.stepTitle}>👋 Welcome, Doctor</h2>
+                <h2 style={s.stepTitle}><PartyPopper size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Welcome, Doctor</h2>
                 <p style={s.stepSubtitle}>How would you like to join cliniq.one?</p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -245,7 +245,7 @@ export function RegistrationPage() {
                         }}
                         onClick={() => { setDoctorType('permanent'); setError(''); }}
                     >
-                        <div style={{ fontSize: 36, marginBottom: 8 }}>🏥</div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Hospital size={36} color={colors.accentTeal} /></div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: colors.textPrimary, marginBottom: 4 }}>
                             Full-Time Doctor
                         </div>
@@ -261,7 +261,7 @@ export function RegistrationPage() {
                         }}
                         onClick={() => { setDoctorType('locum'); setError(''); }}
                     >
-                        <div style={{ fontSize: 36, marginBottom: 8 }}>🩺</div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Stethoscope size={36} color={colors.purple} /></div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: colors.textPrimary, marginBottom: 4 }}>
                             Locum Doctor
                         </div>
@@ -277,7 +277,7 @@ export function RegistrationPage() {
     function renderInviteStep() {
         return (
             <div style={s.stepContent}>
-                <h2 style={s.stepTitle}>🔑 Invitation Code</h2>
+                <h2 style={s.stepTitle}><Key size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Invitation Code</h2>
                 <p style={s.stepSubtitle}>Enter the invite code you received from the cliniq.one admin</p>
 
                 <label style={s.label}>Invite Code *</label>
@@ -298,29 +298,29 @@ export function RegistrationPage() {
                         onClick={checkInviteCode}
                         disabled={inviteChecking}
                     >
-                        {inviteChecking ? '⏳' : '✓ Verify'}
+                        {inviteChecking ? '...' : '✓ Verify'}
                     </button>
                 </div>
 
                 {inviteValid === true && (
                     <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: `${colors.success}10`, borderRadius: radius.md, border: `1px solid ${colors.success}30` }}>
-                        <span style={{ fontSize: 13, color: colors.success, fontWeight: 600 }}>
-                            ✅ Valid invitation! Specialty: {SPECIALTIES.find(sp => sp.value === inviteSpecialty)?.label || inviteSpecialty}
+                        <span style={{ fontSize: 13, color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <CheckCircle size={14} color={colors.success} /> Valid invitation! Specialty: {SPECIALTIES.find(sp => sp.value === inviteSpecialty)?.label || inviteSpecialty}
                         </span>
                     </div>
                 )}
 
                 {inviteValid === false && (
                     <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: '#dc262610', borderRadius: radius.md, border: '1px solid #dc262630' }}>
-                        <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>
-                            ❌ {error || 'Invalid code'}
+                        <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <AlertTriangle size={14} color="#dc2626" /> {error || 'Invalid code'}
                         </span>
                     </div>
                 )}
 
                 <div style={{ marginTop: spacing.xl, padding: spacing.md, backgroundColor: colors.bgTertiary, borderRadius: radius.md }}>
                     <p style={{ margin: 0, fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                        💡 Don't have a code? Contact the admin team at <span style={{ color: colors.accentTeal, fontWeight: 600 }}>admin@cliniq.one</span> to request a locum invitation.
+                        <Lightbulb size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Don't have a code? Contact the admin team at <span style={{ color: colors.accentTeal, fontWeight: 600 }}>admin@cliniq.one</span> to request a locum invitation.
                     </p>
                 </div>
             </div>
@@ -330,7 +330,7 @@ export function RegistrationPage() {
     function renderPersonalStep() {
         return (
             <div style={s.stepContent}>
-                <h2 style={s.stepTitle}>👤 Personal Information</h2>
+                <h2 style={s.stepTitle}><User size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Personal Information</h2>
                 <p style={s.stepSubtitle}>Tell us about yourself</p>
 
                 <label style={s.label}>Full Name *</label>
@@ -379,7 +379,7 @@ export function RegistrationPage() {
     function renderProfessionalStep() {
         return (
             <div style={s.stepContent}>
-                <h2 style={s.stepTitle}>🩺 Professional Details</h2>
+                <h2 style={s.stepTitle}><Stethoscope size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Professional Details</h2>
                 <p style={s.stepSubtitle}>Your medical credentials</p>
 
                 <label style={s.label}>Specialty *</label>
@@ -400,7 +400,7 @@ export function RegistrationPage() {
                                 }}
                                 onClick={() => updateForm('specialty', sp.value)}
                             >
-                                {sp.label}
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><sp.Icon size={14} color={form.specialty === sp.value ? colors.accentTeal : colors.textSecondary} /> {sp.label}</span>
                             </button>
                         ))}
                     </div>
@@ -479,7 +479,7 @@ export function RegistrationPage() {
     function renderDocumentsStep() {
         return (
             <div style={s.stepContent}>
-                <h2 style={s.stepTitle}>📄 Documents</h2>
+                <h2 style={s.stepTitle}><FileText size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Documents</h2>
                 <p style={s.stepSubtitle}>Upload required documents for verification</p>
 
                 {DOCUMENT_TYPES.map(dt => (
@@ -497,10 +497,10 @@ export function RegistrationPage() {
     }
 
     function renderReviewStep() {
-        const typeLabel = doctorType === 'locum' ? '🩺 Locum Doctor' : '🏥 Full-Time Doctor';
+        const typeLabel = doctorType === 'locum' ? 'Locum Doctor' : 'Full-Time Doctor';
         return (
             <div style={s.stepContent}>
-                <h2 style={s.stepTitle}>✅ Review & Submit</h2>
+                <h2 style={s.stepTitle}><CheckCircle size={20} color={colors.success} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Review & Submit</h2>
                 <p style={s.stepSubtitle}>Please review your application before submitting</p>
 
                 {/* Summary card */}
@@ -517,7 +517,7 @@ export function RegistrationPage() {
                         <h3 style={s.summaryLabel}>Personal</h3>
                         <p style={s.summaryValue}>{form.full_name}</p>
                         <p style={s.summaryMuted}>{form.email} {form.phone ? `• ${form.phone}` : ''}</p>
-                        {form.city && <p style={s.summaryMuted}>📍 {form.city}</p>}
+                        {form.city && <p style={s.summaryMuted}><Globe size={12} color={colors.textTertiary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {form.city}</p>}
                     </div>
                     <div style={s.divider} />
                     <div style={s.summarySection}>
@@ -527,14 +527,14 @@ export function RegistrationPage() {
                         </p>
                         <p style={s.summaryMuted}>License: {form.license_number} ({form.license_authority})</p>
                         {form.years_experience && <p style={s.summaryMuted}>{form.years_experience} years experience</p>}
-                        {form.hospital && <p style={s.summaryMuted}>🏥 {form.hospital}</p>}
+                        {form.hospital && <p style={s.summaryMuted}><Hospital size={12} color={colors.textTertiary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {form.hospital}</p>}
                     </div>
                     <div style={s.divider} />
                     <div style={s.summarySection}>
                         <h3 style={s.summaryLabel}>Documents</h3>
                         {Object.entries(files).filter(([, f]) => f).map(([type, f]) => (
                             <p key={type} style={s.summaryMuted}>
-                                ✅ {DOCUMENT_TYPES.find(d => d.key === type)?.label || type} — {f!.name}
+                                <CheckCircle size={12} color={colors.success} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {DOCUMENT_TYPES.find(d => d.key === type)?.label || type} — {f!.name}
                             </p>
                         ))}
                     </div>
@@ -544,7 +544,7 @@ export function RegistrationPage() {
                 {doctorType === 'locum' && (
                     <div style={{ marginBottom: spacing.lg, padding: spacing.md, backgroundColor: `${colors.accentTeal}08`, border: `1px solid ${colors.accentTeal}20`, borderRadius: radius.lg }}>
                         <p style={{ margin: 0, fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                            📌 As a <strong>locum doctor</strong>, after approval your credentials will be valid for 90 days.
+                            <Info size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 4 }} /> As a <strong>locum doctor</strong>, after approval your credentials will be valid for 90 days.
                             Patients will find you via your unique identifier code or QR code. You can set your own consultation fee within platform limits.
                         </p>
                     </div>
@@ -623,7 +623,7 @@ export function RegistrationPage() {
                     {/* Error */}
                     {error && getStepName(step) !== 'Invite Code' && (
                         <div style={s.errorBox}>
-                            <span style={{ fontSize: 13, color: '#dc2626' }}>⚠️ {error}</span>
+                            <span style={{ fontSize: 13, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} color="#dc2626" /> {error}</span>
                         </div>
                     )}
 
@@ -649,7 +649,7 @@ export function RegistrationPage() {
                                 onClick={handleSubmit}
                                 disabled={submitting}
                             >
-                                {submitting ? '⏳ Submitting...' : '🚀 Submit Application'}
+                                {submitting ? '...' : <><Send size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Submit Application</>}
                             </button>
                         )}
                     </div>

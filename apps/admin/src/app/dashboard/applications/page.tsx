@@ -45,10 +45,10 @@ const STATUS_TABS = [
 ];
 
 const SPECIALTY_LABELS: Record<string, string> = {
-    dermatology: '🩺 Dermatology',
-    family_medicine: '👨‍⚕️ Family Medicine',
-    psychiatry: '🧠 Psychiatry',
-    orthopedics: '🦴 Orthopedics',
+    dermatology: 'Dermatology',
+    family_medicine: 'Family Medicine',
+    psychiatry: 'Psychiatry',
+    orthopedics: 'Orthopedics',
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -206,16 +206,16 @@ export default function ApplicationsPage() {
                                             {SPECIALTY_LABELS[app.specialty] || app.specialty}
                                         </span>
                                         <span className="text-xs text-text-muted">
-                                            🪪 {app.license_number} ({app.license_authority})
+                                            License: {app.license_number} ({app.license_authority})
                                         </span>
                                         {app.submitted_at && (
                                             <span className="text-xs text-text-muted">
-                                                📅 Applied {new Date(app.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                Applied {new Date(app.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                             </span>
                                         )}
                                         {app.interview_scheduled_at && (
                                             <span className="text-xs text-purple-400">
-                                                📅 Interview {new Date(app.interview_scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                Interview {new Date(app.interview_scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         )}
                                     </div>

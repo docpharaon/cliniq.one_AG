@@ -21,7 +21,8 @@ import {
     Plus, QrCode, Copy, Trash2, Check, X, Loader2, ArrowLeft,
     Users, Clock, ShieldCheck, DollarSign, FileText, ExternalLink,
     ChevronDown, ChevronUp, Eye, ShieldAlert, RefreshCw, ToggleLeft, ToggleRight,
-    UserCheck,
+    UserCheck, Paperclip, FlaskConical, ClipboardList, Gem, Search as SearchIcon,
+    Hospital, FileSpreadsheet, GraduationCap,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -100,7 +101,7 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string | null }) {
         return <span className="px-2 py-0.5 rounded-lg bg-error/10 text-error text-[10px] font-bold">EXPIRED ({Math.abs(daysLeft)}d ago)</span>;
     }
     if (daysLeft <= 2) {
-        return <span className="px-2 py-0.5 rounded-lg bg-error/10 text-error text-[10px] font-bold">⚠️ {daysLeft}d LEFT</span>;
+        return <span className="px-2 py-0.5 rounded-lg bg-error/10 text-error text-[10px] font-bold">{daysLeft}d LEFT</span>;
     }
     if (daysLeft <= 7) {
         return <span className="px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-[10px] font-bold">{daysLeft}d LEFT</span>;
@@ -227,11 +228,11 @@ export default function LocumManagementPage() {
 
     function docTypeLabel(type: string) {
         switch (type) {
-            case 'national_id': return '🪪 National ID';
-            case 'medical_license': return '🏥 Medical License';
-            case 'cv': return '📄 CV';
-            case 'disclaimer_signed': return '✅ Disclaimer';
-            default: return '📎 ' + type;
+            case 'national_id': return 'National ID';
+            case 'medical_license': return 'Medical License';
+            case 'cv': return 'CV';
+            case 'disclaimer_signed': return 'Disclaimer';
+            default: return type;
         }
     }
 
@@ -387,7 +388,7 @@ export default function LocumManagementPage() {
                                                 <p className="text-sm text-text-secondary capitalize">
                                                     {inv.specialty.replace('_', ' ')} • Expires {new Date(inv.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                 </p>
-                                                {inv.notes && <p className="text-xs text-text-muted">📝 {inv.notes}</p>}
+                                                {inv.notes && <p className="text-xs text-text-muted flex items-center gap-1"><FileText className="w-3 h-3" /> {inv.notes}</p>}
 
                                                 {/* Actions */}
                                                 {isPending && (
@@ -442,7 +443,7 @@ export default function LocumManagementPage() {
                                                     <p className="text-xs text-text-muted mt-1">
                                                         Applied {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                         <span className="ml-2 px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-[10px] font-bold">
-                                                            {doc.onboarding_status === 'documents_pending' ? '📄 DOCS PENDING' : '🔍 REVIEW PENDING'}
+                                                            {doc.onboarding_status === 'documents_pending' ? 'DOCS PENDING' : 'REVIEW PENDING'}
                                                         </span>
                                                     </p>
                                                 </div>
@@ -493,13 +494,13 @@ export default function LocumManagementPage() {
                                                                         {docTypeLabel(d.document_type)}
                                                                     </span>
                                                                     {d.verified ? (
-                                                                        <span className="px-2 py-0.5 rounded-lg bg-success/10 text-success text-[10px] font-bold">✅ VERIFIED</span>
+                                                                        <span className="px-2 py-0.5 rounded-lg bg-success/10 text-success text-[10px] font-bold">VERIFIED</span>
                                                                     ) : (
                                                                         <span className="px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-[10px] font-bold">PENDING</span>
                                                                     )}
                                                                 </div>
                                                                 <p className="text-xs text-text-muted truncate" title={d.file_name}>
-                                                                    📎 {d.file_name}
+                                                                    <span className="flex items-center gap-1"><Paperclip className="w-3 h-3" /> {d.file_name}</span>
                                                                 </p>
                                                                 <p className="text-xs text-text-muted">
                                                                     {d.file_size_bytes ? `${(d.file_size_bytes / 1024).toFixed(1)} KB` : '—'} •
@@ -539,15 +540,15 @@ export default function LocumManagementPage() {
                                                                 <span className="px-2 py-0.5 rounded-lg bg-error/10 text-error text-[10px] font-bold">SUSPENDED</span>
                                                             )}
                                                             {doc.sandbox_mode && (
-                                                                <span className="px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-[10px] font-bold">🧪 SANDBOX</span>
+                                                                <span className="px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-[10px] font-bold flex items-center gap-1"><FlaskConical className="w-3 h-3" /> SANDBOX</span>
                                                             )}
                                                         </div>
                                                         <p className="text-sm text-text-secondary capitalize">
                                                             {doc.specialty.replace('_', ' ')} • <span className="font-mono">{doc.identifier_code}</span>
                                                         </p>
                                                         <div className="flex items-center gap-4 text-xs text-text-muted mt-1">
-                                                            <span>💎 {doc.consultation_fee_tokens} tokens</span>
-                                                            <span>📋 {doc.consultation_count} consultations</span>
+                                                            <span className="flex items-center gap-1"><Gem className="w-3 h-3" /> {doc.consultation_fee_tokens} tokens</span>
+                                                            <span className="flex items-center gap-1"><ClipboardList className="w-3 h-3" /> {doc.consultation_count} consultations</span>
                                                             <ExpiryBadge expiresAt={doc.credential_expires_at} />
                                                         </div>
                                                     </div>

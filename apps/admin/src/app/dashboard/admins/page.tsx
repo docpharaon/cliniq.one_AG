@@ -5,7 +5,7 @@ import {
     MoreVertical, ShieldAlert, Trash2, Crown, Mail, AlertCircle, X
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import { fetchUsers, editUser, removeUser } from '@/lib/actions';
+import { fetchUsers, editUser, removeUser, doInviteAdmin } from '@/lib/actions';
 import { createBrowserSupabase } from '@/lib/supabase';
 
 type AdminUser = {
@@ -65,60 +65,15 @@ export default function AdminManagementPage() {
         setInviting(true);
 
         try {
-            const supabase = createBrowserSupabase();
-
-            // Check if user already exists in users table
-            const { data: existingUser } = await supabase
-                .from('users')
-                .select('id, role')
-                .eq('email', inviteEmail.trim())
-                .single();
-
-            if (existingUser) {
-                // User exists — update their role
-                await editUser(existingUser.id, { role: inviteRole });
-                setInviteSuccess(`${inviteEmail} has been updated to ${inviteRole}`);
+            // H2 Fix: Use server action with service role — no client-side DB/auth calls
+            const result = await doInviteAdmin(inviteEmail.trim(), inviteRole);
+            if (result.success) {
+                setInviteSuccess(result.message || 'Admin invited successfully');
+                setInviteEmail('');
+                loadAdmins();
             } else {
-                // User doesn't exist yet — create a placeholder row
-                // They'll complete registration via OAuth
-                const { data: authUsers } = await supabase.auth.admin.listUsers();
-                const authUser = authUsers?.users?.find(u => u.email === inviteEmail.trim());
-
-                if (authUser) {
-                    // Auth user exists but no profile — create one
-                    await supabase.from('users').insert({
-                        id: authUser.id,
-                        email: inviteEmail.trim(),
-                        nickname: inviteEmail.split('@')[0],
-                        role: inviteRole,
-                        status: 'active',
-                        tokens_balance: 0,
-                        language: 'en',
-                        onboarding_completed: true,
-                    });
-                    setInviteSuccess(`${inviteEmail} has been added as ${inviteRole}`);
-                } else {
-                    // No auth user at all — use invite by creating users row
-                    // When they OAuth in, the login flow will find this row
-                    // For now, we need to just set a pre-authorized email approach
-                    // Insert into users with a placeholder UUID (will be updated on first login)
-                    const placeholderId = crypto.randomUUID();
-                    await supabase.from('users').insert({
-                        id: placeholderId,
-                        email: inviteEmail.trim(),
-                        nickname: inviteEmail.split('@')[0],
-                        role: inviteRole,
-                        status: 'pending',
-                        tokens_balance: 0,
-                        language: 'en',
-                        onboarding_completed: false,
-                    });
-                    setInviteSuccess(`Invitation created for ${inviteEmail}. They'll be ${inviteRole} when they sign in.`);
-                }
+                setInviteError(result.error || 'Failed to invite admin');
             }
-
-            setInviteEmail('');
-            loadAdmins();
         } catch (err: any) {
             setInviteError(err?.message || 'Failed to invite admin');
         } finally {

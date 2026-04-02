@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import CapacitorNotificationListener from '@/components/CapacitorNotificationListener';
 import { AdminAuthProvider } from '@/components/AdminAuthProvider';
 import OfflineBannerClient from '@/components/OfflineBannerClient';
+import { AdminThemeProvider } from '@/lib/themeStore';
 
 // Pages
 import LoginPage from '@/app/login/page';
@@ -38,6 +39,7 @@ import TestersPage from '@/app/dashboard/testers/page';
 import TokensPage from '@/app/dashboard/tokens/page';
 import UsersPage from '@/app/dashboard/users/page';
 import NotFoundPage from '@/app/not-found';
+import AuthCallbackPage from '@/app/auth/callback/page';
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -58,7 +60,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
     return (
-        <>
+        <AdminThemeProvider>
             <OfflineBannerClient />
             <Routes>
                 {/* Root redirect */}
@@ -66,6 +68,9 @@ export default function App() {
 
                 {/* Login */}
                 <Route path="/login" element={<LoginPage />} />
+
+                {/* OAuth Callback */}
+                <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
                 {/* Dashboard */}
                 <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
@@ -100,6 +105,6 @@ export default function App() {
                 {/* 404 */}
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>
-        </>
+        </AdminThemeProvider>
     );
 }

@@ -24,6 +24,7 @@ export function useConsultations(patientId: string) {
         queryFn: () => getConsultations(patientId),
         enabled: !!patientId,
         staleTime: 30_000,
+        retry: 1,
     });
 }
 

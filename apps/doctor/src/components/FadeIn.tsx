@@ -1,20 +1,30 @@
-import type { CSSProperties, ReactNode } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface FadeInProps {
-    children: ReactNode;
+    children: React.ReactNode;
     delay?: number;
     duration?: number;
-    style?: CSSProperties;
-    className?: string;
+    style?: React.CSSProperties;
 }
 
-export function FadeIn({ children, delay = 0, duration = 400, style, className }: FadeInProps) {
+/**
+ * FadeIn animation wrapper using CSS transitions.
+ * JS-driven for proper delay support.
+ */
+export function FadeIn({ children, delay = 0, duration = 400, style }: FadeInProps) {
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setVisible(true), delay);
+        return () => clearTimeout(timer);
+    }, [delay]);
+
     return (
         <div
-            className={`fade-in ${className ?? ''}`}
             style={{
-                animationDelay: `${delay}ms`,
-                animationDuration: `${duration}ms`,
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateY(0)' : 'translateY(12px)',
+                transition: `opacity ${duration}ms ease-out, transform ${duration}ms ease-out`,
                 ...style,
             }}
         >

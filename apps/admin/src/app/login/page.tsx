@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { createBrowserSupabase } from '@/lib/supabase';
 import { haptic } from '@/lib/useHaptics';
+
+// Module-level guard against StrictMode double-mount
+let _oauthCallbackInProgress = false;
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -19,21 +22,49 @@ export default function LoginPage() {
         }
     }, []);
 
-    // Handle OAuth callback (hash tokens)
+    // Handle OAuth callback (hash tokens — implicit flow)
+    const oauthRan = useRef(false);
     useEffect(() => {
         const hash = window.location.hash;
         if (hash && hash.includes('access_token')) {
+            if (oauthRan.current || _oauthCallbackInProgress) return;
+            oauthRan.current = true;
+            _oauthCallbackInProgress = true;
             setCheckingOAuth(true);
-            handleOAuthCallback();
+            handleOAuthCallback().finally(() => {
+                _oauthCallbackInProgress = false;
+            });
         }
     }, []);
 
     async function handleOAuthCallback() {
         try {
             const supabase = createBrowserSupabase();
-            // Supabase auto-detects hash and sets session
-            await new Promise(r => setTimeout(r, 500));
-            const { data: { session } } = await supabase.auth.getSession();
+
+            // Wait for Supabase to auto-detect hash tokens and establish session
+            const session = await new Promise<any>((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    sub.unsubscribe();
+                    reject(new Error('Session timeout — please try again'));
+                }, 10000);
+
+                const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, sess) => {
+                    if (event === 'SIGNED_IN' && sess) {
+                        clearTimeout(timeout);
+                        sub.unsubscribe();
+                        resolve(sess);
+                    }
+                });
+
+                // Also check if session is already available
+                supabase.auth.getSession().then(({ data: { session: existing } }) => {
+                    if (existing) {
+                        clearTimeout(timeout);
+                        sub.unsubscribe();
+                        resolve(existing);
+                    }
+                });
+            });
 
             if (!session) {
                 setError('OAuth session could not be established');
@@ -41,13 +72,14 @@ export default function LoginPage() {
                 return;
             }
 
+            console.log('[Login] OAuth session for:', session.user.email);
+
             // Validate role
             const roleOk = await validateAdminRole(supabase, session.user.id, session.user.email || undefined);
             if (!roleOk) {
                 await supabase.auth.signOut();
                 setError('Unauthorized: Your account does not have admin access.');
                 setCheckingOAuth(false);
-                // Clean hash from URL
                 window.history.replaceState(null, '', '/login');
                 return;
             }
@@ -55,37 +87,49 @@ export default function LoginPage() {
             // Clean hash and redirect
             window.location.href = '/dashboard';
         } catch (err: any) {
+            console.error('[Login] OAuth callback error:', err);
+            // Ignore abort errors from StrictMode
+            if (err?.name === 'AbortError' || (err?.message && err.message.includes('abort'))) {
+                console.log('[Login] Ignoring abort error');
+                return;
+            }
             setError(err?.message || 'OAuth callback failed');
             setCheckingOAuth(false);
         }
     }
 
     async function validateAdminRole(supabase: ReturnType<typeof createBrowserSupabase>, userId: string, userEmail?: string): Promise<boolean> {
-        const { data, error: fetchError } = await supabase
+        const { data } = await supabase
             .from('users')
             .select('role')
             .eq('id', userId)
-            .single();
+            .single() as { data: { role: string } | null };
 
-        // If user exists, check their role
-        if (data) {
-            return data.role === 'admin' || data.role === 'superadmin';
+        // If user exists with admin/superadmin role, allow access
+        if (data && (data.role === 'admin' || data.role === 'superadmin')) {
+            return true;
         }
 
         // Bootstrap: initial superadmin account
-        const INITIAL_SUPERADMIN = 'momen@momencrafts.com';
+        const INITIAL_SUPERADMIN = import.meta.env.VITE_INITIAL_SUPERADMIN || 'momen@momencrafts.com';
         if (userEmail === INITIAL_SUPERADMIN) {
             try {
-                await supabase.from('users').insert({
-                    id: userId,
-                    email: userEmail,
-                    nickname: 'Superadmin',
-                    role: 'superadmin',
-                    status: 'active',
-                    tokens_balance: 0,
-                    language: 'en',
-                    onboarding_completed: true,
-                });
+                if (data) {
+                    // User exists but has wrong role — upgrade to superadmin
+                    await (supabase.from('users') as any).update({ role: 'superadmin' }).eq('id', userId);
+                } else {
+                    // User doesn't exist — create as superadmin
+                    await (supabase.from('users') as any).insert({
+                        id: userId,
+                        email: userEmail,
+                        nickname: 'Superadmin',
+                        role: 'superadmin',
+                        status: 'active',
+                        tokens_balance: 0,
+                        language: 'en',
+                        onboarding_completed: true,
+                    });
+                }
                 return true;
             } catch (err) {
                 console.error('Failed to bootstrap superadmin:', err);
@@ -149,7 +193,7 @@ export default function LoginPage() {
             const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: window.location.origin + '/auth/callback',
+                    redirectTo: window.location.origin + '/login',
                     queryParams: provider === 'google'
                         ? { prompt: 'select_account' }
                         : { prompt: 'consent' },

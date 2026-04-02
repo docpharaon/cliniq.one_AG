@@ -5,6 +5,8 @@ import type { CliniqIconProps } from '@cliniqone/ui';
 import { useSubmitReport, useCreateInquiry, useDoctorInquiries } from '../../hooks/useDoctorData';
 import { supabase } from '@cliniqone/api';
 import { BackButton } from '../../components/BackButton';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { useToast } from '../../components/ToastProvider';
 import { haptic } from '../../hooks/useHaptics';
 import type { DoctorInquiry } from '@cliniqone/types';
 import type { CSSProperties, ReactNode } from 'react';
@@ -58,6 +60,9 @@ export function RespondPage() {
     const [notes, setNotes] = useState('');
     // Preview
     const [showPreview, setShowPreview] = useState(false);
+    const [showInquiryConfirm, setShowInquiryConfirm] = useState(false);
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const addMedication = () => setMedications([...medications, { ...emptyMed }]);
     const removeMedication = (index: number) => setMedications(medications.filter((_, i) => i !== index));
@@ -77,20 +82,27 @@ export function RespondPage() {
 
     const handleSendInquiry = () => {
         const textToSend = aiImprovedText || inquiryText;
-        if (!textToSend.trim()) { alert('Please type your question first.'); return; }
-        if (!consultationId || !doctorId) { alert('Missing consultation or doctor ID.'); return; }
-        if (!confirm('This will notify the patient. Continue?')) return;
+        if (!textToSend.trim()) { toast('Please type your question first.', 'warning'); return; }
+        if (!consultationId || !doctorId) { toast('Missing consultation or doctor ID.', 'error'); return; }
+        setShowInquiryConfirm(true);
+    };
+
+    const confirmSendInquiry = () => {
+        setShowInquiryConfirm(false);
         createInquiryMutation.mutate(
-            { consultationId, doctorId, questionText: inquiryText, aiImprovedText: aiImprovedText || undefined, requestType: inquiryRequestType },
-            { onSuccess: () => { alert('Inquiry sent!'); setInquiryText(''); setAiImprovedText(''); setShowInquiryForm(false); }, onError: (err) => alert(err.message || 'Failed to send inquiry.') },
+            { consultationId: consultationId!, doctorId, questionText: inquiryText, aiImprovedText: aiImprovedText || undefined, requestType: inquiryRequestType },
+            { onSuccess: () => { toast('Inquiry sent!', 'success'); setInquiryText(''); setAiImprovedText(''); setShowInquiryForm(false); }, onError: (err) => toast(err.message || 'Failed to send inquiry.', 'error') },
         );
     };
 
     const handleSubmit = () => {
-        if (!diagnosis) { alert('Please enter a primary diagnosis.'); return; }
-        if (!consultationId) { alert('No consultation ID.'); return; }
-        if (!confirm('Submit response and generate e-prescription?')) return;
+        if (!diagnosis) { toast('Please enter a primary diagnosis.', 'warning'); return; }
+        if (!consultationId) { toast('No consultation ID.', 'error'); return; }
+        setShowSubmitConfirm(true);
+    };
 
+    const confirmSubmit = () => {
+        setShowSubmitConfirm(false);
         const report: Record<string, unknown> = {
             diagnosis, icd10_code: icd10, differentials, clinical_reasoning: reasoning, non_pharmacologic: nonPharm,
             patient_education: { about_condition: aboutCondition, expectations, prevention },
@@ -100,9 +112,9 @@ export function RespondPage() {
         const prescriptionMeds = medications.filter(m => m.addToPrescription && m.name);
         const prescription = prescriptionMeds.length > 0 ? { medications: prescriptionMeds.map(m => ({ name: m.name, strength: m.strength, form: m.form, quantity: m.quantity, directions: m.directions, duration: m.duration })) } : undefined;
 
-        submitReportMutation.mutate({ consultationId, report, prescription }, {
-            onSuccess: () => { alert('Response submitted!'); navigate('/tabs', { replace: true }); },
-            onError: (err) => alert(err.message || 'Failed to submit.'),
+        submitReportMutation.mutate({ consultationId: consultationId!, report, prescription }, {
+            onSuccess: () => { toast('Response submitted!', 'success'); navigate('/tabs', { replace: true }); },
+            onError: (err) => toast(err.message || 'Failed to submit.', 'error'),
         });
     };
 
@@ -244,7 +256,9 @@ export function RespondPage() {
                         <span style={s.subLabel}>Red Flag Symptoms</span>
                         {Object.entries(warningChecks).map(([key, checked]) => (
                             <button key={key} style={s.checkRow} className="pressable" onClick={() => { haptic.select(); setWarningChecks({ ...warningChecks, [key]: !checked }); }}>
-                                <span style={{ fontSize: 18, marginRight: 10 }}>{checked ? '☑️' : '⬜'}</span>
+                                <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${checked ? colors.accentTeal : colors.border}`, backgroundColor: checked ? colors.accentTealFaded : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                                    {checked && <CheckCircle size={14} color={colors.accentTeal} />}
+                                </div>
                                 <span style={{ fontSize: 14, color: colors.textPrimary }}>{key}</span>
                             </button>
                         ))}
@@ -305,6 +319,25 @@ export function RespondPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                visible={showInquiryConfirm}
+                title="Send Inquiry"
+                message="This will notify the patient and request additional information. Continue?"
+                confirmLabel="Send"
+                cancelLabel="Cancel"
+                onConfirm={confirmSendInquiry}
+                onCancel={() => setShowInquiryConfirm(false)}
+            />
+            <ConfirmDialog
+                visible={showSubmitConfirm}
+                title="Submit Response"
+                message="Submit your response and generate the e-prescription? This action cannot be undone."
+                confirmLabel="Submit"
+                cancelLabel="Review Again"
+                onConfirm={confirmSubmit}
+                onCancel={() => setShowSubmitConfirm(false)}
+            />
         </div>
     );
 }

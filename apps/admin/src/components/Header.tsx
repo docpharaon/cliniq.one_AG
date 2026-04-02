@@ -1,5 +1,7 @@
-import { Search, Settings, Menu } from 'lucide-react';
+import { Search, Settings, Menu, Crown, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useSidebar } from './SidebarContext';
+import { useAdminAuth } from './AdminAuthProvider';
 import NotificationDropdown from './NotificationDropdown';
 import { haptic } from '@/lib/useHaptics';
 
@@ -10,16 +12,24 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle }: HeaderProps) {
     const { isMobile, openMobile } = useSidebar();
+    const { user, isSuperadmin } = useAdminAuth();
+
+    // Extract user info from auth context
+    const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+    const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+    const initials = fullName
+        ? fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+        : (user?.email?.[0]?.toUpperCase() || 'A');
 
     return (
         <header
             className="sticky top-0 z-40 flex items-center justify-between h-14 md:h-16 px-4 md:px-8 border-b gap-3"
             style={{
-                background: 'rgba(15, 35, 40, 0.95)',
+                background: 'var(--color-bg-primary)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                borderColor: 'rgba(98, 214, 197, 0.2)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                borderColor: 'var(--color-border)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
             }}
         >
             {/* Left: Hamburger + Title */}
@@ -48,7 +58,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
                     <input
                         type="text"
                         placeholder="Search users, doctors, consultations..."
-                        className="w-full bg-bg-elevated border border-border rounded-xl py-2 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent-faded transition-all"
+                        className="w-full bg-bg-elevated border border-border rounded-xl py-2 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent-faded transition-all cursor-not-allowed opacity-60"
+                        disabled
+                        title="Search coming soon"
                     />
                 </div>
             </div>
@@ -57,12 +69,58 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <div className="flex items-center gap-1 md:gap-2">
                 <NotificationDropdown />
 
-                <button className="hidden sm:flex w-10 h-10 items-center justify-center rounded-xl hover:bg-accent-faded transition-colors">
-                    <Settings className="w-5 h-5 text-text-secondary" />
-                </button>
+                {isSuperadmin && (
+                    <Link to="/dashboard/settings" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-xl hover:bg-accent-faded transition-colors" title="Settings">
+                        <Settings className="w-5 h-5 text-text-secondary" />
+                    </Link>
+                )}
 
-                <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-bg-primary border-2 border-accent ml-1 md:ml-2 cursor-pointer">
-                    A
+                {/* Profile Avatar */}
+                <Link to={isSuperadmin ? "/dashboard/settings" : "/dashboard"} className="relative ml-1 md:ml-2 cursor-pointer group" title={isSuperadmin ? "Profile & Settings" : "Profile"}>
+                    {avatarUrl ? (
+                        <img
+                            src={avatarUrl}
+                            alt={fullName || 'Profile'}
+                            className="w-9 h-9 rounded-full object-cover border-2 transition-all group-hover:scale-105"
+                            style={{ borderColor: isSuperadmin ? '#f59e0b' : 'var(--color-accent)' }}
+                            referrerPolicy="no-referrer"
+                        />
+                    ) : (
+                        <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-bg-primary border-2 transition-all group-hover:scale-105"
+                            style={{
+                                background: isSuperadmin
+                                    ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                                    : 'var(--color-accent)',
+                                borderColor: isSuperadmin ? '#f59e0b' : 'var(--color-accent)',
+                            }}
+                        >
+                            {initials}
+                        </div>
+                    )}
+                    {/* Superadmin crown badge */}
+                    {isSuperadmin && (
+                        <div
+                            className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                            title="Superadmin"
+                        >
+                            <Crown className="w-2.5 h-2.5 text-white" />
+                        </div>
+                    )}
+                </Link>
+
+                {/* Name + Role (desktop) */}
+                <div className="hidden lg:flex flex-col ml-1">
+                    <span className="text-sm font-semibold text-text-primary leading-tight truncate max-w-[120px]">
+                        {fullName || user?.email?.split('@')[0] || 'Admin'}
+                    </span>
+                    <span
+                        className="text-[10px] font-bold uppercase tracking-wider leading-tight"
+                        style={{ color: isSuperadmin ? '#f59e0b' : 'var(--color-text-muted)' }}
+                    >
+                        {isSuperadmin ? 'Superadmin' : 'Admin'}
+                    </span>
                 </div>
             </div>
         </header>

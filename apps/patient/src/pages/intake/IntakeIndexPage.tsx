@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
-import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { FadeIn } from '../../components/FadeIn';
 import { resolveLocum } from '../../services/aiService';
-import { Stethoscope, Hospital, CheckCircle, XCircle, Bot, Camera, Doctor, ClipboardList } from '@cliniqone/ui';
+import { Stethoscope, Hospital, CheckCircle, XCircle, Camera, Doctor, ClipboardList, Shield } from '@cliniqone/ui';
 
 export default function IntakeIndexPage() {
     const navigate = useNavigate();
@@ -18,44 +17,49 @@ export default function IntakeIndexPage() {
     const [locumLoading, setLocumLoading] = useState(false);
     const [locumError, setLocumError] = useState('');
     const [locumResolved, setLocumResolved] = useState<{ name: string; specialty: string } | null>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-    async function handleLocumCode(code: string) {
+    function handleLocumCode(code: string) {
         setLocumCode(code);
         setLocumError('');
         setLocumResolved(null);
 
         if (code.trim().length < 3) return;
 
-        setLocumLoading(true);
-        try {
-            const result = await resolveLocum(code.trim());
-            if (result.found && result.doctor) {
-                setLocumResolved({ name: result.doctor.display_name, specialty: result.doctor.specialty });
-                setLocumDoctor(result.doctor, result.greetingPrompt || null);
-            } else {
-                setLocumError('Code not found. Please check and try again.');
+        // Debounce: wait 500ms after last keystroke before calling API
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            setLocumLoading(true);
+            try {
+                const result = await resolveLocum(code.trim());
+                if (result.found && result.doctor) {
+                    setLocumResolved({ name: result.doctor.display_name, specialty: result.doctor.specialty });
+                    setLocumDoctor(result.doctor, result.greetingPrompt || null);
+                } else {
+                    setLocumError('Code not found. Please check and try again.');
+                    setLocumDoctor(null);
+                }
+            } catch {
+                setLocumError('Failed to verify code.');
                 setLocumDoctor(null);
             }
-        } catch {
-            setLocumError('Failed to verify code.');
-            setLocumDoctor(null);
-        }
-        setLocumLoading(false);
+            setLocumLoading(false);
+        }, 500);
     }
 
     function handleStart() {
         reset();
-        // Re-set locum if it was resolved (reset clears it)
-        if (locumResolved && locumCode.trim()) {
-            // Re-resolve will happen on AiChatPage init since we pass via URL or re-fetch
-            // For now, just navigate — the locum state was already set before reset
-            // We need to NOT reset if locum is set... let's handle differently:
-        }
         navigate('/intake/ai-chat');
     }
 
     function handleStartWithLocum() {
-        // Don't reset locum state — just navigate
+        // Save locum state, reset everything else, then restore locum
+        const savedDoctor = useIntakeStore.getState().locumDoctor;
+        const savedGreeting = useIntakeStore.getState().locumGreetingPrompt;
+        reset();
+        if (savedDoctor) {
+            setLocumDoctor(savedDoctor, savedGreeting);
+        }
         navigate('/intake/ai-chat');
     }
 
@@ -75,36 +79,75 @@ export default function IntakeIndexPage() {
                 </FadeIn>
 
                 <FadeIn delay={100}>
-                    <DisclaimerBanner
-                        message={t('intake.disclaimer')}
-                        type="warning"
-                    />
+                    <div style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 12,
+                        padding: '14px 16px',
+                        background: 'linear-gradient(135deg, rgba(26,138,158,0.08) 0%, rgba(45,212,191,0.06) 100%)',
+                        borderRadius: 14,
+                        border: '1px solid rgba(26,138,158,0.15)',
+                        marginBottom: 12,
+                    }}>
+                        <div style={{
+                            width: 32, height: 32, borderRadius: 10,
+                            background: 'rgba(26,138,158,0.12)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <Shield size={18} color="#1A8A9E" />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: '#1A8A9E', margin: '0 0 3px' }}>
+                                {t('intake.disclaimerTitle')}
+                            </p>
+                            <p style={{ fontSize: 12, lineHeight: '18px', color: 'var(--text-secondary)', margin: 0 }}>
+                                {t('intake.disclaimer')}
+                            </p>
+                        </div>
+                    </div>
                 </FadeIn>
 
-                {/* Locum Code Input */}
+                {/* Doctor Code Input */}
                 <FadeIn delay={150}>
                     <div style={{
-                        margin: '20px 0 0', padding: '16px',
-                        backgroundColor: 'var(--bg-card)', borderRadius: 14,
-                        border: `1px solid ${locumResolved ? '#10B981' : locumError ? '#EF4444' : '#334155'}`,
-                        transition: 'border-color 0.3s',
+                        margin: '20px 0 0', padding: '16px 16px 14px',
+                        backgroundColor: locumResolved ? '#10B98110' : '#F59E0B08',
+                        borderRadius: 14,
+                        border: `1.5px dashed ${locumResolved ? '#10B981' : locumError ? '#EF4444' : '#F59E0B60'}`,
+                        transition: 'border-color 0.3s, background-color 0.3s',
                     }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>
-                            <Hospital size={14} color="#94A3B8" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Doctor Code (optional)
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                            <div style={{
+                                width: 28, height: 28, borderRadius: 8,
+                                backgroundColor: '#F59E0B20',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <Hospital size={16} color="#F59E0B" />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: '#F59E0B', margin: 0 }}>
+                                    {t('intake.doctorCodeTitle')}
+                                </p>
+                                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '1px 0 0' }}>
+                                    {t('intake.doctorCodeHint')}
+                                </p>
+                            </div>
+                        </div>
                         <input
                             value={locumCode}
                             onChange={e => handleLocumCode(e.target.value.toUpperCase())}
-                            placeholder="e.g. CQ-7284"
+                            placeholder="CQ-XXXX"
                             style={{
                                 width: '100%', padding: '12px 14px', borderRadius: 10,
-                                border: '1px solid #475569', backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-primary)', fontSize: 15, fontFamily: 'monospace',
-                                letterSpacing: 2, outline: 'none', boxSizing: 'border-box',
+                                border: `1.5px solid ${locumResolved ? '#10B98140' : locumError ? '#EF444440' : '#F59E0B30'}`,
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'var(--text-primary)', fontSize: 16, fontFamily: 'monospace',
+                                letterSpacing: 3, outline: 'none', boxSizing: 'border-box',
+                                textAlign: 'center', fontWeight: 700,
+                                transition: 'border-color 0.3s',
                             }}
                         />
                         {locumLoading && (
-                            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '8px 0 0' }}>Verifying code…</p>
+                            <p style={{ fontSize: 12, color: '#F59E0B', margin: '8px 0 0', textAlign: 'center' }}>Verifying code…</p>
                         )}
                         {locumResolved && (
                             <div style={{
@@ -118,13 +161,13 @@ export default function IntakeIndexPage() {
                                         Dr. {locumResolved.name}
                                     </p>
                                     <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-                                        {locumResolved.specialty.replace(/_/g, ' ')} • Your intake will be routed to this doctor
+                                        {locumResolved.specialty.replace(/_/g, ' ')} • {t('intake.doctorCodeRouted')}
                                     </p>
                                 </div>
                             </div>
                         )}
                         {locumError && (
-                            <p style={{ fontSize: 12, color: '#EF4444', margin: '8px 0 0' }}><XCircle size={12} color="#EF4444" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{locumError}</p>
+                            <p style={{ fontSize: 12, color: '#EF4444', margin: '8px 0 0', textAlign: 'center' }}><XCircle size={12} color="#EF4444" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{locumError}</p>
                         )}
                     </div>
                 </FadeIn>
@@ -132,7 +175,7 @@ export default function IntakeIndexPage() {
                 <FadeIn delay={200}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20 }}>
                         {[
-                            { IconComp: Bot, title: t('intake.step1'), desc: t('intake.step1Desc') },
+                            { IconComp: Stethoscope, title: t('intake.step1'), desc: t('intake.step1Desc') },
                             { IconComp: Camera, title: t('intake.step2'), desc: t('intake.step2Desc') },
                             { IconComp: Doctor, title: t('intake.step3'), desc: t('intake.step3Desc') },
                             { IconComp: ClipboardList, title: t('intake.step4'), desc: t('intake.step4Desc') },

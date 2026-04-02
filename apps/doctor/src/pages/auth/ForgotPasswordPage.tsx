@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@cliniqone/api';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, typography } from '@cliniqone/ui';
+import { colors, typography, Mail, Key } from '@cliniqone/ui';
 import type { CSSProperties } from 'react';
 
 export function ForgotPasswordPage() {
@@ -23,7 +23,7 @@ export function ForgotPasswordPage() {
         return (
             <div style={s.container}>
                 <div style={s.content}>
-                    <span style={s.emoji}>📧</span>
+                    <Mail size={48} color={colors.accentTeal} style={{ marginBottom: 16 }} />
                     <span style={s.title}>Check your email</span>
                     <p style={s.message}>If an account exists with {email}, you'll receive a password reset link.</p>
                     <button style={s.button} className="pressable" onClick={() => { haptic.light(); navigate(-1); }}>
@@ -37,7 +37,7 @@ export function ForgotPasswordPage() {
     return (
         <div style={s.container}>
             <div style={s.content}>
-                <span style={s.emoji}>🔑</span>
+                <Key size={48} color={colors.accentTeal} style={{ marginBottom: 16 }} />
                 <span style={s.title}>Reset Password</span>
                 <p style={s.message}>Enter your email to receive a reset link.</p>
 

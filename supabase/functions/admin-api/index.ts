@@ -3,13 +3,87 @@
 // Replaces: chat-test, chat-test-instant, improve-prompt, simulate-patient, analyze-prompts, seed-sequence
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.0';
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// ── CORS: restrict to known admin origins ────────────────
+const ALLOWED_ORIGINS = [
+    'http://localhost:3001',
+    'http://localhost:3003',
+    'http://localhost:5173',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3003',
+    'http://127.0.0.1:5173',
+];
+
+function getCorsHeaders(req: Request) {
+    const origin = req.headers.get('origin') || '';
+    const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    return {
+        'Access-Control-Allow-Origin': allowedOrigin,
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-key',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Vary': 'Origin',
+    };
+}
+
+// ── Auth: verify caller is admin or superadmin ───────────
+// Helper: check if a JWT token is a service_role key for this project
+function isServiceRoleJwt(token: string): boolean {
+    try {
+        const payloadB64 = token.split('.')[1];
+        if (!payloadB64) return false;
+        const payload = JSON.parse(atob(payloadB64));
+        const projectRef = (Deno.env.get('SUPABASE_URL') || '').match(/\/\/([^.]+)/)?.[1] || '';
+        return payload.role === 'service_role' && payload.ref === projectRef;
+    } catch { return false; }
+}
+
+async function verifyAdminAuth(
+    req: Request,
+    supabase: ReturnType<typeof createClient>,
+    supabaseServiceKey: string,
+): Promise<{ userId: string; role: string } | null> {
+    // 1. Check x-admin-key header (admin panel sends service key here)
+    const adminKey = req.headers.get('x-admin-key');
+    if (adminKey) {
+        if (adminKey === supabaseServiceKey || isServiceRoleJwt(adminKey)) {
+            return { userId: 'service-role', role: 'superadmin' };
+        }
+    }
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) return null;
+
+    const token = authHeader.replace('Bearer ', '');
+
+    // 2. Check if Bearer token is a service_role key
+    if (token === supabaseServiceKey || isServiceRoleJwt(token)) {
+        return { userId: 'service-role', role: 'superadmin' };
+    }
+
+    // 3. Try as a user JWT — verify with Supabase auth
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user) return null;
+
+        // Check admin role in the users table
+        const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (!userData || (userData.role !== 'admin' && userData.role !== 'superadmin')) {
+            return null;
+        }
+
+        return { userId: user.id, role: userData.role };
+    } catch {
+        return null;
+    }
+}
 
 Deno.serve(async (req: Request) => {
+    const corsHeaders = getCorsHeaders(req);
+
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
@@ -19,8 +93,25 @@ Deno.serve(async (req: Request) => {
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+        // ── Auth gate: require admin or superadmin ────────
+        const auth = await verifyAdminAuth(req, supabase, supabaseServiceKey);
+        if (!auth) {
+            return new Response(
+                JSON.stringify({ error: 'Unauthorized. Admin access required.' }),
+                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            );
+        }
+
         const body = await req.json();
         const { action, ...payload } = body;
+
+        // ── Request-scoped JSON response helper ───────────
+        function json(data: any, status = 200) {
+            return new Response(JSON.stringify(data), {
+                status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
 
         // ── Shared helpers ────────────────────────────
         async function getOpenAIKey(): Promise<string> {
@@ -416,14 +507,3 @@ Deno.serve(async (req: Request) => {
         });
     }
 });
-
-function json(data: any, status = 200) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-            'Content-Type': 'application/json',
-        },
-    });
-}

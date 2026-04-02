@@ -72,12 +72,12 @@ type DocApp = {
 };
 
 const DOC_TYPE_LABELS: Record<string, string> = {
-    national_id: '🪪 National ID / Iqama',
-    medical_license: '🏥 Medical License',
-    cv: '📄 CV / Resume',
-    specialization_cert: '🎓 Specialization Certificate',
-    disclaimer_signed: '✅ Disclaimer',
-    other: '📎 Other',
+    national_id: 'National ID / Iqama',
+    medical_license: 'Medical License',
+    cv: 'CV / Resume',
+    specialization_cert: 'Specialization Certificate',
+    disclaimer_signed: 'Disclaimer',
+    other: 'Other',
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -380,12 +380,12 @@ export default function ApplicationDetailPage() {
                                                 {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
                                             </span>
                                             {doc.verified ? (
-                                                <span className="px-2 py-0.5 rounded-lg bg-success/10 text-success text-[10px] font-bold">✅ VERIFIED</span>
+                                                <span className="px-2 py-0.5 rounded-lg bg-success/10 text-success text-[10px] font-bold">VERIFIED</span>
                                             ) : (
                                                 <span className="px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-[10px] font-bold">PENDING</span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-text-muted truncate" title={doc.file_name}>📎 {doc.file_name}</p>
+                                        <p className="text-xs text-text-muted truncate" title={doc.file_name}>{doc.file_name}</p>
                                         <p className="text-xs text-text-muted">
                                             {doc.file_size_bytes ? `${(doc.file_size_bytes / 1024).toFixed(1)} KB` : '—'} •{' '}
                                             {new Date(doc.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -424,7 +424,7 @@ export default function ApplicationDetailPage() {
                                 </a>
                             )}
                             {app.interview_phone_number && (
-                                <p className="text-sm text-text-primary">📞 {app.interview_phone_number}</p>
+                                <p className="text-sm text-text-primary flex items-center gap-1.5"><PhoneCall className="w-4 h-4 text-text-muted" /> {app.interview_phone_number}</p>
                             )}
                             {app.interview_notes && (
                                 <div className="p-3 bg-bg-elevated rounded-xl">
@@ -448,7 +448,7 @@ export default function ApplicationDetailPage() {
                             <p className="text-xs text-text-muted">Submitted {new Date(app.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                         )}
                         {app.disclaimer_accepted_at && (
-                            <p className="text-xs text-text-muted">✅ Disclaimer accepted</p>
+                            <p className="text-xs text-text-muted flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-success" /> Disclaimer accepted</p>
                         )}
                         {app.rejection_reason && (
                             <div className="p-3 bg-error/5 border border-error/20 rounded-xl mt-2">

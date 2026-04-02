@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, spacing, typography, radius } from '@cliniqone/ui';
+import { colors, spacing, typography, radius, ClipboardList, Stethoscope, MessageSquare } from '@cliniqone/ui';
+import type { CliniqIconProps } from '@cliniqone/ui';
 import { FadeIn } from '../../components/FadeIn';
 import logoImg from '../../assets/logo.png';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 function PulsingDot({ color, delay = 0 }: { color: string; delay?: number }) {
     return (
@@ -14,14 +15,14 @@ function PulsingDot({ color, delay = 0 }: { color: string; delay?: number }) {
     );
 }
 
-function FeatureItem({ icon, title, subtitle, accentColor, delay }: {
-    icon: string; title: string; subtitle: string; accentColor: string; delay: number;
+function FeatureItem({ Icon, title, subtitle, accentColor, delay }: {
+    Icon: (p: CliniqIconProps) => ReactNode; title: string; subtitle: string; accentColor: string; delay: number;
 }) {
     return (
         <FadeIn delay={delay}>
             <div style={s.featureItem} className="pressable">
                 <div style={{ ...s.featureIcon, backgroundColor: accentColor + '22' }}>
-                    <span style={{ fontSize: 22 }}>{icon}</span>
+                    <Icon size={22} color={accentColor} />
                 </div>
                 <div style={{ flex: 1 }}>
                     <span style={s.featureTitle}>{title}</span>
@@ -63,9 +64,9 @@ export function LandingPage() {
 
                 {/* Features */}
                 <div style={s.features}>
-                    <FeatureItem icon="📋" title="Manage Consultations" subtitle="Accept, review, and respond to patient cases" accentColor={colors.accentTeal} delay={400} />
-                    <FeatureItem icon="🩺" title="Locum Shifts" subtitle="Pick up shifts and earn on your schedule" accentColor={colors.purple} delay={550} />
-                    <FeatureItem icon="💬" title="AI-Assisted Intake" subtitle="Pre-screened patients with smart summaries" accentColor={colors.accentBlue} delay={700} />
+                    <FeatureItem Icon={ClipboardList} title="Manage Consultations" subtitle="Accept, review, and respond to patient cases" accentColor={colors.accentTeal} delay={400} />
+                    <FeatureItem Icon={Stethoscope} title="Locum Shifts" subtitle="Pick up shifts and earn on your schedule" accentColor={colors.purple} delay={550} />
+                    <FeatureItem Icon={MessageSquare} title="AI-Assisted Intake" subtitle="Pre-screened patients with smart summaries" accentColor={colors.accentBlue} delay={700} />
                 </div>
 
                 {/* CTA */}

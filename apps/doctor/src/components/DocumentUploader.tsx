@@ -1,5 +1,6 @@
-import { useState, useRef, type CSSProperties } from 'react';
-import { colors, spacing, radius } from '@cliniqone/ui';
+import { useState, useRef, type CSSProperties, type ReactNode } from 'react';
+import { colors, spacing, radius, Shield, Hospital, FileText, Star, CheckCircle, Paperclip, Camera, AlertTriangle, XCircle } from '@cliniqone/ui';
+import type { CliniqIconProps } from '@cliniqone/ui';
 
 interface DocumentUploaderProps {
     label: string;
@@ -57,31 +58,33 @@ export function DocumentUploader({
         onFileSelect(f);
     }
 
-    const typeEmoji: Record<string, string> = {
-        national_id: '🪪',
-        medical_license: '🏥',
-        cv: '📄',
-        specialization_cert: '🎓',
-        disclaimer_signed: '✅',
-        other: '📎',
+    const typeIcon: Record<string, (p: CliniqIconProps) => ReactNode> = {
+        national_id: Shield,
+        medical_license: Hospital,
+        cv: FileText,
+        specialization_cert: Star,
+        disclaimer_signed: CheckCircle,
+        other: Paperclip,
     };
+
+    const IconComp = typeIcon[documentType] || Paperclip;
 
     return (
         <div style={s.container}>
             <div style={s.header}>
                 <span style={s.label}>
-                    {typeEmoji[documentType] || '📎'} {label}
+                    <IconComp size={16} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> {label}
                 </span>
-                {verified === true && <span style={s.verifiedBadge}>✅ Verified</span>}
+                {verified === true && <span style={s.verifiedBadge}><CheckCircle size={10} color={colors.success} style={{ verticalAlign: 'middle', marginRight: 2 }} /> Verified</span>}
                 {verified === false && rejectionReason && (
-                    <span style={s.rejectedBadge}>❌ Rejected</span>
+                    <span style={s.rejectedBadge}><XCircle size={10} color="#dc2626" style={{ verticalAlign: 'middle', marginRight: 2 }} /> Rejected</span>
                 )}
             </div>
 
             {rejectionReason && (
                 <div style={s.rejectionCard}>
                     <span style={{ fontSize: 12, color: '#dc2626' }}>
-                        ⚠️ {rejectionReason}
+                        <AlertTriangle size={12} color="#dc2626" style={{ verticalAlign: 'middle', marginRight: 4 }} /> {rejectionReason}
                     </span>
                 </div>
             )}
@@ -90,7 +93,7 @@ export function DocumentUploader({
                 <div style={s.fileCard}>
                     <div style={s.fileInfo}>
                         <span style={s.fileIcon}>
-                            {file?.type?.startsWith('image/') ? '🖼️' : '📄'}
+                            {file?.type?.startsWith('image/') ? <Camera size={20} color={colors.accentTeal} /> : <FileText size={20} color={colors.accentTeal} />}
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={s.fileName}>{file?.name || existingName}</p>
@@ -133,8 +136,8 @@ export function DocumentUploader({
                         handleFileChange(e.dataTransfer.files[0]);
                     }}
                 >
-                    <span style={{ fontSize: 32, marginBottom: 8, display: 'block' }}>
-                        {typeEmoji[documentType] || '📎'}
+                    <span style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                        <IconComp size={32} color={colors.accentTeal} />
                     </span>
                     <span style={s.dropText}>
                         Tap to upload or drag & drop
@@ -146,7 +149,7 @@ export function DocumentUploader({
             )}
 
             {error && (
-                <span style={s.errorText}>⚠️ {error}</span>
+                <span style={s.errorText}><AlertTriangle size={12} color="#dc2626" style={{ verticalAlign: 'middle', marginRight: 4 }} /> {error}</span>
             )}
 
             <input

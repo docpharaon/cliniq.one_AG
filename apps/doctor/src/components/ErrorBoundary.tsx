@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from 'react';
-import { colors, typography } from '@cliniqone/ui';
+import { colors, typography, AlertTriangle } from '@cliniqone/ui';
 
 interface Props { children: ReactNode; }
 interface State { hasError: boolean; }
@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     flexDirection: 'column',
                     backgroundColor: colors.bgPrimary, padding: 24,
                 }}>
-                    <span style={{ fontSize: 48, marginBottom: 16 }}>⚠️</span>
+                    <AlertTriangle size={48} color={colors.warning} />
                     <span style={{ fontSize: typography.h2.fontSize, fontWeight: 700, color: colors.textPrimary, marginBottom: 8 }}>
                         Something went wrong
                     </span>

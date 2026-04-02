@@ -6,6 +6,8 @@ import { SPECIALTY_INTERVENTIONS, INTERVENTION_TYPE_LABELS } from '@cliniqone/ty
 import { useCreateInterventionOrder } from '../../hooks/useDoctorData';
 import { useAuthStore } from '../../stores/authStore';
 import { BackButton } from '../../components/BackButton';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { useToast } from '../../components/ToastProvider';
 import { haptic } from '../../hooks/useHaptics';
 import type { CSSProperties } from 'react';
 
@@ -43,6 +45,8 @@ export function InterventionOrderPage() {
     const [showCustom, setShowCustom] = useState(false);
     const [customName, setCustomName] = useState('');
     const [customNotes, setCustomNotes] = useState('');
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+    const toast = useToast((s) => s.show);
 
     const filteredCatalog = useMemo(() => {
         let items = catalog;
@@ -72,7 +76,7 @@ export function InterventionOrderPage() {
     };
 
     const handleAddCustom = () => {
-        if (!customName.trim()) { alert('Please enter a name.'); return; }
+        if (!customName.trim()) { toast('Please enter a name.', 'warning'); return; }
         const ci: CatalogIntervention = { name: customName.trim(), type: 'lab_test', category: 'Custom', estimated_cost_sar: 0 };
         const newSel = new Map(selections);
         newSel.set(ci.name, { ...ci, selected: true, clinical_indication: '', doctor_notes: customNotes, priority: 'routine' });
@@ -80,10 +84,12 @@ export function InterventionOrderPage() {
     };
 
     const handleSubmit = () => {
-        if (selectedCount === 0) { alert('Please select at least one intervention.'); return; }
-        const names = Array.from(selections.values()).map(s => s.name).join(', ');
-        if (!confirm(`Order ${selectedCount} intervention(s)?\n\n${names}\n\nTotal est: ${totalCost} SAR`)) return;
+        if (selectedCount === 0) { toast('Please select at least one intervention.', 'warning'); return; }
+        setShowSubmitConfirm(true);
+    };
 
+    const confirmSubmit = () => {
+        setShowSubmitConfirm(false);
         const data = Array.from(selections.values()).map(s => ({
             consultation_id: consultationId || '', patient_id: '', doctor_id: doctor?.id || '',
             type: s.type, title: s.name, category: s.category,
@@ -91,14 +97,15 @@ export function InterventionOrderPage() {
             priority: s.priority, estimated_cost_sar: s.estimated_cost_sar,
         }));
         createOrderMutation.mutate(data, {
-            onSuccess: () => { alert(`${selectedCount} intervention(s) ordered.`); navigate(-1); },
-            onError: (err) => alert(err.message || 'Failed to create order.'),
+            onSuccess: () => { toast(`${selectedCount} intervention(s) ordered.`, 'success'); navigate(-1); },
+            onError: (err) => toast(err.message || 'Failed to create order.', 'error'),
         });
     };
 
     const specialtyLabel = specialty === 'dermatology' ? 'Dermatology' : 'Family Medicine';
 
     return (
+        <>
         <div style={s.container}>
             {/* Header */}
             <div style={s.header}>
@@ -150,7 +157,9 @@ export function InterventionOrderPage() {
                                 <button style={{ ...s.catCard, ...(isSelected ? s.catCardSel : {}), width: '100%', textAlign: 'left' as any }} className="pressable" onClick={() => { haptic.select(); toggleSelection(item); }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                                            <span style={{ fontSize: 20 }}>{isSelected ? '☑️' : '⬜'}</span>
+                                            <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? colors.accentTeal : colors.border}`, backgroundColor: isSelected ? colors.accentTealFaded : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {isSelected && <CheckCircle size={14} color={colors.accentTeal} />}
+                                            </div>
                                             <div>
                                                 <span style={{ display: 'block', fontSize: 14, color: colors.textPrimary, fontWeight: 600 }}>{item.name}</span>
                                                 <span style={{ display: 'block', fontSize: 11, color: colors.textTertiary, marginTop: 2 }}>{typeInfo.icon} {typeInfo.en} • {item.category}</span>
@@ -225,6 +234,17 @@ export function InterventionOrderPage() {
                 </div>
             </div>
         </div>
+
+        <ConfirmDialog
+            visible={showSubmitConfirm}
+            title="Confirm Order"
+            message={`Order ${selectedCount} intervention(s)? Total est: ${totalCost} SAR`}
+            confirmLabel="Order"
+            cancelLabel="Cancel"
+            onConfirm={confirmSubmit}
+            onCancel={() => setShowSubmitConfirm(false)}
+        />
+        </>
     );
 }
 

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@cliniqone/api';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, spacing, SocialLoginButton } from '@cliniqone/ui';
+import { colors, typography, spacing, SocialLoginButton, Eye, EyeOff, AlertTriangle } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { handleGoogleSignIn } from '../../services/googleAuth';
 import { handleAppleSignIn } from '../../services/appleAuth';
+import { useToast } from '../../components/ToastProvider';
 import logoImg from '../../assets/logo.png';
 import type { CSSProperties } from 'react';
 
@@ -14,6 +15,7 @@ export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [appleLoading, setAppleLoading] = useState(false);
     const [error, setError] = useState('');
@@ -69,7 +71,7 @@ export function LoginPage() {
 
     return (
         <div style={s.container}>
-            <div style={s.content}>
+            <div className="page-enter" style={s.content}>
                 {/* Header */}
                 <div style={s.header}>
                     <img src={logoImg} alt="cliniq.one" style={s.logo} />
@@ -81,7 +83,7 @@ export function LoginPage() {
                 <div style={s.form}>
                     {error && (
                         <div style={s.errorBox}>
-                            <span style={s.errorText}>⚠️ {error}</span>
+                            <span style={s.errorText}><AlertTriangle size={13} color={colors.error} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {error}</span>
                         </div>
                     )}
 
@@ -97,15 +99,25 @@ export function LoginPage() {
                     />
 
                     <label style={s.label}>Password</label>
-                    <input
-                        style={s.input}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        type="password"
-                        autoComplete="current-password"
-                        disabled={isDisabled}
-                    />
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            style={s.input}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter your password"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="current-password"
+                            disabled={isDisabled}
+                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                            {showPassword ? <EyeOff size={16} color={colors.textTertiary} /> : <Eye size={16} color={colors.textTertiary} />}
+                        </button>
+                    </div>
 
                     <button
                         style={{ ...s.button, opacity: isDisabled ? 0.6 : 1 }}

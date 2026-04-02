@@ -77,7 +77,7 @@ export function ProfilePage() {
                 {/* Recruitment */}
                 {isLocum && recruitmentLink && (
                     <div style={s.section}>
-                        <span style={s.sectionTitle}>📣 Patient Recruitment</span>
+                        <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Share size={16} color={colors.textPrimary} /> Patient Recruitment</span>
                         <div style={s.card}>
                             <span style={{ fontSize: 11, color: colors.textSecondary, display: 'block', marginBottom: 12 }}>Share this link with patients to book consultations directly.</span>
                             <div style={{ backgroundColor: colors.bgTertiary, borderRadius: 10, paddingInline: 12, paddingBlock: 10, marginBottom: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

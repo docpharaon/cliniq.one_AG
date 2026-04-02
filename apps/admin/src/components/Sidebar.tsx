@@ -30,10 +30,13 @@ import {
     ShieldOff,
     ClipboardCheck,
     type LucideIcon,
+    Sun,
+    Moon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useSidebar } from './SidebarContext';
 import { useAdminAuth } from './AdminAuthProvider';
+import { useAdminTheme } from '@/lib/themeStore';
 import { haptic } from '@/lib/useHaptics';
 
 const mainNav = [
@@ -90,6 +93,7 @@ export default function Sidebar() {
     const pathname = useLocation().pathname;
     const { collapsed, toggleCollapsed, mobileOpen, closeMobile, isMobile } = useSidebar();
     const { isSuperadmin, role, signOut } = useAdminAuth();
+    const { isDark, setMode } = useAdminTheme();
 
     // Filter management groups based on role
     const filteredGroups = managementGroups.map(group => ({
@@ -216,6 +220,14 @@ export default function Sidebar() {
                         )}
                     </div>
                 )}
+                <button
+                    onClick={() => { haptic.light(); setMode(isDark ? 'light' : 'dark'); }}
+                    className="pressable flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-text-muted hover:bg-accent-faded hover:text-accent transition-all duration-200"
+                    title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                    {isDark ? <Sun className="w-5 h-5 flex-shrink-0" /> : <Moon className="w-5 h-5 flex-shrink-0" />}
+                    {(showLabels || isMobile) && <span className="text-[15px]">{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
+                </button>
                 <button
                     onClick={() => { haptic.warning(); signOut(); }}
                     className="pressable flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-text-muted hover:bg-error-faded hover:text-error transition-all duration-200"

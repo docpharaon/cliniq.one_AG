@@ -97,7 +97,7 @@ export default function ConsultationsPage() {
     const [sortNewest, setSortNewest] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const { user } = useAuthStore();
-    const { data: liveData, isLoading, refetch } = useConsultations(user?.id || '');
+    const { data: liveData, isLoading, isError, refetch } = useConsultations(user?.id || '');
     const consultations = liveData || [];
 
     let results = filterConsultations(consultations, filter);
@@ -113,7 +113,7 @@ export default function ConsultationsPage() {
         haptic.success();
     }, [refetch]);
 
-    if (isLoading) return <BrandSpinner />;
+    if (isLoading && !isError) return <BrandSpinner />;
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>

@@ -24,9 +24,8 @@ export default function GlobalError({
                             borderRadius: '16px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 24px',
-                            fontSize: '28px',
                         }}>
-                            ⚠️
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         </div>
                         <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 8px' }}>Something went wrong</h1>
                         <p style={{ color: '#64748B', fontSize: '14px', margin: '0 0 24px' }}>
@@ -50,7 +49,7 @@ export default function GlobalError({
                                 cursor: 'pointer',
                             }}
                         >
-                            🔄 Try Again
+                            Try Again
                         </button>
                     </div>
                 </div>

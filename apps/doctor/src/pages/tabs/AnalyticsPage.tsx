@@ -3,6 +3,8 @@ import { colors, typography, BarChart, Gem, Calendar, ClipboardList, Star, Targe
 import type { CliniqIconProps } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useDoctorStats } from '../../hooks/useDoctorData';
+import { BrandSpinner } from '../../components/BrandSpinner';
+import { PullToRefresh } from '../../components/PullToRefresh';
 import type { CSSProperties, ReactNode } from 'react';
 
 function BonusRow({ Icon, label, reward, progress }: { Icon: (p: CliniqIconProps) => ReactNode; label: string; reward: string; progress: number }) {
@@ -22,7 +24,9 @@ function BonusRow({ Icon, label, reward, progress }: { Icon: (p: CliniqIconProps
 
 export function AnalyticsPage() {
     const { doctor } = useAuthStore();
-    const { data: stats, isLoading } = useDoctorStats(doctor?.id || '');
+    const { data: stats, isLoading, refetch } = useDoctorStats(doctor?.id || '');
+
+    const onRefresh = useCallback(async () => { await refetch(); }, [refetch]);
 
     const tokensEarned = stats?.tokens_earned ?? 0;
     const sarAmount = tokensEarned * 5;
@@ -32,13 +36,14 @@ export function AnalyticsPage() {
     const ratingCount = stats?.rating_count ?? 0;
 
     return (
+        <PullToRefresh onRefresh={onRefresh}>
         <div style={s.container} className="scrollable">
             <div style={s.scroll}>
                 <span style={{ ...s.title, display: 'inline-flex', alignItems: 'center', gap: 8 }}><BarChart size={22} color={colors.textPrimary} /> Earnings & Performance</span>
 
                 {isLoading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40 }}>
-                        <div className="spinner spinner-lg" style={{ color: colors.accentTeal }} />
+                        <BrandSpinner fullScreen={false} />
                     </div>
                 ) : (
                     <>
@@ -119,6 +124,7 @@ export function AnalyticsPage() {
                 </div>
             </div>
         </div>
+        </PullToRefresh>
     );
 }
 

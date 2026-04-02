@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { t, toLocalNum } from '@cliniqone/i18n';
+import { t, toLocalNum, getLocale, localDate } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useTokenHistory } from '../../hooks/useConsultations';
 import { TokenPurchaseModal } from '../../components/TokenPurchaseModal';
@@ -34,7 +34,7 @@ export default function WalletPage() {
     const totalPurchased = transactions.filter(tx => tx.type === 'purchase').reduce((s, tx) => s + tx.amount, 0);
 
     function formatDate(dateStr: string) {
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return localDate(dateStr, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
     const handleRefresh = useCallback(async () => {
@@ -73,7 +73,7 @@ export default function WalletPage() {
                     ].map((stat, i) => (
                         <div key={i} style={styles.statCard}>
                             <stat.Icon size={20} color="#2DD4BF" />
-                            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{stat.value}</span>
+                            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{toLocalNum(stat.value)}</span>
                             <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{stat.label}</span>
                         </div>
                     ))}
@@ -95,10 +95,10 @@ export default function WalletPage() {
                                     {t('wallet.popular')}
                                 </span>
                             )}
-                            <span style={{ fontSize: 28, fontWeight: 800, color: '#1A8A9E', marginTop: pkg.id === 'standard' ? 16 : 0 }}>{pkg.tokens}</span>
+                            <span style={{ fontSize: 28, fontWeight: 800, color: '#1A8A9E', marginTop: pkg.id === 'standard' ? 16 : 0 }}>{toLocalNum(pkg.tokens)}</span>
                             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>{t('tokens.tokensLabel')}</span>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>${pkg.price_usd}</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{pkg.price_sar} SAR</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{toLocalNum(pkg.price_sar)} <span style={{ fontSize: 12, fontWeight: 600 }}>ر.س</span></span>
+                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>${toLocalNum(pkg.price_usd)}</span>
                         </button>
                     ))}
                 </div>
@@ -130,7 +130,7 @@ export default function WalletPage() {
                                     <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{formatDate(tx.created_at)}</p>
                                 </div>
                                 <span style={{ fontSize: 16, fontWeight: 700, color: tx.amount >= 0 ? '#059669' : '#DC2626' }}>
-                                    {tx.amount >= 0 ? '+' : ''}{tx.amount}
+                                    {tx.amount >= 0 ? '+' : ''}{toLocalNum(tx.amount)}
                                 </span>
                             </div>
                         ))}

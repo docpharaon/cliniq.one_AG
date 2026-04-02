@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { colors, typography, spacing, radius } from '@cliniqone/ui';
+import { colors, typography, spacing, radius, Clock, Refresh } from '@cliniqone/ui';
 import { supabase } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 import type { CSSProperties } from 'react';
@@ -32,7 +32,7 @@ export function PendingApprovalPage() {
     return (
         <div style={s.container}>
             <div style={s.content}>
-                <span style={{ fontSize: 64, textAlign: 'center', display: 'block', marginBottom: spacing.xl }}>⏳</span>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: spacing.xl }}><Clock size={56} color={colors.warning} /></div>
                 <span style={s.title}>Application Under Review</span>
                 <p style={s.description}>Your doctor account has been created successfully. An administrator will review and approve your registration.</p>
 
@@ -65,7 +65,7 @@ export function PendingApprovalPage() {
                 </div>
 
                 <button style={s.refreshButton} onClick={handleRefresh}>
-                    <span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600 }}>🔄 Check Status</span>
+                    <span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Refresh size={14} color={colors.accentTeal} /> Check Status</span>
                 </button>
                 <button style={s.logoutButton} onClick={handleLogout}>
                     <span style={{ fontSize: 14, color: colors.textTertiary }}>← Sign Out</span>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase, getDoctorProfile } from '@cliniqone/api';
-import { colors, typography } from '@cliniqone/ui';
+import { colors, typography, Lock, AlertTriangle } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import type { CSSProperties } from 'react';
 
@@ -52,13 +52,13 @@ function ChangePasswordForm() {
         <div style={s.container}>
             <div style={s.content}>
                 <div style={s.header}>
-                    <span style={{ fontSize: 56, marginBottom: 12 }}>🔒</span>
+                    <Lock size={48} color={colors.accentTeal} style={{ marginBottom: 12 }} />
                     <span style={s.title}>Change Password</span>
                     <p style={s.subtitle}>Your temporary password must be changed before you can continue.</p>
                 </div>
 
                 <div style={s.form}>
-                    {error && <div style={s.errorBox}><span style={s.errorText}>⚠️ {error}</span></div>}
+                    {error && <div style={s.errorBox}><span style={s.errorText}><AlertTriangle size={13} color={colors.error} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {error}</span></div>}
 
                     <label style={s.label}>New Password</label>
                     <input style={s.input} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password (min 6 characters)" type="password" />

@@ -73,7 +73,7 @@ export default function SubmitPage() {
             await refreshUser();
             store.reset();
             toast('✅ Consultation submitted successfully!', 'success');
-            navigate(`/consultation/waiting-room?id=${consultation?.id}`, { replace: true });
+            navigate(`/consultation/${consultation?.id}/waiting-room`, { replace: true });
         } catch (err: any) {
             setError(err?.message || 'Failed to submit. Please try again.');
             toast(err?.message || 'Submission failed', 'error');

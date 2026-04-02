@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@cliniqone/api';
-import { t, setLocale, useLocale } from '@cliniqone/i18n';
+import { t, setLocale, useLocale, toLocalNum } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
 import { FadeIn } from '../../components/FadeIn';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { haptic } from '../../hooks/useHaptics';
-import { User, Bell, Lock, Globe, Info, FileText, Hospital, Coins, Stethoscope, ChevronRight, Moon } from '@cliniqone/ui';
+import { User, Bell, Lock, Globe, Info, FileText, Hospital, Coins, Stethoscope, ChevronRight, Moon, Shield, CheckCircle } from '@cliniqone/ui';
 import type { CliniqIconProps } from '@cliniqone/ui';
 
 export default function ProfilePage() {
@@ -55,10 +55,17 @@ export default function ProfilePage() {
         }
     }
 
-    const menuItems: { Icon: React.FC<CliniqIconProps>; label: string; route?: string; action?: () => void }[] = [
+    const menuItems: { Icon: React.FC<CliniqIconProps>; label: string; route?: string; action?: () => void; badge?: React.ReactNode }[] = [
         { Icon: User, label: t('settings.editProfile'), route: '/settings/edit-profile' },
+        { Icon: Shield, label: t('settings.identityVerification'), route: '/settings/verify-identity',
+            badge: user?.kyc_status === 'approved' || user?.kyc_status === 'exempt'
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, color: '#10B981', backgroundColor: 'rgba(16,185,129,0.08)', padding: '2px 8px', borderRadius: 20 }}><CheckCircle size={10} color="#10B981" />{t('kyc.statusApproved')}</span>
+                : user?.kyc_status === 'pending'
+                    ? <span style={{ fontSize: 10, fontWeight: 600, color: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.08)', padding: '2px 8px', borderRadius: 20 }}>{t('kyc.statusPending')}</span>
+                    : undefined
+        },
         { Icon: Bell, label: t('settings.notifications'), route: '/settings/notifications' },
-        { Icon: Moon, label: 'Appearance', route: '/settings/appearance' },
+        { Icon: Moon, label: t('settings.appearanceTitle'), route: '/settings/appearance' },
         { Icon: Lock, label: t('settings.security'), route: '/settings/security' },
         { Icon: Globe, label: `${t('settings.language')} (${lang === 'ar' ? 'العربية' : 'English'})`, action: handleLanguageChange },
         { Icon: Info, label: t('settings.helpSupport'), route: '/settings/help' },
@@ -101,7 +108,7 @@ export default function ProfilePage() {
                                 borderRadius: 14, padding: 16, border: '1px solid var(--border)',
                             }}>
                                 <stat.Icon size={20} color="#2DD4BF" />
-                                <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px' }}>{stat.value}</p>
+                                <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px' }}>{toLocalNum(stat.value)}</p>
                                 <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>{stat.label}</p>
                             </div>
                         ))}
@@ -128,6 +135,7 @@ export default function ProfilePage() {
                                     <item.Icon size={18} color="#2DD4BF" />
                                 </div>
                                 <span style={{ flex: 1, fontSize: 14, color: 'var(--text-primary)' }}>{item.label}</span>
+                                {item.badge && <span>{item.badge}</span>}
                                 <ChevronRight size={14} color="#2DD4BF" />
                             </button>
                         ))}

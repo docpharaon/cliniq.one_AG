@@ -137,7 +137,7 @@ async function sendEmailViaResend(payload: Record<string, string | null>): Promi
         },
         body: JSON.stringify({
             from: 'cliniq.one <admin@cliniq.one>',
-            to: ['docpharaon@gmail.com'],
+            to: ['momen@momencrafts.com'],
             subject: `🧪 New ${payload.role} Tester: ${payload.name}`,
             html: htmlBody,
             reply_to: payload.email,

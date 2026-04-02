@@ -19,6 +19,19 @@ import {
 import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { BackButton } from '../../components/BackButton';
 import { useToast } from '../../components/ToastProvider';
+import aiDoctorAvatar from '../../../assets/ai-doctor-avatar.jpg';
+
+// ── Strip internal AI routing tags before display ──
+function stripInternalTags(text: string): string {
+    return text
+        .replace(/\[ROUTE:\w+\]/gi, '')
+        .replace(/\[PATHWAY:\w+\]/gi, '')
+        .replace(/\[SECTION_COMPLETE\]/gi, '')
+        .replace(/\[ADDENDUM_DONE\]/gi, '')
+        .replace(/\[NO_RESPONSE_NEEDED\]/gi, '')
+        .replace(/\[VIOLATION:[^\]]+\]/gi, '')
+        .trim();
+}
 
 // ── Constants ────────────────────────────
 const MAX_TURNS = 40;
@@ -48,12 +61,15 @@ export default function AiChatPage() {
     // Local state
     const [input, setInput] = useState('');
     const [conversationHistory, setConversationHistory] = useState<{ role: string; content: string }[]>([]);
+    const [fullConversationHistory, setFullConversationHistory] = useState<{ role: string; content: string }[]>([]);
     const [sectionTurnCount, setSectionTurnCount] = useState(0);
+    const sectionTurnCountRef = useRef(0);
     const [cooldownUntil, setCooldownUntil] = useState(0);
     const [chatbotVersion, setChatbotVersion] = useState('');
     const [sectionTimings, setSectionTimings] = useState<Record<string, { startedAt: string; completedAt: string; turnCount: number }>>({});
     const [intakeStartTime] = useState(Date.now());
-    const [initialized, setInitialized] = useState(false);
+    const initializedRef = useRef(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     // System node UI state
     const [showAnnouncedModal, setShowAnnouncedModal] = useState(false);
@@ -68,6 +84,22 @@ export default function AiChatPage() {
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Track keyboard height via visualViewport (works with resize: 'none')
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!vv) return;
+        const onResize = () => {
+            const kbH = window.innerHeight - vv.height;
+            setKeyboardHeight(kbH > 50 ? kbH : 0);
+            if (kbH > 50) {
+                setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+            }
+        };
+        vv.addEventListener('resize', onResize);
+        vv.addEventListener('scroll', onResize);
+        return () => { vv.removeEventListener('resize', onResize); vv.removeEventListener('scroll', onResize); };
+    }, []);
 
     // ── System Node Processing ─────────────────
     async function processSystemNode(nodeIdx: number, nodes: SequenceNode[]) {
@@ -232,8 +264,11 @@ export default function AiChatPage() {
         // Normal chat node — send first AI message for this section
         setCurrentNodeIndex(nodeIdx);
         setSectionTurnCount(0);
+        sectionTurnCountRef.current = 0;
         setProgress(getProgressForNode(nodeIdx, activeNodes.length));
-        setConversationHistory([]); // Reset conversation for new section
+        // Accumulate full history across sections for context continuity
+        setFullConversationHistory(prev => [...prev, ...conversationHistory]);
+        setConversationHistory([]); // Reset per-section history for section-scoped logic
 
         // Record start time for this section
         setSectionTimings(prev => ({
@@ -255,15 +290,16 @@ export default function AiChatPage() {
             const result = await chatSection({
                 section: node.step_key,
                 promptId: node.prompt_id || undefined,
-                conversationHistory: [{ role: 'user', content: `Patient context: ${patientContext}` }],
+                conversationHistory: [],
                 language: lang,
-                patientContext,
+                patientContext: `${patientContext}\n\nPrevious conversation summary (${fullConversationHistory.length} messages exchanged so far).`,
             });
 
             const { cleanContent } = parseViolationTag(result.response);
-            addMessage(createAiMsg(cleanContent, node.label));
+            const displayContent = stripInternalTags(cleanContent);
+            addMessage(createAiMsg(displayContent, node.label));
             setConversationHistory([
-                { role: 'assistant', content: cleanContent },
+                { role: 'assistant', content: displayContent },
             ]);
         } catch (err) {
             console.error('[AiChat] Section start error:', err);
@@ -294,8 +330,8 @@ export default function AiChatPage() {
 
     // ── Initialize sequence + first AI message ──
     useEffect(() => {
-        if (initialized) return;
-        setInitialized(true);
+        if (initializedRef.current) return;
+        initializedRef.current = true;
 
         (async () => {
             try {
@@ -371,8 +407,9 @@ export default function AiChatPage() {
                 });
 
                 const { cleanContent } = parseViolationTag(result.response);
-                addMessage(createAiMsg(cleanContent, `Welcome • Dr. ${locumDoctor.display_name}`));
-                setConversationHistory([{ role: 'assistant', content: cleanContent }]);
+                const displayContent = stripInternalTags(cleanContent);
+                addMessage(createAiMsg(displayContent, `Welcome • Dr. ${locumDoctor.display_name}`));
+                setConversationHistory([{ role: 'assistant', content: displayContent }]);
             } catch {
                 addMessage(createAiMsg(
                     `Welcome! Dr. ${locumDoctor.display_name} will be reviewing your case. What health concern brought you in today?`,
@@ -403,9 +440,10 @@ export default function AiChatPage() {
             });
 
             const { cleanContent } = parseViolationTag(result.response);
-            addMessage(createAiMsg(cleanContent, firstNode.label));
+            const displayContent = stripInternalTags(cleanContent);
+            addMessage(createAiMsg(displayContent, firstNode.label));
             setConversationHistory([
-                { role: 'assistant', content: cleanContent },
+                { role: 'assistant', content: displayContent },
             ]);
             setProgress(getProgressForNode(0, nodes.length));
         } catch (err) {
@@ -434,6 +472,11 @@ export default function AiChatPage() {
         if (violations.length > 0) {
             const v = violations[0];
 
+            // Persist updated gibberish count to store
+            for (let i = gibberishCount; i < newGibberishCount; i++) {
+                incrementGibberish();
+            }
+
             if (v.code === 'A') {
                 addMessage(createPatientMsg(text));
                 addMessage(createSystemMsg(`🚨 ${v.message}\n\nEmergency Numbers (Saudi Arabia):\n🚑 Ambulance: 997\n👮 Police: 999\n🚒 Fire: 998`));
@@ -454,7 +497,9 @@ export default function AiChatPage() {
                 return;
             }
             if (escalation === 'warning') {
+                addMessage(createPatientMsg(text));
                 addMessage(createSystemMsg(v.message));
+                return; // Block sending gibberish to AI at warning level
             }
         } else {
             resetGibberish();
@@ -487,17 +532,19 @@ export default function AiChatPage() {
             });
 
             const { cleanContent, violation } = parseViolationTag(result.response);
+            const displayContent = stripInternalTags(cleanContent);
 
             // Add QA pair
             const lastAiMsg = messages.filter(m => m.role === 'ai').pop();
             if (lastAiMsg) addQA(lastAiMsg.content, text);
 
             // Update conversation history
-            setConversationHistory([...newHistory, { role: 'assistant', content: cleanContent }]);
-            addMessage(createAiMsg(cleanContent, currentNode?.label));
+            setConversationHistory([...newHistory, { role: 'assistant', content: displayContent }]);
+            addMessage(createAiMsg(displayContent, currentNode?.label));
 
             // Check section completion
-            const newTurnCount = sectionTurnCount + 1;
+            const newTurnCount = sectionTurnCountRef.current + 1;
+            sectionTurnCountRef.current = newTurnCount;
             setSectionTurnCount(newTurnCount);
 
             if (result.sectionComplete || newTurnCount >= SECTION_MAX_TURNS) {
@@ -533,14 +580,22 @@ export default function AiChatPage() {
     }, [sessionId, conversationHistory, sectionTurnCount]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-primary)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-primary)', paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0, transition: 'padding-bottom 0.15s ease-out' }}>
             {/* Header */}
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                 <BackButton />
+                <img
+                    src={aiDoctorAvatar}
+                    alt="AI Doctor"
+                    style={{
+                        width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
+                        border: '2px solid #1A8A9E', flexShrink: 0,
+                    }}
+                />
                 <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>AI Health Interview</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('aiChat.headerTitle')}</p>
                     <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>
-                        {sequenceNodes[currentNodeIndex]?.label || 'Getting started…'}
+                        {sequenceNodes[currentNodeIndex]?.label || t('aiChat.gettingStarted')}
                         {chatbotVersion && ` • ${chatbotVersion}`}
                         {locumDoctor && ` • Dr. ${locumDoctor.display_name}`}
                     </p>
@@ -558,10 +613,23 @@ export default function AiChatPage() {
                     <div key={msg.id} style={{
                         display: 'flex',
                         justifyContent: msg.role === 'patient' ? 'flex-end' : 'flex-start',
+                        alignItems: 'flex-end',
+                        gap: 8,
                         marginBottom: 10,
                     }}>
+                        {/* AI avatar — shown for ai messages */}
+                        {msg.role === 'ai' && (
+                            <img
+                                src={aiDoctorAvatar}
+                                alt="AI"
+                                style={{
+                                    width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
+                                    border: '1.5px solid #1A8A9E', flexShrink: 0,
+                                }}
+                            />
+                        )}
                         <div style={{
-                            maxWidth: '80%',
+                            maxWidth: msg.role === 'ai' ? 'calc(80% - 36px)' : '80%',
                             padding: '10px 14px',
                             borderRadius: msg.role === 'patient' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                             backgroundColor: msg.role === 'patient' ? '#1A8A9E' : msg.role === 'system' ? '#D9770620' : 'var(--bg-card)',
@@ -594,7 +662,15 @@ export default function AiChatPage() {
                 ))}
 
                 {isAiTyping && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+                        <img
+                            src={aiDoctorAvatar}
+                            alt="AI"
+                            style={{
+                                width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
+                                border: '1.5px solid #1A8A9E', flexShrink: 0,
+                            }}
+                        />
                         <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', backgroundColor: 'var(--bg-card)' }}>
                             <span className="typing-dots" style={{ fontSize: 18, color: 'var(--text-tertiary)' }}>⬤ ⬤ ⬤</span>
                         </div>
@@ -643,7 +719,7 @@ export default function AiChatPage() {
                         <div style={{ textAlign: 'center', marginBottom: 20 }}>
                             <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>⚠️</span>
                             <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
-                                Specialty Temporarily Unavailable
+                                {t('aiChat.specialtyUnavailableTitle')}
                             </h3>
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: 0 }}>
                                 {gateMessage}
@@ -655,14 +731,14 @@ export default function AiChatPage() {
                                 backgroundColor: '#1A8A9E', color: '#fff', fontSize: 15, fontWeight: 700,
                                 cursor: 'pointer',
                             }}>
-                                Continue with Family Medicine
+                                {t('aiChat.continueWithFM')}
                             </button>
                             <button onClick={handleAnnouncedCancel} style={{
                                 width: '100%', padding: '14px', borderRadius: 12, border: '1px solid #475569',
                                 backgroundColor: 'transparent', color: 'var(--text-secondary)', fontSize: 15, fontWeight: 600,
                                 cursor: 'pointer',
                             }}>
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                         </div>
                     </div>
@@ -679,7 +755,7 @@ export default function AiChatPage() {
                     <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
                         <span style={{ fontSize: 64, display: 'block', marginBottom: 20 }}>🚫</span>
                         <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px' }}>
-                            Service Unavailable
+                            {t('aiChat.serviceUnavailable')}
                         </h2>
                         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: '0 0 28px' }}>
                             {gateMessage}
@@ -689,7 +765,7 @@ export default function AiChatPage() {
                             backgroundColor: '#1A8A9E', color: '#fff', fontSize: 16, fontWeight: 700,
                             cursor: 'pointer',
                         }}>
-                            Return Home
+                            {t('aiChat.returnHome')}
                         </button>
                     </div>
                 </div>
