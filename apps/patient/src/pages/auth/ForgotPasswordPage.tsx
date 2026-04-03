@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
             });
             if (error) throw error;
             setSent(true);
-            toast('Reset link sent! Check your email.', 'success');
+            toast(t('forgotPassword.sent'), 'success');
         } catch (err: any) {
             toast(err?.message || 'Failed to send reset email', 'error');
         } finally {

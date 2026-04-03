@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { t, getLocale } from '@cliniqone/i18n';
+import { t, getLocale, isRTL } from '@cliniqone/i18n';
 import { useIntakeStore, buildSnapshot, type ChatMessage, SPECIALTY_PATHWAY_MAP } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -9,16 +9,20 @@ import {
     analyzeConcern, checkSpecialtyGate, analyzeIntegrity, classifyPathway,
     type SequenceNode, type ChatSectionResult,
 } from '../../services/aiService';
+import { getVoiceConfig, type VoiceConfig } from '../../services/audioService';
 import { supabase } from '@cliniqone/api';
 import {
     detectProtocols, setProtocolConfig, parseViolationTag,
     getEscalationLevel, getCooldownMs, getEscalationMessage,
     EMERGENCY_NUMBERS,
 } from '../../services/protocolDetection';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 
 import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { BackButton } from '../../components/BackButton';
+import { VoiceInputBar, RecordingIndicator } from '../../components/VoiceInputBar';
 import { useToast } from '../../components/ToastProvider';
+import { Search, Siren, AlertTriangle, Ban } from '@cliniqone/ui';
 import aiDoctorAvatar from '../../../assets/ai-doctor-avatar.jpg';
 
 // ── Strip internal AI routing tags before display ──
@@ -73,6 +77,37 @@ export default function AiChatPage() {
     const initializedRef = useRef(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+    // Voice input state
+    const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>({
+        enabled: false, defaultMode: 'push_to_talk', maxDuration: 60, silenceThreshold: 1500,
+    });
+    const [showVoiceInput, setShowVoiceInput] = useState(true); // true = voice mode visible (vs text-only)
+    const rtl = isRTL();
+
+    // Voice input hook
+    const voiceInput = useVoiceInput({
+        onTranscriptReady: (text) => {
+            // Inject transcribed text and send
+            setInput(text);
+            // Auto-send after a brief delay so the patient sees the text
+            setTimeout(() => {
+                const sendInput = text.trim();
+                if (sendInput) {
+                    setInput('');
+                    handleSendWithText(sendInput);
+                }
+            }, 300);
+        },
+        language: lang,
+        voiceConfig,
+        enabled: voiceConfig.enabled,
+    });
+
+    // Load voice config on mount
+    useEffect(() => {
+        getVoiceConfig().then(cfg => setVoiceConfig(cfg));
+    }, []);
+
     // System node UI state
     const [showAnnouncedModal, setShowAnnouncedModal] = useState(false);
     const [showBlockedScreen, setShowBlockedScreen] = useState(false);
@@ -110,7 +145,7 @@ export default function AiChatPage() {
 
         // ── Pathway Classification (Node ③) ──────────────
         if (node.node_type === 'system_classify' && node.step_key === 'pathway_classify') {
-            addMessage(createSystemMsg('🔍 Analyzing your concern…'));
+            addMessage(createSystemMsg('Analyzing your concern…'));
             setAiTyping(true);
 
             try {
@@ -267,7 +302,7 @@ export default function AiChatPage() {
 
         // ── Legacy: Complaint Analysis (for backward compat with legacy sequences) ──
         if (node.node_type === 'system_analysis' && node.step_key === 'complaint_analysis') {
-            addMessage(createSystemMsg('🔍 Analyzing your concern…'));
+            addMessage(createSystemMsg('Analyzing your concern…'));
             setAiTyping(true);
 
             try {
@@ -634,8 +669,23 @@ export default function AiChatPage() {
         }
     }
 
+    // Voice-compatible send: accepts text parameter for voice transcriptions
+    async function handleSendWithText(voiceText: string) {
+        if (!voiceText.trim() || isAiTyping) return;
+        if (Date.now() < cooldownUntil) return;
+        // Set the input so handleSend can use it, then call handleSend
+        setInput(voiceText);
+        // Use a small delay to let React update the state
+        await new Promise(r => setTimeout(r, 50));
+        handleSendDirect(voiceText);
+    }
+
     async function handleSend() {
-        const text = input.trim();
+        handleSendDirect(input.trim());
+    }
+
+    async function handleSendDirect(textToSend?: string) {
+        const text = (textToSend || input).trim();
         if (!text || isAiTyping) return;
         if (Date.now() < cooldownUntil) return;
         if (!navigator.onLine) {
@@ -659,7 +709,7 @@ export default function AiChatPage() {
 
             if (v.code === 'A') {
                 addMessage(createPatientMsg(text));
-                addMessage(createSystemMsg(`🚨 ${v.message}\n\nEmergency Numbers (Saudi Arabia):\n🚑 Ambulance: 997\n👮 Police: 999\n🚒 Fire: 998`));
+                addMessage(createSystemMsg(`EMERGENCY: ${v.message}\n\nEmergency Numbers (Saudi Arabia):\nAmbulance: 997\nPolice: 999\nFire: 998`));
                 addProtocolFlag('EMERGENCY');
                 return;
             }
@@ -752,6 +802,26 @@ export default function AiChatPage() {
         }
     }
 
+    // ── Phase 2: Auto-Listen ─────────────────────
+    // When AI finishes responding and voice is in auto-mic mode, auto-reopen mic
+    useEffect(() => {
+        if (
+            !isAiTyping &&
+            voiceConfig.enabled &&
+            showVoiceInput &&
+            voiceInput.voiceMode === 'auto_mic' &&
+            voiceInput.voiceState === 'idle' &&
+            messages.length > 0 &&
+            messages[messages.length - 1]?.role === 'ai'
+        ) {
+            // Brief delay so the patient can read the AI response
+            const timer = setTimeout(() => {
+                voiceInput.startListening();
+            }, 1200);
+            return () => clearTimeout(timer);
+        }
+    }, [isAiTyping, voiceInput.voiceMode, voiceInput.voiceState, messages.length]);
+
     // Auto-save snapshot periodically
     useEffect(() => {
         if (!sessionId) return;
@@ -783,6 +853,7 @@ export default function AiChatPage() {
                         {locumDoctor && ` • Dr. ${locumDoctor.display_name}`}
                     </p>
                 </div>
+                {voiceInput.voiceState === 'listening' && <RecordingIndicator isRTL={rtl} />}
             </div>
 
             {/* Progress Bar */}
@@ -864,28 +935,91 @@ export default function AiChatPage() {
             </div>
 
             {/* Input */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexShrink: 0 }}>
-                <input
-                    ref={inputRef}
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSend()}
-                    placeholder={Date.now() < cooldownUntil ? 'Chat paused…' : t('aiChat.inputPlaceholder')}
-                    disabled={Date.now() < cooldownUntil || showBlockedScreen || showAnnouncedModal}
-                    style={{
-                        flex: 1, padding: '12px 16px', borderRadius: 12,
-                        border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)',
-                        color: 'var(--text-primary)', fontSize: 15, outline: 'none',
-                    }}
-                />
-                <button onClick={handleSend} disabled={!input.trim() || isAiTyping}
-                    style={{
-                        padding: '12px 20px', borderRadius: 12, border: 'none',
-                        backgroundColor: input.trim() ? '#1A8A9E' : '#334155',
-                        color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed',
-                    }}>
-                    ↑
-                </button>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                {/* Voice Input Bar (shown when voice mode is active and listening/processing/error) */}
+                {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState !== 'idle' && (
+                    <VoiceInputBar
+                        voiceState={voiceInput.voiceState}
+                        audioLevel={voiceInput.audioLevel}
+                        error={voiceInput.error}
+                        voiceMode={voiceInput.voiceMode}
+                        recordingDuration={voiceInput.recordingDuration}
+                        isSupported={voiceInput.isSupported}
+                        enabled={voiceConfig.enabled}
+                        isRTL={rtl}
+                        onStartListening={voiceInput.startListening}
+                        onStopListening={voiceInput.stopListening}
+                        onCancel={voiceInput.cancelRecording}
+                        onSetVoiceMode={voiceInput.setVoiceMode}
+                        onSwitchToText={() => setShowVoiceInput(false)}
+                        onDismissError={voiceInput.cancelRecording}
+                    />
+                )}
+
+                {/* Text input row */}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input
+                        ref={inputRef}
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSend()}
+                        placeholder={Date.now() < cooldownUntil ? 'Chat paused…' : t('aiChat.inputPlaceholder')}
+                        disabled={Date.now() < cooldownUntil || showBlockedScreen || showAnnouncedModal || voiceInput.voiceState === 'listening' || voiceInput.voiceState === 'processing'}
+                        style={{
+                            flex: 1, padding: '12px 16px', borderRadius: 12,
+                            border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)',
+                            color: 'var(--text-primary)', fontSize: 15, outline: 'none',
+                        }}
+                    />
+
+                    {/* Voice mic button (idle state) */}
+                    {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState === 'idle' && (
+                        <VoiceInputBar
+                            voiceState={voiceInput.voiceState}
+                            audioLevel={voiceInput.audioLevel}
+                            error={voiceInput.error}
+                            voiceMode={voiceInput.voiceMode}
+                            recordingDuration={voiceInput.recordingDuration}
+                            isSupported={voiceInput.isSupported}
+                            enabled={voiceConfig.enabled}
+                            isRTL={rtl}
+                            onStartListening={voiceInput.startListening}
+                            onStopListening={voiceInput.stopListening}
+                            onCancel={voiceInput.cancelRecording}
+                            onSetVoiceMode={voiceInput.setVoiceMode}
+                            onSwitchToText={() => setShowVoiceInput(false)}
+                            onDismissError={voiceInput.cancelRecording}
+                        />
+                    )}
+
+                    {/* Show mic toggle if voice was hidden */}
+                    {voiceConfig.enabled && !showVoiceInput && (
+                        <button
+                            onClick={() => setShowVoiceInput(true)}
+                            aria-label={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
+                            title={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
+                            style={{
+                                width: 40, height: 40, borderRadius: '50%',
+                                border: '1px solid var(--border)', background: 'transparent',
+                                color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0,
+                            }}
+                        >
+                            🎤
+                        </button>
+                    )}
+
+                    <button onClick={handleSend} disabled={!input.trim() || isAiTyping}
+                        style={{
+                            padding: '12px 20px', borderRadius: 12, border: 'none',
+                            backgroundColor: input.trim() ? '#1A8A9E' : '#334155',
+                            color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed',
+                            flexShrink: 0,
+                        }}>
+                        ↑
+                    </button>
+                </div>
             </div>
 
             {/* ── Announced Modal ─────────────── */}
@@ -900,7 +1034,7 @@ export default function AiChatPage() {
                         borderRadius: 20, padding: 28, border: '1px solid var(--border)',
                     }}>
                         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                            <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>⚠️</span>
+                            <AlertTriangle size={48} color="#D97706" style={{ display: 'block', marginBottom: 12 }} />
                             <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
                                 {t('aiChat.specialtyUnavailableTitle')}
                             </h3>
@@ -936,7 +1070,7 @@ export default function AiChatPage() {
                     padding: 20,
                 }}>
                     <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
-                        <span style={{ fontSize: 64, display: 'block', marginBottom: 20 }}>🚫</span>
+                        <Ban size={64} color="#DC2626" style={{ display: 'block', marginBottom: 20 }} />
                         <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px' }}>
                             {t('aiChat.serviceUnavailable')}
                         </h2>

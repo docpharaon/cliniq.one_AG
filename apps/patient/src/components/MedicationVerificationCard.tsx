@@ -1,4 +1,5 @@
 import React from 'react';
+import { CheckCircle, Pill } from '@cliniqone/ui';
 
 interface MedicationVerificationCardProps {
     medication: {
@@ -21,7 +22,7 @@ export function MedicationVerificationCard({ medication, onVerify, onRemove }: M
         }}>
             <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>{medication.verified ? '✅' : '💊'}</span>
+                    {medication.verified ? <CheckCircle size={16} color="#059669" /> : <Pill size={16} color="var(--text-secondary)" />}
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{medication.name}</span>
                 </div>
                 {(medication.dose || medication.frequency) && (

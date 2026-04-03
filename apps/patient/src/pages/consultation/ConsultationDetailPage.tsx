@@ -8,6 +8,7 @@ import { PatientRefundModal } from '../../components/PatientRefundModal';
 import { FadeIn } from '../../components/FadeIn';
 import type { Consultation } from '@cliniqone/types';
 import { BrandSpinner } from '../../components/BrandSpinner';
+import { Stethoscope, Search, MessageSquare, Star, AlertTriangle } from '@cliniqone/ui';
 
 export default function ConsultationDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -46,8 +47,8 @@ export default function ConsultationDetailPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{consultation.chief_complaint}</h1>
                         </div>
-                        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>
-                            🩺 {(consultation.specialty || 'General').replace(/_/g, ' ')} • {localDate(consultation.created_at)}
+                        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Stethoscope size={14} color="var(--text-tertiary)" /> {(consultation.specialty || 'General').replace(/_/g, ' ')} • {localDate(consultation.created_at)}
                         </p>
                     </div>
                 </FadeIn>
@@ -55,7 +56,7 @@ export default function ConsultationDetailPage() {
                 {/* Status */}
                 <FadeIn delay={100}>
                     <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 14, padding: 16, marginBottom: 12, border: '1px solid var(--border)' }}>
-                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('consultations.filterAll') === 'All' ? 'Status' : 'الحالة'}</p>
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('consultDetail.status')}</p>
                         <p style={{ fontSize: 16, fontWeight: 700, color: '#1A8A9E', margin: 0 }}>{consultation.status.replace(/_/g, ' ').toUpperCase()}</p>
                     </div>
                 </FadeIn>
@@ -68,9 +69,9 @@ export default function ConsultationDetailPage() {
                             {report.diagnosis && <InfoRow label={t('consultDetail.diagnosis')} value={report.diagnosis} />}
                             {report.icd10 && <InfoRow label={t('consultDetail.icd10')} value={report.icd10} />}
                             {report.treatment_plan && <InfoRow label={t('consultDetail.treatmentPlan')} value={report.treatment_plan} />}
-                            {report.patient_education && <InfoRow label="Patient Education" value={report.patient_education} />}
+                            {report.patient_education && <InfoRow label={t('consultDetail.patientEducation')} value={report.patient_education} />}
                             {report.follow_up && <InfoRow label={t('consultDetail.followUp')} value={report.follow_up} />}
-                            {report.warning_signs && <InfoRow label="Warning Signs" value={Array.isArray(report.warning_signs) ? report.warning_signs.join(', ') : report.warning_signs} />}
+                            {report.warning_signs && <InfoRow label={t('consultDetail.warningSigns')} value={Array.isArray(report.warning_signs) ? report.warning_signs.join(', ') : report.warning_signs} />}
                         </div>
                     </FadeIn>
                 )}
@@ -95,21 +96,21 @@ export default function ConsultationDetailPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
                         {consultation.status === 'inquiry_sent' && (
                             <button onClick={() => navigate(`/intake/inquiry-chat?consultationId=${id}`)} style={btnPrimary}>
-                                🔍 {t('inquiry.respond')}
+                                <Search size={16} color="#fff" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> {t('inquiry.respond')}
                             </button>
                         )}
                         {consultation.status === 'completed' && report && (
                             <>
                                 <button onClick={() => navigate(`/intake/report-chat?consultationId=${id}`)} style={btnPrimary}>
-                                    💬 {t('consultDetail.conversation')}
+                                    <MessageSquare size={16} color="#fff" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> {t('consultDetail.conversation')}
                                 </button>
                                 <button onClick={() => navigate(`/consultation/${id}/feedback`)} style={btnSecondary}>
-                                    ⭐ {t('feedback.title')}
+                                    <Star size={16} color="var(--text-secondary)" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> {t('feedback.title')}
                                 </button>
                             </>
                         )}
                         <button onClick={() => setShowRefund(true)} style={{ ...btnSecondary, color: '#DC2626', borderColor: '#DC2626' }}>
-                            {t('consultDetail.startFollowUp') === '🔁 Start Follow-up Consultation' ? 'Request Refund' : 'طلب استرداد'}
+                            {t('consultDetail.requestRefund')}
                         </button>
                     </div>
                 </FadeIn>

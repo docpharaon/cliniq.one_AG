@@ -6,7 +6,6 @@ import { haptic } from '../hooks/useHaptics';
 
 const SLIDES = [
     {
-        emoji: '🤖',
         IconComp: Bot,
         color: '#2DD4BF',
         titleKey: 'onboardingSlides.slide1Title',
@@ -15,7 +14,6 @@ const SLIDES = [
         descFallback: 'Answer a few questions and our AI builds a comprehensive medical history for your doctor — in about 10 minutes.',
     },
     {
-        emoji: '🩺',
         IconComp: Stethoscope,
         color: '#3B82F6',
         titleKey: 'onboardingSlides.slide2Title',
@@ -24,7 +22,6 @@ const SLIDES = [
         descFallback: 'Board-certified specialists in KSA & UAE review your case and respond within 2-4 hours with a full report.',
     },
     {
-        emoji: '📋',
         IconComp: ClipboardList,
         color: '#8B5CF6',
         titleKey: 'onboardingSlides.slide3Title',
@@ -33,7 +30,6 @@ const SLIDES = [
         descFallback: 'Get your diagnosis, treatment plan, and MOH-compliant e-prescriptions — all in the app.',
     },
     {
-        emoji: '🔒',
         IconComp: Shield,
         color: '#059669',
         titleKey: 'onboardingSlides.slide4Title',

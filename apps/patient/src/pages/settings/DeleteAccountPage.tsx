@@ -11,18 +11,18 @@ export default function DeleteAccountPage() {
     const toast = useToast(s => s.show);
 
     async function handleDelete() {
-        const confirmed = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
+        const confirmed = window.confirm(t('settings.deleteConfirmMessage'));
         if (!confirmed) return;
-        const doubleConfirm = window.confirm('This is your LAST CHANCE. All your data will be permanently deleted.');
+        const doubleConfirm = window.confirm(t('settings.deleteFinalMessage'));
         if (!doubleConfirm) return;
 
         try {
             await supabase.from('users').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', user?.id);
             await supabase.auth.signOut();
-            toast('Account deleted. We\'re sorry to see you go.', 'info');
+            toast(t('deleteAccount.deleted'), 'info');
             navigate('/auth/landing', { replace: true });
         } catch (err: any) {
-            toast(err?.message || 'Failed to delete account', 'error');
+            toast(err?.message || t('deleteAccount.deleteFailed'), 'error');
         }
     }
 
@@ -32,12 +32,12 @@ export default function DeleteAccountPage() {
                 <BackButton />
                 <h1 style={{ fontSize: 22, fontWeight: 700, color: '#DC2626', margin: '20px 0 16px' }}>{t('settings.deleteAccountTitle')}</h1>
                 <div style={{ backgroundColor: '#DC262615', borderRadius: 14, padding: 18, marginBottom: 20, border: '1px solid #DC262640' }}>
-                    <p style={{ fontSize: 14, color: '#DC2626', margin: 0, lineHeight: '22px', fontWeight: 600 }}>Warning: This action is irreversible</p>
+                    <p style={{ fontSize: 14, color: '#DC2626', margin: 0, lineHeight: '22px', fontWeight: 600 }}>{t('deleteAccount.permanentAction')}</p>
                     <ul style={{ color: '#FCA5A5', fontSize: 13, lineHeight: '22px', paddingLeft: 20, marginTop: 8, marginBottom: 0 }}>
-                        <li>All your personal data will be deleted</li>
-                        <li>Your consultation history will be removed</li>
-                        <li>Any remaining tokens will be forfeited</li>
-                        <li>You will not be able to recover your account</li>
+                        <li>{t('deleteAccount.removeProfile')}</li>
+                        <li>{t('deleteAccount.removeConsultations')}</li>
+                        <li>{t('deleteAccount.removeTokens')}</li>
+                        <li>{t('deleteAccount.removeChats')}</li>
                     </ul>
                 </div>
                 <button onClick={handleDelete}

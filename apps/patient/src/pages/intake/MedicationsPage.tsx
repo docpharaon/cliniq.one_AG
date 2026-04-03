@@ -6,6 +6,7 @@ import { BackButton } from '../../components/BackButton';
 import { DrugLabelCapture } from '../../components/DrugLabelCapture';
 import { MedicationVerificationCard } from '../../components/MedicationVerificationCard';
 import { analyzeDrugLabel } from '../../services/aiService';
+import { Camera, Clock } from '@cliniqone/ui';
 
 export default function MedicationsPage() {
     const navigate = useNavigate();
@@ -80,7 +81,7 @@ export default function MedicationsPage() {
                 <button onClick={() => setShowCapture(true)} disabled={analyzing} style={{
                     width: '100%', padding: '12px', borderRadius: 10, border: '1px dashed var(--border)',
                     backgroundColor: 'var(--bg-card)', color: analyzing ? '#1A8A9E' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', marginBottom: 16,
-                }}>{analyzing ? '⏳ Analyzing label…' : '📷 Scan medication label'}</button>
+                }}>{analyzing ? <><Clock size={14} color="#1A8A9E" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Analyzing label…</> : <><Camera size={14} color="var(--text-secondary)" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Scan medication label</>}</button>
 
                 {/* Medication list */}
                 {meds.map((med, i) => (

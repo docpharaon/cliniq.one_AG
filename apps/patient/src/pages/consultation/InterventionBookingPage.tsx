@@ -5,6 +5,7 @@ import { t } from '@cliniqone/i18n';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
 import { BrandSpinner } from '../../components/BrandSpinner';
+import { TestTube } from '@cliniqone/ui';
 
 export default function InterventionBookingPage() {
     const { id } = useParams<{ id: string }>();
@@ -44,12 +45,12 @@ export default function InterventionBookingPage() {
         <div className="slide-in-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
             <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 20px 48px' }}>
                 <BackButton />
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '20px 0 8px' }}>🧪 Recommended Tests</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '20px 0 8px', display: 'flex', alignItems: 'center', gap: 8 }}><TestTube size={22} color="#1A8A9E" /> Recommended Tests</h1>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>The doctor has recommended the following tests or procedures</p>
 
                 {interventions.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 16px', backgroundColor: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>🧪</span>
+                        <TestTube size={48} color="var(--text-tertiary)" style={{ display: 'block', marginBottom: 12 }} />
                         <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0 }}>No interventions recommended</p>
                     </div>
                 ) : interventions.map(iv => (

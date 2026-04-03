@@ -54,14 +54,14 @@ export default function SignupPage() {
                 () => signUp({ email, password, nickname, phone: phone ? `${countryCode}${phone}` : undefined }),
                 { timeout: 8000, retries: 1, label: 'signUp' },
             );
-            toast('Account created! Check your email.', 'success');
+            toast(t('welcome.accountCreated'), 'success');
             navigate('/auth/verify-email');
         } catch (err: any) {
             const message = err?.message || '';
             if (message.includes('already registered')) {
                 setErrors({ email: t('errors.emailExists') });
             } else if (message.includes('timed out')) {
-                toast('Connection is slow. Please try again.', 'error');
+                toast(t('settings.connectionSlow'), 'error');
             } else {
                 setErrors({ general: message || t('errors.serverError') });
                 toast(message || t('errors.serverError'), 'error');

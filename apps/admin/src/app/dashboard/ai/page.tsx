@@ -42,6 +42,7 @@ import {
     Upload,
     FlaskConical,
     Users,
+    Mic,
 } from 'lucide-react';
 
 type PromptRow = {
@@ -192,6 +193,18 @@ export default function AIPage() {
     const [locumSearching, setLocumSearching] = useState(false);
     const [locumMsg, setLocumMsg] = useState('');
 
+    // Voice config state
+    const [voiceEnabled, setVoiceEnabled] = useState(false);
+    const [voiceModel, setVoiceModel] = useState('gpt-4o-mini-transcribe');
+    const [voiceDefaultMode, setVoiceDefaultMode] = useState('push_to_talk');
+    const [voiceMaxDuration, setVoiceMaxDuration] = useState(60);
+    const [voiceSilenceThreshold, setVoiceSilenceThreshold] = useState(1500);
+    const [voiceUsageMinutes, setVoiceUsageMinutes] = useState('0');
+    const [voiceUsageCount, setVoiceUsageCount] = useState('0');
+    const [voiceEstimatedCost, setVoiceEstimatedCost] = useState('$0.000');
+    const [savingVoice, setSavingVoice] = useState(false);
+    const [voiceMsg, setVoiceMsg] = useState('');
+
     const loadPrompts = useCallback(async () => {
         setLoading(true);
         const { data, count } = await fetchAIPrompts(1, 200);
@@ -268,6 +281,33 @@ export default function AIPage() {
         });
         fetchPlatformSetting('translation_model').then(val => {
             if (val) setTranslationModel(val);
+        });
+        // Voice settings
+        fetchPlatformSetting('voice_input_enabled').then(val => {
+            setVoiceEnabled(val === 'true');
+        });
+        fetchPlatformSetting('voice_input_default_mode').then(val => {
+            if (val) setVoiceDefaultMode(val);
+        });
+        fetchPlatformSetting('voice_input_max_duration_sec').then(val => {
+            if (val) setVoiceMaxDuration(parseInt(val, 10));
+        });
+        fetchPlatformSetting('voice_input_silence_threshold_ms').then(val => {
+            if (val) setVoiceSilenceThreshold(parseInt(val, 10));
+        });
+        fetchPlatformSetting('voice_transcription_model').then(val => {
+            if (val) setVoiceModel(val);
+        });
+        // Usage tracking
+        fetchPlatformSetting('voice_usage_minutes_month').then(val => {
+            if (val) {
+                setVoiceUsageMinutes(parseFloat(val).toFixed(1));
+                // Cost estimate: $0.006/min for gpt-4o-mini-transcribe
+                setVoiceEstimatedCost(`$${(parseFloat(val) * 0.006).toFixed(3)}`);
+            }
+        });
+        fetchPlatformSetting('voice_usage_count_month').then(val => {
+            if (val) setVoiceUsageCount(val);
         });
     }, []);
 
@@ -1305,6 +1345,143 @@ RULES:
                                             </button>
                                         ))}
                                     </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ═══ 🎤 VOICE INPUT ═══ */}
+                        <div className="flex items-center gap-2 mb-1 mt-8">
+                            <Mic className="w-4 h-4 text-accent" />
+                            <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Voice Input (Transcribe)</h2>
+                            <div className="flex-1 h-px bg-border" />
+                        </div>
+
+                        <div className="glass rounded-2xl p-4 md:p-6 space-y-5">
+                            {/* Enable/Disable Toggle */}
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-text-primary">Enable Voice Input</h3>
+                                    <p className="text-xs text-text-muted mt-0.5">Patients can speak instead of typing during AI chat</p>
+                                </div>
+                                <button
+                                    onClick={() => setVoiceEnabled(!voiceEnabled)}
+                                    className={`relative w-12 h-7 rounded-full transition-colors duration-300 ${voiceEnabled ? 'bg-accent' : 'bg-bg-elevated border border-border'}`}
+                                >
+                                    <div className={`absolute top-[3px] left-[3px] w-[22px] h-[22px] rounded-full bg-white transition-transform duration-300 shadow-sm ${voiceEnabled ? 'translate-x-5' : ''}`} />
+                                </button>
+                            </div>
+
+                            {/* Default Mode */}
+                            <div>
+                                <label className="text-xs font-semibold text-text-secondary block mb-1.5">Default Mode</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setVoiceDefaultMode('push_to_talk')}
+                                        className={`p-3 rounded-xl border text-left transition-all ${voiceDefaultMode === 'push_to_talk'
+                                            ? 'border-accent bg-accent-faded'
+                                            : 'border-border bg-bg-elevated hover:bg-bg-tertiary'
+                                        }`}
+                                    >
+                                        <span className="text-sm font-semibold text-text-primary">👆 Push-to-Talk</span>
+                                        <p className="text-[10px] text-text-muted mt-0.5">Patient taps to start/stop</p>
+                                    </button>
+                                    <button
+                                        onClick={() => setVoiceDefaultMode('auto_mic')}
+                                        className={`p-3 rounded-xl border text-left transition-all ${voiceDefaultMode === 'auto_mic'
+                                            ? 'border-accent bg-accent-faded'
+                                            : 'border-border bg-bg-elevated hover:bg-bg-tertiary'
+                                        }`}
+                                    >
+                                        <span className="text-sm font-semibold text-text-primary">🔄 Auto-Listen</span>
+                                        <p className="text-[10px] text-text-muted mt-0.5">Mic reopens after AI responds</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Parameters */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-xs font-semibold text-text-secondary block mb-1">Model</label>
+                                    <select
+                                        value={voiceModel}
+                                        onChange={e => setVoiceModel(e.target.value)}
+                                        className="w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                                    >
+                                        <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
+                                        <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+                                        <option value="whisper-1">whisper-1</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-text-secondary block mb-1">Max Duration (sec)</label>
+                                    <input
+                                        type="number"
+                                        value={voiceMaxDuration}
+                                        onChange={e => setVoiceMaxDuration(parseInt(e.target.value, 10) || 60)}
+                                        min={10}
+                                        max={180}
+                                        className="w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-text-secondary block mb-1">Silence Threshold (ms)</label>
+                                    <input
+                                        type="number"
+                                        value={voiceSilenceThreshold}
+                                        onChange={e => setVoiceSilenceThreshold(parseInt(e.target.value, 10) || 1500)}
+                                        min={500}
+                                        max={5000}
+                                        step={100}
+                                        className="w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Usage This Month */}
+                            <div className="bg-bg-elevated rounded-xl p-3 border border-border">
+                                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Usage This Month</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="text-center">
+                                        <p className="text-lg font-bold text-text-primary">{voiceUsageCount}</p>
+                                        <p className="text-[10px] text-text-muted">Transcriptions</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-lg font-bold text-text-primary">{voiceUsageMinutes}</p>
+                                        <p className="text-[10px] text-text-muted">Minutes</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-lg font-bold text-accent">{voiceEstimatedCost}</p>
+                                        <p className="text-[10px] text-text-muted">Est. Cost</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="flex items-center gap-3">
+                                <button
+                                    disabled={savingVoice}
+                                    onClick={async () => {
+                                        setSavingVoice(true);
+                                        try {
+                                            await savePlatformSetting('voice_input_enabled', voiceEnabled ? 'true' : 'false', 'voice', 'Enable voice input for patients');
+                                            await savePlatformSetting('voice_input_default_mode', voiceDefaultMode, 'voice', 'Default voice mode: push_to_talk or auto_mic');
+                                            await savePlatformSetting('voice_input_max_duration_sec', String(voiceMaxDuration), 'voice', 'Max recording duration in seconds');
+                                            await savePlatformSetting('voice_input_silence_threshold_ms', String(voiceSilenceThreshold), 'voice', 'VAD silence threshold in milliseconds');
+                                            await savePlatformSetting('voice_transcription_model', voiceModel, 'voice', 'OpenAI transcription model');
+                                            setVoiceMsg('✅ Voice settings saved!');
+                                        } catch {
+                                            setVoiceMsg('Error saving voice settings');
+                                        }
+                                        setSavingVoice(false);
+                                        setTimeout(() => setVoiceMsg(''), 3000);
+                                    }}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                                >
+                                    {savingVoice ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save Voice Settings
+                                </button>
+                                {voiceMsg && (
+                                    <p className={`text-sm font-medium animate-fade-in ${voiceMsg.startsWith('✅') ? 'text-success' : 'text-error'}`}>{voiceMsg}</p>
                                 )}
                             </div>
                         </div>

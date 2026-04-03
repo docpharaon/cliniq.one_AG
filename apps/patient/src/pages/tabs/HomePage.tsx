@@ -41,10 +41,9 @@ export default function HomePage() {
     const { user } = useAuthStore();
     const name = user?.nickname || 'there';
     const [showPurchase, setShowPurchase] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
     const lang = useLocale();
 
-    const { tips, campaigns, responseTime, responseTimeAr, refresh: refreshHome } = useHomeContent();
+    const { tips, responseTime, responseTimeAr, refresh: refreshHome } = useHomeContent();
     const { data: consultations, isLoading, isError, refetch } = useConsultations(user?.id || '');
     const recentConsultations = (consultations || []).slice(0, 3);
     const activeConsultation = (consultations || []).find((c: any) => ACTIVE_STATUSES.includes(c.status));
@@ -55,11 +54,9 @@ export default function HomePage() {
     };
 
     const onRefresh = useCallback(async () => {
-        setRefreshing(true);
         haptic.medium();
         await Promise.all([refetch(), refreshHome()]);
         haptic.success();
-        setRefreshing(false);
     }, [refetch, refreshHome]);
 
     async function toggleLanguage() {
@@ -92,7 +89,7 @@ export default function HomePage() {
 
                 {/* Active Consultation Banner */}
                 {activeConsultation && activeConsultation.status !== 'inquiry_sent' && (
-                    <div onClick={() => { haptic.medium(); navigate(`/consultation/waiting-room?id=${activeConsultation.id}`); }} className="pressable" style={styles.activeBanner}>
+                    <div onClick={() => { haptic.medium(); navigate(`/consultation/${activeConsultation.id}/waiting-room`); }} className="pressable" style={styles.activeBanner}>
                         <div style={styles.activeBannerDot} />
                         <div style={{ flex: 1 }}>
                             <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('dashboard.activeConsultation')}</p>

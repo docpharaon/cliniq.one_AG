@@ -5,7 +5,7 @@ import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
 import { FadeIn } from '../../components/FadeIn';
 import { requestKycToken, safeFetch } from '@cliniqone/api';
-import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Refresh, Lock, FileText, Zap, User } from '@cliniqone/ui';
+import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Refresh, Lock, FileText, Zap, User, Camera, Lightbulb } from '@cliniqone/ui';
 import type { KycStatus } from '@cliniqone/types';
 import type { CliniqIconProps } from '@cliniqone/ui';
 
@@ -130,10 +130,10 @@ export default function VerifyIdentityPage() {
         { Icon: Zap, text: t('kyc.benefitQuick') },
     ];
 
-    const requirements: { icon: string; text: string }[] = [
-        { icon: '📄', text: t('kyc.requireId') },
-        { icon: '📸', text: t('kyc.requireSelfie') },
-        { icon: '💡', text: t('kyc.requireLighting') },
+    const requirements: { Icon: React.FC<CliniqIconProps>; text: string }[] = [
+        { Icon: FileText, text: t('kyc.requireId') },
+        { Icon: Camera, text: t('kyc.requireSelfie') },
+        { Icon: Lightbulb, text: t('kyc.requireLighting') },
     ];
 
     return (
@@ -259,7 +259,9 @@ export default function VerifyIdentityPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {requirements.map((req, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <span style={{ fontSize: 18, lineHeight: 1 }}>{req.icon}</span>
+                                        <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#2DD4BF12', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <req.Icon size={16} color="#2DD4BF" />
+                                        </div>
                                         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: '18px' }}>
                                             {req.text}
                                         </p>

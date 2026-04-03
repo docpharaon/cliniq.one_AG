@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
 import { BackButton } from '../../components/BackButton';
+import { Brain, Lock } from '@cliniqone/ui';
 
 const PHQ2_QUESTIONS = [
     'Over the past 2 weeks, how often have you been bothered by little interest or pleasure in doing things?',
@@ -38,7 +39,7 @@ export default function PsychScreeningPage() {
                     <div style={{ height: 4, width: `${((currentQ + 1) / PHQ2_QUESTIONS.length) * 100}%`, backgroundColor: '#8B5CF6', borderRadius: 2 }} />
                 </div>
 
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>🧠 Mental Health Screening</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 8 }}><Brain size={22} color="#8B5CF6" /> Mental Health Screening</h1>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>PHQ-2 Screening (Question {currentQ + 1} of {PHQ2_QUESTIONS.length})</p>
 
                 <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 14, padding: 18, marginBottom: 20, border: '1px solid var(--border)' }}>
@@ -56,7 +57,7 @@ export default function PsychScreeningPage() {
                 </div>
 
                 <div style={{ backgroundColor: '#8B5CF620', borderRadius: 10, padding: '10px 14px', marginTop: 20 }}>
-                    <p style={{ fontSize: 12, color: '#8B5CF6', margin: 0 }}>🔒 Your responses are confidential and only shared with your assigned doctor.</p>
+                    <p style={{ fontSize: 12, color: '#8B5CF6', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}><Lock size={12} color="#8B5CF6" /> Your responses are confidential and only shared with your assigned doctor.</p>
                 </div>
             </div>
         </div>

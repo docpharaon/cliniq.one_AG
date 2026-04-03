@@ -48,3 +48,11 @@ export function Doctor(p: CliniqIconProps) {
 export function Bot(p: CliniqIconProps) {
   return <CliniqIcon {...p}><rect x="4" y="7" width="16" height="14" rx="3"/><circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><path d="M9 18h6"/><path d="M3 5c0 0 2-3 9-3s9 3 9 3"/><path d="M3 5c-1 3-1 6 0 7"/><path d="M21 5c1 3 1 6 0 7"/><line x1="3" y1="5" x2="21" y2="5" strokeWidth={2.5}/></CliniqIcon>;
 }
+
+export function Therapy(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><path d="M12 2a5 5 0 0 0-5 5c0 2 1 3.5 2.5 4.5L12 13l2.5-1.5C16 10.5 17 9 17 7a5 5 0 0 0-5-5z"/><path d="M4 15c0 0 2-1 4-1 1 0 2.5.5 4 2 1.5-1.5 3-2 4-2 2 0 4 1 4 1"/><path d="M4 15v4c0 1 1 3 8 3s8-2 8-3v-4"/></CliniqIcon>;
+}
+
+export function Ambulance(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><rect x="1" y="10" width="15" height="8" rx="2"/><path d="M16 14h4l3 3v1h-7"/><circle cx="6" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M6 6v4"/><path d="M4 8h4"/></CliniqIcon>;
+}

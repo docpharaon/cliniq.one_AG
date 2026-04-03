@@ -117,9 +117,9 @@ export function AnalyticsPage() {
                 <div style={s.section}>
                     <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Target size={16} color={colors.textPrimary} /> Bonus Targets</span>
                     <div style={s.card}>
-                        <BonusRow Icon={Target} label="Monthly target" reward="+300 tokens" progress={78} />
-                        <BonusRow Icon={Star} label="High rating (>4.5)" reward="+5% monthly" progress={96} />
-                        <BonusRow Icon={Zap} label="Fast response (<20 min)" reward="+5% monthly" progress={85} />
+                        <BonusRow Icon={Target} label="Monthly target (est.)" reward="+300 tokens" progress={Math.min(100, Math.round(completedToday / Math.max(1, stats?.daily_limit ?? 10) * 100))} />
+                        <BonusRow Icon={Star} label={`High rating (${ratingAvg.toFixed(1)}/5.0)`} reward="+5% monthly" progress={Math.min(100, Math.round((ratingAvg / 5) * 100))} />
+                        <BonusRow Icon={Zap} label="Fast response (<20 min)" reward="+5% monthly" progress={0} />
                     </div>
                 </div>
             </div>

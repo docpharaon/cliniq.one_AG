@@ -3,6 +3,7 @@ import { haptic } from '../../hooks/useHaptics';
 import { colors, typography, User, Stethoscope, Mail, Star, Share, Coins, Gem, CheckCircle, ClipboardList } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useToggleAccepting, useUpdateDoctorProfile } from '../../hooks/useDoctorData';
+import { useToast } from '../../components/ToastProvider';
 import type { CSSProperties } from 'react';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -19,6 +20,7 @@ export function ProfilePage() {
     const [isAccepting, setIsAccepting] = useState(doctor?.is_accepting ?? true);
     const [dailyLimit, setDailyLimit] = useState(doctor?.daily_limit ?? 10);
     const [consultationFee, setConsultationFee] = useState(doctor?.consultation_fee_tokens ?? 3);
+    const toast = useToast((s) => s.show);
 
     const toggleMutation = useToggleAccepting();
     const updateProfileMutation = useUpdateDoctorProfile();
@@ -30,7 +32,7 @@ export function ProfilePage() {
         if (doctor) {
             toggleMutation.mutate({ doctorId: doctor.id, isAccepting: value }, {
                 onSuccess: () => setDoctor({ ...doctor, is_accepting: value }),
-                onError: () => { setIsAccepting(!value); alert('Failed to update availability'); },
+                onError: () => { setIsAccepting(!value); toast('Failed to update availability', 'error'); },
             });
         }
     };
@@ -51,7 +53,7 @@ export function ProfilePage() {
             navigator.share({ text: `Consult with me on cliniq.one! Use my code: ${doctor?.identifier_code}\n${recruitmentLink}` }).catch(() => {});
         } else {
             navigator.clipboard?.writeText(recruitmentLink);
-            alert('Link copied to clipboard!');
+            toast('Link copied to clipboard!', 'success');
         }
     };
 

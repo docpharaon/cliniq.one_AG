@@ -1,4 +1,5 @@
 import React from 'react';
+import { Search, Pill } from '@cliniqone/ui';
 
 interface DrugAnalysisResult {
     name: string;
@@ -23,7 +24,7 @@ export function DrugAnalysisResults({ results, onConfirm, onRetry, onDismiss }: 
     if (results.length === 0) {
         return (
             <div style={{ padding: 20, textAlign: 'center' }}>
-                <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>🔍</span>
+                <Search size={40} color="var(--text-tertiary)" style={{ display: 'block', marginBottom: 12 }} />
                 <h3 style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
                     No medications detected
                 </h3>
@@ -40,8 +41,8 @@ export function DrugAnalysisResults({ results, onConfirm, onRetry, onDismiss }: 
 
     return (
         <div style={{ padding: 16 }}>
-            <h3 style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
-                💊 Detected Medications
+            <h3 style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Pill size={18} color="#1A8A9E" /> Detected Medications
             </h3>
             {results.map((drug, idx) => (
                 <div key={idx} style={{

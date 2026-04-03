@@ -7,7 +7,7 @@
  * - AI confidence indicator
  * - Treatment rationale & step-down plan
  * - Refill eligibility per medication
- * - Priority-coded warning signs (🔴🟠🟡)
+ * - Priority-coded warning signs (Red/Orange/Yellow)
  * - Clinical timeline visualization
  * - Escalation protocol
  * - Telemedicine consent note
@@ -433,7 +433,7 @@ export async function generatePatientPdf(consultation: Consultation) {
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(7.5);
                 doc.setTextColor(...AMBER as unknown as [number, number, number]);
-                doc.text(`⚠ ${med.name}:`, MARGIN_LEFT + 2, y);
+                doc.text(`[!] ${med.name}:`, MARGIN_LEFT + 2, y);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...GRAY_700 as unknown as [number, number, number]);
                 doc.text(med.warnings!.join('; '), MARGIN_LEFT + 50, y);
@@ -488,9 +488,9 @@ export async function generatePatientPdf(consultation: Consultation) {
     if (priorityWarnings.length > 0) {
         sectionHeader('WARNING SIGNS — PRIORITIZED ACTION GUIDE');
         const levelColors: Record<string, { bg: RGB; text: RGB; label: string }> = {
-            emergency: { bg: [254, 226, 226], text: [153, 27, 27], label: '🔴 EMERGENCY' },
-            urgent:    { bg: [255, 247, 237], text: [154, 52, 18], label: '🟠 URGENT' },
-            monitor:   { bg: [254, 249, 195], text: [133, 77, 14], label: '🟡 MONITOR' },
+            emergency: { bg: [254, 226, 226], text: [153, 27, 27], label: '[!] EMERGENCY' },
+            urgent:    { bg: [255, 247, 237], text: [154, 52, 18], label: '[!] URGENT' },
+            monitor:   { bg: [254, 249, 195], text: [133, 77, 14], label: '[i] MONITOR' },
         };
         for (const ws of priorityWarnings) {
             const lc = levelColors[ws.level] || levelColors.monitor;
@@ -520,7 +520,7 @@ export async function generatePatientPdf(consultation: Consultation) {
     // ══════════════════════════════════════════
     if (report.escalation_protocol) {
         accentBox(
-            '⚡ ESCALATION PROTOCOL',
+            'ESCALATION PROTOCOL',
             report.escalation_protocol,
             [255, 241, 242] as const, // bg: rose-50
             [136, 19, 55] as const,   // text: rose-900
@@ -551,7 +551,7 @@ export async function generatePatientPdf(consultation: Consultation) {
         'findings are based on visual assessment of submitted images only.';
 
     accentBox(
-        '📋 TELEMEDICINE MODALITY & CONSENT',
+        'TELEMEDICINE MODALITY & CONSENT',
         consentNote,
         [245, 243, 255] as const, // bg: violet-50
         [91, 33, 182] as const,   // text: violet-800

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Camera } from '@cliniqone/ui';
 
 interface SkinPhotoCaptureProps {
     onPhotoCaptured: (dataUrl: string) => void;
@@ -44,8 +45,8 @@ export function SkinPhotoCapture({ onPhotoCaptured, onCancel, bodyLocationLabel 
                 backgroundColor: 'var(--bg-primary)', borderRadius: 16, padding: 24,
                 maxWidth: 400, width: '100%', textAlign: 'center',
             }}>
-                <h3 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
-                    📸 Take a Photo
+                <h3 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Camera size={20} color="var(--text-primary)" /> Take a Photo
                 </h3>
                 {bodyLocationLabel && (
                     <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 16 }}>
@@ -80,7 +81,7 @@ export function SkinPhotoCapture({ onPhotoCaptured, onCancel, bodyLocationLabel 
                                 border: '2px dashed var(--border)', backgroundColor: 'var(--bg-card)',
                                 color: 'var(--text-tertiary)', fontSize: 15, cursor: 'pointer',
                             }}>
-                            📷 Tap to take or select photo
+                            <><Camera size={16} color="var(--text-tertiary)" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Tap to take or select photo</>
                         </button>
                     </div>
                 )}

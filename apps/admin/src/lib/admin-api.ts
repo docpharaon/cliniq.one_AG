@@ -87,9 +87,9 @@ export async function callAdminApiStream(
     const token = await getSessionToken();
     const authToken = token || serviceKey || anonKey;
 
-    // Timeout after 30 seconds to prevent infinite hang
+    // Timeout after 180 seconds — instant test may run 20+ OpenAI calls
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 180_000);
 
     try {
         console.log(`[admin-api] → ${action}`, { hasToken: !!token, url: supabaseUrl });

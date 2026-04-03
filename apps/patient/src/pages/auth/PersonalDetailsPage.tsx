@@ -38,7 +38,7 @@ export default function PersonalDetailsPage() {
 
             if (error) throw error;
             await refreshUser();
-            toast('Profile updated!', 'success');
+            toast(t('settings.profileUpdated'), 'success');
             navigate('/', { replace: true });
         } catch (err: any) {
             toast(err?.message || 'Failed to save', 'error');

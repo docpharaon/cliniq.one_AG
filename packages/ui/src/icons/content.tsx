@@ -52,3 +52,15 @@ export function Leaf(p: CliniqIconProps) {
 export function PartyPopper(p: CliniqIconProps) {
   return <CliniqIcon {...p}><path d="M5.8 11.3L2 22l10.7-3.8"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="M22 2l-2.24.75a1 1 0 0 0-.48.4l-1.6 2.66"/><path d="M5.8 11.3l2.66-1.6a1 1 0 0 0 .4-.48L9.6 7"/><path d="M9.6 7l5.25 5.25"/></CliniqIcon>;
 }
+
+export function Scroll(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 3H7a2 2 0 0 0-2 2"/><path d="M22 7H10"/><path d="M10 11h8"/><path d="M10 15h5"/></CliniqIcon>;
+}
+
+export function Cookie(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><circle cx="8" cy="14" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/></CliniqIcon>;
+}
+
+export function Mailbox(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><path d="M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 7 5h10c3 0 5 2 5 4.5V17z"/><polyline points="2 10 12 13 22 10"/><path d="M22 10V6a2 2 0 0 0-2-2h-1"/><path d="M15 2h4"/></CliniqIcon>;
+}

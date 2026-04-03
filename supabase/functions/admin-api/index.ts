@@ -358,6 +358,9 @@ Deno.serve(async (req: Request) => {
                 let patientContext = '';
                 let detectedPathway: string | null = null;
                 const fullConversation: any[] = [];
+                let totalTurnsAccum = 0;
+                let totalSectionsAccum = 0;
+                const instantStartTime = Date.now();
 
                 results.push({ type: 'start', sequenceName: seq?.name || 'Default Flow', totalNodes: allNodes.length });
 
@@ -458,6 +461,8 @@ Deno.serve(async (req: Request) => {
                         turns++;
                     }
 
+                    totalTurnsAccum += turns;
+                    totalSectionsAccum++;
                     results.push({
                         type: 'section_done', step: i + 1, total: flow.length, section, label: node.label, emoji: node.emoji,
                         promptName: resolvedName, promptVersion: resolvedVersion, turns, complete: sectionComplete, messages: sectionMessages,
@@ -479,7 +484,8 @@ Deno.serve(async (req: Request) => {
                     }
                 }
 
-                results.push({ type: 'done', detectedPathway });
+                const elapsedSeconds = ((Date.now() - instantStartTime) / 1000).toFixed(1);
+                results.push({ type: 'done', detectedPathway, totalTurns: totalTurnsAccum, totalSections: totalSectionsAccum, elapsedSeconds });
 
                 // Return as SSE stream
                 const encoder = new TextEncoder();
@@ -495,6 +501,52 @@ Deno.serve(async (req: Request) => {
                 return new Response(body, {
                     headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
                 });
+            }
+
+            // ── VOICE CONFIG ──────────────────────────
+            case 'voice-config': {
+                const VOICE_KEYS = [
+                    'voice_input_enabled',
+                    'voice_input_model',
+                    'voice_input_default_mode',
+                    'voice_input_max_duration_sec',
+                    'voice_input_silence_threshold_ms',
+                    'voice_usage_minutes_month',
+                    'voice_usage_count_month',
+                    'voice_usage_last_reset',
+                ];
+
+                if (payload.save) {
+                    // Save voice settings
+                    const settings = payload.settings as Record<string, string>;
+                    const saveKeys = ['voice_input_enabled', 'voice_input_model', 'voice_input_default_mode', 'voice_input_max_duration_sec', 'voice_input_silence_threshold_ms'];
+                    for (const key of saveKeys) {
+                        if (settings[key] !== undefined) {
+                            await supabase.from('platform_settings').upsert(
+                                { key, value: settings[key], category: 'ai', description: `Voice input: ${key}` },
+                                { onConflict: 'key' }
+                            );
+                        }
+                    }
+                    return json({ success: true });
+                }
+
+                // Read current voice config + usage
+                const { data: rows } = await supabase
+                    .from('platform_settings')
+                    .select('key, value')
+                    .in('key', VOICE_KEYS);
+
+                const config: Record<string, string> = {};
+                for (const row of (rows || [])) {
+                    config[row.key] = row.value;
+                }
+
+                // Calculate estimated cost
+                const minutes = parseFloat(config['voice_usage_minutes_month'] || '0');
+                const cost = (minutes * 0.003).toFixed(3);
+
+                return json({ config, estimatedCost: `$${cost}` });
             }
 
             default:

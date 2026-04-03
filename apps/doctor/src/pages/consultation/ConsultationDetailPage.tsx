@@ -37,6 +37,7 @@ export function ConsultationDetailPage() {
     const navigate = useNavigate();
     const { data: consultation, isLoading, error } = useConsultationDetail(id || '');
     const [showRefund, setShowRefund] = useState(false);
+    const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const canRefund = consultation && ['assigned', 'in_progress', 'report_ready'].includes(consultation.status);
 
     if (isLoading) {
@@ -134,6 +135,41 @@ export function ConsultationDetailPage() {
                         </Section>
                     )}
 
+                    {/* Protocol Flags */}
+                    {consultation.protocol_flags && consultation.protocol_flags.length > 0 && (
+                        <Section title="⚠ Protocol Flags">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {consultation.protocol_flags.map((flag: string, i: number) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 10, backgroundColor: colors.warningFaded, borderRadius: 10, border: `1px solid ${colors.warning}40` }}>
+                                        <Siren size={14} color={colors.warning} />
+                                        <span style={{ fontSize: 13, color: colors.warning, fontWeight: 600, flex: 1 }}>{flag}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </Section>
+                    )}
+
+                    {/* Patient Photos */}
+                    {(consultation as any).photos && (consultation as any).photos.length > 0 && (
+                        <Section title="Patient Photos">
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                {(consultation as any).photos.map((photo: any, i: number) => (
+                                    <div key={i} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${colors.border}`, width: 'calc(50% - 5px)' }}>
+                                        <img
+                                            src={photo.url || photo}
+                                            alt={`Patient photo ${i + 1}`}
+                                            style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block', backgroundColor: colors.bgTertiary }}
+                                            onClick={() => { setSelectedPhoto(typeof photo === 'string' ? photo : photo.url); }}
+                                        />
+                                        {photo.label && (
+                                            <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '4px 8px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, textAlign: 'center' }}>{photo.label}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </Section>
+                    )}
+
                     {/* Consultation Metadata */}
                     <Section title="Consultation Metadata">
                         <InfoRow label="ID" value={consultation.id.slice(0, 8)} />
@@ -169,6 +205,16 @@ export function ConsultationDetailPage() {
                     onSuccess={() => navigate(-1)}
                 />
             )}
+
+            {/* Photo Lightbox */}
+            {selectedPhoto && (
+                <div style={s.photoOverlay} onClick={() => setSelectedPhoto(null)}>
+                    <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 102 }}>
+                        <button onClick={() => setSelectedPhoto(null)} style={{ fontSize: 28, color: '#fff', fontWeight: 700 }}>✕</button>
+                    </div>
+                    <img src={selectedPhoto} alt="Patient photo" style={{ maxWidth: '90%', maxHeight: '85%', borderRadius: 12, objectFit: 'contain' }} onClick={(e) => e.stopPropagation()} />
+                </div>
+            )}
         </div>
     );
 }
@@ -187,4 +233,5 @@ const s: Record<string, CSSProperties> = {
     retryBtn: { backgroundColor: colors.accentTeal, borderRadius: 12, paddingInline: 24, paddingBlock: 12 },
     composeBtn: { width: '100%', backgroundColor: colors.accentTeal, borderRadius: 16, paddingBlock: 18, marginTop: 8 },
     refundBtn: { width: '100%', backgroundColor: colors.warningFaded, border: `1px solid ${colors.warning}`, borderRadius: 16, paddingBlock: 16, marginTop: 12 },
+    photoOverlay: { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 101 },
 };

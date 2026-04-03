@@ -26,7 +26,7 @@ export function TokenPurchaseModal({ visible, onClose, currentBalance }: TokenPu
         if (!selectedPackage) return;
         const result = await purchasePackage(selectedPackage);
         if (result.success) {
-            toast(`🎉 ${result.tokens ?? 0} tokens purchased!`, 'success');
+            toast(`${result.tokens ?? 0} tokens purchased!`, 'success');
             onClose();
         } else {
             toast(result.error || t('errors.serverError'), 'error');
@@ -82,7 +82,7 @@ export function TokenPurchaseModal({ visible, onClose, currentBalance }: TokenPu
                     })}
                 </div>
 
-                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: 20 }}>💡 {t('tokens.hint')}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: 20 }}>{t('tokens.hint')}</p>
 
                 <button
                     onClick={handlePurchase}

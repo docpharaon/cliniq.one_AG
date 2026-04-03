@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import React, { useEffect, useRef, useCallback } from 'react';
+import { CheckCircle, XCircle, AlertTriangle, Info } from '@cliniqone/ui';
 
 // ── Types ──────────────────────────────────────
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -32,11 +33,11 @@ export const useToast = create<ToastStore>((set) => ({
 }));
 
 // ── Colors ─────────────────────────────────────
-const TYPE_STYLES: Record<ToastType, { bg: string; border: string; icon: string; text: string }> = {
-    success: { bg: '#ECFDF5', border: '#059669', icon: '✅', text: '#065F46' },
-    error:   { bg: '#FEF2F2', border: '#DC2626', icon: '❌', text: '#991B1B' },
-    warning: { bg: '#FFFBEB', border: '#D97706', icon: '⚠️', text: '#92400E' },
-    info:    { bg: '#F0FDFA', border: '#1A8A9E', icon: 'ℹ️', text: '#134E4A' },
+const TYPE_STYLES: Record<ToastType, { bg: string; border: string; Icon: React.FC<any>; text: string }> = {
+    success: { bg: '#ECFDF5', border: '#059669', Icon: CheckCircle, text: '#065F46' },
+    error:   { bg: '#FEF2F2', border: '#DC2626', Icon: XCircle, text: '#991B1B' },
+    warning: { bg: '#FFFBEB', border: '#D97706', Icon: AlertTriangle, text: '#92400E' },
+    info:    { bg: '#F0FDFA', border: '#1A8A9E', Icon: Info, text: '#134E4A' },
 };
 
 const toastContainerStyle: React.CSSProperties = {
@@ -94,7 +95,7 @@ function ToastItem({ toast }: { toast: Toast }) {
                 transform: fading ? 'translateY(-10px)' : 'translateY(0)',
             }}
         >
-            <span style={{ fontSize: 16, marginRight: 8 }}>{style.icon}</span>
+            <style.Icon size={16} color={style.border} style={{ marginRight: 8, flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 13, lineHeight: '18px', color: style.text }}>{toast.message}</span>
             <button
                 onClick={() => dismiss(toast.id)}

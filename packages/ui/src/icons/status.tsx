@@ -40,3 +40,7 @@ export function Info(p: CliniqIconProps) {
 export function Zap(p: CliniqIconProps) {
   return <CliniqIcon {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></CliniqIcon>;
 }
+
+export function FireTruck(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><rect x="1" y="10" width="14" height="8" rx="2"/><path d="M15 14h5l3 3v1h-8"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M6 4l2 6"/><path d="M10 4l-2 6"/><path d="M4 7h8"/></CliniqIcon>;
+}

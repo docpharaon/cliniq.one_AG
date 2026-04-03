@@ -13,7 +13,7 @@ import { LandingPage } from './pages/auth/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ChangePasswordPage } from './pages/auth/ChangePasswordPage';
-import { PendingApprovalPage } from './pages/auth/PendingApprovalPage';
+// PendingApprovalPage removed — redirects to ApplicationTrackerPage
 import { RegistrationPage } from './pages/auth/RegistrationPage';
 import { ApplicationTrackerPage } from './pages/auth/ApplicationTrackerPage';
 import { HomePage } from './pages/tabs/HomePage';
@@ -145,7 +145,7 @@ function AppInner() {
                 <Route path="/auth/login" element={<LoginPage />} />
                 <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/auth/change-password" element={<ChangePasswordPage />} />
-                <Route path="/auth/pending-approval" element={<PendingApprovalPage />} />
+                <Route path="/auth/pending-approval" element={<Navigate to="/auth/application-status" replace />} />
                 <Route path="/auth/register" element={<RegistrationPage />} />
                 <Route path="/auth/application-status" element={<ApplicationTrackerPage />} />
 

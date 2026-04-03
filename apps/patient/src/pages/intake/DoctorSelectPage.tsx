@@ -6,6 +6,7 @@ import { useIntakeStore } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/ToastProvider';
 import { BrandSpinner } from '../../components/BrandSpinner';
+import { Target, Gem } from '@cliniqone/ui';
 
 export default function DoctorSelectPage() {
     const navigate = useNavigate();
@@ -50,7 +51,7 @@ export default function DoctorSelectPage() {
                     border: '1px solid var(--border)', cursor: 'pointer', marginBottom: 16, textAlign: 'left',
                     display: 'flex', alignItems: 'center', gap: 14,
                 }}>
-                    <span style={{ fontSize: 24 }}>🎯</span>
+                    <Target size={24} color="#1A8A9E" />
                     <div>
                         <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('intake.autoAssign')}</p>
                         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{t('intake.autoAssignHint')}</p>
@@ -81,7 +82,7 @@ export default function DoctorSelectPage() {
                                         {(doc.specialty || 'General').replace(/_/g, ' ')} • ★ {doc.rating || 'N/A'}
                                     </p>
                                 </div>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: '#1A8A9E' }}>{doc.consultation_fee || 3} 🪙</span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: '#1A8A9E', display: 'inline-flex', alignItems: 'center', gap: 2 }}>{doc.consultation_fee || 3} <Gem size={14} color="#1A8A9E" /></span>
                             </button>
                         ))}
                     </div>

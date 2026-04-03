@@ -31,8 +31,8 @@ export default function AppearancePage() {
                     borderRadius: 14, padding: 18, border: '1px solid var(--border)',
                     marginBottom: 20,
                 }}>
-                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: '22px' }}>
-                        {isDark ? '🌙' : '☀️'} {t('settings.themeSampleDesc')}
+                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: '22px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {isDark ? <Moon size={16} color="var(--text-secondary)" /> : <Sun size={16} color="var(--text-secondary)" />} {t('settings.themeSampleDesc')}
                     </p>
                 </div>
 
@@ -94,8 +94,8 @@ export default function AppearancePage() {
                             borderRadius: 10, padding: 12,
                             border: '1px solid var(--border)',
                         }}>
-                            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-                                {isDark ? '🌙 ' + t('settings.themeDark') : '☀️ ' + t('settings.themeLight')}
+                            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {isDark ? <><Moon size={14} color="var(--text-secondary)" /> {t('settings.themeDark')}</> : <><Sun size={14} color="var(--text-secondary)" /> {t('settings.themeLight')}</>}
                             </p>
                         </div>
                     </div>

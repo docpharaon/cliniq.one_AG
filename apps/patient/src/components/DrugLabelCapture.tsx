@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Pill, Camera } from '@cliniqone/ui';
 
 interface DrugLabelCaptureProps {
     onCaptured: (dataUrl: string) => void;
@@ -41,8 +42,8 @@ export function DrugLabelCapture({ onCaptured, onCancel, analyzing }: DrugLabelC
                 backgroundColor: 'var(--bg-primary)', borderRadius: 16, padding: 24,
                 maxWidth: 400, width: '100%', textAlign: 'center',
             }}>
-                <h3 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
-                    💊 Scan Medication Label
+                <h3 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Pill size={20} color="#1A8A9E" /> Scan Medication Label
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16, lineHeight: '18px' }}>
                     Take a clear photo of the medication label. The AI will extract drug name, dose, and instructions.
@@ -79,7 +80,7 @@ export function DrugLabelCapture({ onCaptured, onCancel, analyzing }: DrugLabelC
                             border: '2px dashed var(--border)', backgroundColor: 'var(--bg-card)',
                             color: 'var(--text-tertiary)', fontSize: 15, cursor: 'pointer', marginBottom: 16,
                         }}>
-                        📷 Tap to photograph label
+                        <><Camera size={16} color="var(--text-tertiary)" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Tap to photograph label</>
                     </button>
                 )}
 

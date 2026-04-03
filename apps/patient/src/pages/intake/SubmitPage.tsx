@@ -6,6 +6,7 @@ import { useIntakeStore, buildSnapshot } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { analyzeQA } from '../../services/aiService';
 import { useToast } from '../../components/ToastProvider';
+import { Target, AlertTriangle } from '@cliniqone/ui';
 
 export default function SubmitPage() {
     const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function SubmitPage() {
     const hasEnough = (user?.tokens_balance ?? 0) >= tokenCost;
 
     async function handleSubmit() {
-        if (!hasEnough) { toast('Insufficient tokens. Please purchase more.', 'warning'); return; }
+        if (!hasEnough) { toast(t('intake.insufficientTokensDesc'), 'warning'); return; }
         setSubmitting(true);
         setError('');
 
@@ -72,11 +73,11 @@ export default function SubmitPage() {
 
             await refreshUser();
             store.reset();
-            toast('✅ Consultation submitted successfully!', 'success');
+            toast(t('intake.submitted'), 'success');
             navigate(`/consultation/${consultation?.id}/waiting-room`, { replace: true });
         } catch (err: any) {
-            setError(err?.message || 'Failed to submit. Please try again.');
-            toast(err?.message || 'Submission failed', 'error');
+            setError(err?.message || t('common.error'));
+            toast(err?.message || t('common.error'), 'error');
         } finally {
             setSubmitting(false);
         }
@@ -90,7 +91,7 @@ export default function SubmitPage() {
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                    <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>🎯</span>
+                    <Target size={48} color="#1A8A9E" style={{ display: 'block', marginBottom: 12 }} />
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('intake.readyToSubmit')}</h1>
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('intake.submitDescription')}</p>
                 </div>
@@ -98,23 +99,23 @@ export default function SubmitPage() {
                 {/* Cost Summary */}
                 <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 14, padding: 18, marginBottom: 20, border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Consultation Fee</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: '#1A8A9E' }}>{tokenCost} tokens</span>
+                        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('intake.consultationCost')}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#1A8A9E' }}>{tokenCost} {t('tokens.tokensLabel')}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Your Balance</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: hasEnough ? '#059669' : '#DC2626' }}>{user?.tokens_balance ?? 0} tokens</span>
+                        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('intake.yourBalance')}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: hasEnough ? '#059669' : '#DC2626' }}>{user?.tokens_balance ?? 0} {t('tokens.tokensLabel')}</span>
                     </div>
                     <div style={{ height: 1, backgroundColor: 'var(--border)', margin: '8px 0' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>After Submission</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{(user?.tokens_balance ?? 0) - tokenCost} tokens</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{t('intake.remaining')}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{(user?.tokens_balance ?? 0) - tokenCost} {t('tokens.tokensLabel')}</span>
                     </div>
                 </div>
 
                 {!hasEnough && (
                     <div style={{ backgroundColor: '#DC262620', borderRadius: 10, padding: '12px 14px', marginBottom: 16, borderLeft: '3px solid #DC2626' }}>
-                        <p style={{ fontSize: 13, color: '#DC2626', margin: 0 }}>⚠️ Insufficient tokens. Please purchase more to submit.</p>
+                        <p style={{ fontSize: 13, color: '#DC2626', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={14} color="#DC2626" /> {t('intake.insufficientTokensDesc')}</p>
                     </div>
                 )}
 
@@ -132,7 +133,7 @@ export default function SubmitPage() {
                         cursor: hasEnough ? 'pointer' : 'not-allowed',
                         opacity: submitting ? 0.7 : 1,
                     }}>
-                    {submitting ? 'Submitting…' : t('intake.submitConsultation')}
+                    {submitting ? t('intake.submitting') : t('intake.submitConsultation')}
                 </button>
             </div>
         </div>

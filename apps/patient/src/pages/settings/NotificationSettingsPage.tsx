@@ -16,7 +16,7 @@ export default function NotificationSettingsPage() {
 
     function toggle(key: keyof typeof settings) {
         setSettings(prev => ({ ...prev, [key]: !prev[key] }));
-        toast('Setting updated', 'success');
+        toast(t('settings.prefsSaved'), 'success');
     }
 
     return (

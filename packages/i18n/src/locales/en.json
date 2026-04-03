@@ -401,18 +401,19 @@
     },
     "feedback": {
         "title": "Rate Your Experience",
-        "subtitle": "Help us improve by sharing your feedback about this consultation.",
+        "subtitle": "Help us improve our service",
         "tapToRate": "Tap a star to rate",
         "poor": "Poor",
         "okay": "Okay",
         "good": "Good",
         "excellent": "Excellent!",
         "commentLabel": "Additional Comments (Optional)",
-        "commentPlaceholder": "Tell us more about your experience...",
+        "commentPlaceholder": "Tell us more about your experience (optional)…",
         "submit": "Submit Feedback",
+        "submitting": "Submitting…",
         "skipFeedback": "Skip for now",
         "ratingRequired": "Please select a star rating",
-        "thankYou": "Thank You!",
+        "thankYou": "Thank you for your feedback!",
         "submitted": "Your feedback helps us improve our service."
     },
     "help": {
@@ -457,6 +458,7 @@
     "waitingRoom": {
         "title": "Waiting Room",
         "subtitle": "Your consultation is being processed.",
+        "description": "A licensed doctor is being matched to your case. You will be notified once your report is ready.",
         "current": "Current",
         "estimatedWait": "Estimated Wait",
         "hours": "hours",
@@ -469,7 +471,12 @@
         "tipWalk": "A 30-minute walk each day can improve your mood and heart health.",
         "tipSleep": "Adults need 7-9 hours of sleep for optimal health.",
         "tipNutrition": "Add more fruits and vegetables to your diet for better nutrition.",
-        "tipBreathing": "Practice deep breathing for 5 minutes to reduce stress."
+        "tipBreathing": "Practice deep breathing for 5 minutes to reduce stress.",
+        "stepSubmitted": "Consultation submitted",
+        "stepFinding": "Finding your doctor",
+        "stepReviewing": "Doctor reviewing your case",
+        "stepPreparing": "Report being prepared",
+        "returnHome": "← Return to Home"
     },
     "consultations": {
         "searchPlaceholder": "Search consultations...",
@@ -563,7 +570,24 @@
         "specialtyUnavailableTitle": "Specialty Temporarily Unavailable",
         "continueWithFM": "Continue with Family Medicine",
         "serviceUnavailable": "Service Unavailable",
-        "returnHome": "Return Home"
+        "returnHome": "Return Home",
+        "voiceListening": "Listening...",
+        "voiceProcessing": "Transcribing...",
+        "voiceMicRequired": "Microphone access is required for voice input. Please allow access in your browser settings.",
+        "voiceMicUnavailable": "Unable to access microphone. Please try again.",
+        "voiceCantHear": "Couldn't hear that clearly. Try again or type instead.",
+        "voiceCantUnderstand": "Couldn't understand that. Try again or type instead.",
+        "voiceDisabled": "Voice input is currently disabled",
+        "voiceError": "Something went wrong. Try again or type instead.",
+        "voiceRetry": "Retry",
+        "voiceTypeInstead": "Type",
+        "voiceCancel": "Cancel",
+        "voiceDone": "Done",
+        "voiceStop": "Stop",
+        "voiceSwitchToAuto": "Switch to auto-listen",
+        "voiceSwitchToPTT": "Switch to push-to-talk",
+        "voiceSwitchToVoice": "Switch to voice",
+        "voiceRecording": "REC"
     },
     "settings": {
         "editProfile": "Edit Profile",
@@ -622,6 +646,7 @@
         "changingPassword": "Changing...",
         "passwordChanged": "Password changed successfully!",
         "passwordChangeFailed": "Could not change password. Please try again.",
+        "passwordMinLength": "Password must be at least 8 characters",
         "dangerZone": "Danger Zone",
         "deleteAccount": "Delete Account",
         "deleteAccountDesc": "Permanently delete your account and all data. This action cannot be undone.",
@@ -667,7 +692,10 @@
         "deleteAccountTitle": "Delete Account",
         "identityVerification": "Identity Verification",
         "dataProtection": "Data Protection",
-        "dataRights": "Data Rights"
+        "dataRights": "Data Rights",
+        "insuranceTitle": "Insurance",
+        "insuranceComingSoon": "Insurance Coming Soon",
+        "insuranceComingSoonDesc": "We're working on integrating with major insurance providers in Saudi Arabia. You'll be able to link your insurance and have consultations covered directly."
     },
     "protocol": {
         "emergencyDetected": "Your message suggests a medical emergency. Please call emergency services immediately.",
@@ -767,7 +795,14 @@
         "mohCompliant": "🔒 MOH-compliant e-prescription",
         "startFollowUp": "🔁 Start Follow-up Consultation",
         "typeMessage": "Type a message...",
-        "yearsExperience": "{{count}} years"
+        "yearsExperience": "{{count}} years",
+        "status": "Status",
+        "patientEducation": "Patient Education",
+        "warningSigns": "Warning Signs",
+        "requestRefund": "Request Refund",
+        "requestingRefund": "Requesting…",
+        "refundSuccess": "Refund request submitted",
+        "refundFailed": "Failed to submit refund request"
     },
     "inquiry": {
         "bannerTitle": "Doctor Request",
@@ -1025,5 +1060,25 @@
         "sdkReady": "Verification ready! Opening verification...",
         "errorGeneric": "Could not start verification. Please try again later.",
         "privacyNotice": "Your documents are securely processed by a certified identity verification provider. cliniq.one does not store your ID documents — only the verification result is saved."
+    },
+    "about": {
+        "title": "About cliniq.one",
+        "version": "Version",
+        "tagline": "One consultation. Multiple specialties. One decision.",
+        "description": "cliniq.one is a telehealth platform connecting patients with licensed physicians across Saudi Arabia and the UAE. Powered by AI-assisted medical interviews and board-certified doctor reviews.",
+        "madeWith": "Made with ❤️ in Saudi Arabia",
+        "termsOfService": "Terms of Service",
+        "privacyPolicy": "Privacy Policy",
+        "contactSupport": "Contact Support",
+        "rateApp": "Rate the App",
+        "copyright": "© {{year}} cliniq.one AG. All rights reserved.",
+        "licensedDoctors": "Licensed Doctors",
+        "licensedDoctorsDesc": "Board-certified specialists in KSA & UAE",
+        "aiPowered": "AI-Powered Intake",
+        "aiPoweredDesc": "Physician-designed smart questioning system",
+        "dataPrivacy": "Data Privacy",
+        "dataPrivacyDesc": "Encrypted end-to-end, zero long-term cloud storage",
+        "ePrescription": "E-Prescriptions",
+        "ePrescriptionDesc": "MOH-compliant digital prescriptions"
     }
 }

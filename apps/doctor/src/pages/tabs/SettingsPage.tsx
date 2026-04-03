@@ -5,6 +5,7 @@ import { haptic } from '../../hooks/useHaptics';
 import { colors, typography, Settings as SettingsIcon, Bell, CreditCard, Smartphone, Info, BookOpen, Mail, FileText, Lock, LogOut } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { useToast } from '../../components/ToastProvider';
 import type { CSSProperties } from 'react';
 
 const NOTIFICATION_SETTINGS_KEY = 'doctor_notification_settings';
@@ -58,6 +59,8 @@ export function SettingsPage() {
     }, []);
 
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    const toast = useToast((s) => s.show);
+    const { doctor } = useAuthStore();
 
     const handleLogout = () => {
         setShowLogoutDialog(true);
@@ -93,9 +96,9 @@ export function SettingsPage() {
                 <div style={s.section}>
                     <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><CreditCard size={16} color={colors.textPrimary} /> Payment Information</span>
                     <div style={s.card}>
-                        <InfoRow label="Bank / IBAN" value="••••••••4521" />
-                        <InfoRow label="Tax ID (VAT)" value="Not set" />
-                        <button style={s.editBtn} className="pressable" onClick={() => haptic.medium()}><span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600 }}>Update Payment Info</span></button>
+                        <InfoRow label="Bank / IBAN" value={(doctor as any)?.bank_iban ? `••••${((doctor as any).bank_iban as string).slice(-4)}` : 'Not configured'} />
+                        <InfoRow label="Tax ID (VAT)" value={(doctor as any)?.tax_id || 'Not set'} />
+                        <button style={s.editBtn} className="pressable" onClick={() => { haptic.medium(); toast('Payment settings coming soon.', 'info'); }}><span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600 }}>Update Payment Info</span></button>
                     </div>
                 </div>
 
@@ -104,7 +107,7 @@ export function SettingsPage() {
                     <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Smartphone size={16} color={colors.textPrimary} /> App</span>
                     <div style={s.card}>
                         <InfoRow label="Language" value="English" />
-                        <InfoRow label="Version" value="1.0.0" />
+                        <InfoRow label="Version" value="1.2.0" />
                     </div>
                 </div>
 
@@ -113,12 +116,12 @@ export function SettingsPage() {
                     <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Info size={16} color={colors.textPrimary} /> Support</span>
                     <div style={s.card}>
                         {[
-                            { Icon: BookOpen, text: 'Help Center' },
-                            { Icon: Mail, text: 'Contact Support' },
-                            { Icon: FileText, text: 'Terms of Service' },
-                            { Icon: Lock, text: 'Privacy Policy' },
+                            { Icon: BookOpen, text: 'Help Center', action: () => { toast('Help center coming soon.', 'info'); } },
+                            { Icon: Mail, text: 'Contact Support', action: () => { window.open('mailto:support@cliniq.one?subject=Doctor%20App%20Support', '_blank'); } },
+                            { Icon: FileText, text: 'Terms of Service', action: () => { window.open('https://cliniq.one/terms', '_blank'); } },
+                            { Icon: Lock, text: 'Privacy Policy', action: () => { window.open('https://cliniq.one/privacy', '_blank'); } },
                         ].map((item) => (
-                            <button key={item.text} style={s.linkRow} className="pressable" onClick={() => haptic.light()}><span style={{ fontSize: 14, color: colors.textPrimary, display: 'inline-flex', alignItems: 'center', gap: 8 }}><item.Icon size={16} color={colors.textSecondary} /> {item.text}</span></button>
+                            <button key={item.text} style={s.linkRow} className="pressable" onClick={() => { haptic.light(); item.action(); }}><span style={{ fontSize: 14, color: colors.textPrimary, display: 'inline-flex', alignItems: 'center', gap: 8 }}><item.Icon size={16} color={colors.textSecondary} /> {item.text}</span></button>
                         ))}
                     </div>
                 </div>

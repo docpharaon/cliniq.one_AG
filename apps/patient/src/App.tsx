@@ -62,6 +62,7 @@ import PrivacyTermsPage from './pages/settings/PrivacyTermsPage';
 import ReportBugPage from './pages/settings/ReportBugPage';
 import SecurityPage from './pages/settings/SecurityPage';
 import VerifyIdentityPage from './pages/settings/VerifyIdentityPage';
+import AboutPage from './pages/settings/AboutPage';
 
 // ── Splash gate ──────────────────────────────────────────────
 let splashShown = false;
@@ -221,6 +222,7 @@ function AppInner() {
                 <Route path="/settings/report-bug" element={<RequireOnboarding><ReportBugPage /></RequireOnboarding>} />
                 <Route path="/settings/security" element={<RequireOnboarding><SecurityPage /></RequireOnboarding>} />
                 <Route path="/settings/verify-identity" element={<RequireOnboarding><VerifyIdentityPage /></RequireOnboarding>} />
+                <Route path="/settings/about" element={<RequireOnboarding><AboutPage /></RequireOnboarding>} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { colors, typography, Save, Search, Camera, Pill, MessageSquare, Sparkles, Send, Microscope, BookOpen, Siren, FileText, TestTube, Eye, Stethoscope, Leaf, Calendar, ClipboardList, Trash, CheckCircle, Clock, Edit } from '@cliniqone/ui';
 import type { CliniqIconProps } from '@cliniqone/ui';
-import { useSubmitReport, useCreateInquiry, useDoctorInquiries } from '../../hooks/useDoctorData';
+import { useSubmitReport, useCreateInquiry, useDoctorInquiries, useConsultationDetail } from '../../hooks/useDoctorData';
+import { useAuthStore } from '../../stores/authStore';
 import { supabase } from '@cliniqone/api';
 import { BackButton } from '../../components/BackButton';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -16,6 +17,29 @@ interface Medication {
 }
 const emptyMed: Medication = { name: '', strength: '', form: 'Cream', quantity: '', directions: '', duration: '', addToPrescription: true };
 
+const DRAFT_KEY_PREFIX = 'doctor_draft_';
+
+function getDraftKey(consultationId: string) {
+    return `${DRAFT_KEY_PREFIX}${consultationId}`;
+}
+
+function loadDraft(consultationId: string) {
+    try {
+        const stored = localStorage.getItem(getDraftKey(consultationId));
+        return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+}
+
+function saveDraft(consultationId: string, data: Record<string, unknown>) {
+    try {
+        localStorage.setItem(getDraftKey(consultationId), JSON.stringify({ ...data, _savedAt: Date.now() }));
+    } catch { /* storage full — ignore */ }
+}
+
+function clearDraft(consultationId: string) {
+    localStorage.removeItem(getDraftKey(consultationId));
+}
+
 function SectionHeader({ title, Icon }: { title: string; Icon: (p: CliniqIconProps) => ReactNode }) {
     return <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}><Icon size={18} color={colors.textPrimary} /> {title}</span>;
 }
@@ -25,12 +49,16 @@ function Label({ text }: { text: string }) {
 
 export function RespondPage() {
     const { id: consultationId } = useParams<{ id: string }>();
-    const [searchParams] = useSearchParams();
-    const doctorId = searchParams.get('doctorId') || '';
     const navigate = useNavigate();
+    const { doctor } = useAuthStore();
+    const doctorId = doctor?.id || '';
     const submitReportMutation = useSubmitReport();
     const createInquiryMutation = useCreateInquiry();
     const { data: inquiries = [] } = useDoctorInquiries(consultationId || '');
+    const { data: consultation } = useConsultationDetail(consultationId || '');
+
+    // Load draft on mount
+    const draft = consultationId ? loadDraft(consultationId) : null;
 
     // Inquiry state
     const [inquiryText, setInquiryText] = useState('');
@@ -40,29 +68,40 @@ export function RespondPage() {
     const [inquiryRequestType, setInquiryRequestType] = useState<'text' | 'skin_photo' | 'medication_photo' | 'document_photo'>('text');
 
     // Clinical Assessment
-    const [diagnosis, setDiagnosis] = useState('');
-    const [icd10, setIcd10] = useState('');
-    const [differentials, setDifferentials] = useState('');
-    const [reasoning, setReasoning] = useState('');
+    const [diagnosis, setDiagnosis] = useState(draft?.diagnosis || '');
+    const [icd10, setIcd10] = useState(draft?.icd10 || '');
+    const [differentials, setDifferentials] = useState(draft?.differentials || '');
+    const [reasoning, setReasoning] = useState(draft?.reasoning || '');
     // Treatment Plan
-    const [medications, setMedications] = useState<Medication[]>([{ ...emptyMed }]);
-    const [nonPharm, setNonPharm] = useState('');
+    const [medications, setMedications] = useState<Medication[]>(draft?.medications || [{ ...emptyMed }]);
+    const [nonPharm, setNonPharm] = useState(draft?.nonPharm || '');
     // Patient Education
-    const [aboutCondition, setAboutCondition] = useState('');
-    const [expectations, setExpectations] = useState('');
-    const [prevention, setPrevention] = useState('');
+    const [aboutCondition, setAboutCondition] = useState(draft?.aboutCondition || '');
+    const [expectations, setExpectations] = useState(draft?.expectations || '');
+    const [prevention, setPrevention] = useState(draft?.prevention || '');
     // Warning Signs
-    const [warningChecks, setWarningChecks] = useState<Record<string, boolean>>({
+    const [warningChecks, setWarningChecks] = useState<Record<string, boolean>>(draft?.warningChecks || {
         'Fever above 38.5°C': false, 'Rapid spread of symptoms': false, 'Difficulty breathing': false, 'Severe swelling': false, 'Worsening despite treatment': false,
     });
-    const [followUp, setFollowUp] = useState('');
+    const [followUp, setFollowUp] = useState(draft?.followUp || '');
     // Notes
-    const [notes, setNotes] = useState('');
+    const [notes, setNotes] = useState(draft?.notes || '');
     // Preview
     const [showPreview, setShowPreview] = useState(false);
     const [showInquiryConfirm, setShowInquiryConfirm] = useState(false);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const toast = useToast((s) => s.show);
+
+    // Auto-save draft whenever form fields change
+    const persistDraft = useCallback(() => {
+        if (!consultationId) return;
+        saveDraft(consultationId, { diagnosis, icd10, differentials, reasoning, medications, nonPharm, aboutCondition, expectations, prevention, warningChecks, followUp, notes });
+    }, [consultationId, diagnosis, icd10, differentials, reasoning, medications, nonPharm, aboutCondition, expectations, prevention, warningChecks, followUp, notes]);
+
+    useEffect(() => {
+        const timer = setTimeout(persistDraft, 1000); // debounce 1s
+        return () => clearTimeout(timer);
+    }, [persistDraft]);
 
     const addMedication = () => setMedications([...medications, { ...emptyMed }]);
     const removeMedication = (index: number) => setMedications(medications.filter((_, i) => i !== index));
@@ -76,7 +115,7 @@ export function RespondPage() {
         try {
             const { data: fnData } = await supabase.functions.invoke('ai-intake', { body: { action: 'improve-inquiry', questionText: inquiryText, language: 'en' } });
             if (fnData?.improvedText) setAiImprovedText(fnData.improvedText);
-        } catch { alert('Failed to improve text. Please try again.'); }
+        } catch { toast('Failed to improve text. Please try again.', 'error'); }
         finally { setIsImprovingWithAi(false); }
     };
 
@@ -113,7 +152,7 @@ export function RespondPage() {
         const prescription = prescriptionMeds.length > 0 ? { medications: prescriptionMeds.map(m => ({ name: m.name, strength: m.strength, form: m.form, quantity: m.quantity, directions: m.directions, duration: m.duration })) } : undefined;
 
         submitReportMutation.mutate({ consultationId: consultationId!, report, prescription }, {
-            onSuccess: () => { toast('Response submitted!', 'success'); navigate('/tabs', { replace: true }); },
+            onSuccess: () => { if (consultationId) clearDraft(consultationId); toast('Response submitted!', 'success'); navigate('/tabs', { replace: true }); },
             onError: (err) => toast(err.message || 'Failed to submit.', 'error'),
         });
     };
@@ -126,7 +165,7 @@ export function RespondPage() {
             <div style={s.header}>
                 <BackButton />
                 <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>Medical Response</span>
-                <button className="pressable" onClick={() => { haptic.light(); alert('Draft saved.'); }}><span style={{ fontSize: 11, color: colors.warning, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Save size={12} color={colors.warning} /> Draft</span></button>
+                <button className="pressable" onClick={() => { haptic.light(); persistDraft(); toast('Draft saved locally.', 'success'); }}><span style={{ fontSize: 11, color: colors.warning, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Save size={12} color={colors.warning} /> Draft</span></button>
             </div>
 
             <div style={s.scroll} className="scrollable">
@@ -276,7 +315,7 @@ export function RespondPage() {
                     <div style={s.card}>
                         <span style={s.subLabel}>Tests, Imaging & Referrals</span>
                         <span style={{ fontSize: 11, color: colors.textTertiary, display: 'block', marginBottom: 12 }}>Select interventions from the catalog. The patient will be notified.</span>
-                        <button style={s.dashedBtn} className="pressable" onClick={() => { haptic.medium(); navigate(`/consultation/${consultationId}/intervention-order`); }}><span style={{ fontSize: 14, color: colors.accentTeal, display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList size={14} color={colors.accentTeal} /> Select from Catalog</span></button>
+                        <button style={s.dashedBtn} className="pressable" onClick={() => { haptic.medium(); navigate(`/consultation/${consultationId}/intervention-order?specialty=${consultation?.specialty || 'dermatology'}`); }}><span style={{ fontSize: 14, color: colors.accentTeal, display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList size={14} color={colors.accentTeal} /> Select from Catalog</span></button>
                     </div>
 
                     {/* Actions */}

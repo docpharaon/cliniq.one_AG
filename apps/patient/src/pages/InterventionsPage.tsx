@@ -6,7 +6,8 @@ import { useAuthStore } from '../stores/authStore';
 import { BackButton } from '../components/BackButton';
 import { BrandSpinner } from '../components/BrandSpinner';
 import { FadeIn } from '../components/FadeIn';
-import { TestTube } from '@cliniqone/ui';
+import { TestTube, Camera, Refresh, ClipboardList, Lightbulb, BarChart, Home } from '@cliniqone/ui';
+import { Therapy } from '@cliniqone/ui';
 import { haptic } from '../hooks/useHaptics';
 
 type Intervention = {
@@ -41,13 +42,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
     patient_accepted:{ label: 'Accepted',      color: '#059669', bg: '#05966920' },
 };
 
-const TYPE_EMOJI: Record<string, string> = {
-    lab_test: '🧪',
-    imaging: '📷',
-    referral: '🔄',
-    therapy: '💆',
-    home_health: '🏠',
-    follow_up: '📋',
+const TYPE_ICON: Record<string, React.FC<{ size?: number; color?: string }>> = {
+    lab_test: TestTube,
+    imaging: Camera,
+    referral: Refresh,
+    therapy: Therapy,
+    home_health: Home,
+    follow_up: ClipboardList,
 };
 
 type FilterTab = 'all' | 'active' | 'completed';
@@ -177,7 +178,7 @@ export function InterventionsPage() {
                 {filtered.length === 0 ? (
                     <FadeIn delay={300}>
                         <div style={s.emptyState}>
-                            <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>🧪</span>
+                            <TestTube size={48} color="var(--text-tertiary)" style={{ display: 'block', marginBottom: 12 }} />
                             <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>
                                 {interventions.length === 0
                                     ? (t('interventions.noTests') || 'No tests or procedures yet')
@@ -195,7 +196,7 @@ export function InterventionsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
                         {filtered.map((iv, i) => {
                             const statusCfg = STATUS_CONFIG[iv.status] || { label: iv.status, color: '#64748B', bg: '#64748B20' };
-                            const emoji = TYPE_EMOJI[iv.type] || '📋';
+                            const TypeIcon = TYPE_ICON[iv.type] || ClipboardList;
 
                             return (
                                 <FadeIn key={iv.id} delay={300 + i * 60}>
@@ -207,7 +208,7 @@ export function InterventionsPage() {
                                         {/* Top row */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <div style={{ display: 'flex', gap: 10, flex: 1 }}>
-                                                <span style={{ fontSize: 24 }}>{emoji}</span>
+                                                <TypeIcon size={24} color="var(--text-secondary)" />
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {iv.title}
@@ -229,14 +230,14 @@ export function InterventionsPage() {
                                         {/* Instructions */}
                                         {iv.instructions_for_patient && (
                                             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 0', lineHeight: '18px' }}>
-                                                💡 {iv.instructions_for_patient}
+                                                <Lightbulb size={14} color="var(--text-secondary)" style={{ flexShrink: 0, marginTop: 1 }} /> {iv.instructions_for_patient}
                                             </p>
                                         )}
 
                                         {/* Results summary */}
                                         {iv.results_summary && (
                                             <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, backgroundColor: '#05966910', border: '1px solid #05966920' }}>
-                                                <p style={{ fontSize: 12, fontWeight: 600, color: '#059669', margin: '0 0 2px' }}>📊 Results</p>
+                                                <p style={{ fontSize: 12, fontWeight: 600, color: '#059669', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 4 }}><BarChart size={14} color="#059669" /> Results</p>
                                                 <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: '16px' }}>{iv.results_summary}</p>
                                             </div>
                                         )}

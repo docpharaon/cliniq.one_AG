@@ -15,3 +15,8 @@ export function GenderFemale(p: CliniqIconProps) {
 export function GenderDiverse(p: CliniqIconProps) {
   return <CliniqIcon {...p}><circle cx="12" cy="12" r="5"/><path d="M12 7V2"/><path d="M15 3l-3 2-3-2"/><path d="M12 17v4"/><path d="M10 20h4"/></CliniqIcon>;
 }
+
+/** Police officer badge */
+export function Police(p: CliniqIconProps) {
+  return <CliniqIcon {...p}><path d="M12 2l3 4h4l-1 4 3 3-3 3 1 4h-4l-3 4-3-4H5l1-4-3-3 3-3-1-4h4l3-4z"/><circle cx="12" cy="13" r="2"/></CliniqIcon>;
+}

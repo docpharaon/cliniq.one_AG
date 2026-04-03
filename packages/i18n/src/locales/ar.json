@@ -410,6 +410,7 @@
         "commentLabel": "تعليقات إضافية (اختياري)",
         "commentPlaceholder": "أخبرنا المزيد عن تجربتك...",
         "submit": "إرسال التقييم",
+        "submitting": "جارٍ الإرسال…",
         "skipFeedback": "تخطي الآن",
         "ratingRequired": "يرجى اختيار تقييم بالنجوم",
         "thankYou": "شكراً لك!",
@@ -469,7 +470,13 @@
         "tipWalk": "المشي ٣٠ دقيقة يومياً يحسّن المزاج وصحة القلب.",
         "tipSleep": "يحتاج البالغون ٧-٩ ساعات نوم لصحة مثالية.",
         "tipNutrition": "أضف المزيد من الفواكه والخضروات لنظامك الغذائي.",
-        "tipBreathing": "مارس التنفس العميق لمدة ٥ دقائق لتقليل التوتر."
+        "tipBreathing": "مارس التنفس العميق لمدة ٥ دقائق لتقليل التوتر.",
+        "description": "يتم مطابقة طبيب مرخّص لحالتك. سيتم إشعارك عند جاهزية التقرير.",
+        "stepSubmitted": "تم إرسال الاستشارة",
+        "stepFinding": "جارٍ البحث عن طبيبك",
+        "stepReviewing": "الطبيب يراجع حالتك",
+        "stepPreparing": "جارٍ تحضير التقرير",
+        "returnHome": "→ العودة للرئيسية"
     },
     "consultations": {
         "searchPlaceholder": "ابحث في الاستشارات...",
@@ -563,7 +570,24 @@
         "specialtyUnavailableTitle": "التخصص غير متاح مؤقتاً",
         "continueWithFM": "المتابعة مع طب الأسرة",
         "serviceUnavailable": "الخدمة غير متاحة",
-        "returnHome": "العودة للرئيسية"
+        "returnHome": "العودة للرئيسية",
+        "voiceListening": "جارٍ الاستماع...",
+        "voiceProcessing": "جارٍ التحويل...",
+        "voiceMicRequired": "يلزم إذن الميكروفون للإدخال الصوتي. يرجى السماح من إعدادات المتصفح.",
+        "voiceMicUnavailable": "تعذّر الوصول إلى الميكروفون. حاول مرة أخرى.",
+        "voiceCantHear": "لم نسمع بوضوح. حاول مرة أخرى أو اكتب بدلاً من ذلك.",
+        "voiceCantUnderstand": "لم نفهم ذلك. حاول مرة أخرى أو اكتب بدلاً من ذلك.",
+        "voiceDisabled": "الإدخال الصوتي معطّل حالياً",
+        "voiceError": "حدث خطأ. حاول مرة أخرى أو اكتب بدلاً من ذلك.",
+        "voiceRetry": "إعادة المحاولة",
+        "voiceTypeInstead": "اكتب",
+        "voiceCancel": "إلغاء",
+        "voiceDone": "تم",
+        "voiceStop": "إيقاف",
+        "voiceSwitchToAuto": "التبديل للاستماع التلقائي",
+        "voiceSwitchToPTT": "التبديل للضغط للتحدث",
+        "voiceSwitchToVoice": "التبديل للصوت",
+        "voiceRecording": "تسجيل"
     },
     "settings": {
         "editProfile": "تعديل الملف الشخصي",
@@ -667,7 +691,11 @@
         "deleteAccountTitle": "حذف الحساب",
         "identityVerification": "التحقق من الهوية",
         "dataProtection": "حماية البيانات",
-        "dataRights": "حقوق البيانات"
+        "dataRights": "حقوق البيانات",
+        "passwordMinLength": "يجب أن تكون كلمة المرور ٨ أحرف على الأقل",
+        "insuranceTitle": "التأمين",
+        "insuranceComingSoon": "التأمين قريباً",
+        "insuranceComingSoonDesc": "نعمل على التكامل مع شركات التأمين الكبرى في المملكة العربية السعودية. ستتمكن من ربط تأمينك وتغطية الاستشارات مباشرة."
     },
     "protocol": {
         "emergencyDetected": "رسالتك تشير إلى أن الحالة قد تكون طارئة. اتصل بخدمات الطوارئ فوراً.",
@@ -767,7 +795,14 @@
         "mohCompliant": "🔒 وصفة إلكترونية متوافقة مع وزارة الصحة",
         "startFollowUp": "🔁 بدء استشارة متابعة",
         "typeMessage": "اكتب رسالة...",
-        "yearsExperience": "{{count}} سنة خبرة"
+        "yearsExperience": "{{count}} سنة خبرة",
+        "status": "الحالة",
+        "patientEducation": "التثقيف الصحي",
+        "warningSigns": "علامات التحذير",
+        "requestRefund": "طلب استرداد",
+        "requestingRefund": "جارٍ الطلب…",
+        "refundSuccess": "تم إرسال طلب الاسترداد",
+        "refundFailed": "فشل إرسال طلب الاسترداد"
     },
     "inquiry": {
         "bannerTitle": "طلب من الطبيب",
@@ -1025,5 +1060,25 @@
         "sdkReady": "التحقق جاهز! جارٍ فتح التحقق...",
         "errorGeneric": "تعذر بدء التحقق. يرجى المحاولة لاحقاً.",
         "privacyNotice": "تتم معالجة وثائقك بشكل آمن من قبل مزود تحقق هوية معتمد. cliniq.one لا تخزن وثائق هويتك — يتم حفظ نتيجة التحقق فقط."
+    },
+    "about": {
+        "title": "حول cliniq.one",
+        "version": "الإصدار",
+        "tagline": "استشارة واحدة. تخصصات متعددة. قرار واحد.",
+        "description": "cliniq.one منصة طب عن بُعد تربط المرضى بأطباء مرخّصين في المملكة العربية السعودية والإمارات. مدعومة بمقابلات طبية بالذكاء الاصطناعي ومراجعات أطباء معتمدين.",
+        "madeWith": "صُنع بـ ❤️ في المملكة العربية السعودية",
+        "termsOfService": "شروط الخدمة",
+        "privacyPolicy": "سياسة الخصوصية",
+        "contactSupport": "التواصل مع الدعم",
+        "rateApp": "قيّم التطبيق",
+        "copyright": "© {{year}} cliniq.one AG. جميع الحقوق محفوظة.",
+        "licensedDoctors": "أطباء مرخّصون",
+        "licensedDoctorsDesc": "أخصائيون معتمدون في السعودية والإمارات",
+        "aiPowered": "مقابلة بالذكاء الاصطناعي",
+        "aiPoweredDesc": "نظام أسئلة ذكية مُصمّم من أطباء",
+        "dataPrivacy": "خصوصية البيانات",
+        "dataPrivacyDesc": "تشفير شامل بدون تخزين سحابي طويل الأمد",
+        "ePrescription": "الوصفات الإلكترونية",
+        "ePrescriptionDesc": "وصفات رقمية متوافقة مع وزارة الصحة"
     }
 }

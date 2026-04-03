@@ -53,7 +53,7 @@ export default function LoginPage() {
                 }
             }
 
-            toast('Welcome back!', 'success');
+            toast(t('auth.welcomeBack'), 'success');
             haptic.success();
             navigate('/', { replace: true });
         } catch (err: any) {

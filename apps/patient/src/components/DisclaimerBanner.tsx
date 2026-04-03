@@ -1,4 +1,5 @@
 import React from 'react';
+import { Info, AlertTriangle, Siren } from '@cliniqone/ui';
 
 interface DisclaimerBannerProps {
     message: string;
@@ -7,9 +8,9 @@ interface DisclaimerBannerProps {
 }
 
 const TYPE_COLORS = {
-    info: { bg: '#F0FDFA', border: '#1A8A9E', text: '#134E4A', icon: 'ℹ️' },
-    warning: { bg: '#FFFBEB', border: '#D97706', text: '#92400E', icon: '⚠️' },
-    error: { bg: '#FEF2F2', border: '#DC2626', text: '#991B1B', icon: '🚨' },
+    info: { bg: '#F0FDFA', border: '#1A8A9E', text: '#134E4A', Icon: Info },
+    warning: { bg: '#FFFBEB', border: '#D97706', text: '#92400E', Icon: AlertTriangle },
+    error: { bg: '#FEF2F2', border: '#DC2626', text: '#991B1B', Icon: Siren },
 };
 
 /** Disclaimer/info banner for legal and safety notices */
@@ -27,7 +28,7 @@ export function DisclaimerBanner({ message, type = 'info', onDismiss }: Disclaim
             borderLeft: `3px solid ${colors.border}`,
             marginBottom: 12,
         }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>{colors.icon}</span>
+            <colors.Icon size={16} color={colors.border} style={{ flexShrink: 0, marginTop: 1 }} />
             <p style={{ flex: 1, fontSize: 13, lineHeight: '18px', color: colors.text, margin: 0 }}>
                 {message}
             </p>

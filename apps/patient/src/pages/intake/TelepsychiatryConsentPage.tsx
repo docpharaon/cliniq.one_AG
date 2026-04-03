@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { t } from '@cliniqone/i18n';
 import { BackButton } from '../../components/BackButton';
+import { Brain } from '@cliniqone/ui';
 
 export default function TelepsychiatryConsentPage() {
     const navigate = useNavigate();
@@ -11,7 +12,7 @@ export default function TelepsychiatryConsentPage() {
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
             <div style={{ maxWidth: 480, margin: '0 auto', padding: '16px 20px 48px' }}>
                 <BackButton />
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '20px 0 16px' }}>🧠 Telepsychiatry Consent</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '20px 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}><Brain size={22} color="#8B5CF6" /> Telepsychiatry Consent</h1>
 
                 <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 14, padding: 18, marginBottom: 20, border: '1px solid var(--border)' }}>
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: '22px' }}>
