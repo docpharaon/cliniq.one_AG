@@ -35,18 +35,20 @@ export async function callAdminApi<T = unknown>(
     const serviceKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY) ||
         (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) || '';
 
-    // Skip getSession entirely when we have a service role key — no user session needed
-    let token = '';
-    if (!serviceKey) {
-        token = await getSessionToken();
-    } else {
-        console.log('[admin-api] Using service role key (skipping getSession)');
+    // Try user JWT first (now that login is enforced), service key as fallback
+    const token = await getSessionToken();
+    const authToken = token || serviceKey || anonKey;
+
+    if (token) {
+        console.log('[admin-api] Using user JWT');
+    } else if (serviceKey) {
+        console.log('[admin-api] Fallback: using service role key');
     }
 
     const res = await fetch(`${supabaseUrl}/functions/v1/admin-api`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token || serviceKey || anonKey}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
             'apikey': anonKey,
             ...(serviceKey ? { 'x-admin-key': serviceKey } : {}),
@@ -81,11 +83,9 @@ export async function callAdminApiStream(
         throw new Error('Supabase URL not configured');
     }
 
-    // Skip getSession when we have service role key — no user session needed
-    let token = '';
-    if (!serviceKey) {
-        token = await getSessionToken();
-    }
+    // Try user JWT first, service key as fallback
+    const token = await getSessionToken();
+    const authToken = token || serviceKey || anonKey;
 
     // Timeout after 30 seconds to prevent infinite hang
     const controller = new AbortController();
@@ -97,7 +97,7 @@ export async function callAdminApiStream(
         const res = await fetch(`${supabaseUrl}/functions/v1/admin-api`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token || serviceKey || anonKey}`,
+                'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json',
                 'apikey': anonKey,
                 ...(serviceKey ? { 'x-admin-key': serviceKey } : {}),

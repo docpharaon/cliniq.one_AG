@@ -1,6 +1,7 @@
 import { createContext, createElement, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createBrowserSupabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 
 type AdminRole = 'admin' | 'superadmin' | null;
 
@@ -47,11 +48,21 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         return null;
     }
 
+    const navigate = useNavigate();
+    const location = useLocation();
+
     useEffect(() => {
         const supabase = createBrowserSupabase();
 
-        // Get initial session
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
+        // Get initial session — with timeout to prevent infinite hang
+        const sessionPromise = Promise.race([
+            supabase.auth.getSession(),
+            new Promise<{ data: { session: Session | null } }>((resolve) =>
+                setTimeout(() => resolve({ data: { session: null } }), 3000)
+            ),
+        ]);
+
+        sessionPromise.then(async ({ data: { session } }) => {
             console.log('[AdminAuth] getSession:', session?.user?.email, session ? 'has session' : 'no session');
             if (session?.user) {
                 setUser(session.user);
@@ -67,12 +78,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
                     setRole(resolved);
                 } catch (err) {
                     console.error('[AdminAuth] DB query error:', err);
-                    // Fallback: resolve without DB
                     const resolved = resolveRole(session, null);
                     console.log('[AdminAuth] fallback resolved role:', resolved);
                     setRole(resolved);
                 }
+            } else {
+                // No session — redirect to login
+                console.log('[AdminAuth] No session, redirecting to /login');
+                navigate('/login', { replace: true });
             }
+            setIsLoading(false);
+        }).catch((err) => {
+            console.error('[AdminAuth] getSession error:', err);
+            navigate('/login', { replace: true });
             setIsLoading(false);
         });
 
