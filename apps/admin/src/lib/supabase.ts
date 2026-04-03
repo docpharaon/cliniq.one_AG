@@ -40,21 +40,35 @@ export const supabase = supabaseUrl && supabaseAnonKey
 
 // ──────────────────────────────────────────
 // Admin client — bypasses RLS (uses service role key)
-// Auth management is disabled to avoid multiple GoTrueClient conflicts
-// in the browser (the auth singleton handles sessions).
+// LAZY: only created when first accessed to avoid
+// "Multiple GoTrueClient instances" warning at startup.
+// Auth is disabled — the browser client handles sessions.
 // ──────────────────────────────────────────
 
 const supabaseServiceKey =
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY) ||
     (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
     supabaseAnonKey;
-export const supabaseAdmin = supabaseUrl && supabaseServiceKey
-    ? createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-            detectSessionInUrl: false,
-        },
-    })
-    : (null as unknown as ReturnType<typeof createClient>);
+
+let _adminClient: ReturnType<typeof createClient> | null = null;
+
+export function getSupabaseAdmin() {
+    if (!_adminClient && supabaseUrl && supabaseServiceKey) {
+        _adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+                detectSessionInUrl: false,
+            },
+        });
+    }
+    return _adminClient!;
+}
+
+/** @deprecated Use getSupabaseAdmin() — kept for backward compat with queries.ts */
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+    get(_target, prop) {
+        return (getSupabaseAdmin() as any)[prop];
+    },
+});
 
