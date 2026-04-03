@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SectionId, SequenceNode, LocumDoctor } from '../services/aiService';
+import type { SectionId, SequenceNode, LocumDoctor, PathwayClassification } from '../services/aiService';
 
 // ── Specialty → Pathway Mapping ─────────────────
 // When a patient selects a doctor with one of these specialties,
@@ -46,6 +46,9 @@ export interface IntakeSnapshot {
     sectionTurnCount: number;
 }
 
+// ── Phase type for three-phase model ────────────
+export type IntakePhase = 'intake' | 'specialty' | 'refill' | 'followup' | 'wrapup';
+
 interface IntakeState {
     // Session persistence
     sessionId: string | null;
@@ -71,6 +74,10 @@ interface IntakeState {
     sequenceNodes: SequenceNode[];
     currentNodeIndex: number;
     activePathway: string | null;
+
+    // Three-Phase Model (Option C)
+    currentPhase: IntakePhase;
+    detectedPathway: 'new_visit' | 'refill' | 'follow_up' | null;
 
     // QA tracking (for AI analysis)
     qaHistory: { question: string; answer: string }[];
@@ -134,6 +141,10 @@ interface IntakeState {
     setCurrentNodeIndex: (index: number) => void;
     setActivePathway: (pathway: string | null) => void;
 
+    // Phase actions
+    setCurrentPhase: (phase: IntakePhase) => void;
+    setDetectedPathway: (pathway: 'new_visit' | 'refill' | 'follow_up' | null) => void;
+
     // Medication verification actions
     setMedicationVerifications: (verifications: Record<string, unknown>[]) => void;
     addDrugLabelAnalysis: (analysis: Record<string, unknown>) => void;
@@ -163,6 +174,8 @@ const initialState = {
     aiErrorType: null as 'timeout' | 'error' | null,
     sequenceNodes: [] as SequenceNode[],
     currentNodeIndex: 0,
+    currentPhase: 'intake' as IntakePhase,
+    detectedPathway: null as 'new_visit' | 'refill' | 'follow_up' | null,
     activePathway: null as string | null,
     qaHistory: [] as { question: string; answer: string }[],
     aiSummary: null as Record<string, unknown> | null,
@@ -218,6 +231,8 @@ export const useIntakeStore = create<IntakeState>((set) => ({
     setSequenceNodes: (sequenceNodes) => set({ sequenceNodes }),
     setCurrentNodeIndex: (currentNodeIndex) => set({ currentNodeIndex }),
     setActivePathway: (activePathway) => set({ activePathway }),
+    setCurrentPhase: (currentPhase) => set({ currentPhase }),
+    setDetectedPathway: (detectedPathway) => set({ detectedPathway }),
 
     // Medication verification (ephemeral)
     setMedicationVerifications: (medicationVerifications) => set({ medicationVerifications }),

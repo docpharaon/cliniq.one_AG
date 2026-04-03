@@ -4,9 +4,9 @@ import { t, getLocale } from '@cliniqone/i18n';
 import { useIntakeStore, buildSnapshot, type ChatMessage, SPECIALTY_PATHWAY_MAP } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import {
-    chatSection, fetchDefaultSequence, filterNodesBySpecialty,
+    chatSection, fetchDefaultSequence, fetchSequenceByType, filterNodesBySpecialty,
     fetchProtocolConfig, fetchChatbotVersion, checkChatbotEnabled,
-    analyzeConcern, checkSpecialtyGate, analyzeIntegrity,
+    analyzeConcern, checkSpecialtyGate, analyzeIntegrity, classifyPathway,
     type SequenceNode, type ChatSectionResult,
 } from '../../services/aiService';
 import { supabase } from '@cliniqone/api';
@@ -48,11 +48,13 @@ export default function AiChatPage() {
     const {
         messages, chiefComplaint, specialty, sessionId,
         sequenceNodes, currentNodeIndex, activePathway,
+        currentPhase, detectedPathway,
         progressPercent, isAiTyping, protocolFlags, gibberishCount,
         qaHistory, medications, allergies,
         locumDoctor, locumGreetingPrompt,
         addMessage, setAiTyping, setProgress, setSequenceNodes,
         setCurrentNodeIndex, setActivePathway, setSessionId,
+        setCurrentPhase, setDetectedPathway,
         setAiSummary, incrementGibberish, resetGibberish,
         addProtocolFlag, addQA, setMedications, setAllergies,
         setAiError, clearAiError, setSpecialty, setChiefComplaint,
@@ -106,20 +108,175 @@ export default function AiChatPage() {
         const node = nodes[nodeIdx];
         if (!node) return;
 
-        if (node.node_type === 'system_analysis' && node.step_key === 'complaint_analysis') {
-            // 🔍 Complaint Analysis — determine specialty
+        // ── Pathway Classification (Node ③) ──────────────
+        if (node.node_type === 'system_classify' && node.step_key === 'pathway_classify') {
             addMessage(createSystemMsg('🔍 Analyzing your concern…'));
             setAiTyping(true);
 
             try {
                 if (locumDoctor) {
-                    // Locum: skip AI analysis, use doctor's specialty
+                    // Locum: skip classification, use doctor's specialty directly
+                    setSpecialty(locumDoctor.specialty);
+                    setDetectedPathway('new_visit');
+                    if (SPECIALTY_PATHWAY_MAP[locumDoctor.specialty]) {
+                        setActivePathway(SPECIALTY_PATHWAY_MAP[locumDoctor.specialty]);
+                    }
+
+                    // Load the locum doctor's specialty sequence
+                    const specialtyNodes = await fetchSequenceByType('specialty', locumDoctor.specialty);
+                    const loadedNodes = specialtyNodes.length > 0
+                        ? specialtyNodes
+                        : await fetchSequenceByType('specialty', 'family_medicine');
+
+                    setSequenceNodes(loadedNodes);
+                    setCurrentPhase('specialty');
+                    setCurrentNodeIndex(0);
+                    setAiTyping(false);
+                    await advanceToNode(0, loadedNodes);
+                    return;
+                }
+
+                // 1. Classify pathway (refill / follow_up / new_visit)
+                const pathwayResult = await classifyPathway(
+                    [...fullConversationHistory, ...conversationHistory],
+                    lang,
+                );
+                setDetectedPathway(pathwayResult.pathway);
+                console.log('[AiChat] Pathway classified:', pathwayResult);
+
+                if (pathwayResult.pathway === 'new_visit') {
+                    // 2. Analyze specialty
+                    const patientMsgs = messages.filter(m => m.role === 'patient');
+                    const complaintText = patientMsgs.map(m => m.content).join(' ') || chiefComplaint;
+                    const analysis = await analyzeConcern(complaintText, lang);
+                    const determined = analysis.specialty || 'family_medicine';
+                    setSpecialty(determined);
+                    setChiefComplaint(complaintText);
+
+                    // 3. Load specialty sequence
+                    let specialtyNodes = await fetchSequenceByType('specialty', determined);
+                    if (specialtyNodes.length === 0) {
+                        console.warn(`[AiChat] No specialty sequence for "${determined}", falling back to FM`);
+                        specialtyNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                    }
+
+                    // 4. If still no nodes, fall back to legacy flow
+                    if (specialtyNodes.length === 0) {
+                        console.warn('[AiChat] No specialty sequences available, falling back to legacy flow');
+                        const legacyNodes = await fetchDefaultSequence();
+                        const filtered = filterNodesBySpecialty(legacyNodes, determined);
+                        setSequenceNodes(filtered);
+                        // Find first node after system nodes in legacy
+                        const firstChat = filtered.findIndex(n => n.node_type === 'chat' && n.step_key !== 'greeting');
+                        setCurrentNodeIndex(firstChat >= 0 ? firstChat : 0);
+                        setAiTyping(false);
+                        await advanceToNode(firstChat >= 0 ? firstChat : 0, filtered);
+                        return;
+                    }
+
+                    setSequenceNodes(specialtyNodes);
+                    setCurrentPhase('specialty');
+                    setCurrentNodeIndex(0);
+                    setAiTyping(false);
+                    await advanceToNode(0, specialtyNodes);
+                } else if (pathwayResult.pathway === 'refill') {
+                    // ── Refill Pathway ──────────────────────────
+                    console.log('[AiChat] Loading refill pathway');
+                    const patientMsgs = messages.filter(m => m.role === 'patient');
+                    const complaintText = patientMsgs.map(m => m.content).join(' ') || chiefComplaint;
+                    setChiefComplaint(complaintText);
+                    setSpecialty('family_medicine'); // Refills default to FM
+
+                    // 1. Try loading the dedicated refill sequence
+                    let refillNodes = await fetchSequenceByType('refill');
+
+                    // 2. Fallback: FM specialty sequence
+                    if (refillNodes.length === 0) {
+                        console.warn('[AiChat] No refill sequence found, falling back to FM specialty');
+                        refillNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                    }
+
+                    // 3. Ultimate fallback: legacy
+                    if (refillNodes.length === 0) {
+                        const legacyNodes = await fetchDefaultSequence();
+                        refillNodes = filterNodesBySpecialty(legacyNodes, 'family_medicine');
+                    }
+
+                    setSequenceNodes(refillNodes);
+                    setCurrentPhase('refill');
+                    setCurrentNodeIndex(0);
+                    setAiTyping(false);
+                    await advanceToNode(0, refillNodes);
+
+                } else {
+                    // ── Follow-Up Pathway ───────────────────────
+                    console.log('[AiChat] Loading follow-up pathway');
+                    const patientMsgs = messages.filter(m => m.role === 'patient');
+                    const complaintText = patientMsgs.map(m => m.content).join(' ') || chiefComplaint;
+                    setChiefComplaint(complaintText);
+
+                    // Analyze specialty for the follow-up context
+                    const analysis = await analyzeConcern(complaintText, lang);
+                    setSpecialty(analysis.specialty || 'family_medicine');
+
+                    // 1. Try loading the dedicated follow-up sequence
+                    let followupNodes = await fetchSequenceByType('followup');
+
+                    // 2. Fallback: specialty sequence for the detected concern
+                    if (followupNodes.length === 0) {
+                        console.warn('[AiChat] No follow-up sequence found, falling back to specialty');
+                        const determined = useIntakeStore.getState().specialty;
+                        followupNodes = await fetchSequenceByType('specialty', determined);
+                        if (followupNodes.length === 0) {
+                            followupNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                        }
+                    }
+
+                    // 3. Ultimate fallback: legacy
+                    if (followupNodes.length === 0) {
+                        const legacyNodes = await fetchDefaultSequence();
+                        followupNodes = filterNodesBySpecialty(legacyNodes, 'family_medicine');
+                    }
+
+                    setSequenceNodes(followupNodes);
+                    setCurrentPhase('followup');
+                    setCurrentNodeIndex(0);
+                    setAiTyping(false);
+                    await advanceToNode(0, followupNodes);
+                }
+            } catch (err) {
+                console.error('[AiChat] Pathway/specialty classification failed:', err);
+                setAiTyping(false);
+                // Fallback: load FM sequence
+                const fmNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                if (fmNodes.length > 0) {
+                    setSequenceNodes(fmNodes);
+                    setCurrentPhase('specialty');
+                    setCurrentNodeIndex(0);
+                    await advanceToNode(0, fmNodes);
+                } else {
+                    // Ultimate fallback: legacy flow
+                    const legacyNodes = await fetchDefaultSequence();
+                    setSequenceNodes(legacyNodes);
+                    setCurrentNodeIndex(0);
+                    await advanceToNode(0, legacyNodes);
+                }
+            }
+            return;
+        }
+
+        // ── Legacy: Complaint Analysis (for backward compat with legacy sequences) ──
+        if (node.node_type === 'system_analysis' && node.step_key === 'complaint_analysis') {
+            addMessage(createSystemMsg('🔍 Analyzing your concern…'));
+            setAiTyping(true);
+
+            try {
+                if (locumDoctor) {
                     setSpecialty(locumDoctor.specialty);
                     if (SPECIALTY_PATHWAY_MAP[locumDoctor.specialty]) {
                         setActivePathway(SPECIALTY_PATHWAY_MAP[locumDoctor.specialty]);
                     }
                 } else {
-                    // Normal: extract complaint from patient's messages in the greeting
                     const patientMsgs = messages.filter(m => m.role === 'patient');
                     const complaintText = patientMsgs.map(m => m.content).join(' ') || chiefComplaint;
                     const analysis = await analyzeConcern(complaintText, lang);
@@ -137,17 +294,14 @@ export default function AiChatPage() {
 
             setAiTyping(false);
 
-            // ── Unified Flow: filter nodes by detected specialty ──
             const currentSpecialty = useIntakeStore.getState().specialty;
             const filteredNodes = filterNodesBySpecialty(nodes, currentSpecialty);
             setSequenceNodes(filteredNodes);
 
-            // Find the specialty_gate or next system node in the filtered set
             const gateIdx = filteredNodes.findIndex(n => n.step_key === 'specialty_gate');
             if (gateIdx >= 0) {
                 await processSystemNode(gateIdx, filteredNodes);
             } else {
-                // No gate — find first chat node after complaint_analysis
                 const analysisIdx = filteredNodes.findIndex(n => n.step_key === 'complaint_analysis');
                 const nextIdx = analysisIdx >= 0 ? analysisIdx + 1 : nodeIdx + 1;
                 await advanceToNode(nextIdx, filteredNodes);
@@ -162,20 +316,28 @@ export default function AiChatPage() {
                 const gate = await checkSpecialtyGate(currentSpecialty, chiefComplaint || 'general concern', lang);
 
                 if (gate.allowed) {
-                    // Proceed to next node
                     await advanceToNode(nodeIdx + 1, nodes);
                     return;
                 }
 
                 if (gate.redirected && gate.mode === 'silent') {
-                    // Silent redirect to FM
                     setSpecialty('family_medicine');
+                    // In phase model: reload FM specialty sequence
+                    const phase = useIntakeStore.getState().currentPhase;
+                    if (phase === 'specialty') {
+                        const fmNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                        if (fmNodes.length > 0) {
+                            setSequenceNodes(fmNodes);
+                            setCurrentNodeIndex(0);
+                            await advanceToNode(0, fmNodes);
+                            return;
+                        }
+                    }
                     await advanceToNode(nodeIdx + 1, nodes);
                     return;
                 }
 
                 if (gate.redirected && gate.mode === 'announced') {
-                    // Show modal — patient decides
                     setGateMessage(gate.patientMessage || 'This specialty is temporarily unavailable. We can connect you with Family Medicine instead.');
                     setPendingNodeIdx(nodeIdx + 1);
                     setShowAnnouncedModal(true);
@@ -183,13 +345,11 @@ export default function AiChatPage() {
                 }
 
                 if (gate.blocked) {
-                    // Hard block
                     setGateMessage(gate.apologyMessage || 'We are unable to process this type of concern at this time. Please contact your healthcare provider directly.');
                     setShowBlockedScreen(true);
                     return;
                 }
 
-                // Unknown state — proceed (fail-open)
                 await advanceToNode(nodeIdx + 1, nodes);
             } catch (err) {
                 console.error('[AiChat] Specialty gate failed, proceeding:', err);
@@ -200,7 +360,6 @@ export default function AiChatPage() {
 
         // ── System Integrity Node — silent end-of-session analysis ──
         if (node.node_type === 'system_integrity') {
-            // Run silently — no patient-facing message
             try {
                 const state = useIntakeStore.getState();
                 const report = await analyzeIntegrity({
@@ -209,14 +368,13 @@ export default function AiChatPage() {
                     metadata: {
                         totalDurationMs: Date.now() - intakeStartTime,
                         interruptions: 0,
-                        pathway: state.activePathway || 'new_visit',
+                        pathway: state.detectedPathway || state.activePathway || 'new_visit',
                         detectedSpecialty: state.specialty,
                         strikeCount: state.gibberishCount,
                         violationTypes: state.protocolFlags,
                     },
                 });
 
-                // Persist to intake_sessions
                 if (sessionId) {
                     await supabase
                         .from('intake_sessions')
@@ -227,7 +385,6 @@ export default function AiChatPage() {
                 console.warn('[AiChat] Integrity analysis failed (non-blocking):', err);
             }
 
-            // Continue to next node (likely summary)
             await advanceToNode(nodeIdx + 1, nodes);
             return;
         }
@@ -240,6 +397,23 @@ export default function AiChatPage() {
     async function advanceToNode(nodeIdx: number, nodes: SequenceNode[]) {
         const activeNodes = nodes || sequenceNodes;
         if (nodeIdx >= activeNodes.length) {
+            // ── Phase transition: end of current phase ──
+            const phase = useIntakeStore.getState().currentPhase;
+
+            if (phase === 'specialty' || phase === 'refill' || phase === 'followup') {
+                // Specialty/refill/followup phase done → load global_wrapup
+                console.log(`[AiChat] Phase "${phase}" complete, transitioning to wrapup`);
+                const wrapupNodes = await fetchSequenceByType('global_wrapup');
+                if (wrapupNodes.length > 0) {
+                    setSequenceNodes(wrapupNodes);
+                    setCurrentPhase('wrapup');
+                    setCurrentNodeIndex(0);
+                    await advanceToNode(0, wrapupNodes);
+                    return;
+                }
+            }
+
+            // Wrapup done (or no wrapup found) → navigate to review
             navigate('/intake/review');
             return;
         }
@@ -351,9 +525,15 @@ export default function AiChatPage() {
                     return;
                 }
 
-                // Always load default sequence first (system nodes route to specialty later)
-                const nodes = await fetchDefaultSequence();
+                // ── Three-Phase Model: load global_intake sequence first ──
+                let nodes = await fetchSequenceByType('global_intake');
+                if (nodes.length === 0) {
+                    // Fallback: legacy monolithic sequence
+                    console.warn('[AiChat] No global_intake sequence found, falling back to legacy');
+                    nodes = await fetchDefaultSequence();
+                }
                 setSequenceNodes(nodes);
+                setCurrentPhase('intake');
 
                 // Create session
                 const { data: session, error: sessionErr } = await supabase
@@ -547,10 +727,13 @@ export default function AiChatPage() {
             sectionTurnCountRef.current = newTurnCount;
             setSectionTurnCount(newTurnCount);
 
-            if (result.sectionComplete || newTurnCount >= SECTION_MAX_TURNS) {
+            // Use per-node max_turns if set, otherwise global default
+            const nodeMaxTurns = currentNode?.max_turns || SECTION_MAX_TURNS;
+            if (result.sectionComplete || newTurnCount >= nodeMaxTurns) {
                 const nextIdx = currentNodeIndex + 1;
                 if (nextIdx >= sequenceNodes.length) {
-                    navigate('/intake/review');
+                    // Phase transition handled by advanceToNode
+                    await advanceToNode(nextIdx, sequenceNodes);
                 } else {
                     // Advance — may hit system nodes
                     await advanceToNode(nextIdx, sequenceNodes);

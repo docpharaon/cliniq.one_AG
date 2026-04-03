@@ -60,6 +60,17 @@ type SequenceInfo = {
     id: string;
     name: string;
     is_default: boolean;
+    sequence_type?: string;
+    specialty?: string | null;
+};
+
+const SEQUENCE_TYPE_META: Record<string, { label: string; emoji: string; color: string; bg: string; border: string }> = {
+    global_intake: { label: 'Global Intake', emoji: '🌐', color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/30' },
+    specialty: { label: 'Specialty', emoji: '🩺', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    refill: { label: 'Refill', emoji: '💊', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+    followup: { label: 'Follow-Up', emoji: '🔄', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
+    global_wrapup: { label: 'Global Wrapup', emoji: '📋', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    legacy: { label: 'Legacy', emoji: '📦', color: 'text-text-muted', bg: 'bg-bg-elevated', border: 'border-border' },
 };
 
 type SequenceNode = {
@@ -709,6 +720,47 @@ RULES:
                             </div>
                         </div>
 
+                        {/* ── Three-Phase Pipeline ───────── */}
+                        <div className="glass rounded-2xl p-5 border border-border">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Zap className="w-4 h-4 text-accent" />
+                                <h3 className="text-sm font-bold text-text-primary">Patient Intake Pipeline</h3>
+                                <span className="text-[10px] text-text-muted bg-bg-elevated px-2 py-0.5 rounded-full border border-border">Three-Phase Model</span>
+                            </div>
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                                {/* Phase 1: Global Intake */}
+                                <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-center min-w-[130px]">
+                                    <p className="text-lg mb-1">🌐</p>
+                                    <p className="text-xs font-bold text-teal-400">Global Intake</p>
+                                    <p className="text-[10px] text-text-muted mt-0.5">{sequences.filter(s => s.sequence_type === 'global_intake').length > 0 ? '✓ Configured' : '✗ Missing'}</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+                                {/* Phase 2: Pathway Branch */}
+                                <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-bg-elevated border border-border text-center min-w-[160px]">
+                                    <p className="text-lg mb-1">🔀</p>
+                                    <p className="text-xs font-bold text-text-primary">Pathway Detection</p>
+                                    <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${sequences.some(s => s.sequence_type === 'specialty') ? 'bg-blue-500/15 text-blue-400' : 'bg-bg-tertiary text-text-muted'}`}>🩺 Specialty</span>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${sequences.some(s => s.sequence_type === 'refill') ? 'bg-emerald-500/15 text-emerald-400' : 'bg-bg-tertiary text-text-muted'}`}>💊 Refill</span>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${sequences.some(s => s.sequence_type === 'followup') ? 'bg-violet-500/15 text-violet-400' : 'bg-bg-tertiary text-text-muted'}`}>🔄 Follow-Up</span>
+                                    </div>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+                                {/* Phase 3: Global Wrapup */}
+                                <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center min-w-[130px]">
+                                    <p className="text-lg mb-1">📋</p>
+                                    <p className="text-xs font-bold text-amber-400">Global Wrapup</p>
+                                    <p className="text-[10px] text-text-muted mt-0.5">{sequences.filter(s => s.sequence_type === 'global_wrapup').length > 0 ? '✓ Configured' : '✗ Missing'}</p>
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-text-muted mt-3 leading-relaxed">
+                                Every patient goes through <span className="text-teal-400 font-semibold">Global Intake</span> (greeting → complaint → pathway classification),
+                                then branches to <span className="text-blue-400 font-semibold">Specialty</span>, <span className="text-emerald-400 font-semibold">Refill</span>,
+                                or <span className="text-violet-400 font-semibold">Follow-Up</span> based on AI classification,
+                                then finishes with <span className="text-amber-400 font-semibold">Global Wrapup</span> (summary → addendum → integrity check).
+                            </p>
+                        </div>
+
                         {/* ── Health Alerts ───────── */}
                         <div className="space-y-3">
                             {/* Specialty Alert */}
@@ -1286,30 +1338,56 @@ RULES:
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {sequences.length > 0 ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                {sequences.map(seq => (
-                                                    <button
-                                                        key={seq.id}
-                                                        onClick={() => setSelectedSequenceId(seq.id)}
-                                                        className={`text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
-                                                            ? 'border-accent/50 bg-accent-faded/60 shadow-[0_0_16px_rgba(45,212,191,0.08)]'
-                                                            : 'border-border bg-bg-elevated hover:bg-bg-tertiary hover:border-border'
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <div className={`w-2 h-2 rounded-full ${seq.id === selectedSequenceId ? 'bg-accent' : 'bg-text-muted/30'}`} />
-                                                            <span className={`text-sm font-medium ${seq.id === selectedSequenceId ? 'text-accent' : 'text-text-primary'}`}>
-                                                                {seq.name}
-                                                            </span>
+                                            <>
+                                                {/* Group sequences by type */}
+                                                {(['global_intake', 'specialty', 'refill', 'followup', 'global_wrapup', 'legacy'] as const).map(seqType => {
+                                                    const groupSeqs = sequences.filter(s => (s.sequence_type || 'legacy') === seqType);
+                                                    if (groupSeqs.length === 0) return null;
+                                                    const meta = SEQUENCE_TYPE_META[seqType] || SEQUENCE_TYPE_META.legacy;
+                                                    return (
+                                                        <div key={seqType}>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${meta.bg} ${meta.border} ${meta.color}`}>
+                                                                    {meta.emoji} {meta.label}
+                                                                </span>
+                                                                {seqType === 'specialty' && <span className="text-[10px] text-text-muted">{groupSeqs.length} specialties</span>}
+                                                            </div>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                {groupSeqs.map(seq => (
+                                                                    <button
+                                                                        key={seq.id}
+                                                                        onClick={() => setSelectedSequenceId(seq.id)}
+                                                                        className={`text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
+                                                                            ? `${meta.border} ${meta.bg} shadow-[0_0_16px_rgba(45,212,191,0.08)]`
+                                                                            : 'border-border bg-bg-elevated hover:bg-bg-tertiary hover:border-border'
+                                                                            }`}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className={`w-2 h-2 rounded-full ${seq.id === selectedSequenceId ? meta.color.replace('text-', 'bg-') : 'bg-text-muted/30'}`} />
+                                                                            <span className={`text-sm font-medium ${seq.id === selectedSequenceId ? meta.color : 'text-text-primary'}`}>
+                                                                                {seq.name}
+                                                                            </span>
+                                                                            {seq.specialty && (
+                                                                                <span className="text-[10px] text-text-muted capitalize">{seq.specialty.replace('_', ' ')}</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-0.5 ml-4">
+                                                                            {seq.is_default && (
+                                                                                <span className="text-[10px] text-amber-400 font-semibold">⭐ Default</span>
+                                                                            )}
+                                                                            {seq.id === activeSequenceId && (
+                                                                                <span className="text-[10px] text-success font-semibold">● Live</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                        {seq.is_default && (
-                                                            <span className="ml-4 text-[10px] text-amber-400 font-semibold">⭐ Default</span>
-                                                        )}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                                    );
+                                                })}
+                                            </>
                                         ) : (
                                             <div className="text-center py-6 border border-dashed border-border rounded-xl">
                                                 <p className="text-xs text-text-muted">No sequences configured. Create one in Interview Flow first.</p>

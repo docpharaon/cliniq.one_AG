@@ -838,6 +838,44 @@ Respond in JSON:
                 }
                 break;
             }
+            case 'classify-pathway': {
+                // ── Pathway Classification (Silent Node ③) ──────────
+                // Reads the problem_input conversation and determines:
+                // new_visit / refill / follow_up
+                const pathwayHistory = params.conversationHistory || [];
+                const pathwayLang = params.language || 'en';
+
+                const pathwaySystemPrompt = `You are a medical pathway classifier for cliniq.one. Based on the patient's description of their concern, determine the visit type.
+
+Classification rules:
+- "refill" = Patient explicitly mentions needing a prescription refill, medication renewal, running out of medication, or wanting the same medication again. Examples: "I need more of my blood pressure medication", "my prescription ran out", "I need a refill of metformin"
+- "follow_up" = Patient references a previous visit, ongoing treatment, checking on test results, post-surgery check, or monitoring a known condition. Examples: "I'm following up on my last appointment", "checking on my lab results", "my doctor told me to come back"  
+- "new_visit" = New complaint, first time experiencing symptoms, or no reference to prior visits/medications. This is the DEFAULT if unclear.
+
+IMPORTANT: When in doubt, classify as "new_visit". Only classify as "refill" or "follow_up" if the patient's language clearly indicates it.
+
+Respond in JSON: { "pathway": "new_visit" | "refill" | "follow_up", "confidence": <number 0-100>, "reasoning": "<1 sentence explanation>" }
+
+Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'Patient is speaking English'}`;
+
+                const pathwayUserText = pathwayHistory
+                    .filter((m: { role: string }) => m.role === 'patient' || m.role === 'user')
+                    .map((m: { content: string }) => m.content)
+                    .join('\n');
+
+                const pathwayRaw = await callOpenAI(
+                    pathwaySystemPrompt,
+                    `Patient messages:\n${pathwayUserText || 'No messages available'}`,
+                    300,
+                );
+                result = safeJsonParse(pathwayRaw, {
+                    pathway: 'new_visit',
+                    confidence: 50,
+                    reasoning: 'Default classification — unable to parse response',
+                });
+                console.log(`[classify-pathway] Result: ${JSON.stringify(result)}`);
+                break;
+            }
             case 'chat':
                 // Legacy: client sends admin-configured prompt + conversation
                 result = {

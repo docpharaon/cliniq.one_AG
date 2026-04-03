@@ -66,7 +66,8 @@ export interface SequenceNode {
     pathway_condition: string | null;
     gender_condition: string | null;
     specialty_condition: string | null;
-    node_type: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity';
+    node_type: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | 'system_classify' | 'system_extract';
+    max_turns: number | null;
     // Joined prompt content
     ai_prompts: {
         id: string;
@@ -575,5 +576,58 @@ export async function resolveLocum(
     } catch (err) {
         console.error('Locum resolution failed:', err);
         return { found: false };
+    }
+}
+
+// ── Three-Phase Sequence Model (Option C) ───────
+// Fetch a sequence by its type (global_intake, global_wrapup, specialty, refill, followup)
+export async function fetchSequenceByType(
+    sequenceType: 'global_intake' | 'global_wrapup' | 'specialty' | 'refill' | 'followup',
+    specialty?: string,
+): Promise<SequenceNode[]> {
+    try {
+        let query = supabase
+            .from('prompt_sequences')
+            .select('id')
+            .eq('sequence_type', sequenceType);
+
+        if (sequenceType === 'specialty' && specialty) {
+            query = query.eq('specialty', specialty);
+        }
+
+        const { data: seq, error } = await query.limit(1).maybeSingle();
+
+        if (error || !seq) {
+            console.warn(`[fetchSequenceByType] No sequence found for type="${sequenceType}" specialty="${specialty || 'none'}"`);
+            return [];
+        }
+
+        return fetchSequenceNodes(seq.id);
+    } catch (err) {
+        console.error('[fetchSequenceByType] Error:', err);
+        return [];
+    }
+}
+
+// ── Classify Pathway (Silent AI — Node ③) ───────
+// Determines if the patient needs: new_visit / refill / follow_up
+export interface PathwayClassification {
+    pathway: 'new_visit' | 'refill' | 'follow_up';
+    confidence: number;
+    reasoning: string;
+}
+
+export async function classifyPathway(
+    conversationHistory: { role: string; content: string }[],
+    language: 'en' | 'ar' = 'en',
+): Promise<PathwayClassification> {
+    try {
+        return await callAI<PathwayClassification>('classify-pathway', {
+            conversationHistory,
+            language,
+        });
+    } catch (err) {
+        console.error('Pathway classification failed, defaulting to new_visit:', err);
+        return { pathway: 'new_visit', confidence: 0, reasoning: 'Classification failed' };
     }
 }
