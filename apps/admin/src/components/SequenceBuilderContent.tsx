@@ -28,6 +28,7 @@ type Sequence = {
     id: string;
     name: string;
     is_default: boolean;
+    sequence_type?: string;
     created_at: string;
 };
 
@@ -223,6 +224,10 @@ export default function SequenceBuilderContent() {
 
     // ── Pipeline view ──
     const [viewMode, setViewMode] = useState<'pipeline' | 'detail'>('detail');
+
+    // ── UX improvements ──
+    const [showDevSlugs, setShowDevSlugs] = useState(false);
+    const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
     const isActiveSequence = selectedId !== '' && (
         selectedId === activeProductionId ||
@@ -701,6 +706,38 @@ export default function SequenceBuilderContent() {
     })).filter(s => s.nodes.length > 0);
     const hasSpecialtyBranches = specialtyBranchNodes.length > 0;
 
+    // ── Section toggle ──
+    function toggleSection(key: string) {
+        setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
+    }
+
+    // ── Sidebar grouping ──
+    const pipelinePhases = sequences.filter(s => ['global_intake', 'global_wrapup'].includes(s.sequence_type || ''));
+    const specialtyFlows = sequences.filter(s => !['global_intake', 'global_wrapup'].includes(s.sequence_type || ''));
+
+    // ── Grouped nodes for phase view ──
+    const pathwayNodeIdx = nodes.findIndex(n => n.step_key === 'pathway');
+    const systemNodes = nodes.filter(n => (n as any).node_type && (n as any).node_type !== 'chat');
+    const prePathwayNodes = nodes.filter(n => !n.pathway_condition && !(n as any).node_type?.startsWith('system_') && n.sort_order <= (pathwayNode?.sort_order ?? 0));
+    const postBranchNodes = nodes.filter(n => {
+        if (n.pathway_condition) return false;
+        if ((n as any).node_type && (n as any).node_type !== 'chat') return false;
+        const lastBranchOrder = Math.max(
+            ...nodes.filter(bn => bn.pathway_condition).map(bn => bn.sort_order),
+            pathwayNode?.sort_order ?? -1
+        );
+        return n.sort_order > lastBranchOrder;
+    });
+
+    const nodeSections = [
+        { key: 'always_start', label: '🌐 Always Runs (Start)', color: 'border-teal-500/40', bgColor: 'bg-teal-500/5', textColor: 'text-teal-400', nodes: prePathwayNodes },
+        { key: 'system', label: '⚡ System Nodes', color: 'border-amber-500/40', bgColor: 'bg-amber-500/5', textColor: 'text-amber-400', nodes: systemNodes },
+        { key: 'new_visit', label: '🆕 New Visit Path', color: 'border-blue-500/40', bgColor: 'bg-blue-500/5', textColor: 'text-blue-400', nodes: branchNodes.new_visit },
+        { key: 'follow_up', label: '🔄 Follow-Up Path', color: 'border-violet-500/40', bgColor: 'bg-violet-500/5', textColor: 'text-violet-400', nodes: branchNodes.follow_up },
+        { key: 'refill', label: '💊 Refill Path', color: 'border-emerald-500/40', bgColor: 'bg-emerald-500/5', textColor: 'text-emerald-400', nodes: branchNodes.refill },
+        { key: 'always_end', label: '🌐 Always Runs (Wrapup)', color: 'border-teal-500/40', bgColor: 'bg-teal-500/5', textColor: 'text-teal-400', nodes: postBranchNodes },
+    ].filter(s => s.nodes.length > 0);
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -760,28 +797,58 @@ export default function SequenceBuilderContent() {
                         </div>
                     )}
 
-                    {sequences.map(seq => (
-                        <button
-                            key={seq.id}
-                            onClick={() => setSelectedId(seq.id)}
-                            className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${seq.id === selectedId
-                                ? 'border-accent/50 bg-accent-faded shadow-[0_0_20px_rgba(45,212,191,0.1)]'
-                                : 'border-border bg-bg-elevated hover:border-border hover:bg-bg-tertiary'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <GitBranchPlus className={`w-4 h-4 ${seq.id === selectedId ? 'text-accent' : 'text-text-muted'}`} />
-                                <span className={`text-sm font-medium ${seq.id === selectedId ? 'text-accent' : 'text-text-primary'}`}>
-                                    {seq.name}
-                                </span>
-                            </div>
-                            {seq.is_default && (
-                                <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-400 font-semibold">
-                                    <Star className="w-3 h-3" /> Default
-                                </span>
-                            )}
-                        </button>
-                    ))}
+                    {/* Pipeline Phases group */}
+                    {pipelinePhases.length > 0 && (
+                        <>
+                            <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mt-2 mb-1">Pipeline Phases</p>
+                            {pipelinePhases.map(seq => (
+                                <button
+                                    key={seq.id}
+                                    onClick={() => setSelectedId(seq.id)}
+                                    className={`w-full text-left px-4 py-2.5 rounded-xl border transition-all ${seq.id === selectedId
+                                        ? 'border-teal-500/50 bg-teal-500/10 shadow-[0_0_20px_rgba(20,184,166,0.1)]'
+                                        : 'border-border bg-bg-elevated hover:border-border hover:bg-bg-tertiary'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm">{seq.sequence_type === 'global_intake' ? '🌐' : '📋'}</span>
+                                        <span className={`text-sm font-medium ${seq.id === selectedId ? 'text-teal-400' : 'text-text-primary'}`}>
+                                            {seq.name}
+                                        </span>
+                                    </div>
+                                </button>
+                            ))}
+                        </>
+                    )}
+
+                    {/* Specialty / Interview Flows group */}
+                    {specialtyFlows.length > 0 && (
+                        <>
+                            <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mt-4 mb-1">Interview Flows</p>
+                            {specialtyFlows.map(seq => (
+                                <button
+                                    key={seq.id}
+                                    onClick={() => setSelectedId(seq.id)}
+                                    className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${seq.id === selectedId
+                                        ? 'border-accent/50 bg-accent-faded shadow-[0_0_20px_rgba(45,212,191,0.1)]'
+                                        : 'border-border bg-bg-elevated hover:border-border hover:bg-bg-tertiary'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <GitBranchPlus className={`w-4 h-4 ${seq.id === selectedId ? 'text-accent' : 'text-text-muted'}`} />
+                                        <span className={`text-sm font-medium ${seq.id === selectedId ? 'text-accent' : 'text-text-primary'}`}>
+                                            {seq.name}
+                                        </span>
+                                    </div>
+                                    {seq.is_default && (
+                                        <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-400 font-semibold">
+                                            <Star className="w-3 h-3" /> Default
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </>
+                    )}
 
                     {sequences.length === 0 && !showNewSeq && (
                         <p className="text-xs text-text-muted text-center py-6">No sequences yet. Create one to get started.</p>
@@ -847,11 +914,12 @@ export default function SequenceBuilderContent() {
                                 </div>
                             )}
 
-                            {/* Pipeline / Detail toggle */}
-                            <div className="flex items-center gap-2 mb-4">
+                            {/* Pipeline / Detail toggle + Dev slug toggle */}
+                            <div className="flex items-center gap-2 mb-4 flex-wrap">
                                 <div className="flex rounded-lg border border-border overflow-hidden">
                                     <button
                                         onClick={() => setViewMode('pipeline')}
+                                        title="Visual flow diagram — see the branching structure at a glance"
                                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
                                             viewMode === 'pipeline'
                                                 ? 'bg-accent text-bg-primary'
@@ -863,6 +931,7 @@ export default function SequenceBuilderContent() {
                                     </button>
                                     <button
                                         onClick={() => setViewMode('detail')}
+                                        title="Node-by-node editor — modify prompts, conditions, and ordering"
                                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
                                             viewMode === 'detail'
                                                 ? 'bg-accent text-bg-primary'
@@ -874,7 +943,56 @@ export default function SequenceBuilderContent() {
                                     </button>
                                 </div>
                                 <span className="text-[10px] text-text-muted">{nodes.length} node{nodes.length !== 1 ? 's' : ''}</span>
+                                <div className="ml-auto">
+                                    <button
+                                        onClick={() => setShowDevSlugs(!showDevSlugs)}
+                                        title={showDevSlugs ? 'Hide developer step keys' : 'Show developer step keys'}
+                                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${
+                                            showDevSlugs
+                                                ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                                                : 'bg-bg-tertiary text-text-muted hover:text-text-primary border border-transparent'
+                                        }`}
+                                    >
+                                        🛠 Dev
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* ── Mini-Pipeline Diagram ── */}
+                            {nodes.length > 0 && (
+                                <div className="mb-4 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500/5 via-violet-500/5 to-teal-500/5 border border-border">
+                                    <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-semibold">
+                                        <span className="px-2 py-1 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">🌐 Global Intake</span>
+                                        <ChevronRight className="w-3 h-3 text-text-muted/40" />
+                                        <span className="px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">🔀 Pathway Detection</span>
+                                        <ChevronRight className="w-3 h-3 text-text-muted/40" />
+                                        <span className="flex items-center gap-1">
+                                            <span className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">🆕</span>
+                                            <span className="text-text-muted/40">|</span>
+                                            <span className="px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20">🔄</span>
+                                            <span className="text-text-muted/40">|</span>
+                                            <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">💊</span>
+                                        </span>
+                                        <ChevronRight className="w-3 h-3 text-text-muted/40" />
+                                        <span className="px-2 py-1 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">🌐 Wrapup</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Condition Legend ── */}
+                            {nodes.length > 0 && (
+                                <div className="mb-4 flex items-center gap-3 flex-wrap text-[10px] text-text-muted">
+                                    <span className="font-bold uppercase tracking-wider text-text-muted/60">Legend:</span>
+                                    <span title="Runs only for new patient visits" className="cursor-help hover:text-blue-400 transition-colors">🆕 New Visit</span>
+                                    <span title="Runs only for follow-up visits" className="cursor-help hover:text-violet-400 transition-colors">🔄 Follow-up</span>
+                                    <span title="Runs only for medication refill requests" className="cursor-help hover:text-emerald-400 transition-colors">💊 Refill</span>
+                                    <span className="text-text-muted/20">·</span>
+                                    <span title="Runs only for female patients" className="cursor-help hover:text-pink-400 transition-colors">♀ Female Only</span>
+                                    <span title="Runs only for male patients" className="cursor-help hover:text-blue-400 transition-colors">♂ Male Only</span>
+                                    <span className="text-text-muted/20">·</span>
+                                    <span title="System node — handles routing and analysis automatically" className="cursor-help hover:text-amber-400 transition-colors">⚡ System</span>
+                                </div>
+                            )}
 
                             {/* ── Pipeline View ── */}
                             {viewMode === 'pipeline' && nodes.length > 0 && (
@@ -984,15 +1102,31 @@ export default function SequenceBuilderContent() {
                                         </div>
                                     </div>
                                 ) : (
-                                    nodes.map((node, idx) => (
+                                    nodeSections.map(section => (
+                                        <div key={section.key} className={`rounded-xl border-l-4 ${section.color} mb-3`}>
+                                            {/* Section header */}
+                                            <button
+                                                onClick={() => toggleSection(section.key)}
+                                                className={`w-full flex items-center gap-2 px-4 py-2.5 ${section.bgColor} rounded-t-xl transition-colors hover:brightness-110`}
+                                            >
+                                                <ChevronRight className={`w-3.5 h-3.5 ${section.textColor} transition-transform ${collapsedSections[section.key] ? '' : 'rotate-90'}`} />
+                                                <span className={`text-xs font-bold ${section.textColor}`}>{section.label}</span>
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${section.bgColor} ${section.textColor} font-semibold ml-auto`}>
+                                                    {section.nodes.length}
+                                                </span>
+                                            </button>
+                                            {/* Section nodes */}
+                                            {!collapsedSections[section.key] && (
+                                                <div className="space-y-2 p-2">
+                                    {section.nodes.map((node) => {
+                                        const idx = nodes.indexOf(node);
+                                        return (
                                         <div
                                             key={node.id}
                                             className={`rounded-xl border px-4 py-3 transition-all ${
                                                 (node as any).node_type && (node as any).node_type !== 'chat'
                                                     ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-amber-500/10'
-                                                    : node.pathway_condition
-                                                        ? 'ml-8 border-purple/30 bg-purple-faded/30'
-                                                        : 'border-border bg-bg-elevated'
+                                                    : 'border-border bg-bg-elevated'
                                             } ${editingNodeId === node.id ? 'ring-2 ring-accent/40' : ''}`}
                                         >
                                             <div className="flex items-center gap-3">
@@ -1024,7 +1158,7 @@ export default function SequenceBuilderContent() {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-semibold text-text-primary">{node.label}</span>
-                                                        <span className="text-[10px] text-text-muted font-mono bg-bg-tertiary px-1.5 py-0.5 rounded">{node.step_key}</span>
+                                                        {showDevSlugs && <span className="text-[10px] text-text-muted font-mono bg-bg-tertiary px-1.5 py-0.5 rounded">{node.step_key}</span>}
                                                         {(node as any).node_type && (node as any).node_type !== 'chat' && (
                                                             <span className="text-[9px] px-2 py-0.5 rounded-md font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                                                                 ⚡ SYSTEM
@@ -1333,6 +1467,11 @@ export default function SequenceBuilderContent() {
                                                             )}
                                                         </div>
                                                     )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        );
+                                    })}
                                                 </div>
                                             )}
                                         </div>
