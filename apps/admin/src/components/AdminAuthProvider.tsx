@@ -53,66 +53,51 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const supabase = createBrowserSupabase();
+        let sessionFound = false;
 
-        // Get initial session — with timeout to prevent infinite hang
-        const sessionPromise = Promise.race([
-            supabase.auth.getSession(),
-            new Promise<{ data: { session: Session | null } }>((resolve) =>
-                setTimeout(() => resolve({ data: { session: null } }), 3000)
-            ),
-        ]);
-
-        sessionPromise.then(async ({ data: { session } }) => {
-            console.log('[AdminAuth] getSession:', session?.user?.email, session ? 'has session' : 'no session');
-            if (session?.user) {
-                setUser(session.user);
-                try {
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('role')
-                        .eq('id', session.user.id)
-                        .single() as { data: { role: string } | null; error: any };
-                    console.log('[AdminAuth] DB query:', { data, error: error?.message });
-                    const resolved = resolveRole(session, data?.role);
-                    console.log('[AdminAuth] resolved role:', resolved);
-                    setRole(resolved);
-                } catch (err) {
-                    console.error('[AdminAuth] DB query error:', err);
-                    const resolved = resolveRole(session, null);
-                    console.log('[AdminAuth] fallback resolved role:', resolved);
-                    setRole(resolved);
-                }
-            } else {
-                // No session — redirect to login
-                console.log('[AdminAuth] No session, redirecting to /login');
-                navigate('/login', { replace: true });
-            }
-            setIsLoading(false);
-        }).catch((err) => {
-            console.error('[AdminAuth] getSession error:', err);
-            navigate('/login', { replace: true });
-            setIsLoading(false);
-        });
-
-        // Listen for auth changes
+        // onAuthStateChange is the ONLY reliable way to detect sessions
+        // getSession() hangs forever due to Multiple GoTrueClient instances
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
+                console.log('[AdminAuth] onAuthStateChange:', event, session?.user?.email);
                 if (session?.user) {
+                    sessionFound = true;
                     setUser(session.user);
-                    const { data } = await supabase
-                        .from('users')
-                        .select('role')
-                        .eq('id', session.user.id)
-                        .single() as { data: { role: string } | null };
-                    setRole(resolveRole(session, data?.role));
-                } else {
+                    try {
+                        const { data } = await supabase
+                            .from('users')
+                            .select('role')
+                            .eq('id', session.user.id)
+                            .single() as { data: { role: string } | null };
+                        setRole(resolveRole(session, data?.role));
+                    } catch {
+                        setRole(resolveRole(session, null));
+                    }
+                    setIsLoading(false);
+                } else if (event === 'SIGNED_OUT') {
                     setUser(null);
                     setRole(null);
+                    setIsLoading(false);
+                    navigate('/login', { replace: true });
                 }
             }
         );
 
-        return () => subscription.unsubscribe();
+        // Fallback: if no auth event fires within 6 seconds, redirect to login
+        const fallbackTimer = setTimeout(() => {
+            if (!sessionFound) {
+                console.log('[AdminAuth] No auth event after 6s, redirecting to /login');
+                setIsLoading(false);
+                if (location.pathname !== '/login') {
+                    navigate('/login', { replace: true });
+                }
+            }
+        }, 6000);
+
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(fallbackTimer);
+        };
     }, []);
 
     const signOut = () => {
