@@ -7,7 +7,9 @@ import {
     chatSection, fetchDefaultSequence, fetchSequenceByType, filterNodesBySpecialty,
     fetchProtocolConfig, fetchChatbotVersion, checkChatbotEnabled,
     analyzeConcern, checkSpecialtyGate, analyzeIntegrity, classifyPathway,
+    analyzeDrugLabel, verifyMedications,
     type SequenceNode, type SequenceResult, type ChatSectionResult,
+    type DrugLabelAnalysis, type MedicationVerification,
 } from '../../services/aiService';
 import { getVoiceConfig, type VoiceConfig } from '../../services/audioService';
 import { supabase } from '@cliniqone/api';
@@ -24,7 +26,8 @@ import { VoiceInputBar, RecordingIndicator } from '../../components/VoiceInputBa
 import { PermissionGate } from '../../components/PermissionGate';
 import { useToast } from '../../components/ToastProvider';
 import { ReportUpload } from '../../components/ReportUpload';
-import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp, Flag, Camera, X, Check, ChevronDown, ChevronUp, Paperclip } from '@cliniqone/ui';
+import { DrugLabelCapture } from '../../components/DrugLabelCapture';
+import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp, Flag, Camera, X, Check, ChevronDown, ChevronUp, Paperclip, Pill } from '@cliniqone/ui';
 import aiDoctorAvatar from '../../../assets/ai-doctor-avatar.jpg';
 
 // ── Strip internal AI routing tags before display ──
@@ -37,6 +40,63 @@ function stripInternalTags(text: string): string {
         .replace(/\[NO_RESPONSE_NEEDED\]/gi, '')
         .replace(/\[VIOLATION:[^\]]+\]/gi, '')
         .trim();
+}
+
+// ── Arabic translations for DB node labels ────────────────────────────
+const NODE_LABEL_AR: Record<string, string> = {
+    // Global Intake phase
+    'Greeting': 'الترحيب',
+    'Problem Input': 'وصف المشكلة',
+    'Additional Complaints': 'شكاوى إضافية',
+    'Complaint Analysis': 'تحليل الشكوى',
+    'Specialty Gate': 'بوابة التخصص',
+    // Common specialty nodes
+    'Medical History': 'التاريخ الطبي',
+    'History of Present Illness': 'تاريخ المرض الحالي',
+    'HPI': 'تاريخ المرض الحالي',
+    'Family History': 'التاريخ العائلي',
+    'Social History': 'التاريخ الاجتماعي',
+    'Medications': 'الأدوية',
+    'Allergies': 'الحساسية',
+    'Review of Systems': 'مراجعة الأجهزة',
+    'Physical Exam': 'الفحص البدني',
+    'Vital Signs': 'العلامات الحيوية',
+    'Past Surgical History': 'التاريخ الجراحي',
+    'Skin Assessment': 'تقييم الجلد',
+    'Photo Capture': 'التقاط صورة',
+    'Medication Label Scan': 'مسح بطاقة الدواء',
+    'Report Upload': 'رفع التقارير',
+    'Report Analysis': 'تحليل التقارير',
+    // Global Wrap-up phase
+    'Summary': 'الملخص',
+    'Patient Addendum': 'إضافة المريض',
+    'Pathway Classify': 'تصنيف المسار',
+    // Fallback common labels
+    'Chief Complaint': 'الشكوى الرئيسية',
+    'Assessment': 'التقييم',
+    'Diagnosis': 'التشخيص',
+    'Treatment Plan': 'خطة العلاج',
+    'Follow Up': 'المتابعة',
+    'Mental Health Screening': 'فحص الصحة النفسية',
+    'Lifestyle': 'نمط الحياة',
+    'Obstetric History': 'تاريخ الولادة',
+    'Gynecological History': 'تاريخ أمراض النساء',
+    'Pain Assessment': 'تقييم الألم',
+    'Neurological Assessment': 'التقييم العصبي',
+    'Cardiovascular Assessment': 'تقييم القلب والأوعية',
+    'Respiratory Assessment': 'تقييم الجهاز التنفسي',
+    'Musculoskeletal Assessment': 'تقييم الجهاز العضلي الهيكلي',
+    'Pediatric Assessment': 'تقييم الأطفال',
+    'ENT Assessment': 'تقييم الأنف والأذن والحنجرة',
+    'Eye Assessment': 'تقييم العيون',
+    'Dental Assessment': 'تقييم الأسنان',
+    'Integrity Check': 'فحص النزاهة',
+};
+
+function getLocalizedLabel(label: string | undefined, lang: 'en' | 'ar'): string {
+    if (!label) return '';
+    if (lang === 'ar' && NODE_LABEL_AR[label]) return NODE_LABEL_AR[label];
+    return label;
 }
 
 // ── Constants (defaults — overridden by platform_settings on mount) ────────────────────────────
@@ -64,7 +124,7 @@ export default function AiChatPage() {
         setAiSummary, incrementGibberish, resetGibberish,
         addProtocolFlag, addQA, setMedications, setAllergies,
         setAiError, clearAiError, setSpecialty, setChiefComplaint,
-        addPhoto,
+        addPhoto, addDrugLabelAnalysis,
     } = useIntakeStore();
 
     // ── Helper: persist sequence flow to DB (best-effort, non-blocking) ──
@@ -96,6 +156,13 @@ export default function AiChatPage() {
     // ── Report Upload State ──────────────────────
     const [showReportUpload, setShowReportUpload] = useState(false);
     const reportUploadNodeIdxRef = useRef<number | null>(null);
+
+    // ── Med Label Capture State ──────────────────
+    const [showMedLabelCapture, setShowMedLabelCapture] = useState(false);
+    const [medLabelStep, setMedLabelStep] = useState<'offer' | 'capture' | 'results'>('offer');
+    const [medLabelAnalyzing, setMedLabelAnalyzing] = useState(false);
+    const [medLabelResults, setMedLabelResults] = useState<DrugLabelAnalysis | null>(null);
+    const [medLabelScannedCount, setMedLabelScannedCount] = useState(0);
 
     // Inline report state
     const [reportingMsgId, setReportingMsgId] = useState<string | null>(null);
@@ -1177,46 +1244,122 @@ export default function AiChatPage() {
 
     return (
         <PermissionGate>
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-primary)', paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0, transition: 'padding-bottom 0.15s ease-out' }}>
-            {/* Header */}
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <BackButton />
-                <img
-                    src={aiDoctorAvatar}
-                    alt="AI Doctor"
-                    style={{
-                        width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
-                        border: '2px solid #1A8A9E', flexShrink: 0,
-                    }}
-                />
-                <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('aiChat.headerTitle')}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>
-                        {sequenceNodes[currentNodeIndex]?.label || t('aiChat.gettingStarted')}
-                        {chatbotVersion && ` • ${chatbotVersion}`}
-                        {locumDoctor && ` • Dr. ${locumDoctor.display_name}`}
-                    </p>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-primary)', paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0, transition: 'padding-bottom 0.15s ease-out' }}>
+                {/* Header */}
+                <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    <BackButton />
+                    <img
+                        src={aiDoctorAvatar}
+                        alt="AI Doctor"
+                        style={{
+                            width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
+                            border: '2px solid #1A8A9E', flexShrink: 0,
+                        }}
+                    />
+                    <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('aiChat.headerTitle')}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>
+                            {getLocalizedLabel(sequenceNodes[currentNodeIndex]?.label, lang) || t('aiChat.gettingStarted')}
+                            {chatbotVersion && ` • ${chatbotVersion}`}
+                            {locumDoctor && ` • Dr. ${locumDoctor.display_name}`}
+                        </p>
+                    </div>
+                    {voiceInput.voiceState === 'listening' && <RecordingIndicator isRTL={rtl} />}
                 </div>
-                {voiceInput.voiceState === 'listening' && <RecordingIndicator isRTL={rtl} />}
-            </div>
 
-            {/* Progress Bar */}
-            <div style={{ height: 3, backgroundColor: 'var(--bg-card)', flexShrink: 0 }}>
-                <div style={{ height: 3, width: `${progressPercent}%`, backgroundColor: '#1A8A9E', transition: 'width 0.5s' }} />
-            </div>
+                {/* Progress Bar */}
+                <div style={{ height: 3, backgroundColor: 'var(--bg-card)', flexShrink: 0 }}>
+                    <div style={{ height: 3, width: `${progressPercent}%`, backgroundColor: '#1A8A9E', transition: 'width 0.5s' }} />
+                </div>
 
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-                {messages.map((msg) => (
-                    <div key={msg.id} style={{
-                        display: 'flex',
-                        justifyContent: msg.role === 'patient' ? 'flex-end' : 'flex-start',
-                        alignItems: 'flex-end',
-                        gap: 8,
-                        marginBottom: 10,
-                    }}>
-                        {/* AI avatar — shown for ai messages */}
-                        {msg.role === 'ai' && (
+                {/* Messages */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                    {messages.map((msg) => (
+                        <div key={msg.id} style={{
+                            display: 'flex',
+                            justifyContent: msg.role === 'patient' ? 'flex-end' : 'flex-start',
+                            alignItems: 'flex-end',
+                            gap: 8,
+                            marginBottom: 10,
+                        }}>
+                            {/* AI avatar — shown for ai messages */}
+                            {msg.role === 'ai' && (
+                                <img
+                                    src={aiDoctorAvatar}
+                                    alt="AI"
+                                    style={{
+                                        width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
+                                        border: '1.5px solid #1A8A9E', flexShrink: 0,
+                                    }}
+                                />
+                            )}
+                            <div style={{
+                                maxWidth: msg.role === 'ai' ? 'calc(80% - 36px)' : '80%',
+                                padding: '10px 14px',
+                                borderRadius: msg.role === 'patient' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                                backgroundColor: msg.role === 'patient' ? '#1A8A9E' : msg.role === 'system' ? '#D9770620' : 'var(--bg-card)',
+                                color: msg.role === 'patient' ? '#fff' : msg.role === 'system' ? '#D97706' : 'var(--text-primary)',
+                                fontSize: 14, lineHeight: '20px',
+                                border: msg.role === 'system' ? '1px solid #D9770640' : 'none',
+                            }}>
+                                {msg.sectionLabel && msg.role === 'ai' && (
+                                    <p style={{ fontSize: 10, fontWeight: 700, color: '#1A8A9E', margin: '0 0 4px', textTransform: 'uppercase' }}>
+                                        {msg.sectionLabel}
+                                    </p>
+                                )}
+                                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                                {/* Photo thumbnails in message */}
+                                {msg.imageUrls && msg.imageUrls.length > 0 && (
+                                    <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                                        {msg.imageUrls.map((url, i) => (
+                                            <img key={i} src={url} alt={`Photo ${i + 1}`} style={{
+                                                width: 56, height: 56, borderRadius: 8, objectFit: 'cover',
+                                                border: '1.5px solid rgba(255,255,255,0.3)',
+                                            }} />
+                                        ))}
+                                    </div>
+                                )}
+                                {msg.options && msg.options.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                                        {msg.options.map((opt, i) => (
+                                            <button key={i} onClick={() => { setInput(opt); }}
+                                                style={{
+                                                    padding: '6px 12px', borderRadius: 16, border: '1px solid var(--border)',
+                                                    backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', fontSize: 12,
+                                                    cursor: 'pointer',
+                                                }}>
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {/* Flag / Report button for AI messages */}
+                            {msg.role === 'ai' && (
+                                <button
+                                    onClick={() => {
+                                        if (reportSubmittedSet.has(msg.id)) return;
+                                        setReportingMsgId(msg.id);
+                                        setReportCategory('wrongQuestion');
+                                        setReportDescription('');
+                                    }}
+                                    title={reportSubmittedSet.has(msg.id) ? t('aiChat.reportedConfirm') : t('aiChat.reportIssueButton')}
+                                    style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        padding: 4, opacity: reportSubmittedSet.has(msg.id) ? 0.4 : 0.25,
+                                        transition: 'opacity 0.2s', alignSelf: 'flex-end', flexShrink: 0,
+                                    }}
+                                    onMouseEnter={e => (e.currentTarget.style.opacity = reportSubmittedSet.has(msg.id) ? '0.4' : '0.7')}
+                                    onMouseLeave={e => (e.currentTarget.style.opacity = reportSubmittedSet.has(msg.id) ? '0.4' : '0.25')}
+                                >
+                                    <Flag size={12} color={reportSubmittedSet.has(msg.id) ? '#059669' : 'var(--text-tertiary)'} />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+
+                    {isAiTyping && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
                             <img
                                 src={aiDoctorAvatar}
                                 alt="AI"
@@ -1225,654 +1368,817 @@ export default function AiChatPage() {
                                     border: '1.5px solid #1A8A9E', flexShrink: 0,
                                 }}
                             />
-                        )}
+                            <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', backgroundColor: 'var(--bg-card)' }}>
+                                <span className="typing-dots" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0s' }} />
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0.2s' }} />
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0.4s' }} />
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Photo Capture: Step 1 — Offer Card ────── */}
+                    {showPhotoCapture && photoCaptureStep === 'offer' && (
                         <div style={{
-                            maxWidth: msg.role === 'ai' ? 'calc(80% - 36px)' : '80%',
-                            padding: '10px 14px',
-                            borderRadius: msg.role === 'patient' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                            backgroundColor: msg.role === 'patient' ? '#1A8A9E' : msg.role === 'system' ? '#D9770620' : 'var(--bg-card)',
-                            color: msg.role === 'patient' ? '#fff' : msg.role === 'system' ? '#D97706' : 'var(--text-primary)',
-                            fontSize: 14, lineHeight: '20px',
-                            border: msg.role === 'system' ? '1px solid #D9770640' : 'none',
+                            margin: '8px 0 12px', padding: 20, borderRadius: 16,
+                            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                            border: '1px solid #334155',
                         }}>
-                            {msg.sectionLabel && msg.role === 'ai' && (
-                                <p style={{ fontSize: 10, fontWeight: 700, color: '#1A8A9E', margin: '0 0 4px', textTransform: 'uppercase' }}>
-                                    {msg.sectionLabel}
-                                </p>
-                            )}
-                            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
-                            {/* Photo thumbnails in message */}
-                            {msg.imageUrls && msg.imageUrls.length > 0 && (
-                                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                                    {msg.imageUrls.map((url, i) => (
-                                        <img key={i} src={url} alt={`Photo ${i + 1}`} style={{
-                                            width: 56, height: 56, borderRadius: 8, objectFit: 'cover',
-                                            border: '1.5px solid rgba(255,255,255,0.3)',
-                                        }} />
-                                    ))}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: 12,
+                                    background: 'linear-gradient(135deg, #1A8A9E 0%, #2DD4BF 100%)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                }}>
+                                    <Camera size={20} color="#fff" />
                                 </div>
-                            )}
-                            {msg.options && msg.options.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                                    {msg.options.map((opt, i) => (
-                                        <button key={i} onClick={() => { setInput(opt); }}
-                                            style={{
-                                                padding: '6px 12px', borderRadius: 16, border: '1px solid var(--border)',
-                                                backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', fontSize: 12,
-                                                cursor: 'pointer',
-                                            }}>
-                                            {opt}
-                                        </button>
-                                    ))}
+                                <div>
+                                    <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0 }}>
+                                        {t('photo.offerTitle')}
+                                    </p>
+                                    <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>
+                                        {t('photo.offerDesc')}
+                                    </p>
                                 </div>
-                            )}
-                        </div>
-                        {/* Flag / Report button for AI messages */}
-                        {msg.role === 'ai' && (
-                            <button
-                                onClick={() => {
-                                    if (reportSubmittedSet.has(msg.id)) return;
-                                    setReportingMsgId(msg.id);
-                                    setReportCategory('wrongQuestion');
-                                    setReportDescription('');
-                                }}
-                                title={reportSubmittedSet.has(msg.id) ? t('aiChat.reportedConfirm') : t('aiChat.reportIssueButton')}
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    padding: 4, opacity: reportSubmittedSet.has(msg.id) ? 0.4 : 0.25,
-                                    transition: 'opacity 0.2s', alignSelf: 'flex-end', flexShrink: 0,
-                                }}
-                                onMouseEnter={e => (e.currentTarget.style.opacity = reportSubmittedSet.has(msg.id) ? '0.4' : '0.7')}
-                                onMouseLeave={e => (e.currentTarget.style.opacity = reportSubmittedSet.has(msg.id) ? '0.4' : '0.25')}
-                            >
-                                <Flag size={12} color={reportSubmittedSet.has(msg.id) ? '#059669' : 'var(--text-tertiary)'} />
-                            </button>
-                        )}
-                    </div>
-                ))}
-
-                {isAiTyping && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
-                        <img
-                            src={aiDoctorAvatar}
-                            alt="AI"
-                            style={{
-                                width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
-                                border: '1.5px solid #1A8A9E', flexShrink: 0,
-                            }}
-                        />
-                        <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', backgroundColor: 'var(--bg-card)' }}>
-                            <span className="typing-dots" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0s' }} />
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0.2s' }} />
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0.4s' }} />
-                            </span>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Photo Capture: Step 1 — Offer Card ────── */}
-                {showPhotoCapture && photoCaptureStep === 'offer' && (
-                    <div style={{
-                        margin: '8px 0 12px', padding: 20, borderRadius: 16,
-                        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                        border: '1px solid #334155',
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                            <div style={{
-                                width: 40, height: 40, borderRadius: 12,
-                                background: 'linear-gradient(135deg, #1A8A9E 0%, #2DD4BF 100%)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                            }}>
-                                <Camera size={20} color="#fff" />
                             </div>
-                            <div>
-                                <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0 }}>
-                                    {t('photo.offerTitle')}
-                                </p>
-                                <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>
-                                    {t('photo.offerDesc')}
-                                </p>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={handlePhotoOfferAccept} style={{
+                                    flex: 1, padding: '12px 16px', borderRadius: 12, border: 'none',
+                                    background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
+                                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                }}>
+                                    <Camera size={16} color="#fff" /> {t('photo.yesAdd')}
+                                </button>
+                                <button onClick={handlePhotoOfferSkip} style={{
+                                    flex: 1, padding: '12px 16px', borderRadius: 12,
+                                    border: '1px solid #475569', backgroundColor: 'transparent',
+                                    color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                }}>
+                                    {t('photo.skip')}
+                                </button>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={handlePhotoOfferAccept} style={{
-                                flex: 1, padding: '12px 16px', borderRadius: 12, border: 'none',
-                                background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
-                                color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            }}>
-                                <Camera size={16} color="#fff" /> {t('photo.yesAdd')}
-                            </button>
-                            <button onClick={handlePhotoOfferSkip} style={{
-                                flex: 1, padding: '12px 16px', borderRadius: 12,
-                                border: '1px solid #475569', backgroundColor: 'transparent',
-                                color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                            }}>
-                                {t('photo.skip')}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                    )}
 
-                <div ref={chatEndRef} />
-            </div>
+                    <div ref={chatEndRef} />
+                </div>
 
-            {/* ── Photo Capture: Step 2 — Consent Overlay ────── */}
-            {showPhotoCapture && photoCaptureStep === 'consent' && (
-                <div style={{
-                    position: 'fixed', inset: 0, backgroundColor: '#000000cc',
-                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                    zIndex: 200, padding: 0,
-                }}>
+                {/* ── Photo Capture: Step 2 — Consent Overlay ────── */}
+                {showPhotoCapture && photoCaptureStep === 'consent' && (
                     <div style={{
-                        maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
-                        borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
-                        border: '1px solid var(--border)', borderBottom: 'none',
-                        maxHeight: '85vh', overflowY: 'auto',
+                        position: 'fixed', inset: 0, backgroundColor: '#000000cc',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                        zIndex: 200, padding: 0,
                     }}>
-                        {/* Header */}
-                        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {t('photo.consentTitle')}
-                        </h3>
+                        <div style={{
+                            maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                            borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+                            border: '1px solid var(--border)', borderBottom: 'none',
+                            maxHeight: '85vh', overflowY: 'auto',
+                        }}>
+                            {/* Header */}
+                            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {t('photo.consentTitle')}
+                            </h3>
 
-                        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: '0 0 16px' }}>
-                            {t('photo.consentLine1')}
-                        </p>
+                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: '0 0 16px' }}>
+                                {t('photo.consentLine1')}
+                            </p>
 
-                        {/* Consent bullets */}
-                        <div style={{ marginBottom: 20 }}>
-                            {[t('photo.consentBullet1'), t('photo.consentBullet2'), t('photo.consentBullet3')].map((bullet, i) => (
-                                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10 }}>
-                                    <div style={{
-                                        width: 20, height: 20, borderRadius: 6,
-                                        backgroundColor: '#1A8A9E20', display: 'flex',
-                                        alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
-                                    }}>
-                                        <Check size={12} color="#1A8A9E" strokeWidth={3} />
+                            {/* Consent bullets */}
+                            <div style={{ marginBottom: 20 }}>
+                                {[t('photo.consentBullet1'), t('photo.consentBullet2'), t('photo.consentBullet3')].map((bullet, i) => (
+                                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10 }}>
+                                        <div style={{
+                                            width: 20, height: 20, borderRadius: 6,
+                                            backgroundColor: '#1A8A9E20', display: 'flex',
+                                            alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
+                                        }}>
+                                            <Check size={12} color="#1A8A9E" strokeWidth={3} />
+                                        </div>
+                                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: '18px' }}>{bullet}</p>
                                     </div>
-                                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: '18px' }}>{bullet}</p>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
 
-                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px', fontStyle: 'italic' }}>
-                            {t('photo.consentOptional')}
-                        </p>
+                            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px', fontStyle: 'italic' }}>
+                                {t('photo.consentOptional')}
+                            </p>
 
-                        {/* Consent checkbox */}
-                        <label style={{
-                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                            padding: '12px 14px', borderRadius: 12,
-                            border: `1px solid ${photoCaptureConsent ? '#1A8A9E' : '#334155'}`,
-                            backgroundColor: photoCaptureConsent ? '#1A8A9E10' : 'transparent',
-                            transition: 'all 0.2s', marginBottom: 20,
-                        }}>
-                            <input
-                                type="checkbox" checked={photoCaptureConsent}
-                                onChange={e => setPhotoCaptureConsent(e.target.checked)}
-                                style={{ width: 16, height: 16, accentColor: '#1A8A9E', cursor: 'pointer' }}
-                            />
-                            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
-                                {t('photo.checkboxLabel')}
-                            </span>
-                        </label>
-
-                        {/* Photo tips accordion */}
-                        <button onClick={() => setShowPhotoTips(!showPhotoTips)} style={{
-                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '10px 14px', borderRadius: 10, border: '1px solid #334155',
-                            backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)',
-                            cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: showPhotoTips ? 12 : 20,
-                        }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Camera size={14} color="var(--text-tertiary)" /> {t('photo.instructionsTitle')}
-                            </span>
-                            {showPhotoTips
-                                ? <ChevronUp size={16} color="var(--text-tertiary)" />
-                                : <ChevronDown size={16} color="var(--text-tertiary)" />
-                            }
-                        </button>
-                        {showPhotoTips && (
-                            <div style={{
-                                padding: '12px 14px', borderRadius: 10, backgroundColor: '#0f172a',
-                                border: '1px solid #1e293b', marginBottom: 20,
+                            {/* Consent checkbox */}
+                            <label style={{
+                                display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                                padding: '12px 14px', borderRadius: 12,
+                                border: `1px solid ${photoCaptureConsent ? '#1A8A9E' : '#334155'}`,
+                                backgroundColor: photoCaptureConsent ? '#1A8A9E10' : 'transparent',
+                                transition: 'all 0.2s', marginBottom: 20,
                             }}>
-                                {[t('photo.tip1'), t('photo.tip2'), t('photo.tip3'), t('photo.tip4'), t('photo.tip5'), t('photo.tip6')].map((tip, i) => (
-                                    <p key={i} style={{ fontSize: 12, color: '#94a3b8', margin: i < 5 ? '0 0 6px' : 0, lineHeight: '17px' }}>
-                                        {`${i + 1}. ${tip}`}
+                                <input
+                                    type="checkbox" checked={photoCaptureConsent}
+                                    onChange={e => setPhotoCaptureConsent(e.target.checked)}
+                                    style={{ width: 16, height: 16, accentColor: '#1A8A9E', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
+                                    {t('photo.checkboxLabel')}
+                                </span>
+                            </label>
+
+                            {/* Photo tips accordion */}
+                            <button onClick={() => setShowPhotoTips(!showPhotoTips)} style={{
+                                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '10px 14px', borderRadius: 10, border: '1px solid #334155',
+                                backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)',
+                                cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: showPhotoTips ? 12 : 20,
+                            }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Camera size={14} color="var(--text-tertiary)" /> {t('photo.instructionsTitle')}
+                                </span>
+                                {showPhotoTips
+                                    ? <ChevronUp size={16} color="var(--text-tertiary)" />
+                                    : <ChevronDown size={16} color="var(--text-tertiary)" />
+                                }
+                            </button>
+                            {showPhotoTips && (
+                                <div style={{
+                                    padding: '12px 14px', borderRadius: 10, backgroundColor: '#0f172a',
+                                    border: '1px solid #1e293b', marginBottom: 20,
+                                }}>
+                                    {[t('photo.tip1'), t('photo.tip2'), t('photo.tip3'), t('photo.tip4'), t('photo.tip5'), t('photo.tip6')].map((tip, i) => (
+                                        <p key={i} style={{ fontSize: 12, color: '#94a3b8', margin: i < 5 ? '0 0 6px' : 0, lineHeight: '17px' }}>
+                                            {`${i + 1}. ${tip}`}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => { setPhotoCaptureStep('offer'); }} style={{
+                                    flex: 1, padding: '14px', borderRadius: 12,
+                                    border: '1px solid #475569', backgroundColor: 'transparent',
+                                    color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                }}>
+                                    {t('common.back') || '← Back'}
+                                </button>
+                                <button onClick={handlePhotoConsentContinue} disabled={!photoCaptureConsent} style={{
+                                    flex: 1, padding: '14px', borderRadius: 12, border: 'none',
+                                    background: photoCaptureConsent
+                                        ? 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)'
+                                        : '#334155',
+                                    color: photoCaptureConsent ? '#fff' : '#64748b',
+                                    fontSize: 14, fontWeight: 700,
+                                    cursor: photoCaptureConsent ? 'pointer' : 'not-allowed',
+                                    transition: 'all 0.2s',
+                                }}>
+                                    {t('photo.continue')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Photo Capture: Step 3 — Upload Overlay ────── */}
+                {showPhotoCapture && photoCaptureStep === 'upload' && (
+                    <div style={{
+                        position: 'fixed', inset: 0, backgroundColor: '#000000cc',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                        zIndex: 200, padding: 0,
+                    }}>
+                        <div style={{
+                            maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                            borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+                            border: '1px solid var(--border)', borderBottom: 'none',
+                            maxHeight: '85vh', overflowY: 'auto',
+                        }}>
+                            {/* Header */}
+                            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Camera size={20} color="#1A8A9E" /> {t('photo.uploadTitle')}
+                            </h3>
+                            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 20px' }}>
+                                {t('photo.photosAdded', { current: String(capturedPhotos.length), max: '5' })}
+                            </p>
+
+                            {/* Photo Grid */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+                                {capturedPhotos.map((photo, idx) => (
+                                    <div key={idx} style={{
+                                        position: 'relative', width: 80, height: 80, borderRadius: 12,
+                                        overflow: 'hidden', border: '2px solid #1A8A9E40',
+                                    }}>
+                                        <img src={photo} alt={`Photo ${idx + 1}`} style={{
+                                            width: '100%', height: '100%', objectFit: 'cover',
+                                        }} />
+                                        <button onClick={() => handlePhotoRemove(photo)} style={{
+                                            position: 'absolute', top: 3, right: 3, width: 22, height: 22,
+                                            borderRadius: '50%', backgroundColor: 'rgba(220,38,38,0.9)',
+                                            border: 'none', color: '#fff', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            <X size={11} color="#fff" strokeWidth={3} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {/* Add photo button */}
+                                {capturedPhotos.length < 5 && (
+                                    <button onClick={() => photoInputRef.current?.click()} style={{
+                                        width: 80, height: 80, borderRadius: 12,
+                                        border: '2px dashed #475569', backgroundColor: 'var(--bg-primary)',
+                                        color: 'var(--text-tertiary)', cursor: 'pointer',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                        justifyContent: 'center', gap: 4, transition: 'border-color 0.2s',
+                                    }}>
+                                        <Camera size={20} color="var(--text-tertiary)" />
+                                        <span style={{ fontSize: 10, fontWeight: 600 }}>
+                                            {capturedPhotos.length === 0 ? t('photo.takeOrSelect') : t('photo.addAnother')}
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Hidden file input */}
+                            <input
+                                ref={photoInputRef} type="file" accept="image/*" capture="environment"
+                                onChange={handlePhotoFileSelect} style={{ display: 'none' }}
+                            />
+
+                            {/* Max photos notice */}
+                            {capturedPhotos.length >= 5 && (
+                                <p style={{ fontSize: 12, color: '#D97706', margin: '0 0 12px', textAlign: 'center' }}>
+                                    {t('photo.maxPhotosReached', { max: '5' })}
+                                </p>
+                            )}
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                                {capturedPhotos.length > 0 && (
+                                    <button onClick={handlePhotoDone} style={{
+                                        width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                                        background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
+                                        color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                    }}>
+                                        <Check size={16} color="#fff" strokeWidth={3} />
+                                        {t('photo.done', { count: String(capturedPhotos.length) })}
+                                    </button>
+                                )}
+                                <button onClick={handlePhotoOfferSkip} style={{
+                                    width: '100%', padding: capturedPhotos.length > 0 ? '10px' : '14px',
+                                    borderRadius: 12, border: capturedPhotos.length > 0 ? 'none' : '1px solid #475569',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500,
+                                    cursor: 'pointer',
+                                }}>
+                                    {t('photo.skipWithout')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Med Label Capture: Step 1 — Offer ────── */}
+                {showMedLabelCapture && medLabelStep === 'offer' && (
+                    <div style={{
+                        position: 'fixed', inset: 0, backgroundColor: '#000000cc',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                        zIndex: 200, padding: 0,
+                    }}>
+                        <div style={{
+                            maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                            borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+                            border: '1px solid var(--border)', borderBottom: 'none',
+                        }}>
+                            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                <Pill size={40} color="#1A8A9E" style={{ display: 'block', margin: '0 auto 12px' }} />
+                                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                                    {t('drugLabel.offerTitle') || 'Photo Your Medication Label'}
+                                </h3>
+                                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: 0 }}>
+                                    {t('drugLabel.offerDesc')?.replace('{{medication}}', 'medication') || 'Take a photo of your medication label for AI-powered verification. This is optional.'}
+                                </p>
+                            </div>
+
+                            {/* Tips */}
+                            <div style={{
+                                backgroundColor: '#0f172a', borderRadius: 12, padding: '14px 16px',
+                                marginBottom: 20, border: '1px solid #1e293b',
+                            }}>
+                                <p style={{ fontSize: 12, fontWeight: 600, color: '#1A8A9E', margin: '0 0 8px' }}>
+                                    {t('drugLabel.tipsTitle') || 'Tips for a Clear Label Photo'}
+                                </p>
+                                {[
+                                    t('drugLabel.tipLightingDesc') || 'Use natural light or bright indoor lighting',
+                                    t('drugLabel.tipAlignmentDesc') || 'Hold the label flat and centered',
+                                    t('drugLabel.tipReadabilityDesc') || 'Make sure drug name and dosage are clearly visible',
+                                ].map((tip, i) => (
+                                    <p key={i} style={{ fontSize: 11, color: '#94a3b8', margin: i < 2 ? '0 0 4px' : 0, lineHeight: '16px' }}>
+                                        • {tip}
                                     </p>
                                 ))}
                             </div>
-                        )}
 
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => { setPhotoCaptureStep('offer'); }} style={{
-                                flex: 1, padding: '14px', borderRadius: 12,
-                                border: '1px solid #475569', backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                            }}>
-                                {t('common.back') || '← Back'}
-                            </button>
-                            <button onClick={handlePhotoConsentContinue} disabled={!photoCaptureConsent} style={{
-                                flex: 1, padding: '14px', borderRadius: 12, border: 'none',
-                                background: photoCaptureConsent
-                                    ? 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)'
-                                    : '#334155',
-                                color: photoCaptureConsent ? '#fff' : '#64748b',
-                                fontSize: 14, fontWeight: 700,
-                                cursor: photoCaptureConsent ? 'pointer' : 'not-allowed',
-                                transition: 'all 0.2s',
-                            }}>
-                                {t('photo.continue')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Photo Capture: Step 3 — Upload Overlay ────── */}
-            {showPhotoCapture && photoCaptureStep === 'upload' && (
-                <div style={{
-                    position: 'fixed', inset: 0, backgroundColor: '#000000cc',
-                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                    zIndex: 200, padding: 0,
-                }}>
-                    <div style={{
-                        maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
-                        borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
-                        border: '1px solid var(--border)', borderBottom: 'none',
-                        maxHeight: '85vh', overflowY: 'auto',
-                    }}>
-                        {/* Header */}
-                        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Camera size={20} color="#1A8A9E" /> {t('photo.uploadTitle')}
-                        </h3>
-                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 20px' }}>
-                            {t('photo.photosAdded', { current: String(capturedPhotos.length), max: '5' })}
-                        </p>
-
-                        {/* Photo Grid */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-                            {capturedPhotos.map((photo, idx) => (
-                                <div key={idx} style={{
-                                    position: 'relative', width: 80, height: 80, borderRadius: 12,
-                                    overflow: 'hidden', border: '2px solid #1A8A9E40',
-                                }}>
-                                    <img src={photo} alt={`Photo ${idx + 1}`} style={{
-                                        width: '100%', height: '100%', objectFit: 'cover',
-                                    }} />
-                                    <button onClick={() => handlePhotoRemove(photo)} style={{
-                                        position: 'absolute', top: 3, right: 3, width: 22, height: 22,
-                                        borderRadius: '50%', backgroundColor: 'rgba(220,38,38,0.9)',
-                                        border: 'none', color: '#fff', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    }}>
-                                        <X size={11} color="#fff" strokeWidth={3} />
-                                    </button>
-                                </div>
-                            ))}
-
-                            {/* Add photo button */}
-                            {capturedPhotos.length < 5 && (
-                                <button onClick={() => photoInputRef.current?.click()} style={{
-                                    width: 80, height: 80, borderRadius: 12,
-                                    border: '2px dashed #475569', backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-tertiary)', cursor: 'pointer',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                    justifyContent: 'center', gap: 4, transition: 'border-color 0.2s',
-                                }}>
-                                    <Camera size={20} color="var(--text-tertiary)" />
-                                    <span style={{ fontSize: 10, fontWeight: 600 }}>
-                                        {capturedPhotos.length === 0 ? t('photo.takeOrSelect') : t('photo.addAnother')}
-                                    </span>
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Hidden file input */}
-                        <input
-                            ref={photoInputRef} type="file" accept="image/*" capture="environment"
-                            onChange={handlePhotoFileSelect} style={{ display: 'none' }}
-                        />
-
-                        {/* Max photos notice */}
-                        {capturedPhotos.length >= 5 && (
-                            <p style={{ fontSize: 12, color: '#D97706', margin: '0 0 12px', textAlign: 'center' }}>
-                                {t('photo.maxPhotosReached', { max: '5' })}
+                            {/* Ephemeral notice */}
+                            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 20px', textAlign: 'center', fontStyle: 'italic' }}>
+                                🔒 {t('drugLabel.ephemeralNotice') || 'Your photo is processed in real-time and never stored in the cloud.'}
                             </p>
-                        )}
 
-                        {/* Actions */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-                            {capturedPhotos.length > 0 && (
-                                <button onClick={handlePhotoDone} style={{
-                                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={handleMedLabelOfferSkip} style={{
+                                    flex: 1, padding: '14px', borderRadius: 12,
+                                    border: '1px solid #475569', backgroundColor: 'transparent',
+                                    color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                }}>
+                                    {t('drugLabel.skip') || 'Skip'}
+                                </button>
+                                <button onClick={handleMedLabelOfferAccept} style={{
+                                    flex: 1, padding: '14px', borderRadius: 12, border: 'none',
                                     background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
-                                    color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                 }}>
-                                    <Check size={16} color="#fff" strokeWidth={3} />
-                                    {t('photo.done', { count: String(capturedPhotos.length) })}
+                                    <Camera size={16} color="#fff" /> {t('drugLabel.takePhoto') || 'Take Photo'}
                                 </button>
-                            )}
-                            <button onClick={handlePhotoOfferSkip} style={{
-                                width: '100%', padding: capturedPhotos.length > 0 ? '10px' : '14px',
-                                borderRadius: 12, border: capturedPhotos.length > 0 ? 'none' : '1px solid #475569',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500,
-                                cursor: 'pointer',
-                            }}>
-                                {t('photo.skipWithout')}
-                            </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Report Upload Overlay */}
-            {showReportUpload && (
-                <ReportUpload
-                    specialty={specialty || 'family_medicine'}
-                    language={lang}
-                    sessionId={sessionId}
-                    onComplete={(reports) => {
-                        setShowReportUpload(false);
-                        console.log('[AiChat] Reports uploaded:', reports.length);
-                        // Add summary message to chat
-                        const verified = reports.filter(r => r.status === 'verified' || r.status === 'outdated');
-                        const rejected = reports.filter(r => r.status === 'rejected');
-                        if (verified.length > 0) {
-                            addMessage(createSystemMsg(
-                                `📎 ${verified.length} report${verified.length > 1 ? 's' : ''} uploaded and verified by AI.` +
-                                (rejected.length > 0 ? ` ${rejected.length} rejected.` : '')
-                            ));
-                        }
-                        // Advance past report_upload and report_analysis nodes
-                        const idx = reportUploadNodeIdxRef.current;
-                        if (idx !== null) {
-                            // Skip report_upload + report_analysis (next 2 nodes)
-                            advanceToNode(idx + 2, sequenceNodes);
-                        }
-                    }}
-                    onDecline={() => {
-                        setShowReportUpload(false);
-                        addMessage(createSystemMsg('📎 No reports uploaded — continuing.'));
-                        const idx = reportUploadNodeIdxRef.current;
-                        if (idx !== null) {
-                            advanceToNode(idx + 2, sequenceNodes);
-                        }
-                    }}
-                />
-            )}
-
-            {/* Input — hidden during photo capture or report upload */}
-            {!showPhotoCapture && !showReportUpload && (
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-                {/* Voice Input Bar (shown when voice mode is active and listening/processing/error) */}
-                {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState !== 'idle' && (
-                    <VoiceInputBar
-                        voiceState={voiceInput.voiceState}
-                        audioLevel={voiceInput.audioLevel}
-                        error={voiceInput.error}
-                        voiceMode={voiceInput.voiceMode}
-                        recordingDuration={voiceInput.recordingDuration}
-                        isSupported={voiceInput.isSupported}
-                        enabled={voiceConfig.enabled}
-                        isRTL={rtl}
-                        onStartListening={voiceInput.startListening}
-                        onStopListening={voiceInput.stopListening}
-                        onCancel={voiceInput.cancelRecording}
-                        onSetVoiceMode={voiceInput.setVoiceMode}
-                        onSwitchToText={() => setShowVoiceInput(false)}
-                        onDismissError={voiceInput.cancelRecording}
+                {/* ── Med Label Capture: Step 2 — Camera/File ────── */}
+                {showMedLabelCapture && medLabelStep === 'capture' && (
+                    <DrugLabelCapture
+                        onCaptured={handleMedLabelCaptured}
+                        onCancel={() => { setMedLabelStep('offer'); }}
+                        analyzing={medLabelAnalyzing}
                     />
                 )}
 
-                {/* Text input row */}
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <input
-                        ref={inputRef}
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSend()}
-                        placeholder={Date.now() < cooldownUntil ? 'Chat paused…' : t('aiChat.inputPlaceholder')}
-                        disabled={Date.now() < cooldownUntil || showBlockedScreen || showAnnouncedModal || voiceInput.voiceState === 'listening' || voiceInput.voiceState === 'processing'}
-                        style={{
-                            flex: 1, padding: '12px 16px', borderRadius: 12,
-                            border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)',
-                            color: 'var(--text-primary)', fontSize: 15, outline: 'none',
+                {/* ── Med Label Capture: Step 3 — Results ────── */}
+                {showMedLabelCapture && medLabelStep === 'results' && (
+                    <div style={{
+                        position: 'fixed', inset: 0, backgroundColor: '#000000cc',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                        zIndex: 200, padding: 0,
+                    }}>
+                        <div style={{
+                            maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                            borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+                            border: '1px solid var(--border)', borderBottom: 'none',
+                            maxHeight: '85vh', overflowY: 'auto',
+                        }}>
+                            {medLabelAnalyzing ? (
+                                <div style={{ padding: 40, textAlign: 'center' }}>
+                                    <div style={{
+                                        width: 32, height: 32, margin: '0 auto 12px',
+                                        border: '3px solid #1A8A9E40', borderTopColor: '#1A8A9E',
+                                        borderRadius: '50%', animation: 'spin 1s linear infinite',
+                                    }} />
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+                                        {t('medVerify.verifying') || 'Analyzing medication label…'}
+                                    </p>
+                                </div>
+                            ) : medLabelResults ? (
+                                <div>
+                                    {/* Header */}
+                                    <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Pill size={20} color="#1A8A9E" /> {t('drugAnalysis.extractedInfo') || 'Extracted Information'}
+                                    </h3>
+
+                                    {/* Drug info card */}
+                                    <div style={{
+                                        backgroundColor: 'var(--bg-primary)', borderRadius: 14, padding: 16,
+                                        marginBottom: 12, border: '1px solid var(--border)',
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                {medLabelResults.extracted?.drugName || 'Unknown'}
+                                            </span>
+                                            <span style={{
+                                                fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8,
+                                                backgroundColor: medLabelResults.confidence >= 80 ? '#05966920' : medLabelResults.confidence >= 50 ? '#D9770620' : '#DC262620',
+                                                color: medLabelResults.confidence >= 80 ? '#059669' : medLabelResults.confidence >= 50 ? '#D97706' : '#DC2626',
+                                            }}>
+                                                {t('drugAnalysis.aiConfidence') || 'AI Confidence'}: {medLabelResults.confidence}%
+                                            </span>
+                                        </div>
+
+                                        {/* Info grid */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                            {medLabelResults.extracted?.dosage && (
+                                                <div>
+                                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                                        {t('drugAnalysis.dosage') || 'Dosage'}
+                                                    </span>
+                                                    <p style={{ fontSize: 14, color: 'var(--text-primary)', margin: '2px 0 0', fontWeight: 600 }}>
+                                                        {medLabelResults.extracted.dosage}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {medLabelResults.extracted?.form && (
+                                                <div>
+                                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                                        {t('drugAnalysis.form') || 'Form'}
+                                                    </span>
+                                                    <p style={{ fontSize: 14, color: 'var(--text-primary)', margin: '2px 0 0', fontWeight: 600 }}>
+                                                        {medLabelResults.extracted.form}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {medLabelResults.extracted?.manufacturer && (
+                                                <div>
+                                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                                        {t('drugAnalysis.manufacturer') || 'Manufacturer'}
+                                                    </span>
+                                                    <p style={{ fontSize: 14, color: 'var(--text-primary)', margin: '2px 0 0', fontWeight: 600 }}>
+                                                        {medLabelResults.extracted.manufacturer}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {medLabelResults.extracted?.expiryDate && (
+                                                <div>
+                                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                                        {t('drugAnalysis.expiry') || 'Expiry'}
+                                                    </span>
+                                                    <p style={{ fontSize: 14, color: 'var(--text-primary)', margin: '2px 0 0', fontWeight: 600 }}>
+                                                        {medLabelResults.extracted.expiryDate}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Match status badge */}
+                                    <div style={{
+                                        padding: '12px 16px', borderRadius: 12, marginBottom: 16,
+                                        backgroundColor: medLabelResults.crossValidation?.overallMatch === 'match' ? '#05966915'
+                                            : medLabelResults.crossValidation?.overallMatch === 'partial_match' ? '#D9770615'
+                                            : medLabelResults.crossValidation?.overallMatch === 'mismatch' ? '#DC262615' : '#64748b15',
+                                        border: `1px solid ${medLabelResults.crossValidation?.overallMatch === 'match' ? '#05966940'
+                                            : medLabelResults.crossValidation?.overallMatch === 'partial_match' ? '#D9770640'
+                                            : medLabelResults.crossValidation?.overallMatch === 'mismatch' ? '#DC262640' : '#64748b40'}`,
+                                        display: 'flex', alignItems: 'center', gap: 10,
+                                    }}>
+                                        <span style={{ fontSize: 20 }}>
+                                            {medLabelResults.crossValidation?.overallMatch === 'match' ? '✅'
+                                                : medLabelResults.crossValidation?.overallMatch === 'partial_match' ? '⚠️'
+                                                : medLabelResults.crossValidation?.overallMatch === 'mismatch' ? '❌' : '🔍'}
+                                        </span>
+                                        <div>
+                                            <p style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                                                {medLabelResults.crossValidation?.overallMatch === 'match'
+                                                    ? (t('drugAnalysis.match') || 'Match — Data Consistent')
+                                                    : medLabelResults.crossValidation?.overallMatch === 'partial_match'
+                                                    ? (t('drugAnalysis.partialMatch') || 'Partial Match — Review Needed')
+                                                    : medLabelResults.crossValidation?.overallMatch === 'mismatch'
+                                                    ? (t('drugAnalysis.mismatch') || 'Mismatch — Data Inconsistent')
+                                                    : (t('drugAnalysis.unableToRead') || 'Unable to Read Label')}
+                                            </p>
+                                            {medLabelResults.processingNote && (
+                                                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+                                                    {medLabelResults.processingNote}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        <button onClick={handleMedLabelScanAnother} style={{
+                                            flex: 1, padding: '14px', borderRadius: 12,
+                                            border: '1px solid #475569', backgroundColor: 'transparent',
+                                            color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600,
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                        }}>
+                                            <Camera size={14} color="var(--text-secondary)" />
+                                            {t('drugAnalysis.retakePhoto') || 'Scan Another'}
+                                        </button>
+                                        <button onClick={handleMedLabelDone} style={{
+                                            flex: 1, padding: '14px', borderRadius: 12, border: 'none',
+                                            background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
+                                            color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                        }}>
+                                            <Check size={16} color="#fff" strokeWidth={3} />
+                                            {t('drugAnalysis.confirmContinue') || 'Confirm & Continue'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ padding: 40, textAlign: 'center' }}>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>No results available</p>
+                                    <button onClick={handleMedLabelScanAnother} style={{
+                                        marginTop: 12, padding: '12px 20px', borderRadius: 10, border: 'none',
+                                        backgroundColor: '#1A8A9E', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                    }}>Try Again</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Report Upload Overlay */}
+                {showReportUpload && (
+                    <ReportUpload
+                        specialty={specialty || 'family_medicine'}
+                        language={lang}
+                        sessionId={sessionId}
+                        onComplete={(reports) => {
+                            setShowReportUpload(false);
+                            console.log('[AiChat] Reports uploaded:', reports.length);
+                            // Add summary message to chat
+                            const verified = reports.filter(r => r.status === 'verified' || r.status === 'outdated');
+                            const rejected = reports.filter(r => r.status === 'rejected');
+                            if (verified.length > 0) {
+                                addMessage(createSystemMsg(
+                                    `📎 ${verified.length} report${verified.length > 1 ? 's' : ''} uploaded and verified by AI.` +
+                                    (rejected.length > 0 ? ` ${rejected.length} rejected.` : '')
+                                ));
+                            }
+                            // Advance past report_upload and report_analysis nodes
+                            const idx = reportUploadNodeIdxRef.current;
+                            if (idx !== null) {
+                                // Skip report_upload + report_analysis (next 2 nodes)
+                                advanceToNode(idx + 2, sequenceNodes);
+                            }
+                        }}
+                        onDecline={() => {
+                            setShowReportUpload(false);
+                            addMessage(createSystemMsg('📎 No reports uploaded — continuing.'));
+                            const idx = reportUploadNodeIdxRef.current;
+                            if (idx !== null) {
+                                advanceToNode(idx + 2, sequenceNodes);
+                            }
                         }}
                     />
+                )}
 
-                    {/* Voice mic button (idle state) */}
-                    {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState === 'idle' && (
-                        <VoiceInputBar
-                            voiceState={voiceInput.voiceState}
-                            audioLevel={voiceInput.audioLevel}
-                            error={voiceInput.error}
-                            voiceMode={voiceInput.voiceMode}
-                            recordingDuration={voiceInput.recordingDuration}
-                            isSupported={voiceInput.isSupported}
-                            enabled={voiceConfig.enabled}
-                            isRTL={rtl}
-                            onStartListening={voiceInput.startListening}
-                            onStopListening={voiceInput.stopListening}
-                            onCancel={voiceInput.cancelRecording}
-                            onSetVoiceMode={voiceInput.setVoiceMode}
-                            onSwitchToText={() => setShowVoiceInput(false)}
-                            onDismissError={voiceInput.cancelRecording}
-                        />
-                    )}
-
-                    {/* Show mic toggle if voice was hidden */}
-                    {voiceConfig.enabled && !showVoiceInput && (
-                        <button
-                            onClick={() => setShowVoiceInput(true)}
-                            aria-label={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
-                            title={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
-                            style={{
-                                width: 40, height: 40, borderRadius: '50%',
-                                border: '1px solid var(--border)', background: 'transparent',
-                                color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0,
-                            }}
-                        >
-                            <Mic size={18} color="currentColor" />
-                        </button>
-                    )}
-
-                    <button onClick={handleSend} disabled={!input.trim() || isAiTyping}
-                        style={{
-                            padding: '12px 20px', borderRadius: 12, border: 'none',
-                            backgroundColor: input.trim() ? '#1A8A9E' : '#334155',
-                            color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed',
-                            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                        <ArrowUp size={18} color="#fff" strokeWidth={2.5} />
-                    </button>
-                </div>
-
-                {/* Auto-send voice toggle (like admin) */}
-                {voiceConfig.enabled && showVoiceInput && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        gap: 6, paddingTop: 4,
-                    }}>
-                        <label style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            cursor: 'pointer', userSelect: 'none',
-                        }}>
-                            <input
-                                type="checkbox"
-                                checked={autoSendVoice}
-                                onChange={e => setAutoSendVoice(e.target.checked)}
-                                style={{ width: 13, height: 13, accentColor: '#1A8A9E', cursor: 'pointer' }}
+                {/* Input — hidden during photo capture, med label capture, or report upload */}
+                {!showPhotoCapture && !showMedLabelCapture && !showReportUpload && (
+                    <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                        {/* Voice Input Bar (shown when voice mode is active and listening/processing/error) */}
+                        {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState !== 'idle' && (
+                            <VoiceInputBar
+                                voiceState={voiceInput.voiceState}
+                                audioLevel={voiceInput.audioLevel}
+                                error={voiceInput.error}
+                                voiceMode={voiceInput.voiceMode}
+                                recordingDuration={voiceInput.recordingDuration}
+                                isSupported={voiceInput.isSupported}
+                                enabled={voiceConfig.enabled}
+                                isRTL={rtl}
+                                onStartListening={voiceInput.startListening}
+                                onStopListening={voiceInput.stopListening}
+                                onCancel={voiceInput.cancelRecording}
+                                onSetVoiceMode={voiceInput.setVoiceMode}
+                                onSwitchToText={() => setShowVoiceInput(false)}
+                                onDismissError={voiceInput.cancelRecording}
                             />
-                            <span style={{
-                                fontSize: 11,
-                                fontWeight: autoSendVoice ? 600 : 400,
-                                color: autoSendVoice ? '#1A8A9E' : 'var(--text-tertiary)',
-                                transition: 'color 0.2s',
+                        )}
+
+                        {/* Text input row */}
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                            <input
+                                ref={inputRef}
+                                value={input}
+                                onChange={e => setInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleSend()}
+                                placeholder={Date.now() < cooldownUntil ? 'Chat paused…' : t('aiChat.inputPlaceholder')}
+                                disabled={Date.now() < cooldownUntil || showBlockedScreen || showAnnouncedModal || voiceInput.voiceState === 'listening' || voiceInput.voiceState === 'processing'}
+                                style={{
+                                    flex: 1, padding: '12px 16px', borderRadius: 12,
+                                    border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)',
+                                    color: 'var(--text-primary)', fontSize: 15, outline: 'none',
+                                }}
+                            />
+
+                            {/* Voice mic button (idle state) */}
+                            {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState === 'idle' && (
+                                <VoiceInputBar
+                                    voiceState={voiceInput.voiceState}
+                                    audioLevel={voiceInput.audioLevel}
+                                    error={voiceInput.error}
+                                    voiceMode={voiceInput.voiceMode}
+                                    recordingDuration={voiceInput.recordingDuration}
+                                    isSupported={voiceInput.isSupported}
+                                    enabled={voiceConfig.enabled}
+                                    isRTL={rtl}
+                                    onStartListening={voiceInput.startListening}
+                                    onStopListening={voiceInput.stopListening}
+                                    onCancel={voiceInput.cancelRecording}
+                                    onSetVoiceMode={voiceInput.setVoiceMode}
+                                    onSwitchToText={() => setShowVoiceInput(false)}
+                                    onDismissError={voiceInput.cancelRecording}
+                                />
+                            )}
+
+                            {/* Show mic toggle if voice was hidden */}
+                            {voiceConfig.enabled && !showVoiceInput && (
+                                <button
+                                    onClick={() => setShowVoiceInput(true)}
+                                    aria-label={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
+                                    title={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
+                                    style={{
+                                        width: 40, height: 40, borderRadius: '50%',
+                                        border: '1px solid var(--border)', background: 'transparent',
+                                        color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <Mic size={18} color="currentColor" />
+                                </button>
+                            )}
+
+                            <button onClick={handleSend} disabled={!input.trim() || isAiTyping}
+                                style={{
+                                    padding: '12px 20px', borderRadius: 12, border: 'none',
+                                    backgroundColor: input.trim() ? '#1A8A9E' : '#334155',
+                                    color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed',
+                                    flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                <ArrowUp size={18} color="#fff" strokeWidth={2.5} />
+                            </button>
+                        </div>
+
+                        {/* Auto-send voice toggle (like admin) */}
+                        {voiceConfig.enabled && showVoiceInput && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                gap: 6, paddingTop: 4,
                             }}>
-                                {rtl ? 'إرسال تلقائي بالصوت' : 'Auto-send voice'}
-                            </span>
-                        </label>
+                                <label style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                                    cursor: 'pointer', userSelect: 'none',
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={autoSendVoice}
+                                        onChange={e => setAutoSendVoice(e.target.checked)}
+                                        style={{ width: 13, height: 13, accentColor: '#1A8A9E', cursor: 'pointer' }}
+                                    />
+                                    <span style={{
+                                        fontSize: 11,
+                                        fontWeight: autoSendVoice ? 600 : 400,
+                                        color: autoSendVoice ? '#1A8A9E' : 'var(--text-tertiary)',
+                                        transition: 'color 0.2s',
+                                    }}>
+                                        {rtl ? 'إرسال تلقائي بالصوت' : 'Auto-send voice'}
+                                    </span>
+                                </label>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Announced Modal ─────────────── */}
+                {showAnnouncedModal && (
+                    <div style={{
+                        position: 'fixed', inset: 0, backgroundColor: '#00000090',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+                        padding: 20,
+                    }}>
+                        <div style={{
+                            maxWidth: 400, width: '100%', backgroundColor: 'var(--bg-card)',
+                            borderRadius: 20, padding: 28, border: '1px solid var(--border)',
+                        }}>
+                            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                <AlertTriangle size={48} color="#D97706" style={{ display: 'block', marginBottom: 12 }} />
+                                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                                    {t('aiChat.specialtyUnavailableTitle')}
+                                </h3>
+                                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: 0 }}>
+                                    {gateMessage}
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <button onClick={handleAnnouncedContinue} style={{
+                                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                                    backgroundColor: '#1A8A9E', color: '#fff', fontSize: 15, fontWeight: 700,
+                                    cursor: 'pointer',
+                                }}>
+                                    {t('aiChat.continueWithFM')}
+                                </button>
+                                <button onClick={handleAnnouncedCancel} style={{
+                                    width: '100%', padding: '14px', borderRadius: 12, border: '1px solid #475569',
+                                    backgroundColor: 'transparent', color: 'var(--text-secondary)', fontSize: 15, fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}>
+                                    {t('common.cancel')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Blocked Screen ──────────────── */}
+                {showBlockedScreen && (
+                    <div style={{
+                        position: 'fixed', inset: 0, backgroundColor: 'var(--bg-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+                        padding: 20,
+                    }}>
+                        <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
+                            <Ban size={64} color="#DC2626" style={{ display: 'block', marginBottom: 20 }} />
+                            <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px' }}>
+                                {t('aiChat.serviceUnavailable')}
+                            </h2>
+                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: '0 0 28px' }}>
+                                {gateMessage}
+                            </p>
+                            <button onClick={handleBlockedReturn} style={{
+                                padding: '14px 40px', borderRadius: 14, border: 'none',
+                                backgroundColor: '#1A8A9E', color: '#fff', fontSize: 16, fontWeight: 700,
+                                cursor: 'pointer',
+                            }}>
+                                {t('aiChat.returnHome')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Inline Report Modal ─────────────── */}
+                {reportingMsgId && (
+                    <div style={{
+                        position: 'fixed', inset: 0, backgroundColor: '#00000090',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100,
+                        padding: '0 0 0 0',
+                    }} onClick={() => setReportingMsgId(null)}>
+                        <div style={{
+                            maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                            borderRadius: '20px 20px 0 0', padding: '24px 20px 32px',
+                            border: '1px solid var(--border)', borderBottom: 'none',
+                        }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                                <Flag size={18} color="#D97706" />
+                                <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                                    {t('report.title')}
+                                </h3>
+                            </div>
+                            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: '19px' }}>
+                                {t('report.description')}
+                            </p>
+
+                            {/* Category chips */}
+                            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 8px', textTransform: 'uppercase' }}>
+                                {t('report.whatHappened')}
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                                {(['wrongQuestion', 'repeatedQuestion', 'inappropriate', 'stuckLoop', 'skippedSection', 'otherIssue'] as const).map(key => (
+                                    <button key={key} onClick={() => setReportCategory(key)} style={{
+                                        padding: '7px 12px', borderRadius: 10, fontSize: 12,
+                                        border: `1px solid ${reportCategory === key ? '#D97706' : '#334155'}`,
+                                        backgroundColor: reportCategory === key ? '#D9770620' : 'var(--bg-primary)',
+                                        color: reportCategory === key ? '#D97706' : 'var(--text-secondary)',
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>
+                                        {t(`report.${key}`)}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Optional description */}
+                            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 6px', textTransform: 'uppercase' }}>
+                                {t('report.describeIssue')} <span style={{ fontWeight: 400, textTransform: 'none' }}>({t('settings.optional')})</span>
+                            </p>
+                            <textarea
+                                value={reportDescription}
+                                onChange={e => setReportDescription(e.target.value)}
+                                placeholder={t('report.placeholder')}
+                                rows={3}
+                                style={{
+                                    width: '100%', padding: '10px 14px', borderRadius: 10,
+                                    border: '1px solid var(--border)', backgroundColor: 'var(--bg-primary)',
+                                    color: 'var(--text-primary)', fontSize: 13, resize: 'vertical',
+                                    boxSizing: 'border-box', outline: 'none', marginBottom: 6,
+                                }}
+                            />
+                            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: '16px' }}>
+                                {t('report.infoNote')}
+                            </p>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => setReportingMsgId(null)} style={{
+                                    flex: 1, padding: '12px', borderRadius: 12,
+                                    border: '1px solid #475569', backgroundColor: 'transparent',
+                                    color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                }}>
+                                    {t('common.cancel')}
+                                </button>
+                                <button onClick={handleReportSubmit} disabled={reportSubmitting} style={{
+                                    flex: 1, padding: '12px', borderRadius: 12, border: 'none',
+                                    backgroundColor: '#D97706', color: '#fff', fontSize: 14, fontWeight: 700,
+                                    cursor: reportSubmitting ? 'not-allowed' : 'pointer',
+                                    opacity: reportSubmitting ? 0.7 : 1,
+                                }}>
+                                    {reportSubmitting ? t('settings.saving') : t('report.submitButton')}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
-            )}
-
-            {/* ── Announced Modal ─────────────── */}
-            {showAnnouncedModal && (
-                <div style={{
-                    position: 'fixed', inset: 0, backgroundColor: '#00000090',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
-                    padding: 20,
-                }}>
-                    <div style={{
-                        maxWidth: 400, width: '100%', backgroundColor: 'var(--bg-card)',
-                        borderRadius: 20, padding: 28, border: '1px solid var(--border)',
-                    }}>
-                        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                            <AlertTriangle size={48} color="#D97706" style={{ display: 'block', marginBottom: 12 }} />
-                            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
-                                {t('aiChat.specialtyUnavailableTitle')}
-                            </h3>
-                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: 0 }}>
-                                {gateMessage}
-                            </p>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <button onClick={handleAnnouncedContinue} style={{
-                                width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-                                backgroundColor: '#1A8A9E', color: '#fff', fontSize: 15, fontWeight: 700,
-                                cursor: 'pointer',
-                            }}>
-                                {t('aiChat.continueWithFM')}
-                            </button>
-                            <button onClick={handleAnnouncedCancel} style={{
-                                width: '100%', padding: '14px', borderRadius: 12, border: '1px solid #475569',
-                                backgroundColor: 'transparent', color: 'var(--text-secondary)', fontSize: 15, fontWeight: 600,
-                                cursor: 'pointer',
-                            }}>
-                                {t('common.cancel')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Blocked Screen ──────────────── */}
-            {showBlockedScreen && (
-                <div style={{
-                    position: 'fixed', inset: 0, backgroundColor: 'var(--bg-primary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
-                    padding: 20,
-                }}>
-                    <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
-                        <Ban size={64} color="#DC2626" style={{ display: 'block', marginBottom: 20 }} />
-                        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px' }}>
-                            {t('aiChat.serviceUnavailable')}
-                        </h2>
-                        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: '0 0 28px' }}>
-                            {gateMessage}
-                        </p>
-                        <button onClick={handleBlockedReturn} style={{
-                            padding: '14px 40px', borderRadius: 14, border: 'none',
-                            backgroundColor: '#1A8A9E', color: '#fff', fontSize: 16, fontWeight: 700,
-                            cursor: 'pointer',
-                        }}>
-                            {t('aiChat.returnHome')}
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Inline Report Modal ─────────────── */}
-            {reportingMsgId && (
-                <div style={{
-                    position: 'fixed', inset: 0, backgroundColor: '#00000090',
-                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100,
-                    padding: '0 0 0 0',
-                }} onClick={() => setReportingMsgId(null)}>
-                    <div style={{
-                        maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
-                        borderRadius: '20px 20px 0 0', padding: '24px 20px 32px',
-                        border: '1px solid var(--border)', borderBottom: 'none',
-                    }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                            <Flag size={18} color="#D97706" />
-                            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                                {t('report.title')}
-                            </h3>
-                        </div>
-                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: '19px' }}>
-                            {t('report.description')}
-                        </p>
-
-                        {/* Category chips */}
-                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 8px', textTransform: 'uppercase' }}>
-                            {t('report.whatHappened')}
-                        </p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                            {(['wrongQuestion', 'repeatedQuestion', 'inappropriate', 'stuckLoop', 'skippedSection', 'otherIssue'] as const).map(key => (
-                                <button key={key} onClick={() => setReportCategory(key)} style={{
-                                    padding: '7px 12px', borderRadius: 10, fontSize: 12,
-                                    border: `1px solid ${reportCategory === key ? '#D97706' : '#334155'}`,
-                                    backgroundColor: reportCategory === key ? '#D9770620' : 'var(--bg-primary)',
-                                    color: reportCategory === key ? '#D97706' : 'var(--text-secondary)',
-                                    cursor: 'pointer', transition: 'all 0.15s',
-                                }}>
-                                    {t(`report.${key}`)}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Optional description */}
-                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 6px', textTransform: 'uppercase' }}>
-                            {t('report.describeIssue')} <span style={{ fontWeight: 400, textTransform: 'none' }}>({t('settings.optional')})</span>
-                        </p>
-                        <textarea
-                            value={reportDescription}
-                            onChange={e => setReportDescription(e.target.value)}
-                            placeholder={t('report.placeholder')}
-                            rows={3}
-                            style={{
-                                width: '100%', padding: '10px 14px', borderRadius: 10,
-                                border: '1px solid var(--border)', backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-primary)', fontSize: 13, resize: 'vertical',
-                                boxSizing: 'border-box', outline: 'none', marginBottom: 6,
-                            }}
-                        />
-                        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: '16px' }}>
-                            {t('report.infoNote')}
-                        </p>
-
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => setReportingMsgId(null)} style={{
-                                flex: 1, padding: '12px', borderRadius: 12,
-                                border: '1px solid #475569', backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                            }}>
-                                {t('common.cancel')}
-                            </button>
-                            <button onClick={handleReportSubmit} disabled={reportSubmitting} style={{
-                                flex: 1, padding: '12px', borderRadius: 12, border: 'none',
-                                backgroundColor: '#D97706', color: '#fff', fontSize: 14, fontWeight: 700,
-                                cursor: reportSubmitting ? 'not-allowed' : 'pointer',
-                                opacity: reportSubmitting ? 0.7 : 1,
-                            }}>
-                                {reportSubmitting ? t('settings.saving') : t('report.submitButton')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
         </PermissionGate>
     );
 }

@@ -21,6 +21,7 @@ const ALLOWED_ORIGINS = [
     'http://127.0.0.1:8081',
     'capacitor://localhost',
     'http://localhost',
+    'https://localhost',        // Android Capacitor (https scheme)
 ];
 
 function getCorsHeaders(req: Request) {

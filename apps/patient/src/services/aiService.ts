@@ -66,7 +66,7 @@ export interface SequenceNode {
     pathway_condition: string | null;
     gender_condition: string | null;
     specialty_condition: string | null;
-    node_type: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | 'system_classify' | 'system_extract' | 'system_upload';
+    node_type: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | 'system_classify' | 'system_extract' | 'system_upload' | 'med_label_capture';
     max_turns: number | null;
     // Joined prompt content
     ai_prompts: {
@@ -433,6 +433,29 @@ export async function analyzeDrugLabel(
     });
 }
 
+// ── Medication Verification (text-based, silent) ─────
+export interface MedicationVerification {
+    name: string;
+    genericName: string | null;
+    statedDosage: string;
+    status: 'verified' | 'needs_confirmation' | 'unrecognized';
+    statusReason: string;
+    therapeuticRange: string | null;
+    commonIndications: string[];
+    dailyDoseStatus: string;
+    confidence: number;
+}
+
+export async function verifyMedications(
+    medications: { name: string; dosage?: string }[],
+    language: 'en' | 'ar' = 'en',
+): Promise<{ verifications: MedicationVerification[] }> {
+    return callAI<{ verifications: MedicationVerification[] }>('verify-medication', {
+        medications,
+        language,
+    });
+}
+
 async function fetchSequenceNodes(sequenceId: string): Promise<SequenceNode[]> {
     const { data: nodes, error } = await safeFetch(
         () => supabase
@@ -687,8 +710,8 @@ export async function classifyPathway(
 export interface ReportAnalysis {
     isValidDocument: boolean;
     documentType: 'lab' | 'imaging' | 'pathology' | 'prescription' | 'psychiatric_evaluation' |
-        'therapy_notes' | 'growth_chart' | 'vaccination' | 'body_composition' |
-        'surgical_report' | 'previous_report' | 'general' | 'unknown';
+    'therapy_notes' | 'growth_chart' | 'vaccination' | 'body_composition' |
+    'surgical_report' | 'previous_report' | 'general' | 'unknown';
     documentDate: string | null;
     dateRelevance: 'current' | 'recent' | 'outdated' | 'unknown';
     documentLanguage: 'en' | 'ar' | 'other';

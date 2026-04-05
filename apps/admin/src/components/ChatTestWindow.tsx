@@ -1119,9 +1119,11 @@ export default function ChatTestWindow({
                         return;
                     }
 
-                    // Skip photo_capture in admin tester (no camera available)
-                    if (nextNode.step_key === 'photo_capture') {
-                        const skipMsg: Message = { id: uid(), role: 'system', content: '📸 Photo upload — skipped (test mode)', timestamp: Date.now() };
+                    // Skip photo_capture or med_label_capture in admin tester (no camera available)
+                    if (nextNode.step_key === 'photo_capture' || nextNode.step_key === 'med_label_capture') {
+                        const skipEmoji = nextNode.step_key === 'med_label_capture' ? '💊' : '📸';
+                        const skipLabel = nextNode.step_key === 'med_label_capture' ? 'Med label scan' : 'Photo upload';
+                        const skipMsg: Message = { id: uid(), role: 'system', content: `${skipEmoji} ${skipLabel} — skipped (test mode)`, timestamp: Date.now() };
                         setMessages(prev => [...prev, skipMsg]);
                         const postPhotoIdx = nextIdx + 1;
                         if (postPhotoIdx < currentFlow.length) {
@@ -1693,9 +1695,11 @@ export default function ChatTestWindow({
                         return;
                     }
 
-                    // Skip photo_capture in admin tester
-                    if (nextNode.step_key === 'photo_capture') {
-                        const skipMsg2: Message = { id: uid(), role: 'system', content: '📸 Photo upload — skipped (test mode)', timestamp: Date.now() };
+                    // Skip photo_capture or med_label_capture in admin tester
+                    if (nextNode.step_key === 'photo_capture' || nextNode.step_key === 'med_label_capture') {
+                        const skipEmoji2 = nextNode.step_key === 'med_label_capture' ? '💊' : '📸';
+                        const skipLabel2 = nextNode.step_key === 'med_label_capture' ? 'Med label scan' : 'Photo upload';
+                        const skipMsg2: Message = { id: uid(), role: 'system', content: `${skipEmoji2} ${skipLabel2} — skipped (test mode)`, timestamp: Date.now() };
                         setMessages(prev => [...prev, skipMsg2]);
 
                         // Mark section boundary

@@ -14,7 +14,7 @@ const MAX_CONVERSATION_MESSAGES = 40; // Sliding window: keep last N messages
 const MAX_MESSAGE_LENGTH = 3000;      // Max chars per patient message
 
 // ── Sections that don't use [SECTION_COMPLETE] ──
-const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary', 'photo_capture', 'patient_addendum'];
+const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary', 'photo_capture', 'med_label_capture', 'patient_addendum'];
 
 // ── Behavioral suffix (appended to all interview section prompts) ──
 const BEHAVIOR_SUFFIX = `
@@ -115,6 +115,7 @@ function detectSoftRedirect(aiResponse: string): string | null {
 const ALLOWED_ORIGINS = [
     'http://localhost:3001',    // admin panel dev
     'http://localhost:3002',    // patient app dev (vite)
+    'http://localhost:3003',    // doctor app dev
     'http://localhost:5173',    // vite dev
     'http://localhost:8081',    // expo dev
     'http://127.0.0.1:3001',
@@ -122,7 +123,8 @@ const ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8081',
     'capacitor://localhost',    // iOS Capacitor
-    'http://localhost',         // Android Capacitor
+    'http://localhost',         // Android Capacitor (http scheme)
+    'https://localhost',        // Android Capacitor (https scheme)
 ];
 
 function getCorsHeaders(req: Request) {
@@ -822,11 +824,11 @@ Respond in JSON:
                         // Announced mode — include admin reason + patient message
                         const adminReasonLabel = override.reason_code === 'doctor_unavailable' ? 'The doctor for this specialty is currently unavailable'
                             : override.reason_code === 'scheduling_conflict' ? 'There is a scheduling conflict for this specialty'
-                            : override.reason_code === 'system_maintenance' ? 'This specialty service is undergoing maintenance'
-                            : override.reason_code === 'quality_review' ? 'This specialty is currently under quality review'
-                            : override.reason_code === 'regulatory' ? 'Regulatory requirements have temporarily paused this specialty'
-                            : override.reason_code === 'staffing_shortage' ? 'We are experiencing a temporary staffing shortage in this specialty'
-                            : 'This specialty is temporarily unavailable';
+                                : override.reason_code === 'system_maintenance' ? 'This specialty service is undergoing maintenance'
+                                    : override.reason_code === 'quality_review' ? 'This specialty is currently under quality review'
+                                        : override.reason_code === 'regulatory' ? 'Regulatory requirements have temporarily paused this specialty'
+                                            : override.reason_code === 'staffing_shortage' ? 'We are experiencing a temporary staffing shortage in this specialty'
+                                                : 'This specialty is temporarily unavailable';
 
                         // Generate patient-friendly message if admin didn't provide one
                         const patientMessage = override.patient_message || (
