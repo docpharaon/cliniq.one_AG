@@ -1205,6 +1205,59 @@ export default function AiChatPage() {
         setCapturedPhotos(prev => prev.filter(p => p !== uri));
     }
 
+    // ── Med Label Capture Handlers ────────────────
+    function handleMedLabelOfferSkip() {
+        setShowMedLabelCapture(false);
+        addMessage(createSystemMsg('💊 ' + (t('drugLabel.skip') || 'Medication label scan skipped')));
+        const nextIdx = currentNodeIndex + 1;
+        advanceToNode(nextIdx, sequenceNodes);
+    }
+
+    function handleMedLabelOfferAccept() {
+        setMedLabelStep('capture');
+    }
+
+    async function handleMedLabelCaptured(imageBase64: string) {
+        setMedLabelStep('results');
+        setMedLabelAnalyzing(true);
+        try {
+            const currentMeds = useIntakeStore.getState().medications;
+            const statedMed = currentMeds.length > 0 ? currentMeds.join(', ') : '';
+            const result = await analyzeDrugLabel(imageBase64, statedMed, '', lang);
+            setMedLabelResults(result);
+            setMedLabelScannedCount(prev => prev + 1);
+            addDrugLabelAnalysis(result as any);
+
+            const matchLabel = result.crossValidation?.overallMatch === 'match'
+                ? '✅ Match' : result.crossValidation?.overallMatch === 'partial_match'
+                ? '⚠️ Partial Match' : result.crossValidation?.overallMatch === 'mismatch'
+                ? '❌ Mismatch' : '🔍 Unable to read';
+            addMessage(createSystemMsg(
+                `💊 Label scanned: ${result.extracted?.drugName || 'Unknown'} ${result.extracted?.dosage || ''} — ${matchLabel} (${result.confidence || 0}% confidence)`
+            ));
+        } catch (err) {
+            console.error('[AiChat] Drug label analysis failed:', err);
+            addMessage(createSystemMsg('⚠️ Could not analyze medication label. You can try again or skip.'));
+            setMedLabelStep('capture');
+        } finally {
+            setMedLabelAnalyzing(false);
+        }
+    }
+
+    function handleMedLabelScanAnother() {
+        setMedLabelStep('capture');
+        setMedLabelResults(null);
+    }
+
+    function handleMedLabelDone() {
+        setShowMedLabelCapture(false);
+        if (medLabelScannedCount > 0) {
+            addMessage(createSystemMsg(`💊 ${medLabelScannedCount} medication label(s) scanned and verified`));
+        }
+        const nextIdx = currentNodeIndex + 1;
+        advanceToNode(nextIdx, sequenceNodes);
+    }
+
     // ── Inline Report Handler ─────────────────────
     async function handleReportSubmit() {
         if (!reportingMsgId || !user?.id) return;
