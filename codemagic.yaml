@@ -149,21 +149,18 @@ workflows:
           cat "$PLIST"
       - name: Build IPA
         script: |
-          cd apps/patient-capacitor/ios/App
-          PP_UUID=$(cat /tmp/pp_uuid.txt)
-          TEAM_ID=$(cat /tmp/team_id.txt)
-          echo "Building IPA — Profile: $PP_UUID  Team: $TEAM_ID"
-          if [ -d "App.xcworkspace" ]; then
-            xcode-project build-ipa \
-              --workspace "App.xcworkspace" \
-              --scheme "App" \
-              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
-          else
-            xcode-project build-ipa \
-              --project "App.xcodeproj" \
-              --scheme "App" \
-              --xcargs "DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE=$PP_UUID"
-          fi
+         cd apps/patient-capacitor/ios/App
+echo "Building IPA (signing via use-profiles)"
+if [ -d "App.xcworkspace" ]; then
+  xcode-project build-ipa \
+    --workspace "App.xcworkspace" \
+    --scheme "App"
+else
+  xcode-project build-ipa \
+    --project "App.xcodeproj" \
+    --scheme "App"
+fi
+
     artifacts:
       - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
