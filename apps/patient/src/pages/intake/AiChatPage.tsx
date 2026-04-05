@@ -21,8 +21,10 @@ import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { BackButton } from '../../components/BackButton';
 import { VoiceInputBar, RecordingIndicator } from '../../components/VoiceInputBar';
+import { PermissionGate } from '../../components/PermissionGate';
 import { useToast } from '../../components/ToastProvider';
-import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp, Flag } from '@cliniqone/ui';
+import { ReportUpload } from '../../components/ReportUpload';
+import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp, Flag, Camera, X, Check, ChevronDown, ChevronUp, Paperclip } from '@cliniqone/ui';
 import aiDoctorAvatar from '../../../assets/ai-doctor-avatar.jpg';
 
 // ── Strip internal AI routing tags before display ──
@@ -62,6 +64,7 @@ export default function AiChatPage() {
         setAiSummary, incrementGibberish, resetGibberish,
         addProtocolFlag, addQA, setMedications, setAllergies,
         setAiError, clearAiError, setSpecialty, setChiefComplaint,
+        addPhoto,
     } = useIntakeStore();
 
     // ── Helper: persist sequence flow to DB (best-effort, non-blocking) ──
@@ -81,6 +84,18 @@ export default function AiChatPage() {
 
     // Local state
     const [input, setInput] = useState('');
+
+    // ── Photo Capture State ──────────────────────
+    const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+    const [photoCaptureStep, setPhotoCaptureStep] = useState<'offer' | 'consent' | 'upload'>('offer');
+    const [photoCaptureConsent, setPhotoCaptureConsent] = useState(false);
+    const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+    const [showPhotoTips, setShowPhotoTips] = useState(false);
+    const photoInputRef = useRef<HTMLInputElement>(null);
+
+    // ── Report Upload State ──────────────────────
+    const [showReportUpload, setShowReportUpload] = useState(false);
+    const reportUploadNodeIdxRef = useRef<number | null>(null);
 
     // Inline report state
     const [reportingMsgId, setReportingMsgId] = useState<string | null>(null);
@@ -633,6 +648,39 @@ export default function AiChatPage() {
 
         const node = activeNodes[nodeIdx];
 
+        // ── Photo Capture Node — show inline UX instead of skipping ──
+        if (node.step_key === 'photo_capture') {
+            console.log('[AiChat] Photo capture node detected — showing photo flow');
+            setCurrentNodeIndex(nodeIdx);
+            setProgress(getProgressForNode(nodeIdx, activeNodes.length));
+            setShowPhotoCapture(true);
+            setPhotoCaptureStep('offer');
+            setPhotoCaptureConsent(false);
+            setCapturedPhotos([]);
+            setShowPhotoTips(false);
+            // Add a system message announcing the photo step
+            addMessage(createSystemMsg('📸 ' + (t('photo.offerTitle') || 'Would you like to add a photo?')));
+            return; // Don't auto-advance — wait for user interaction
+        }
+
+        // ── Report Upload Node — show upload overlay ──
+        if (node.node_type === 'system_upload' && node.step_key === 'report_upload') {
+            console.log('[AiChat] Report upload node detected — showing upload overlay');
+            setCurrentNodeIndex(nodeIdx);
+            setProgress(getProgressForNode(nodeIdx, activeNodes.length));
+            reportUploadNodeIdxRef.current = nodeIdx;
+            setShowReportUpload(true);
+            addMessage(createSystemMsg('📎 Do you have any medical reports or test results to upload?'));
+            return; // Don't auto-advance — wait for user interaction
+        }
+
+        // ── Report Analysis Node — auto-advance (analysis already happened during upload) ──
+        if (node.node_type === 'system_extract' && node.step_key === 'report_analysis') {
+            console.log('[AiChat] Report analysis node — auto-advancing (analysis done during upload)');
+            await advanceToNode(nodeIdx + 1, activeNodes);
+            return;
+        }
+
         // Skip system nodes silently (matches admin sandbox — system logic runs at phase boundaries)
         if (node.node_type && node.node_type !== 'chat') {
             console.log(`[AiChat] Skipping system node: ${node.step_key} (${node.node_type})`);
@@ -1030,6 +1078,66 @@ export default function AiChatPage() {
         return () => clearInterval(timer);
     }, [sessionId, conversationHistory, sectionTurnCount]);
 
+    // ── Photo Capture Handlers ────────────────────
+    function handlePhotoOfferAccept() {
+        setPhotoCaptureStep('consent');
+    }
+
+    function handlePhotoOfferSkip() {
+        setShowPhotoCapture(false);
+        addMessage(createSystemMsg(t('aiChat.photoSkipped') || '📸 Photo upload skipped'));
+        // Advance past the photo_capture node
+        const nextIdx = currentNodeIndex + 1;
+        advanceToNode(nextIdx, sequenceNodes);
+    }
+
+    function handlePhotoConsentContinue() {
+        if (!photoCaptureConsent) return;
+        setPhotoCaptureStep('upload');
+    }
+
+    function handlePhotoFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const files = e.target.files;
+        if (!files) return;
+        Array.from(files).forEach((file) => {
+            if (capturedPhotos.length >= 5) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                    setCapturedPhotos(prev => [...prev, reader.result as string]);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = ''; // Reset so same file can be re-selected
+    }
+
+    function handlePhotoDone() {
+        if (capturedPhotos.length === 0) {
+            handlePhotoOfferSkip();
+            return;
+        }
+        // Save photos to intake store
+        capturedPhotos.forEach(uri => addPhoto(uri));
+        // Add patient message with photo thumbnails
+        const photoMsg: ChatMessage = {
+            id: `pt_photo_${Date.now()}`,
+            role: 'patient',
+            content: t('aiChat.photosUploaded', { count: String(capturedPhotos.length) }) || `📸 ${capturedPhotos.length} photo(s) uploaded`,
+            timestamp: Date.now(),
+            imageUrls: [...capturedPhotos],
+        };
+        addMessage(photoMsg);
+        setShowPhotoCapture(false);
+        // Advance past the photo_capture node
+        const nextIdx = currentNodeIndex + 1;
+        advanceToNode(nextIdx, sequenceNodes);
+    }
+
+    function handlePhotoRemove(uri: string) {
+        setCapturedPhotos(prev => prev.filter(p => p !== uri));
+    }
+
     // ── Inline Report Handler ─────────────────────
     async function handleReportSubmit() {
         if (!reportingMsgId || !user?.id) return;
@@ -1068,6 +1176,7 @@ export default function AiChatPage() {
     }
 
     return (
+        <PermissionGate>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-primary)', paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0, transition: 'padding-bottom 0.15s ease-out' }}>
             {/* Header */}
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
@@ -1132,6 +1241,17 @@ export default function AiChatPage() {
                                 </p>
                             )}
                             <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                            {/* Photo thumbnails in message */}
+                            {msg.imageUrls && msg.imageUrls.length > 0 && (
+                                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                                    {msg.imageUrls.map((url, i) => (
+                                        <img key={i} src={url} alt={`Photo ${i + 1}`} style={{
+                                            width: 56, height: 56, borderRadius: 8, objectFit: 'cover',
+                                            border: '1.5px solid rgba(255,255,255,0.3)',
+                                        }} />
+                                    ))}
+                                </div>
+                            )}
                             {msg.options && msg.options.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                                     {msg.options.map((opt, i) => (
@@ -1191,10 +1311,304 @@ export default function AiChatPage() {
                     </div>
                 )}
 
+                {/* ── Photo Capture: Step 1 — Offer Card ────── */}
+                {showPhotoCapture && photoCaptureStep === 'offer' && (
+                    <div style={{
+                        margin: '8px 0 12px', padding: 20, borderRadius: 16,
+                        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                        border: '1px solid #334155',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                            <div style={{
+                                width: 40, height: 40, borderRadius: 12,
+                                background: 'linear-gradient(135deg, #1A8A9E 0%, #2DD4BF 100%)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            }}>
+                                <Camera size={20} color="#fff" />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0 }}>
+                                    {t('photo.offerTitle')}
+                                </p>
+                                <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>
+                                    {t('photo.offerDesc')}
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={handlePhotoOfferAccept} style={{
+                                flex: 1, padding: '12px 16px', borderRadius: 12, border: 'none',
+                                background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
+                                color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            }}>
+                                <Camera size={16} color="#fff" /> {t('photo.yesAdd')}
+                            </button>
+                            <button onClick={handlePhotoOfferSkip} style={{
+                                flex: 1, padding: '12px 16px', borderRadius: 12,
+                                border: '1px solid #475569', backgroundColor: 'transparent',
+                                color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                            }}>
+                                {t('photo.skip')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div ref={chatEndRef} />
             </div>
 
-            {/* Input */}
+            {/* ── Photo Capture: Step 2 — Consent Overlay ────── */}
+            {showPhotoCapture && photoCaptureStep === 'consent' && (
+                <div style={{
+                    position: 'fixed', inset: 0, backgroundColor: '#000000cc',
+                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                    zIndex: 200, padding: 0,
+                }}>
+                    <div style={{
+                        maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                        borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+                        border: '1px solid var(--border)', borderBottom: 'none',
+                        maxHeight: '85vh', overflowY: 'auto',
+                    }}>
+                        {/* Header */}
+                        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {t('photo.consentTitle')}
+                        </h3>
+
+                        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '22px', margin: '0 0 16px' }}>
+                            {t('photo.consentLine1')}
+                        </p>
+
+                        {/* Consent bullets */}
+                        <div style={{ marginBottom: 20 }}>
+                            {[t('photo.consentBullet1'), t('photo.consentBullet2'), t('photo.consentBullet3')].map((bullet, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10 }}>
+                                    <div style={{
+                                        width: 20, height: 20, borderRadius: 6,
+                                        backgroundColor: '#1A8A9E20', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
+                                    }}>
+                                        <Check size={12} color="#1A8A9E" strokeWidth={3} />
+                                    </div>
+                                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: '18px' }}>{bullet}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px', fontStyle: 'italic' }}>
+                            {t('photo.consentOptional')}
+                        </p>
+
+                        {/* Consent checkbox */}
+                        <label style={{
+                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                            padding: '12px 14px', borderRadius: 12,
+                            border: `1px solid ${photoCaptureConsent ? '#1A8A9E' : '#334155'}`,
+                            backgroundColor: photoCaptureConsent ? '#1A8A9E10' : 'transparent',
+                            transition: 'all 0.2s', marginBottom: 20,
+                        }}>
+                            <input
+                                type="checkbox" checked={photoCaptureConsent}
+                                onChange={e => setPhotoCaptureConsent(e.target.checked)}
+                                style={{ width: 16, height: 16, accentColor: '#1A8A9E', cursor: 'pointer' }}
+                            />
+                            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
+                                {t('photo.checkboxLabel')}
+                            </span>
+                        </label>
+
+                        {/* Photo tips accordion */}
+                        <button onClick={() => setShowPhotoTips(!showPhotoTips)} style={{
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '10px 14px', borderRadius: 10, border: '1px solid #334155',
+                            backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)',
+                            cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: showPhotoTips ? 12 : 20,
+                        }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Camera size={14} color="var(--text-tertiary)" /> {t('photo.instructionsTitle')}
+                            </span>
+                            {showPhotoTips
+                                ? <ChevronUp size={16} color="var(--text-tertiary)" />
+                                : <ChevronDown size={16} color="var(--text-tertiary)" />
+                            }
+                        </button>
+                        {showPhotoTips && (
+                            <div style={{
+                                padding: '12px 14px', borderRadius: 10, backgroundColor: '#0f172a',
+                                border: '1px solid #1e293b', marginBottom: 20,
+                            }}>
+                                {[t('photo.tip1'), t('photo.tip2'), t('photo.tip3'), t('photo.tip4'), t('photo.tip5'), t('photo.tip6')].map((tip, i) => (
+                                    <p key={i} style={{ fontSize: 12, color: '#94a3b8', margin: i < 5 ? '0 0 6px' : 0, lineHeight: '17px' }}>
+                                        {`${i + 1}. ${tip}`}
+                                    </p>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => { setPhotoCaptureStep('offer'); }} style={{
+                                flex: 1, padding: '14px', borderRadius: 12,
+                                border: '1px solid #475569', backgroundColor: 'transparent',
+                                color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                            }}>
+                                {t('common.back') || '← Back'}
+                            </button>
+                            <button onClick={handlePhotoConsentContinue} disabled={!photoCaptureConsent} style={{
+                                flex: 1, padding: '14px', borderRadius: 12, border: 'none',
+                                background: photoCaptureConsent
+                                    ? 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)'
+                                    : '#334155',
+                                color: photoCaptureConsent ? '#fff' : '#64748b',
+                                fontSize: 14, fontWeight: 700,
+                                cursor: photoCaptureConsent ? 'pointer' : 'not-allowed',
+                                transition: 'all 0.2s',
+                            }}>
+                                {t('photo.continue')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Photo Capture: Step 3 — Upload Overlay ────── */}
+            {showPhotoCapture && photoCaptureStep === 'upload' && (
+                <div style={{
+                    position: 'fixed', inset: 0, backgroundColor: '#000000cc',
+                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                    zIndex: 200, padding: 0,
+                }}>
+                    <div style={{
+                        maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                        borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+                        border: '1px solid var(--border)', borderBottom: 'none',
+                        maxHeight: '85vh', overflowY: 'auto',
+                    }}>
+                        {/* Header */}
+                        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Camera size={20} color="#1A8A9E" /> {t('photo.uploadTitle')}
+                        </h3>
+                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 20px' }}>
+                            {t('photo.photosAdded', { current: String(capturedPhotos.length), max: '5' })}
+                        </p>
+
+                        {/* Photo Grid */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+                            {capturedPhotos.map((photo, idx) => (
+                                <div key={idx} style={{
+                                    position: 'relative', width: 80, height: 80, borderRadius: 12,
+                                    overflow: 'hidden', border: '2px solid #1A8A9E40',
+                                }}>
+                                    <img src={photo} alt={`Photo ${idx + 1}`} style={{
+                                        width: '100%', height: '100%', objectFit: 'cover',
+                                    }} />
+                                    <button onClick={() => handlePhotoRemove(photo)} style={{
+                                        position: 'absolute', top: 3, right: 3, width: 22, height: 22,
+                                        borderRadius: '50%', backgroundColor: 'rgba(220,38,38,0.9)',
+                                        border: 'none', color: '#fff', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <X size={11} color="#fff" strokeWidth={3} />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {/* Add photo button */}
+                            {capturedPhotos.length < 5 && (
+                                <button onClick={() => photoInputRef.current?.click()} style={{
+                                    width: 80, height: 80, borderRadius: 12,
+                                    border: '2px dashed #475569', backgroundColor: 'var(--bg-primary)',
+                                    color: 'var(--text-tertiary)', cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                    justifyContent: 'center', gap: 4, transition: 'border-color 0.2s',
+                                }}>
+                                    <Camera size={20} color="var(--text-tertiary)" />
+                                    <span style={{ fontSize: 10, fontWeight: 600 }}>
+                                        {capturedPhotos.length === 0 ? t('photo.takeOrSelect') : t('photo.addAnother')}
+                                    </span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Hidden file input */}
+                        <input
+                            ref={photoInputRef} type="file" accept="image/*" capture="environment"
+                            onChange={handlePhotoFileSelect} style={{ display: 'none' }}
+                        />
+
+                        {/* Max photos notice */}
+                        {capturedPhotos.length >= 5 && (
+                            <p style={{ fontSize: 12, color: '#D97706', margin: '0 0 12px', textAlign: 'center' }}>
+                                {t('photo.maxPhotosReached', { max: '5' })}
+                            </p>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                            {capturedPhotos.length > 0 && (
+                                <button onClick={handlePhotoDone} style={{
+                                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                                    background: 'linear-gradient(135deg, #1A8A9E 0%, #0d9488 100%)',
+                                    color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                }}>
+                                    <Check size={16} color="#fff" strokeWidth={3} />
+                                    {t('photo.done', { count: String(capturedPhotos.length) })}
+                                </button>
+                            )}
+                            <button onClick={handlePhotoOfferSkip} style={{
+                                width: '100%', padding: capturedPhotos.length > 0 ? '10px' : '14px',
+                                borderRadius: 12, border: capturedPhotos.length > 0 ? 'none' : '1px solid #475569',
+                                backgroundColor: 'transparent',
+                                color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500,
+                                cursor: 'pointer',
+                            }}>
+                                {t('photo.skipWithout')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Report Upload Overlay */}
+            {showReportUpload && (
+                <ReportUpload
+                    specialty={specialty || 'family_medicine'}
+                    language={lang}
+                    sessionId={sessionId}
+                    onComplete={(reports) => {
+                        setShowReportUpload(false);
+                        console.log('[AiChat] Reports uploaded:', reports.length);
+                        // Add summary message to chat
+                        const verified = reports.filter(r => r.status === 'verified' || r.status === 'outdated');
+                        const rejected = reports.filter(r => r.status === 'rejected');
+                        if (verified.length > 0) {
+                            addMessage(createSystemMsg(
+                                `📎 ${verified.length} report${verified.length > 1 ? 's' : ''} uploaded and verified by AI.` +
+                                (rejected.length > 0 ? ` ${rejected.length} rejected.` : '')
+                            ));
+                        }
+                        // Advance past report_upload and report_analysis nodes
+                        const idx = reportUploadNodeIdxRef.current;
+                        if (idx !== null) {
+                            // Skip report_upload + report_analysis (next 2 nodes)
+                            advanceToNode(idx + 2, sequenceNodes);
+                        }
+                    }}
+                    onDecline={() => {
+                        setShowReportUpload(false);
+                        addMessage(createSystemMsg('📎 No reports uploaded — continuing.'));
+                        const idx = reportUploadNodeIdxRef.current;
+                        if (idx !== null) {
+                            advanceToNode(idx + 2, sequenceNodes);
+                        }
+                    }}
+                />
+            )}
+
+            {/* Input — hidden during photo capture or report upload */}
+            {!showPhotoCapture && !showReportUpload && (
             <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
                 {/* Voice Input Bar (shown when voice mode is active and listening/processing/error) */}
                 {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState !== 'idle' && (
@@ -1309,6 +1723,7 @@ export default function AiChatPage() {
                     </div>
                 )}
             </div>
+            )}
 
             {/* ── Announced Modal ─────────────── */}
             {showAnnouncedModal && (
@@ -1458,6 +1873,7 @@ export default function AiChatPage() {
                 </div>
             )}
         </div>
+        </PermissionGate>
     );
 }
 

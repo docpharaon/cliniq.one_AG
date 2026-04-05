@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SectionId, SequenceNode, SequenceResult, LocumDoctor, PathwayClassification } from '../services/aiService';
+import type { SectionId, SequenceNode, SequenceResult, LocumDoctor, PathwayClassification, ReportAnalysis } from '../services/aiService';
 
 // ── Specialty → Pathway Mapping ─────────────────
 // When a patient selects a doctor with one of these specialties,
@@ -52,6 +52,19 @@ export interface ChatMessage {
     imageUrls?: string[];
     /** Body location label for this photo */
     bodyLocation?: string;
+    /** Report upload results attached to this message */
+    reportUploads?: UploadedReport[];
+}
+
+/** Uploaded medical report (tracked during intake) */
+export interface UploadedReport {
+    id: string;           // consultation_report_uploads.id
+    fileUrl: string;      // Supabase storage URL
+    fileName: string;
+    fileType: string;     // mime type
+    fileSize: number;     // bytes
+    status: 'uploading' | 'analyzing' | 'verified' | 'rejected' | 'outdated';
+    analysis: ReportAnalysis | null;
 }
 
 /** Shape of the snapshot saved to / restored from the database */
@@ -137,6 +150,10 @@ interface IntakeState {
     // Photo body location labels (maps photo URI → body part)
     photoBodyLocations: Record<string, string>;
 
+    // Uploaded medical reports
+    uploadedReports: UploadedReport[];
+    reportConsentGiven: boolean;
+
     // Locum doctor (from code entry on IntakeIndexPage)
     locumDoctor: LocumDoctor | null;
     locumGreetingPrompt: string | null;
@@ -187,6 +204,13 @@ interface IntakeState {
     // Photo body location actions
     setPhotoBodyLocation: (photoUri: string, bodyLocation: string) => void;
 
+    // Report upload actions
+    addUploadedReport: (report: UploadedReport) => void;
+    updateUploadedReport: (id: string, updates: Partial<UploadedReport>) => void;
+    removeUploadedReport: (id: string) => void;
+    setReportConsentGiven: (given: boolean) => void;
+    clearUploadedReports: () => void;
+
     // Session persistence
     restoreFromSnapshot: (sessionId: string, snapshot: IntakeSnapshot) => void;
 
@@ -224,6 +248,8 @@ const initialState = {
     medicationVerifications: [] as Record<string, unknown>[],
     drugLabelAnalyses: [] as Record<string, unknown>[],
     photoBodyLocations: {} as Record<string, string>,
+    uploadedReports: [] as UploadedReport[],
+    reportConsentGiven: false,
     locumDoctor: null as LocumDoctor | null,
     locumGreetingPrompt: null as string | null,
 };
@@ -282,6 +308,19 @@ export const useIntakeStore = create<IntakeState>((set) => ({
     setPhotoBodyLocation: (photoUri, bodyLocation) => set((s) => ({
         photoBodyLocations: { ...s.photoBodyLocations, [photoUri]: bodyLocation },
     })),
+
+    // Report uploads
+    addUploadedReport: (report) => set((s) => ({
+        uploadedReports: [...s.uploadedReports, report],
+    })),
+    updateUploadedReport: (id, updates) => set((s) => ({
+        uploadedReports: s.uploadedReports.map(r => r.id === id ? { ...r, ...updates } : r),
+    })),
+    removeUploadedReport: (id) => set((s) => ({
+        uploadedReports: s.uploadedReports.filter(r => r.id !== id),
+    })),
+    setReportConsentGiven: (reportConsentGiven) => set({ reportConsentGiven }),
+    clearUploadedReports: () => set({ uploadedReports: [], reportConsentGiven: false }),
 
     // Session persistence — restore all state from a saved snapshot
     restoreFromSnapshot: (sessionId, snapshot) => set({

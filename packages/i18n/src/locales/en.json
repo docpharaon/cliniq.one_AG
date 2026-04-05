@@ -1080,5 +1080,28 @@
         "dataPrivacyDesc": "Encrypted end-to-end, zero long-term cloud storage",
         "ePrescription": "E-Prescriptions",
         "ePrescriptionDesc": "MOH-compliant digital prescriptions"
+    },
+    "betaBanner": {
+        "welcomeTitle": "Welcome to the Beta",
+        "welcomeSubtitle": "You're among the first to experience cliniq.one",
+        "freeTitle": "🎉 Free Consultations",
+        "freeBody": "For a limited time during our testing period, all consultations are completely free!",
+        "freeUntil": "Free until May 17, 2026",
+        "betaBadge": "BETA TESTING PERIOD",
+        "dedicationIntro": "This app is dedicated with love to...",
+        "inMemory": "In loving memory of",
+        "fatherName": "Dr. Ghassan Pharaon",
+        "fatherTitle": "My beloved father — your blessing guides me always",
+        "motherName": "Sawsan Othman",
+        "motherTitle": "My beloved mother, my strength",
+        "wifeName": "Yasmin Abedrabbo",
+        "wifeTitle": "My wife, my partner in everything",
+        "kidsName": "Talal & Faris",
+        "kidsTitle": "My sweet kids, my best friends in the world",
+        "craftedBy": "A MomenCrafts Project",
+        "craftedFirst": "The first of many to come",
+        "creatorName": "Dr. Momen Pharaon",
+        "enterButton": "Let's Begin",
+        "skipHint": "Push to skip"
     }
 }

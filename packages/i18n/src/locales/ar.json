@@ -1080,5 +1080,28 @@
         "dataPrivacyDesc": "تشفير شامل بدون تخزين سحابي طويل الأمد",
         "ePrescription": "الوصفات الإلكترونية",
         "ePrescriptionDesc": "وصفات رقمية متوافقة مع وزارة الصحة"
+    },
+    "betaBanner": {
+        "welcomeTitle": "مرحباً بك في النسخة التجريبية",
+        "welcomeSubtitle": "أنت من أوائل من يجرّب cliniq.one",
+        "freeTitle": "🎉 استشارات مجانية",
+        "freeBody": "لفترة محدودة خلال مرحلة الاختبار، جميع الاستشارات مجانية بالكامل!",
+        "freeUntil": "مجاناً حتى ١٧ مايو ٢٠٢٦",
+        "betaBadge": "فترة الاختبار التجريبي",
+        "dedicationIntro": "هذا التطبيق مُهدى بكل حب إلى...",
+        "inMemory": "في ذكرى الحبيب",
+        "fatherName": "د. غسان فرعون",
+        "fatherTitle": "أبي الحبيب — دعواتك ترافقني دائماً",
+        "motherName": "سوسن عثمان",
+        "motherTitle": "أمي الحبيبة، مصدر قوتي",
+        "wifeName": "ياسمين عبدربه",
+        "wifeTitle": "زوجتي، شريكتي في كل شيء",
+        "kidsName": "طلال وفارس",
+        "kidsTitle": "أطفالي الحلوين، أعز أصدقائي في الدنيا",
+        "craftedBy": "مشروع MomenCrafts",
+        "craftedFirst": "الأول من مشاريع كثيرة قادمة",
+        "creatorName": "د. مؤمن فرعون",
+        "enterButton": "هيا نبدأ",
+        "skipHint": "اضغط للتخطي"
     }
 }

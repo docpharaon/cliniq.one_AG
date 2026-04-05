@@ -1448,6 +1448,222 @@ Return ONLY a valid JSON object with this exact structure:
                 });
                 break;
             }
+            case 'analyze-report': {
+                // ── AI-Verified Medical Report Analysis ──────────────
+                // Uses OpenAI Vision API to:
+                // 1. Verify document integrity (is this a real medical document?)
+                // 2. Extract context (type, institution, key findings)
+                // 3. Validate date (when was it issued? is it clinically relevant?)
+                // 4. Generate a structured summary for the doctor
+                //
+                // Admin-configurable: report_analysis_model in platform_settings
+                const imageBase64 = params.imageBase64;
+                const fileUrl = params.fileUrl;
+                const reportType = params.reportType || 'general';
+                const specialty = params.specialty || 'family_medicine';
+                const language = params.language || 'en';
+                const uploadId = params.uploadId; // consultation_report_uploads.id
+
+                if (!imageBase64 && !fileUrl) {
+                    return new Response(
+                        JSON.stringify({ error: 'imageBase64 or fileUrl is required' }),
+                        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+                    );
+                }
+
+                // 1. Read admin-configured model for report analysis
+                let reportModel = 'gpt-4o'; // default to best vision model
+                try {
+                    const { data: modelSetting } = await supabaseAdmin
+                        .from('platform_settings')
+                        .select('value')
+                        .eq('key', 'report_analysis_model')
+                        .maybeSingle();
+                    if (modelSetting?.value) reportModel = modelSetting.value;
+                } catch { /* use default */ }
+
+                const config = await getConfig();
+
+                // 2. Build specialty-aware analysis prompt
+                const specialtyHints: Record<string, string> = {
+                    orthopedics: 'Focus on: fractures, joint degeneration, disc problems, bone density, ligament/tendon injuries, inflammatory markers (ESR, CRP, uric acid, vitamin D levels).',
+                    psychiatry: 'Focus on: psychiatric evaluations, PHQ-9/GAD-7/MMPI scores, medication trial history, therapy progress notes, thyroid/lithium levels, neuropsychological test results.',
+                    family_medicine: 'Focus on: CBC, metabolic panel, HbA1c, cholesterol/lipid panel, thyroid function, liver/kidney function, ECG findings, blood pressure trends.',
+                    pediatrics: 'Focus on: growth percentiles (height/weight/head circumference), vaccination records, developmental milestones, newborn screening, pediatric blood work.',
+                    dermatology: 'Focus on: skin biopsy/pathology reports, allergy patch test results, ANA/autoimmune panels, previous dermatology treatment records.',
+                    diet: 'Focus on: metabolic panel, vitamin/mineral levels (D, B12, iron, folate), HbA1c, lipid panel, thyroid function, body composition/DEXA results, food allergy/intolerance tests.',
+                    diet_nutrition: 'Focus on: metabolic panel, vitamin/mineral levels (D, B12, iron, folate), HbA1c, lipid panel, thyroid function, body composition/DEXA results, food allergy/intolerance tests.',
+                };
+
+                const specialtyHint = specialtyHints[specialty] || 'Analyze all findings comprehensively.';
+
+                const arabicHint = language === 'ar'
+                    ? `\n\nIMPORTANT: This document may be in Arabic. If so, read Arabic text carefully and extract all information in English for the structured response. Include original Arabic text in parentheses where clinically relevant (e.g., institution name, diagnosis terms).`
+                    : '';
+
+                const reportSystemPrompt = `You are a medical document analysis AI for cliniq.one — a telemedicine platform. Analyze the uploaded medical document image and extract all clinically relevant information.
+
+SPECIALTY CONTEXT: ${specialty.replace(/_/g, ' ')}
+${specialtyHint}
+
+YOUR TASKS:
+1. INTEGRITY CHECK: Determine if this is a legitimate medical document (lab report, imaging study, clinical letter, etc.). Reject: selfies, random photos, blank pages, screenshots of web searches, non-medical content.
+
+2. DOCUMENT CLASSIFICATION: Identify the type:
+   - lab: Blood tests, urine tests, metabolic panels, hormone levels
+   - imaging: X-ray, MRI, CT, ultrasound, DEXA scan reports
+   - pathology: Biopsy results, cytology, histology reports
+   - prescription: Medication prescriptions, drug orders
+   - psychiatric_evaluation: PHQ-9, MMPI, clinical evaluations
+   - therapy_notes: Therapy session summaries, progress notes
+   - growth_chart: Pediatric growth percentile charts
+   - vaccination: Immunization records
+   - body_composition: DEXA, bioimpedance, body fat measurements
+   - surgical_report: Operation notes, surgical summaries
+   - previous_report: Previous doctor consultation reports
+   - general: Other medical documents
+   - unknown: Cannot determine
+
+3. DATE EXTRACTION: Find the report/test date. Determine relevance:
+   - "current": Within last 3 months
+   - "recent": 3-12 months old
+   - "outdated": More than 12 months old
+   - "unknown": No date found
+
+4. DATA EXTRACTION: Extract ALL clinically useful data points:
+   - Test names, values, units, and reference ranges
+   - Key findings, interpretations, diagnoses
+   - Institution name, ordering physician
+   - Patient name (for cross-reference, NOT for diagnosis)
+
+5. DOCTOR SUMMARY: Write a concise 1-2 sentence summary a specialist would find immediately useful.
+${arabicHint}
+
+Respond in JSON:
+{
+  "isValidDocument": boolean,
+  "documentType": "lab" | "imaging" | "pathology" | "prescription" | "psychiatric_evaluation" | "therapy_notes" | "growth_chart" | "vaccination" | "body_composition" | "surgical_report" | "previous_report" | "general" | "unknown",
+  "documentDate": "YYYY-MM-DD" | null,
+  "dateRelevance": "current" | "recent" | "outdated" | "unknown",
+  "documentLanguage": "en" | "ar" | "other",
+  "extractedData": {
+    "title": string,
+    "institution": string | null,
+    "orderingPhysician": string | null,
+    "patientName": string | null,
+    "keyFindings": string[],
+    "values": [{ "name": string, "value": string, "unit": string, "reference": string, "flag": "normal" | "high" | "low" | "critical" | "unknown" }],
+    "diagnoses": string[],
+    "recommendations": string[]
+  },
+  "summary": string,
+  "confidence": number,
+  "rejectionReason": string | null
+}`;
+
+                // 3. Build image content for Vision API
+                let imageContent: any;
+                if (imageBase64) {
+                    // Detect mime type from base64 header or default to jpeg
+                    const mimeMatch = imageBase64.match(/^data:(image\/\w+);base64,/);
+                    const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+                    imageContent = {
+                        type: 'image_url',
+                        image_url: {
+                            url: mimeMatch ? imageBase64 : `data:${mimeType};base64,${cleanBase64}`,
+                            detail: 'high',
+                        },
+                    };
+                } else {
+                    // Use file URL directly
+                    imageContent = {
+                        type: 'image_url',
+                        image_url: {
+                            url: fileUrl,
+                            detail: 'high',
+                        },
+                    };
+                }
+
+                // 4. Call OpenAI Vision API
+                const reportRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: reportModel,
+                        temperature: 0.1,
+                        max_tokens: 2000,
+                        response_format: { type: 'json_object' },
+                        messages: [
+                            {
+                                role: 'system',
+                                content: reportSystemPrompt,
+                            },
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: `Analyze this medical document. Specialty context: ${specialty.replace(/_/g, ' ')}. Expected report type: ${reportType}.`,
+                                    },
+                                    imageContent,
+                                ],
+                            },
+                        ],
+                    }),
+                });
+
+                if (!reportRes.ok) {
+                    const errText = await reportRes.text();
+                    throw new Error(`OpenAI Vision error: ${reportRes.status} ${errText}`);
+                }
+
+                const reportData = await reportRes.json();
+                const reportContent = reportData.choices?.[0]?.message?.content || '{}';
+                const analysis = safeJsonParse(reportContent, {
+                    isValidDocument: false,
+                    documentType: 'unknown',
+                    documentDate: null,
+                    dateRelevance: 'unknown',
+                    documentLanguage: 'en',
+                    extractedData: { title: '', institution: null, orderingPhysician: null, patientName: null, keyFindings: [], values: [], diagnoses: [], recommendations: [] },
+                    summary: 'Unable to analyze document',
+                    confidence: 0,
+                    rejectionReason: 'Analysis failed',
+                });
+
+                // 5. Persist analysis to database (if uploadId provided)
+                if (uploadId) {
+                    try {
+                        await supabaseAdmin
+                            .from('consultation_report_uploads')
+                            .update({
+                                ai_analysis: analysis,
+                                document_date: analysis.documentDate || null,
+                                is_verified: analysis.isValidDocument === true && analysis.confidence >= 50,
+                                rejection_reason: analysis.rejectionReason || null,
+                                report_summary: analysis.summary || null,
+                                ai_confidence: analysis.confidence || 0,
+                                document_type: analysis.documentType || 'unknown',
+                                date_relevance: analysis.dateRelevance || 'unknown',
+                                document_language: analysis.documentLanguage || 'en',
+                                status: analysis.isValidDocument ? 'uploaded' : 'pending',
+                            })
+                            .eq('id', uploadId);
+                        console.log(`[analyze-report] Persisted analysis for upload ${uploadId}: verified=${analysis.isValidDocument}, confidence=${analysis.confidence}`);
+                    } catch (dbErr) {
+                        console.error('[analyze-report] Failed to persist analysis:', dbErr);
+                    }
+                }
+
+                result = analysis;
+                console.log(`[analyze-report] Completed: type=${analysis.documentType}, verified=${analysis.isValidDocument}, confidence=${analysis.confidence}, date=${analysis.documentDate}`);
+                break;
+            }
             default:
                 return new Response(
                     JSON.stringify({ error: `Unknown action: ${action}` }),

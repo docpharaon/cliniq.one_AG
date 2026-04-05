@@ -7,6 +7,7 @@ import { handleGoogleSignIn } from '../../services/googleAuth';
 import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
 import { SocialLoginButton } from '../../components/SocialLoginButton';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 import { haptic } from '../../hooks/useHaptics';
 import { Eye, EyeOff } from '@cliniqone/ui';
 
@@ -117,6 +118,7 @@ export default function LoginPage() {
 
     return (
         <div style={{ ...styles.container, direction: rtl ? 'rtl' : 'ltr' }}>
+            <NoInternetOverlay />
             <div className="page-enter" style={styles.scroll}>
                 {/* Header */}
                 <div style={styles.header}>

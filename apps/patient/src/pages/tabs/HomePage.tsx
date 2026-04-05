@@ -10,6 +10,7 @@ import { PullToRefresh } from '../../components/PullToRefresh';
 import { FadeIn } from '../../components/FadeIn';
 import { haptic } from '../../hooks/useHaptics';
 import { Stethoscope, ClipboardList, TestTube, Coins, Info, Search, Refresh, ChevronRight } from '@cliniqone/ui';
+import { BetaWelcomeBanner } from '../../components/BetaWelcomeBanner';
 import type { ConsultationStatus } from '@cliniqone/types';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -75,6 +76,7 @@ export default function HomePage() {
 
     return (
         <div style={styles.container}>
+            <BetaWelcomeBanner />
             <PullToRefresh onRefresh={onRefresh}>
                 <div style={styles.scroll} className="page-fade">
                 {/* Greeting */}

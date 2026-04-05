@@ -8,6 +8,7 @@ import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
 import { SocialLoginButton } from '../../components/SocialLoginButton';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 import { Eye, EyeOff, CheckCircle, ChevronRight } from '@cliniqone/ui';
 
 export default function SignupPage() {
@@ -73,6 +74,7 @@ export default function SignupPage() {
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', direction: isRTL() ? 'rtl' : 'ltr' }}>
+            <NoInternetOverlay />
             <div style={{ maxWidth: 420, margin: '0 auto', padding: '0 24px 48px' }}>
                 <div style={{ paddingTop: 16, marginBottom: 24 }}>
                     <BackButton />

@@ -66,7 +66,7 @@ export interface SequenceNode {
     pathway_condition: string | null;
     gender_condition: string | null;
     specialty_condition: string | null;
-    node_type: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | 'system_classify' | 'system_extract';
+    node_type: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | 'system_classify' | 'system_extract' | 'system_upload';
     max_turns: number | null;
     // Joined prompt content
     ai_prompts: {
@@ -664,3 +664,47 @@ export async function classifyPathway(
         return { pathway: 'new_visit', confidence: 0, reasoning: 'Classification failed' };
     }
 }
+
+// ── AI-Verified Medical Report Analysis ─────────
+// Uses OpenAI Vision API to verify document integrity, extract context,
+// validate dates, and generate a structured report for the doctor.
+
+export interface ReportAnalysis {
+    isValidDocument: boolean;
+    documentType: 'lab' | 'imaging' | 'pathology' | 'prescription' | 'psychiatric_evaluation' |
+        'therapy_notes' | 'growth_chart' | 'vaccination' | 'body_composition' |
+        'surgical_report' | 'previous_report' | 'general' | 'unknown';
+    documentDate: string | null;
+    dateRelevance: 'current' | 'recent' | 'outdated' | 'unknown';
+    documentLanguage: 'en' | 'ar' | 'other';
+    extractedData: {
+        title: string;
+        institution: string | null;
+        orderingPhysician: string | null;
+        patientName: string | null;
+        keyFindings: string[];
+        values: { name: string; value: string; unit: string; reference: string; flag: 'normal' | 'high' | 'low' | 'critical' | 'unknown' }[];
+        diagnoses: string[];
+        recommendations: string[];
+    };
+    summary: string;
+    confidence: number;
+    rejectionReason: string | null;
+}
+
+export async function analyzeReport(
+    imageBase64: string,
+    reportType: string,
+    specialty: string,
+    language: 'en' | 'ar' = 'en',
+    uploadId?: string,
+): Promise<ReportAnalysis> {
+    return callAI<ReportAnalysis>('analyze-report', {
+        imageBase64,
+        reportType,
+        specialty,
+        language,
+        uploadId,
+    });
+}
+

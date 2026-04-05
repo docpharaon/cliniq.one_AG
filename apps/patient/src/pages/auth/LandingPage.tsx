@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, colors, spacing, typography, radius } from '@cliniqone/ui';
 import { t, setLocale, useLocale } from '@cliniqone/i18n';
 import { DisclaimerBanner } from '../../components/DisclaimerBanner';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 import splashVideo from '../../../assets/splash-video.mp4';
 import titleLogo from '../../../assets/title-logo.png';
 import logo from '../../../assets/logo.png';
@@ -20,6 +21,7 @@ export function LandingPage() {
 
     return (
         <div style={s.container}>
+            <NoInternetOverlay />
             {/* Header */}
             <div style={s.header}>
                 <img src={titleLogo} alt="cliniq.one" style={s.headerLogo} />

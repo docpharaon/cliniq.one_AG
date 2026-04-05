@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
     X, Clock, AlertTriangle, CheckCircle2, Archive, Trash2,
     FileDown, Download, User, Stethoscope, FileText, Activity,
-    Shield, Zap, Calendar, Timer, Loader2, ChevronDown, UserPlus
+    Shield, Zap, Calendar, Timer, Loader2, ChevronDown, UserPlus,
+    Paperclip, XCircle
 } from 'lucide-react';
 import { downloadAdminPdf } from '@/lib/generateAdminPdf';
 import StatusBadge from './StatusBadge';
@@ -124,6 +125,34 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
     const [doctorList, setDoctorList] = useState<{ id: string; display_name: string; specialty: string }[]>([]);
     const [loadingDoctors, setLoadingDoctors] = useState(false);
     const [assigning, setAssigning] = useState(false);
+
+    // Medical report uploads
+    const [reportUploads, setReportUploads] = useState<any[]>([]);
+    const [loadingReports, setLoadingReports] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            if (!c.id) return;
+            setLoadingReports(true);
+            try {
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+                const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+                const sb = createClient(supabaseUrl, supabaseKey);
+                const { data } = await sb
+                    .from('consultation_report_uploads')
+                    .select('*')
+                    .eq('consultation_id', c.id)
+                    .order('created_at', { ascending: false });
+                if (!cancelled) setReportUploads(data || []);
+            } catch (e) {
+                console.error('Failed to fetch report uploads:', e);
+            }
+            if (!cancelled) setLoadingReports(false);
+        })();
+        return () => { cancelled = true; };
+    }, [c.id]);
 
     async function loadDoctors() {
         setLoadingDoctors(true);
@@ -399,6 +428,131 @@ export default function ConsultationDetailPanel({ consultation: c, onClose, onUp
                                             Protocol {flag}
                                         </span>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Medical Report Uploads (AI-Verified) */}
+                    {reportUploads.length > 0 && (
+                        <div className="border-t border-border">
+                            <SectionToggle title={`Medical Reports (${reportUploads.length})`} icon={Paperclip} sectionKey="report_uploads" />
+                            {activeSection === 'report_uploads' && (
+                                <div className="space-y-3 pb-3">
+                                    {/* Stats bar */}
+                                    <div className="flex items-center gap-3 text-xs">
+                                        <span className="px-2.5 py-1 rounded-lg bg-success-faded text-success font-semibold">
+                                            {reportUploads.filter((r: any) => r.is_verified).length} verified
+                                        </span>
+                                        {reportUploads.filter((r: any) => r.date_relevance === 'outdated').length > 0 && (
+                                            <span className="px-2.5 py-1 rounded-lg bg-warning-faded text-warning font-semibold">
+                                                {reportUploads.filter((r: any) => r.date_relevance === 'outdated').length} outdated
+                                            </span>
+                                        )}
+                                        {reportUploads.filter((r: any) => !r.is_verified && r.rejection_reason).length > 0 && (
+                                            <span className="px-2.5 py-1 rounded-lg bg-error/10 text-error font-semibold">
+                                                {reportUploads.filter((r: any) => !r.is_verified && r.rejection_reason).length} rejected
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {reportUploads.map((report: any) => {
+                                        const isVerified = report.is_verified;
+                                        const isRejected = !isVerified && report.rejection_reason;
+                                        const isOutdated = report.date_relevance === 'outdated';
+                                        const analysis = report.ai_analysis;
+                                        const docType = (report.document_type || 'general').replace(/_/g, ' ');
+
+                                        return (
+                                            <div key={report.id} className={`bg-bg-elevated rounded-xl p-4 border ${
+                                                isRejected ? 'border-error/30' : isOutdated ? 'border-warning/30' : 'border-success/30'
+                                            }`}>
+                                                {/* Header */}
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText className="w-4 h-4 text-accent" />
+                                                        <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                                                            {docType}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {isRejected ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-error/10 text-error text-[10px] font-bold">
+                                                                <XCircle className="w-3 h-3" /> Rejected
+                                                            </span>
+                                                        ) : isOutdated ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-warning-faded text-warning text-[10px] font-bold">
+                                                                <AlertTriangle className="w-3 h-3" /> Outdated
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-success-faded text-success text-[10px] font-bold">
+                                                                <CheckCircle2 className="w-3 h-3" /> Verified
+                                                            </span>
+                                                        )}
+                                                        {report.ai_confidence != null && (
+                                                            <span className="text-[10px] text-text-muted">
+                                                                AI: {report.ai_confidence}%
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Summary */}
+                                                {report.report_summary && (
+                                                    <p className="text-sm text-text-secondary leading-relaxed mb-2">
+                                                        {report.report_summary}
+                                                    </p>
+                                                )}
+
+                                                {/* Key findings */}
+                                                {analysis?.extractedData?.keyFindings?.length > 0 && (
+                                                    <div className="mb-2">
+                                                        {analysis.extractedData.keyFindings.slice(0, 3).map((f: string, i: number) => (
+                                                            <p key={i} className="text-xs text-text-secondary py-0.5">✓ {f}</p>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Flagged values */}
+                                                {analysis?.extractedData?.values?.filter((v: any) => ['high', 'low', 'critical'].includes(v.flag)).length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                                        {analysis.extractedData.values
+                                                            .filter((v: any) => ['high', 'low', 'critical'].includes(v.flag))
+                                                            .slice(0, 5)
+                                                            .map((v: any, i: number) => (
+                                                                <span key={i} className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                                                    v.flag === 'critical' ? 'bg-error/10 text-error' : 'bg-warning-faded text-warning'
+                                                                }`}>
+                                                                    {v.flag === 'high' ? '↑' : v.flag === 'low' ? '↓' : '⚠'} {v.name}: {v.value} {v.unit}
+                                                                </span>
+                                                            ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Date + Institution */}
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <span className="text-[10px] text-text-muted">
+                                                        {report.document_date ? `📅 ${report.document_date}` : ''}
+                                                        {analysis?.extractedData?.institution ? ` • ${analysis.extractedData.institution}` : ''}
+                                                    </span>
+                                                </div>
+
+                                                {/* Admin override */}
+                                                {report.admin_override && (
+                                                    <div className="mt-2 px-2 py-1 rounded-lg bg-accent/10 border border-accent/20">
+                                                        <span className="text-[10px] text-accent font-semibold">Admin override applied</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Rejection reason */}
+                                                {report.rejection_reason && (
+                                                    <p className="text-xs text-error mt-2">
+                                                        Reason: {report.rejection_reason}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

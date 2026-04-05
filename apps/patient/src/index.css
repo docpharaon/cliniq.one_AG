@@ -588,3 +588,184 @@ input[type="file"] {
 [dir="rtl"] .cta-hero-arrow {
     transform: scaleX(-1);
 }
+
+/* ── No Internet Overlay ─────────────────────────────────── */
+@keyframes noInternetFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes noInternetLogoRing {
+    0%   { border-color: rgba(26, 138, 158, 0.08); }
+    50%  { border-color: rgba(26, 138, 158, 0.25); }
+    100% { border-color: rgba(26, 138, 158, 0.08); }
+}
+
+@keyframes noInternetIconPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.06); opacity: 0.85; }
+}
+
+@keyframes noInternetBarWave {
+    0%, 100% { opacity: 0.15; }
+    50%      { opacity: 0.5; }
+}
+
+.no-internet-overlay {
+    animation: noInternetFadeIn 0.4s ease-out forwards;
+}
+
+.no-internet-logo-ring {
+    animation: noInternetLogoRing 3s ease-in-out infinite;
+}
+
+.no-internet-icon {
+    transition: transform 0.3s ease;
+}
+
+.no-internet-icon-pulse {
+    animation: noInternetIconPulse 1.5s ease-in-out infinite;
+}
+
+.no-internet-bars span:nth-child(1) { animation: noInternetBarWave 2s ease-in-out 0s infinite; }
+.no-internet-bars span:nth-child(2) { animation: noInternetBarWave 2s ease-in-out 0.3s infinite; }
+.no-internet-bars span:nth-child(3) { animation: noInternetBarWave 2s ease-in-out 0.6s infinite; }
+.no-internet-bars span:nth-child(4) { animation: noInternetBarWave 2s ease-in-out 0.9s infinite; }
+
+/* ── Permission Gate ─────────────────────────────────────── */
+@keyframes permissionCardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.permission-gate-overlay {
+    animation: noInternetFadeIn 0.3s ease-out forwards;
+}
+
+.permission-gate-card {
+    animation: permissionCardIn 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.permission-gate-icon {
+    transition: all 0.3s ease;
+}
+
+/* ── Beta Welcome Banner ─────────────────────────────────── */
+@keyframes betaOverlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes betaContentSlideUp {
+    from { opacity: 0; transform: translateY(40px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes betaLogoGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.15), 0 0 60px rgba(245, 158, 11, 0.05); }
+    50%      { box-shadow: 0 0 40px rgba(245, 158, 11, 0.35), 0 0 80px rgba(245, 158, 11, 0.12); }
+}
+
+@keyframes betaLogoSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes betaShimmerSweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+@keyframes betaNameReveal {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes betaHeartPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.2); }
+}
+
+@keyframes betaCTAGlow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(45, 212, 191, 0.25); }
+    50%      { box-shadow: 0 6px 36px rgba(45, 212, 191, 0.5), 0 0 0 2px rgba(45, 212, 191, 0.15); }
+}
+
+@keyframes betaConfetti {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes betaBadgePulse {
+    0%, 100% { opacity: 0.7; }
+    50%      { opacity: 1; }
+}
+
+@keyframes betaStarTwinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50%      { opacity: 1; transform: scale(1.2); }
+}
+
+.beta-banner-overlay {
+    animation: betaOverlayIn 0.5s ease-out forwards;
+}
+
+.beta-banner-content {
+    animation: betaContentSlideUp 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) 0.2s forwards;
+    opacity: 0;
+}
+
+.beta-banner-logo-ring {
+    animation: betaLogoGlow 3s ease-in-out infinite;
+}
+
+.beta-banner-logo-spinner {
+    animation: betaLogoSpin 8s linear infinite;
+}
+
+.beta-banner-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.08) 45%,
+        rgba(255, 255, 255, 0.14) 50%,
+        rgba(255, 255, 255, 0.08) 55%,
+        transparent 70%
+    );
+    animation: betaShimmerSweep 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.beta-banner-heart {
+    animation: betaHeartPulse 1.5s ease-in-out infinite;
+    display: inline-block;
+}
+
+.beta-banner-cta {
+    animation: betaCTAGlow 2.5s ease-in-out infinite;
+}
+
+.beta-banner-badge {
+    animation: betaBadgePulse 2s ease-in-out infinite;
+}
+
+.beta-confetti-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    top: -10px;
+    animation: betaConfetti linear forwards;
+    pointer-events: none;
+}
+
+.beta-star {
+    position: absolute;
+    font-size: 12px;
+    animation: betaStarTwinkle ease-in-out infinite;
+    pointer-events: none;
+}
+

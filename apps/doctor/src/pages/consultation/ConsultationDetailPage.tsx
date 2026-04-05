@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { colors, typography, AlertTriangle, User, MessageSquare, Bot, Ban, FileText, Gem, Siren, Edit } from '@cliniqone/ui';
-import { useConsultationDetail } from '../../hooks/useDoctorData';
+import { colors, typography, AlertTriangle, User, MessageSquare, Bot, Ban, FileText, Gem, Siren, Edit, CheckCircle, XCircle, Paperclip } from '@cliniqone/ui';
+import { useConsultationDetail, useConsultationReports, type ConsultationReport } from '../../hooks/useDoctorData';
 import { RefundRequestModal } from '../../components/RefundRequestModal';
 import { BackButton } from '../../components/BackButton';
 import { BrandSpinner } from '../../components/BrandSpinner';
@@ -39,6 +39,8 @@ export function ConsultationDetailPage() {
     const [showRefund, setShowRefund] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const canRefund = consultation && ['assigned', 'in_progress', 'report_ready'].includes(consultation.status);
+    const { data: reports } = useConsultationReports(id || '');
+    const [selectedReport, setSelectedReport] = useState<ConsultationReport | null>(null);
 
     if (isLoading) {
         return <BrandSpinner message="Loading patient file..." />;
@@ -167,6 +169,120 @@ export function ConsultationDetailPage() {
                                     </div>
                                 ))}
                             </div>
+                        </Section>
+                    )}
+
+                    {/* Medical Reports (AI-Verified) */}
+                    {reports && reports.length > 0 && (
+                        <Section title="📎 Medical Reports">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {reports.map((report) => {
+                                    const isVerified = report.is_verified;
+                                    const isOutdated = report.date_relevance === 'outdated';
+                                    const isRejected = !isVerified && report.rejection_reason;
+                                    const analysis = report.ai_analysis as Record<string, any> | null;
+                                    const docType = (report.document_type || 'general').replace(/_/g, ' ');
+
+                                    const badgeColor = isRejected ? '#dc2626' : isOutdated ? colors.warning : colors.success;
+                                    const badgeLabel = isRejected ? 'Rejected' : isOutdated ? 'Outdated' : 'Verified';
+                                    const BadgeIcon = isRejected ? XCircle : isOutdated ? AlertTriangle : CheckCircle;
+
+                                    return (
+                                        <div key={report.id} style={{
+                                            backgroundColor: colors.bgTertiary,
+                                            borderRadius: 12,
+                                            padding: 14,
+                                            border: `1px solid ${isRejected ? '#dc262630' : isOutdated ? `${colors.warning}30` : `${colors.success}30`}`,
+                                        }}>
+                                            {/* Header row */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                <FileText size={16} color={colors.accentTeal} />
+                                                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                    {docType}
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 10, fontWeight: 700, color: badgeColor,
+                                                    backgroundColor: `${badgeColor}15`, padding: '2px 8px',
+                                                    borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 3,
+                                                }}>
+                                                    <BadgeIcon size={10} color={badgeColor} /> {badgeLabel}
+                                                </span>
+                                            </div>
+
+                                            {/* AI Summary */}
+                                            {report.report_summary && (
+                                                <p style={{ fontSize: 13, color: colors.textSecondary, lineHeight: '20px', marginBottom: 8 }}>
+                                                    {report.report_summary}
+                                                </p>
+                                            )}
+
+                                            {/* Key findings */}
+                                            {analysis && analysis.extractedData?.keyFindings?.length > 0 && (
+                                                <div style={{ marginBottom: 8 }}>
+                                                    {analysis.extractedData.keyFindings.slice(0, 3).map((f: string, i: number) => (
+                                                        <p key={i} style={{ fontSize: 12, color: colors.textSecondary, paddingBlock: 2, margin: 0 }}>
+                                                            ✓ {f}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Lab values (flagged) */}
+                                            {analysis && analysis.extractedData?.values?.filter((v: any) => v.flag === 'high' || v.flag === 'low' || v.flag === 'critical').length > 0 && (
+                                                <div style={{ marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                    {analysis.extractedData.values
+                                                        .filter((v: any) => v.flag === 'high' || v.flag === 'low' || v.flag === 'critical')
+                                                        .slice(0, 5)
+                                                        .map((v: any, i: number) => (
+                                                            <span key={i} style={{
+                                                                fontSize: 10, fontWeight: 600,
+                                                                color: v.flag === 'critical' ? '#dc2626' : colors.warning,
+                                                                backgroundColor: v.flag === 'critical' ? '#dc262615' : colors.warningFaded,
+                                                                padding: '3px 8px', borderRadius: 6,
+                                                            }}>
+                                                                {v.flag === 'high' ? '↑' : v.flag === 'low' ? '↓' : '⚠'} {v.name}: {v.value} {v.unit}
+                                                            </span>
+                                                        ))}
+                                                </div>
+                                            )}
+
+                                            {/* Date + Institution */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: 11, color: colors.textTertiary }}>
+                                                    {report.document_date ? `📅 ${report.document_date}` : ''}
+                                                    {analysis?.extractedData?.institution ? ` • ${analysis.extractedData.institution}` : ''}
+                                                </span>
+                                                {report.ai_confidence !== null && (
+                                                    <span style={{ fontSize: 10, color: colors.textTertiary }}>
+                                                        AI: {report.ai_confidence}%
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Rejection reason */}
+                                            {report.rejection_reason && (
+                                                <p style={{ fontSize: 11, color: '#dc2626', marginTop: 6, marginBottom: 0 }}>
+                                                    Reason: {report.rejection_reason}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Summary row */}
+                            {(() => {
+                                const verified = reports.filter(r => r.is_verified).length;
+                                const outdated = reports.filter(r => r.date_relevance === 'outdated').length;
+                                const rejected = reports.filter(r => !r.is_verified && r.rejection_reason).length;
+                                return (
+                                    <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        {verified > 0 && <Tag label={`${verified} verified`} color={colors.success} />}
+                                        {outdated > 0 && <Tag label={`${outdated} outdated`} color={colors.warning} />}
+                                        {rejected > 0 && <Tag label={`${rejected} rejected`} color="#dc2626" />}
+                                    </div>
+                                );
+                            })()}
                         </Section>
                     )}
 

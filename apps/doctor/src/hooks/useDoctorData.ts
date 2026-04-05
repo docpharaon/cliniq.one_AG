@@ -179,3 +179,41 @@ export function useDoctorInquiries(consultationId: string) {
         staleTime: 15_000,
     });
 }
+
+// ── Consultation Report Uploads (AI-verified documents) ───
+export interface ConsultationReport {
+    id: string;
+    consultation_id: string;
+    patient_id: string;
+    report_type: string;
+    file_path: string;
+    status: string;
+    ai_analysis: Record<string, any> | null;
+    document_date: string | null;
+    is_verified: boolean;
+    rejection_reason: string | null;
+    report_summary: string | null;
+    ai_confidence: number | null;
+    document_type: string;
+    date_relevance: string;
+    document_language: string;
+    created_at: string;
+}
+
+export function useConsultationReports(consultationId: string) {
+    return useQuery({
+        queryKey: ['consultationReports', consultationId],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const { data, error } = await supabase
+                .from('consultation_report_uploads')
+                .select('*')
+                .eq('consultation_id', consultationId)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return (data || []) as ConsultationReport[];
+        },
+        enabled: !!consultationId,
+        staleTime: 30_000,
+    });
+}
