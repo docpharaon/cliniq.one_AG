@@ -149,17 +149,17 @@ workflows:
           cat "$PLIST"
       - name: Build IPA
         script: |
-         cd apps/patient-capacitor/ios/App
-echo "Building IPA (signing via use-profiles)"
-if [ -d "App.xcworkspace" ]; then
-  xcode-project build-ipa \
-    --workspace "App.xcworkspace" \
-    --scheme "App"
-else
-  xcode-project build-ipa \
-    --project "App.xcodeproj" \
-    --scheme "App"
-fi
+          cd apps/patient-capacitor/ios/App
+          echo "Building IPA (signing via use-profiles)"
+          if [ -d "App.xcworkspace" ]; then
+            xcode-project build-ipa \
+              --workspace "App.xcworkspace" \
+              --scheme "App"
+          else
+            xcode-project build-ipa \
+              --project "App.xcodeproj" \
+              --scheme "App"
+          fi
 
     artifacts:
       - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
