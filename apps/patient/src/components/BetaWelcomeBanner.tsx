@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { t, useLocale } from '@cliniqone/i18n';
 import { haptic } from '../hooks/useHaptics';
 import logoImg from '../../assets/logo.png';
@@ -210,7 +211,7 @@ export function BetaWelcomeBanner() {
 
     if (!visible) return null;
 
-    return (
+    return createPortal(
         <div
             id="beta-welcome-banner"
             className="beta-banner-overlay"
@@ -386,7 +387,8 @@ export function BetaWelcomeBanner() {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

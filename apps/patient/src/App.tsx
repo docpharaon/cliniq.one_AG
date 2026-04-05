@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { supabase } from '@cliniqone/api';
@@ -97,24 +97,10 @@ function useSessionTimeout(timeoutMs: number) {
 // ── Tab layout wrapper ───────────────────────────────────────
 function TabLayout() {
     const location = useLocation();
-    // Hide tab bar while the beta welcome banner overlay is active
-    const [showTabBar, setShowTabBar] = useState(false);
-    useEffect(() => {
-        // Check after children have mounted
-        requestAnimationFrame(() => {
-            if (!document.getElementById('beta-welcome-banner')) {
-                setShowTabBar(true);
-            }
-        });
-        // Listen for the banner's dismiss event
-        const handler = () => setShowTabBar(true);
-        window.addEventListener('beta-banner-dismissed', handler);
-        return () => window.removeEventListener('beta-banner-dismissed', handler);
-    }, []);
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div key={location.pathname} className="tab-content" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}><Outlet /></div>
-            {showTabBar && <TabBar />}
+            <TabBar />
         </div>
     );
 }
