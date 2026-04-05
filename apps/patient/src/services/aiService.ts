@@ -132,20 +132,17 @@ async function callAI<T>(action: string, payload: Record<string, unknown>): Prom
         const timer = setTimeout(() => controller.abort(), AI_CALL_TIMEOUT_MS);
 
         try {
-            // Try refreshing session if stale
-            let token: string | undefined;
+            // Ensure we have a fresh session before calling
             const { data: { session } } = await supabase.auth.getSession();
-            token = session?.access_token;
-
-            // If no token or token looks expired, force refresh
-            if (!token) {
-                const { data: refreshed } = await supabase.auth.refreshSession();
-                token = refreshed?.session?.access_token;
+            if (!session?.access_token) {
+                // Force refresh if no active session
+                await supabase.auth.refreshSession();
             }
 
+            // supabase.functions.invoke automatically sends the current session's
+            // access token in the Authorization header
             const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-intake', {
                 body: { action, ...payload },
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
 
             clearTimeout(timer);
@@ -158,14 +155,7 @@ async function callAI<T>(action: string, payload: Record<string, unknown>): Prom
 
                 if (isAuthError && attempt < MAX_RETRIES) {
                     console.warn(`[callAI] Auth error on attempt ${attempt + 1}, refreshing session...`);
-                    const { data: refreshed } = await supabase.auth.refreshSession();
-                    if (!refreshed?.session) {
-                        // Session is dead — sign out and redirect
-                        console.error('[callAI] Session expired, signing out');
-                        await supabase.auth.signOut();
-                        window.location.href = '/auth/login';
-                        throw new Error('Session expired');
-                    }
+                    await supabase.auth.refreshSession();
                     continue; // Retry with fresh token
                 }
                 throw new Error(fnError.message || 'Edge function error');
