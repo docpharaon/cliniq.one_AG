@@ -1,10 +1,20 @@
 // ─────────────────────────────────────────────────
-// VoiceInputBar — Voice mode UI for AI chat
-// Shows mic button, waveform, states, and controls
+// VoiceInputBar — Premium PTT + Swipe-to-Lock UX
+// Hold mic to talk, swipe up to lock continuous mode
 // ─────────────────────────────────────────────────
-import { AlertTriangle, Keyboard, Square, X, RefreshCcw, PointerFinger, Mic } from '@cliniqone/ui';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { AlertTriangle, Keyboard, Square, X, Mic, Lock, ChevronUp } from '@cliniqone/ui';
 import { AudioWaveform } from './AudioWaveform';
 import type { VoiceState, VoiceMode } from '../hooks/useVoiceInput';
+
+// ── Brand Colors ────────────────────────────────
+const TEAL = '#1A8A9E';
+const CYAN = '#0ECFCF';
+const TEAL_GLOW = 'rgba(26, 138, 158, 0.35)';
+const CYAN_GLOW = 'rgba(14, 207, 207, 0.35)';
+
+// ── Swipe Lock Threshold (px the finger must travel upward) ──
+const LOCK_THRESHOLD = 80;
 
 interface VoiceInputBarProps {
     voiceState: VoiceState;
@@ -20,6 +30,7 @@ interface VoiceInputBarProps {
     onStopListening: () => void;
     onCancel: () => void;
     onSetVoiceMode: (mode: VoiceMode) => void;
+    onLockContinuous?: () => void;
     onSwitchToText: () => void;
     onDismissError: () => void;
 }
@@ -37,9 +48,19 @@ export function VoiceInputBar({
     onStopListening,
     onCancel,
     onSetVoiceMode,
+    onLockContinuous,
     onSwitchToText,
     onDismissError,
 }: VoiceInputBarProps) {
+
+    // ── Swipe tracking state ──
+    const [swipeProgress, setSwipeProgress] = useState(0); // 0–1
+    const [isHolding, setIsHolding] = useState(false);
+    const [locked, setLocked] = useState(false);
+    const touchStartYRef = useRef(0);
+    const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isHoldingRef = useRef(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     if (!isSupported || !enabled) return null;
 
@@ -49,6 +70,75 @@ export function VoiceInputBar({
         return `${m}:${String(s).padStart(2, '0')}`;
     };
 
+    // ── Haptic pulse ──
+    const haptic = (ms: number = 30) => {
+        if (navigator.vibrate) navigator.vibrate(ms);
+    };
+
+    // ── Touch / Mouse handlers for PTT + swipe-to-lock ──
+    const handlePointerDown = useCallback((e: React.PointerEvent | React.TouchEvent) => {
+        if (voiceState !== 'idle') return;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.PointerEvent).clientY;
+        touchStartYRef.current = clientY;
+        isHoldingRef.current = true;
+        setIsHolding(true);
+        setSwipeProgress(0);
+        setLocked(false);
+        haptic(15);
+
+        // Start recording immediately on press
+        onSetVoiceMode('push_to_talk');
+        onStartListening();
+    }, [voiceState, onStartListening, onSetVoiceMode]);
+
+    const handlePointerMove = useCallback((e: React.PointerEvent | React.TouchEvent) => {
+        if (!isHoldingRef.current || locked) return;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.PointerEvent).clientY;
+        const dy = touchStartYRef.current - clientY; // positive = upward
+        const progress = Math.min(1, Math.max(0, dy / LOCK_THRESHOLD));
+        setSwipeProgress(progress);
+
+        // Lock threshold reached
+        if (progress >= 1 && !locked) {
+            setLocked(true);
+            setIsHolding(false);
+            isHoldingRef.current = false;
+            haptic(50);
+            // Switch to continuous mode
+            onSetVoiceMode('auto_mic');
+            if (onLockContinuous) onLockContinuous();
+        }
+    }, [locked, onSetVoiceMode, onLockContinuous]);
+
+    const handlePointerUp = useCallback(() => {
+        if (!isHoldingRef.current) return;
+        isHoldingRef.current = false;
+        setIsHolding(false);
+        setSwipeProgress(0);
+
+        // If not locked into continuous, stop recording (PTT release)
+        if (!locked) {
+            onStopListening();
+        }
+    }, [locked, onStopListening]);
+
+    // ── Reset locked state when we go back to idle ──
+    useEffect(() => {
+        if (voiceState === 'idle') {
+            setLocked(false);
+            setIsHolding(false);
+            setSwipeProgress(0);
+            isHoldingRef.current = false;
+        }
+    }, [voiceState]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+        };
+    }, []);
+
     // ── Error Toast ─────────────────────────────
     if (voiceState === 'error' && error) {
         return (
@@ -56,11 +146,11 @@ export function VoiceInputBar({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                padding: '10px 14px',
-                borderRadius: '14px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
-                animation: 'fadeIn 0.2s ease',
+                padding: '12px 16px',
+                borderRadius: '16px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                animation: 'fadeIn 0.25s ease',
             }}>
                 <AlertTriangle size={16} color="#ef4444" />
                 <p style={{
@@ -76,11 +166,11 @@ export function VoiceInputBar({
                         onStartListening();
                     }}
                     style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(26, 138, 158, 0.3)',
-                        background: 'rgba(26, 138, 158, 0.1)',
-                        color: 'var(--color-accent, #1A8A9E)',
+                        padding: '6px 14px',
+                        borderRadius: '10px',
+                        border: `1px solid rgba(26, 138, 158, 0.3)`,
+                        background: `rgba(26, 138, 158, 0.08)`,
+                        color: TEAL,
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -95,8 +185,8 @@ export function VoiceInputBar({
                         onSwitchToText();
                     }}
                     style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
+                        padding: '6px 14px',
+                        borderRadius: '10px',
                         border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
                         background: 'transparent',
                         color: 'var(--color-text-secondary, #888)',
@@ -119,25 +209,28 @@ export function VoiceInputBar({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '10px',
-                padding: '14px 16px',
-                borderRadius: '16px',
-                background: 'rgba(26, 138, 158, 0.06)',
-                border: '1px solid rgba(26, 138, 158, 0.15)',
-                animation: 'fadeIn 0.2s ease',
+                gap: '12px',
+                padding: '16px 20px',
+                borderRadius: '20px',
+                background: `linear-gradient(135deg, rgba(26, 138, 158, 0.06), rgba(14, 207, 207, 0.04))`,
+                border: `1px solid rgba(26, 138, 158, 0.12)`,
+                animation: 'fadeIn 0.25s ease',
             }}>
-                <div className="voice-spinner" style={{
-                    width: '18px',
-                    height: '18px',
-                    border: '2px solid rgba(26, 138, 158, 0.2)',
-                    borderTopColor: '#1A8A9E',
+                <div style={{
+                    width: '20px',
+                    height: '20px',
+                    border: `2.5px solid rgba(26, 138, 158, 0.15)`,
+                    borderTopColor: TEAL,
                     borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
+                    animation: 'spin 0.7s linear infinite',
                 }} />
                 <span style={{
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    color: 'var(--color-accent, #1A8A9E)',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    background: `linear-gradient(135deg, ${TEAL}, ${CYAN})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    letterSpacing: '0.02em',
                 }}>
                     {isRTL ? '...جارٍ النسخ' : 'Transcribing...'}
                 </span>
@@ -145,84 +238,171 @@ export function VoiceInputBar({
         );
     }
 
-    // ── Listening State ─────────────────────────
+    // ── Listening State (Active Recording) ──────
     if (voiceState === 'listening') {
-        const isAutoMic = voiceMode === 'auto_mic';
+        const isCont = voiceMode === 'auto_mic' || locked;
+
         return (
-            <div className="voice-listening-bar" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                padding: '14px 16px',
-                borderRadius: '16px',
-                background: isAutoMic
-                    ? 'linear-gradient(135deg, rgba(14, 207, 207, 0.06), rgba(26, 138, 158, 0.08))'
-                    : 'rgba(26, 138, 158, 0.06)',
-                border: isAutoMic
-                    ? '1px solid rgba(14, 207, 207, 0.25)'
-                    : '1px solid rgba(26, 138, 158, 0.2)',
-                animation: 'fadeIn 0.2s ease',
-                boxShadow: isAutoMic ? '0 0 16px rgba(14, 207, 207, 0.08)' : 'none',
-            }}>
-                {/* Top row: recording indicator + mode badge + duration */}
+            <div
+                ref={containerRef}
+                className="voice-active-bar"
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                onTouchMove={handlePointerMove as any}
+                onTouchEnd={handlePointerUp as any}
+                onTouchCancel={handlePointerUp as any}
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    padding: '16px 20px',
+                    borderRadius: '20px',
+                    background: isCont
+                        ? `linear-gradient(135deg, rgba(14, 207, 207, 0.06), rgba(26, 138, 158, 0.08))`
+                        : `linear-gradient(135deg, rgba(26, 138, 158, 0.04), rgba(26, 138, 158, 0.06))`,
+                    border: isCont
+                        ? `1px solid rgba(14, 207, 207, 0.2)`
+                        : `1px solid rgba(26, 138, 158, 0.15)`,
+                    animation: 'fadeIn 0.2s ease',
+                    boxShadow: isCont
+                        ? `0 4px 24px rgba(14, 207, 207, 0.08), inset 0 1px 0 rgba(14, 207, 207, 0.05)`
+                        : `0 2px 12px rgba(26, 138, 158, 0.04)`,
+                    userSelect: 'none',
+                    touchAction: 'none',
+                    transition: 'all 0.3s ease',
+                }}
+            >
+                {/* Top row: status + lock indicator + duration */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* Pulsing record dot */}
                         <div style={{
                             width: '8px',
                             height: '8px',
                             borderRadius: '50%',
-                            background: isAutoMic ? '#0ECFCF' : '#ef4444',
-                            animation: 'pulse 1.5s ease infinite',
-                            boxShadow: isAutoMic ? '0 0 6px rgba(14, 207, 207, 0.5)' : 'none',
+                            background: isCont ? CYAN : '#ef4444',
+                            animation: 'pulse 1.4s ease infinite',
+                            boxShadow: isCont ? `0 0 8px ${CYAN_GLOW}` : '0 0 6px rgba(239, 68, 68, 0.4)',
                         }} />
                         <span style={{
                             fontSize: '13px',
                             fontWeight: 600,
-                            color: isAutoMic ? '#0ECFCF' : 'var(--color-accent, #1A8A9E)',
+                            color: isCont ? CYAN : TEAL,
+                            letterSpacing: '0.01em',
                         }}>
                             {isRTL ? '...جارٍ الاستماع' : 'Listening...'}
                         </span>
-                        {isAutoMic && (
+
+                        {/* Continuous badge */}
+                        {isCont && (
                             <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
                                 fontSize: '9px',
                                 fontWeight: 700,
-                                color: '#0ECFCF',
-                                background: 'rgba(14, 207, 207, 0.12)',
-                                border: '1px solid rgba(14, 207, 207, 0.25)',
+                                color: CYAN,
+                                background: `rgba(14, 207, 207, 0.1)`,
+                                border: `1px solid rgba(14, 207, 207, 0.2)`,
                                 borderRadius: '10px',
                                 padding: '2px 8px',
-                                letterSpacing: '0.05em',
+                                letterSpacing: '0.06em',
                                 textTransform: 'uppercase',
                             }}>
-                                {isRTL ? 'مستمر' : 'CONTINUOUS'}
+                                <Lock size={8} color={CYAN} />
+                                {isRTL ? 'مثبت' : 'LOCKED'}
                             </span>
                         )}
                     </div>
+
                     <span style={{
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                        color: 'var(--color-text-muted, #666)',
+                        fontSize: '13px',
+                        fontFamily: "'SF Mono', 'Fira Code', monospace",
+                        fontWeight: 500,
+                        color: isCont ? CYAN : 'var(--color-text-muted, #777)',
+                        opacity: 0.8,
                     }}>
                         {formatDuration(recordingDuration)}
                     </span>
                 </div>
+
+                {/* Swipe-to-lock indicator (only in PTT mode, not yet locked) */}
+                {!isCont && isHolding && (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        animation: 'fadeIn 0.3s ease',
+                    }}>
+                        {/* Lock icon that fills as you swipe */}
+                        <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '10px',
+                            background: swipeProgress > 0.7
+                                ? `linear-gradient(135deg, ${TEAL}, ${CYAN})`
+                                : `rgba(26, 138, 158, ${0.08 + swipeProgress * 0.2})`,
+                            border: `1.5px solid rgba(26, 138, 158, ${0.15 + swipeProgress * 0.45})`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                            transform: `translateY(${-swipeProgress * 6}px) scale(${1 + swipeProgress * 0.15})`,
+                            boxShadow: swipeProgress > 0.7
+                                ? `0 4px 16px ${TEAL_GLOW}`
+                                : 'none',
+                        }}>
+                            {swipeProgress > 0.7
+                                ? <Lock size={14} color="#fff" />
+                                : <ChevronUp size={14} color={TEAL} style={{ opacity: 0.5 + swipeProgress * 0.5 }} />
+                            }
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            opacity: swipeProgress > 0.7 ? 1 : 0.5 + swipeProgress * 0.3,
+                            transition: 'opacity 0.2s ease',
+                        }}>
+                            <ChevronUp size={10} color={TEAL} style={{
+                                animation: 'slideUpHint 1.2s ease infinite',
+                                opacity: swipeProgress > 0.5 ? 0 : 1,
+                            }} />
+                            <span style={{
+                                fontSize: '10px',
+                                fontWeight: 600,
+                                color: swipeProgress > 0.7 ? CYAN : TEAL,
+                                letterSpacing: '0.04em',
+                                transition: 'color 0.2s ease',
+                            }}>
+                                {swipeProgress > 0.7
+                                    ? (isRTL ? 'حرر للتثبيت' : 'Release to lock')
+                                    : (isRTL ? 'اسحب للأعلى للتثبيت' : 'Slide up to lock')
+                                }
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Waveform */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    padding: '2px 0',
                 }}>
                     <AudioWaveform
                         audioLevel={audioLevel}
                         isActive={true}
-                        width={200}
-                        height={36}
-                        color={isAutoMic ? '#0ECFCF' : '#1A8A9E'}
+                        width={220}
+                        height={38}
+                        color={isCont ? CYAN : TEAL}
                     />
                 </div>
 
@@ -239,218 +419,190 @@ export function VoiceInputBar({
                             display: 'flex',
                             alignItems: 'center',
                             gap: '5px',
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            background: 'rgba(239, 68, 68, 0.08)',
-                            color: 'var(--color-error, #ef4444)',
+                            padding: '7px 14px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(239, 68, 68, 0.15)',
+                            background: 'rgba(239, 68, 68, 0.06)',
+                            color: '#ef4444',
                             fontSize: '12px',
                             fontWeight: 500,
                             cursor: 'pointer',
+                            transition: 'all 0.2s ease',
                         }}
                     >
-                        <X size={12} color="currentColor" style={{ marginRight: 3 }} />{isRTL ? 'إلغاء' : 'Cancel'}
+                        <X size={12} color="currentColor" />{isRTL ? 'إلغاء' : 'Cancel'}
                     </button>
 
-                    <button
-                        onClick={onStopListening}
-                        aria-label={isRTL ? 'إيقاف التسجيل' : 'Stop recording'}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            border: isAutoMic
-                                ? '1px solid rgba(14, 207, 207, 0.35)'
-                                : '1px solid rgba(26, 138, 158, 0.3)',
-                            background: isAutoMic
-                                ? 'rgba(14, 207, 207, 0.1)'
-                                : 'rgba(26, 138, 158, 0.1)',
-                            color: isAutoMic ? '#0ECFCF' : 'var(--color-accent, #1A8A9E)',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <Square size={12} color="currentColor" style={{ marginRight: 3 }} />
-                        {voiceMode === 'push_to_talk'
-                            ? (isRTL ? 'إيقاف' : 'Done')
-                            : (isRTL ? 'إيقاف' : 'Stop')
-                        }
-                    </button>
+                    {/* Only show stop in continuous/locked mode */}
+                    {isCont && (
+                        <button
+                            onClick={onStopListening}
+                            aria-label={isRTL ? 'إيقاف الاستماع' : 'Stop listening'}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '7px 16px',
+                                borderRadius: '10px',
+                                border: `1px solid rgba(14, 207, 207, 0.3)`,
+                                background: `rgba(14, 207, 207, 0.08)`,
+                                color: CYAN,
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >
+                            <Square size={12} color="currentColor" />
+                            {isRTL ? 'إيقاف' : 'Stop'}
+                        </button>
+                    )}
+
+                    {/* PTT mode: show hint that releasing will send */}
+                    {!isCont && (
+                        <span style={{
+                            fontSize: '11px',
+                            fontWeight: 500,
+                            color: 'var(--color-text-muted, #777)',
+                            opacity: 0.7,
+                        }}>
+                            {isRTL ? 'ارفع إصبعك للإرسال' : 'Release to send'}
+                        </span>
+                    )}
                 </div>
             </div>
         );
     }
 
-    // ── Idle State: Mic Button ──────────────────
-    const isContinuous = voiceMode === 'auto_mic';
-
+    // ── Idle State: Large Mic Button with Hold-to-Talk ──
     return (
-        <div className="voice-idle-controls" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-        }}>
-            {/* ── Segmented Mode Selector ── */}
+        <div
+            className="voice-idle-ptt"
+            style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                position: 'relative',
+            }}
+        >
+            {/* Mic Button Container with animated rings */}
             <div
                 style={{
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
-                    position: 'relative',
-                    borderRadius: '20px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    padding: '3px',
-                    overflow: 'hidden',
+                    justifyContent: 'center',
                 }}
             >
-                {/* Sliding highlight */}
-                <div style={{
-                    position: 'absolute',
-                    top: '3px',
-                    bottom: '3px',
-                    width: 'calc(50% - 3px)',
-                    borderRadius: '16px',
-                    background: isContinuous
-                        ? 'linear-gradient(135deg, #1A8A9E, #0ECFCF)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                    transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: isContinuous
-                        ? (isRTL ? 'translateX(0%)' : 'translateX(calc(100% + 3px))')
-                        : (isRTL ? 'translateX(calc(100% + 3px))' : 'translateX(0%)'),
-                    boxShadow: isContinuous
-                        ? '0 2px 8px rgba(26, 138, 158, 0.4), 0 0 20px rgba(14, 207, 207, 0.15)'
-                        : 'none',
-                }} />
-
-                {/* PTT Button */}
-                <button
-                    onClick={() => onSetVoiceMode('push_to_talk')}
-                    aria-label={isRTL ? 'اضغط للتحدث' : 'Push to talk'}
+                {/* Outer glow ring */}
+                <div
+                    className="voice-idle-ring-outer"
                     style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '6px 12px',
-                        borderRadius: '16px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: !isContinuous ? '#fff' : 'var(--color-text-muted, #888)',
-                        fontSize: '11px',
-                        fontWeight: !isContinuous ? 700 : 500,
-                        cursor: 'pointer',
-                        transition: 'color 0.3s ease',
-                        whiteSpace: 'nowrap',
+                        position: 'absolute',
+                        width: '78px',
+                        height: '78px',
+                        borderRadius: '50%',
+                        background: `conic-gradient(from 0deg, ${TEAL}33, ${CYAN}33, ${TEAL}33)`,
+                        animation: 'voiceRingSpin 4s linear infinite',
+                        opacity: 0.5,
+                        filter: 'blur(1px)',
                     }}
-                >
-                    <PointerFinger size={12} color="currentColor" />
-                    {isRTL ? 'اضغط' : 'PTT'}
-                </button>
-
-                {/* Continuous Button */}
-                <button
-                    onClick={() => onSetVoiceMode('auto_mic')}
-                    aria-label={isRTL ? 'الاستماع التلقائي المستمر' : 'Continuous auto-listen'}
+                />
+                {/* Inner glow ring */}
+                <div
+                    className="voice-idle-ring-inner"
                     style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '6px 12px',
-                        borderRadius: '16px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: isContinuous ? '#fff' : 'var(--color-text-muted, #888)',
-                        fontSize: '11px',
-                        fontWeight: isContinuous ? 700 : 500,
-                        cursor: 'pointer',
-                        transition: 'color 0.3s ease',
-                        whiteSpace: 'nowrap',
+                        position: 'absolute',
+                        width: '72px',
+                        height: '72px',
+                        borderRadius: '50%',
+                        background: `conic-gradient(from 180deg, ${CYAN}22, ${TEAL}22, ${CYAN}22)`,
+                        animation: 'voiceRingSpin 3s linear infinite reverse',
+                        opacity: 0.4,
                     }}
-                >
-                    <RefreshCcw size={12} color="currentColor" />
-                    {isRTL ? 'مستمر' : 'Continuous'}
-                </button>
-            </div>
+                />
 
-            {/* ── Mic Button with Glow Ring ── */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-                {/* Animated glow ring (only in continuous mode) */}
-                {isContinuous && (
-                    <div
-                        className="voice-glow-ring"
-                        style={{
-                            position: 'absolute',
-                            inset: '-4px',
-                            borderRadius: '16px',
-                            background: 'linear-gradient(135deg, #1A8A9E, #0ECFCF, #1A8A9E)',
-                            backgroundSize: '200% 200%',
-                            animation: 'voiceGlowSpin 2s linear infinite, voiceGlowPulse 2s ease-in-out infinite',
-                            opacity: 0.6,
-                            filter: 'blur(3px)',
-                        }}
-                    />
-                )}
+                {/* Main mic button */}
                 <button
-                    onClick={onStartListening}
-                    aria-label={isContinuous
-                        ? (isRTL ? 'ابدأ الاستماع المستمر' : 'Start continuous listening')
-                        : (isRTL ? 'اضغط للتحدث' : 'Push to talk')
-                    }
-                    title={isContinuous
-                        ? (isRTL ? 'ابدأ الاستماع المستمر' : 'Start continuous listening')
-                        : (isRTL ? 'اضغط للتحدث' : 'Push to talk')
-                    }
+                    className="voice-ptt-button"
+                    onPointerDown={handlePointerDown as any}
+                    onPointerMove={handlePointerMove as any}
+                    onPointerUp={handlePointerUp as any}
+                    onPointerCancel={handlePointerUp as any}
+                    onTouchStart={handlePointerDown as any}
+                    onTouchMove={handlePointerMove as any}
+                    onTouchEnd={handlePointerUp as any}
+                    onTouchCancel={handlePointerUp as any}
+                    onContextMenu={e => e.preventDefault()}
+                    aria-label={isRTL ? 'اضغط مع الاستمرار للتحدث' : 'Hold to talk'}
+                    title={isRTL ? 'اضغط مع الاستمرار للتحدث' : 'Hold to talk'}
                     style={{
                         position: 'relative',
+                        zIndex: 2,
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        border: `2px solid rgba(26, 138, 158, 0.25)`,
+                        background: `linear-gradient(145deg, rgba(26, 138, 158, 0.12), rgba(14, 207, 207, 0.06))`,
+                        color: TEAL,
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '14px',
-                        border: isContinuous
-                            ? '2px solid rgba(14, 207, 207, 0.5)'
-                            : '1px solid var(--color-border, rgba(255,255,255,0.1))',
-                        background: isContinuous
-                            ? 'linear-gradient(135deg, rgba(26, 138, 158, 0.2), rgba(14, 207, 207, 0.12))'
-                            : 'var(--bg-card, rgba(26, 138, 158, 0.08))',
-                        color: isContinuous ? '#0ECFCF' : 'var(--color-text-muted, #666)',
-                        fontSize: '18px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
+                        touchAction: 'none',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                         padding: 0,
-                        zIndex: 1,
-                    }}
-                    onMouseEnter={(e) => {
-                        if (isContinuous) {
-                            e.currentTarget.style.boxShadow = '0 0 20px rgba(14, 207, 207, 0.35), inset 0 0 12px rgba(14, 207, 207, 0.1)';
-                            e.currentTarget.style.transform = 'scale(1.05)';
-                        } else {
-                            e.currentTarget.style.color = 'var(--color-accent, #1A8A9E)';
-                            e.currentTarget.style.borderColor = 'rgba(26, 138, 158, 0.4)';
-                            e.currentTarget.style.boxShadow = '0 0 12px rgba(26, 138, 158, 0.15)';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (isContinuous) {
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.transform = 'scale(1)';
-                        } else {
-                            e.currentTarget.style.color = 'var(--color-text-muted, #666)';
-                            e.currentTarget.style.borderColor = 'var(--color-border, rgba(255,255,255,0.1))';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }
+                        outline: 'none',
+                        boxShadow: `0 2px 16px rgba(26, 138, 158, 0.08), inset 0 1px 0 rgba(255,255,255,0.04)`,
                     }}
                 >
-                    <Mic size={20} color="currentColor" />
+                    <Mic size={26} color="currentColor" strokeWidth={2} />
                 </button>
             </div>
+
+            {/* Hint text */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                opacity: 0.5,
+            }}>
+                <span style={{
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    color: 'var(--color-text-muted, #888)',
+                    letterSpacing: '0.03em',
+                }}>
+                    {isRTL ? 'اضغط للتحدث · اسحب لأعلى للتثبيت' : 'Hold to talk · Swipe up to lock'}
+                </span>
+            </div>
+
+            {/* Keyboard switch */}
+            <button
+                onClick={onSwitchToText}
+                aria-label={isRTL ? 'التبديل إلى الكتابة' : 'Switch to typing'}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--color-text-muted, #777)',
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    opacity: 0.5,
+                    transition: 'opacity 0.2s ease',
+                }}
+            >
+                <Keyboard size={11} color="currentColor" />
+                {isRTL ? 'اكتب بدلاً من ذلك' : 'Type instead'}
+            </button>
         </div>
     );
 }

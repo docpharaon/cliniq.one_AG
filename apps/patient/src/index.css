@@ -447,7 +447,7 @@ input[type="file"] {
     30%           { opacity: 1;   transform: translateY(-4px); }
 }
 
-/* ── Voice Continuous Mode Glow ─────────────────────────── */
+/* ── Voice PTT Swipe-to-Lock Animations ────────────────── */
 @keyframes voiceGlowSpin {
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }
@@ -457,6 +457,39 @@ input[type="file"] {
 @keyframes voiceGlowPulse {
     0%, 100% { opacity: 0.4; transform: scale(1); }
     50%      { opacity: 0.7; transform: scale(1.04); }
+}
+
+@keyframes voiceRingSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes slideUpHint {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50%      { transform: translateY(-4px); opacity: 1; }
+}
+
+/* PTT button hold state — scale + glow */
+.voice-ptt-button:active,
+.voice-ptt-button[data-holding="true"] {
+    transform: scale(1.08) !important;
+    border-color: rgba(14, 207, 207, 0.5) !important;
+    box-shadow: 0 0 28px rgba(14, 207, 207, 0.25),
+                0 0 10px rgba(26, 138, 158, 0.2),
+                inset 0 0 8px rgba(14, 207, 207, 0.06) !important;
+    background: linear-gradient(145deg, rgba(26, 138, 158, 0.2), rgba(14, 207, 207, 0.12)) !important;
+    color: #0ECFCF !important;
+}
+
+/* Idle ring hover shimmer */
+.voice-idle-ptt:hover .voice-idle-ring-outer {
+    opacity: 0.8;
+}
+
+.voice-idle-ptt:hover .voice-ptt-button {
+    border-color: rgba(26, 138, 158, 0.4);
+    box-shadow: 0 4px 20px rgba(26, 138, 158, 0.12),
+                inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 /* ── Brand Spinner (transition overlay) ──────────────────── */

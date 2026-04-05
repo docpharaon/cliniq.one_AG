@@ -32,6 +32,7 @@ export interface UseVoiceInputReturn {
     stopListening: () => void;
     cancelRecording: () => void;
     setVoiceMode: (mode: VoiceMode) => void;
+    lockContinuous: () => void;
 
     // Ref for waveform
     analyserNode: AnalyserNode | null;
@@ -332,6 +333,11 @@ export function useVoiceInput({
         setError(null);
     }, [cleanup]);
 
+    // ── Lock Continuous (mid-recording switch from PTT to auto_mic) ──
+    const lockContinuous = useCallback(() => {
+        setVoiceMode('auto_mic');
+    }, []);
+
     return {
         voiceState,
         transcript,
@@ -344,6 +350,7 @@ export function useVoiceInput({
         stopListening,
         cancelRecording,
         setVoiceMode,
+        lockContinuous,
         analyserNode: analyserRef.current,
     };
 }

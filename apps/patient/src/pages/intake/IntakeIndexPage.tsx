@@ -4,6 +4,7 @@ import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { FadeIn } from '../../components/FadeIn';
+import { BackButton } from '../../components/BackButton';
 import { resolveLocum } from '../../services/aiService';
 import { Stethoscope, Hospital, CheckCircle, XCircle, Camera, Doctor, ClipboardList, Shield } from '@cliniqone/ui';
 
@@ -66,6 +67,7 @@ export default function IntakeIndexPage() {
     return (
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
             <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 20px 48px' }}>
+                <BackButton />
                 <FadeIn>
                     <div style={{ textAlign: 'center', paddingTop: 40, marginBottom: 32 }}>
                         <div style={{ marginBottom: 16 }}><Stethoscope size={56} color="#2DD4BF" /></div>

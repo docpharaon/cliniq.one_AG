@@ -1969,8 +1969,8 @@ export default function AiChatPage() {
                 {/* Input — hidden during photo capture, med label capture, or report upload */}
                 {!showPhotoCapture && !showMedLabelCapture && !showReportUpload && (
                     <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-                        {/* Voice Input Bar — full-width row (listening/processing/error) */}
-                        {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState !== 'idle' && (
+                        {/* Voice Input Bar — unified: idle (big mic), listening, processing, error */}
+                        {voiceConfig.enabled && showVoiceInput && (
                             <VoiceInputBar
                                 voiceState={voiceInput.voiceState}
                                 audioLevel={voiceInput.audioLevel}
@@ -1984,26 +1984,7 @@ export default function AiChatPage() {
                                 onStopListening={voiceInput.stopListening}
                                 onCancel={voiceInput.cancelRecording}
                                 onSetVoiceMode={voiceInput.setVoiceMode}
-                                onSwitchToText={() => setShowVoiceInput(false)}
-                                onDismissError={voiceInput.cancelRecording}
-                            />
-                        )}
-
-                        {/* Voice mode selector — full-width row ABOVE text input (idle only) */}
-                        {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState === 'idle' && (
-                            <VoiceInputBar
-                                voiceState={voiceInput.voiceState}
-                                audioLevel={voiceInput.audioLevel}
-                                error={voiceInput.error}
-                                voiceMode={voiceInput.voiceMode}
-                                recordingDuration={voiceInput.recordingDuration}
-                                isSupported={voiceInput.isSupported}
-                                enabled={voiceConfig.enabled}
-                                isRTL={rtl}
-                                onStartListening={voiceInput.startListening}
-                                onStopListening={voiceInput.stopListening}
-                                onCancel={voiceInput.cancelRecording}
-                                onSetVoiceMode={voiceInput.setVoiceMode}
+                                onLockContinuous={voiceInput.lockContinuous}
                                 onSwitchToText={() => setShowVoiceInput(false)}
                                 onDismissError={voiceInput.cancelRecording}
                             />
