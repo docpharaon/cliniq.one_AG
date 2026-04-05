@@ -132,8 +132,16 @@ async function callAI<T>(action: string, payload: Record<string, unknown>): Prom
         const timer = setTimeout(() => controller.abort(), AI_CALL_TIMEOUT_MS);
 
         try {
+            // Try refreshing session if stale
+            let token: string | undefined;
             const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
+            token = session?.access_token;
+
+            // If no token or token looks expired, force refresh
+            if (!token) {
+                const { data: refreshed } = await supabase.auth.refreshSession();
+                token = refreshed?.session?.access_token;
+            }
 
             const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-intake', {
                 body: { action, ...payload },
@@ -142,7 +150,24 @@ async function callAI<T>(action: string, payload: Record<string, unknown>): Prom
 
             clearTimeout(timer);
 
+            // Handle auth errors specifically
             if (fnError) {
+                const msg = fnError.message || '';
+                const isAuthError = msg.includes('401') || msg.includes('403') ||
+                    msg.includes('non-2xx') || msg.includes('JWT');
+
+                if (isAuthError && attempt < MAX_RETRIES) {
+                    console.warn(`[callAI] Auth error on attempt ${attempt + 1}, refreshing session...`);
+                    const { data: refreshed } = await supabase.auth.refreshSession();
+                    if (!refreshed?.session) {
+                        // Session is dead — sign out and redirect
+                        console.error('[callAI] Session expired, signing out');
+                        await supabase.auth.signOut();
+                        window.location.href = '/auth/login';
+                        throw new Error('Session expired');
+                    }
+                    continue; // Retry with fresh token
+                }
                 throw new Error(fnError.message || 'Edge function error');
             }
             if (fnData?.error) {
