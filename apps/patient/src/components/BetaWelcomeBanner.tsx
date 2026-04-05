@@ -4,7 +4,10 @@ import { haptic } from '../hooks/useHaptics';
 import logoImg from '../../assets/logo.png';
 import type { CSSProperties } from 'react';
 
-const STORAGE_KEY = 'cliniq_beta_banner_seen';
+/** Tracks whether the user has ever completed the forced first-run banner */
+const FIRST_SEEN_KEY = 'cliniq_beta_banner_first_seen';
+/** Minimum seconds the user must wait before CTA is enabled on first run */
+const FIRST_RUN_LOCK_MS = 5_000;
 const AUTO_DISMISS_MS = 25_000;
 
 // Confetti colors — premium palette
@@ -77,9 +80,13 @@ function DedicationName({ name, title, delay }: { name: string; title: string; d
 
 export function BetaWelcomeBanner() {
     const lang = useLocale();
-    const [visible, setVisible] = useState(false);
+    const [visible, setVisible] = useState(true);          // Always show
     const [dismissing, setDismissing] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // First-run detection: has the user ever seen & completed this banner?
+    const isFirstRun = useRef(true);
+    const [ctaUnlocked, setCtaUnlocked] = useState(false);
 
     // Generate once
     const confetti = useMemo(() => generateConfetti(30), []);
@@ -87,14 +94,21 @@ export function BetaWelcomeBanner() {
 
     useEffect(() => {
         try {
-            const seen = localStorage.getItem(STORAGE_KEY);
-            if (!seen) {
-                setVisible(true);
-                // Auto-dismiss after 4 seconds
-                timerRef.current = setTimeout(() => dismiss(), AUTO_DISMISS_MS);
+            const seen = localStorage.getItem(FIRST_SEEN_KEY);
+            if (seen) {
+                // Returning user — can skip immediately
+                isFirstRun.current = false;
+                setCtaUnlocked(true);
+            } else {
+                // First run — lock CTA for FIRST_RUN_LOCK_MS
+                isFirstRun.current = true;
+                setCtaUnlocked(false);
+                timerRef.current = setTimeout(() => setCtaUnlocked(true), FIRST_RUN_LOCK_MS);
             }
         } catch {
-            // Storage unavailable — don't show
+            // Storage unavailable — treat as skippable
+            isFirstRun.current = false;
+            setCtaUnlocked(true);
         }
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);
@@ -103,11 +117,20 @@ export function BetaWelcomeBanner() {
 
     const dismiss = () => {
         if (dismissing) return;
+        // On first run, only allow dismiss after CTA is unlocked
+        if (isFirstRun.current && !ctaUnlocked) return;
         setDismissing(true);
         haptic.medium();
-        try { localStorage.setItem(STORAGE_KEY, 'true'); } catch {}
+        // Mark first run as complete so future visits are skippable
+        try { localStorage.setItem(FIRST_SEEN_KEY, 'true'); } catch {}
         // Fade out
         setTimeout(() => setVisible(false), 400);
+    };
+
+    /** Overlay tap — only works for returning users (skippable) */
+    const handleOverlayTap = () => {
+        if (isFirstRun.current) return;   // Can't skip on first run
+        dismiss();
     };
 
     if (!visible) return null;
@@ -156,7 +179,7 @@ export function BetaWelcomeBanner() {
             ))}
 
             {/* Main content (scrollable) */}
-            <div style={s.scrollContainer} onClick={dismiss}>
+            <div style={s.scrollContainer} onClick={handleOverlayTap}>
                 <div className="beta-banner-content" style={s.content} onClick={e => e.stopPropagation()}>
 
                     {/* ── Section 1: Logo + Welcome ────────────────────── */}
@@ -240,13 +263,25 @@ export function BetaWelcomeBanner() {
                     {/* ── Section 5: CTA ───────────────────────────────── */}
                     <button
                         className="beta-banner-cta pressable"
-                        style={s.ctaButton}
+                        style={{
+                            ...s.ctaButton,
+                            ...(isFirstRun.current && !ctaUnlocked ? {
+                                opacity: 0.35,
+                                pointerEvents: 'none' as const,
+                            } : {}),
+                        }}
                         onClick={dismiss}
+                        disabled={isFirstRun.current && !ctaUnlocked}
                     >
-                        {t('betaBanner.enterButton')} →
+                        {isFirstRun.current && !ctaUnlocked
+                            ? t('betaBanner.enterButton')
+                            : `${t('betaBanner.enterButton')} →`}
                     </button>
 
-                    <p style={s.skipHint}>{t('betaBanner.skipHint')}</p>
+                    {/* Skip hint — only for returning users */}
+                    {!isFirstRun.current && (
+                        <p style={s.skipHint}>{t('betaBanner.skipHint')}</p>
+                    )}
                 </div>
             </div>
         </div>

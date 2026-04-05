@@ -84,7 +84,11 @@
         "specialChar": "Contains special character (recommended)",
         "passwordsMatch": "Passwords match",
         "passwordStrength": "Password strength:",
-        "orSignUpWithEmail": "or sign up with email"
+        "orSignUpWithEmail": "or sign up with email",
+        "getStartedTitle": "Get Started",
+        "signInSubtitle": "Sign in to continue to your account",
+        "signUpSubtitle": "Create your account in seconds",
+        "signInWithEmail": "Sign in with email"
     },
     "registration": {
         "personalDetails": "Personal Details",

@@ -474,7 +474,19 @@ export function VoiceInputBar({
         );
     }
 
-    // ── Idle State: Large Mic Button with Hold-to-Talk ──
+    // ── Idle State: Mic Button ──
+    // Auto-mic mode: tap to start (VAD auto-stops on silence)
+    // PTT mode: hold to talk, swipe up to lock
+    const isAutoMode = voiceMode === 'auto_mic';
+
+    const handleIdleTap = useCallback(() => {
+        if (voiceState !== 'idle') return;
+        if (isAutoMode) {
+            // Auto mode: single tap starts, VAD handles stopping
+            onStartListening();
+        }
+    }, [voiceState, isAutoMode, onStartListening]);
+
     return (
         <div
             className="voice-idle-ptt"
@@ -503,7 +515,9 @@ export function VoiceInputBar({
                         width: '78px',
                         height: '78px',
                         borderRadius: '50%',
-                        background: `conic-gradient(from 0deg, ${TEAL}33, ${CYAN}33, ${TEAL}33)`,
+                        background: isAutoMode
+                            ? `conic-gradient(from 0deg, ${CYAN}33, ${TEAL}33, ${CYAN}33)`
+                            : `conic-gradient(from 0deg, ${TEAL}33, ${CYAN}33, ${TEAL}33)`,
                         animation: 'voiceRingSpin 4s linear infinite',
                         opacity: 0.5,
                         filter: 'blur(1px)',
@@ -517,7 +531,9 @@ export function VoiceInputBar({
                         width: '72px',
                         height: '72px',
                         borderRadius: '50%',
-                        background: `conic-gradient(from 180deg, ${CYAN}22, ${TEAL}22, ${CYAN}22)`,
+                        background: isAutoMode
+                            ? `conic-gradient(from 180deg, ${TEAL}22, ${CYAN}22, ${TEAL}22)`
+                            : `conic-gradient(from 180deg, ${CYAN}22, ${TEAL}22, ${CYAN}22)`,
                         animation: 'voiceRingSpin 3s linear infinite reverse',
                         opacity: 0.4,
                     }}
@@ -526,26 +542,37 @@ export function VoiceInputBar({
                 {/* Main mic button */}
                 <button
                     className="voice-ptt-button"
-                    onPointerDown={handlePointerDown as any}
-                    onPointerMove={handlePointerMove as any}
-                    onPointerUp={handlePointerUp as any}
-                    onPointerCancel={handlePointerUp as any}
-                    onTouchStart={handlePointerDown as any}
-                    onTouchMove={handlePointerMove as any}
-                    onTouchEnd={handlePointerUp as any}
-                    onTouchCancel={handlePointerUp as any}
+                    onClick={isAutoMode ? handleIdleTap : undefined}
+                    onPointerDown={isAutoMode ? undefined : handlePointerDown as any}
+                    onPointerMove={isAutoMode ? undefined : handlePointerMove as any}
+                    onPointerUp={isAutoMode ? undefined : handlePointerUp as any}
+                    onPointerCancel={isAutoMode ? undefined : handlePointerUp as any}
+                    onTouchStart={isAutoMode ? undefined : handlePointerDown as any}
+                    onTouchMove={isAutoMode ? undefined : handlePointerMove as any}
+                    onTouchEnd={isAutoMode ? undefined : handlePointerUp as any}
+                    onTouchCancel={isAutoMode ? undefined : handlePointerUp as any}
                     onContextMenu={e => e.preventDefault()}
-                    aria-label={isRTL ? 'اضغط مع الاستمرار للتحدث' : 'Hold to talk'}
-                    title={isRTL ? 'اضغط مع الاستمرار للتحدث' : 'Hold to talk'}
+                    aria-label={isAutoMode
+                        ? (isRTL ? 'اضغط للتحدث' : 'Tap to talk')
+                        : (isRTL ? 'اضغط مع الاستمرار للتحدث' : 'Hold to talk')
+                    }
+                    title={isAutoMode
+                        ? (isRTL ? 'اضغط للتحدث' : 'Tap to talk')
+                        : (isRTL ? 'اضغط مع الاستمرار للتحدث' : 'Hold to talk')
+                    }
                     style={{
                         position: 'relative',
                         zIndex: 2,
                         width: '64px',
                         height: '64px',
                         borderRadius: '50%',
-                        border: `2px solid rgba(26, 138, 158, 0.25)`,
-                        background: `linear-gradient(145deg, rgba(26, 138, 158, 0.12), rgba(14, 207, 207, 0.06))`,
-                        color: TEAL,
+                        border: isAutoMode
+                            ? `2px solid rgba(14, 207, 207, 0.3)`
+                            : `2px solid rgba(26, 138, 158, 0.25)`,
+                        background: isAutoMode
+                            ? `linear-gradient(145deg, rgba(14, 207, 207, 0.15), rgba(26, 138, 158, 0.08))`
+                            : `linear-gradient(145deg, rgba(26, 138, 158, 0.12), rgba(14, 207, 207, 0.06))`,
+                        color: isAutoMode ? CYAN : TEAL,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -556,7 +583,9 @@ export function VoiceInputBar({
                         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                         padding: 0,
                         outline: 'none',
-                        boxShadow: `0 2px 16px rgba(26, 138, 158, 0.08), inset 0 1px 0 rgba(255,255,255,0.04)`,
+                        boxShadow: isAutoMode
+                            ? `0 2px 20px rgba(14, 207, 207, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)`
+                            : `0 2px 16px rgba(26, 138, 158, 0.08), inset 0 1px 0 rgba(255,255,255,0.04)`,
                     }}
                 >
                     <Mic size={26} color="currentColor" strokeWidth={2} />
@@ -576,7 +605,10 @@ export function VoiceInputBar({
                     color: 'var(--color-text-muted, #888)',
                     letterSpacing: '0.03em',
                 }}>
-                    {isRTL ? 'اضغط للتحدث · اسحب لأعلى للتثبيت' : 'Hold to talk · Swipe up to lock'}
+                    {isAutoMode
+                        ? (isRTL ? 'اضغط للتحدث · سيتم الإرسال تلقائياً' : 'Tap to talk · Auto-sends on silence')
+                        : (isRTL ? 'اضغط للتحدث · اسحب لأعلى للتثبيت' : 'Hold to talk · Swipe up to lock')
+                    }
                 </span>
             </div>
 

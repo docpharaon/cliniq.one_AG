@@ -52,7 +52,8 @@ export function useVoiceInput({
     const [transcript, setTranscript] = useState('');
     const [audioLevel, setAudioLevel] = useState(0);
     const [error, setError] = useState<string | null>(null);
-    const [voiceMode, setVoiceMode] = useState<VoiceMode>(voiceConfig.defaultMode);
+    // Patient app always defaults to auto_mic for automatic turn-by-turn listening
+    const [voiceMode, setVoiceMode] = useState<VoiceMode>('auto_mic');
     const [recordingDuration, setRecordingDuration] = useState(0);
 
     // Refs for cleanup

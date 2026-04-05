@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase, safeFetch, ensureUserProfile } from '@cliniqone/api';
 import type { User } from '@cliniqone/types';
 import type { Session } from '@supabase/supabase-js';
+import { markHasAccount } from '../pages/auth/AuthPage';
 
 /** Push JWT to native SharedPreferences via Capacitor plugin (no-op on web) */
 async function syncTokenToNative(token: string | null) {
@@ -67,6 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                             );
                             set({ session: oauthSession, user: userData as User | null, isLoading: false, isReady: true });
                             syncTokenToNative(oauthSession.access_token);
+                            markHasAccount();
 
                             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
                                 set({ session: newSession });
@@ -97,6 +99,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 );
                 set({ session, user: userData as User | null, isLoading: false, isReady: true });
                 syncTokenToNative(session.access_token);
+                markHasAccount();
             } else {
                 set({ session: null, user: null, isLoading: false, isReady: true });
                 syncTokenToNative(null);

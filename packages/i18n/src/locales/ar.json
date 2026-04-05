@@ -84,7 +84,11 @@
         "specialChar": "تحتوي على رمز خاص (موصى به)",
         "passwordsMatch": "كلمات المرور متطابقة",
         "passwordStrength": "قوة كلمة المرور:",
-        "orSignUpWithEmail": "أو سجّل بالبريد الإلكتروني"
+        "orSignUpWithEmail": "أو سجّل بالبريد الإلكتروني",
+        "getStartedTitle": "ابدأ الآن",
+        "signInSubtitle": "سجّل دخولك للمتابعة",
+        "signUpSubtitle": "أنشئ حسابك في ثوانٍ",
+        "signInWithEmail": "تسجيل الدخول بالبريد الإلكتروني"
     },
     "registration": {
         "personalDetails": "البيانات الشخصية",

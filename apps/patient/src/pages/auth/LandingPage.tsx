@@ -59,10 +59,10 @@ export function LandingPage() {
 
                 {/* CTA */}
                 <div style={{ marginTop: spacing.lg }}>
-                    <Button title={t('landing.getStarted')} onPress={() => navigate('/auth/signup')} size="lg" />
+                    <Button title={t('landing.getStarted')} onPress={() => navigate('/auth')} size="lg" />
                     <div style={s.loginRow}>
                         <span style={s.loginText}>{t('landing.alreadyHaveAccount')} </span>
-                        <span style={s.loginLink} onClick={() => navigate('/auth/login')}>{t('landing.login')}</span>
+                        <span style={s.loginLink} onClick={() => navigate('/auth')}>{t('landing.login')}</span>
                     </div>
                 </div>
             </div>

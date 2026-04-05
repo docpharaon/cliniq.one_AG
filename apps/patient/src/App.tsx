@@ -12,6 +12,7 @@ import { SplashPage } from './pages/SplashPage';
 import { LandingPage } from './pages/auth/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import AuthPage from './pages/auth/AuthPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import PersonalDetailsPage from './pages/auth/PersonalDetailsPage';
@@ -169,8 +170,9 @@ function AppInner() {
 
                 {/* Auth routes */}
                 <Route path="/auth/landing" element={<LandingPage />} />
-                <Route path="/auth/login" element={<LoginPage />} />
-                <Route path="/auth/signup" element={<SignupPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/auth/login" element={<Navigate to="/auth" replace />} />
+                <Route path="/auth/signup" element={<Navigate to="/auth" replace />} />
                 <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/auth/personal-details" element={<RequireAuth><PersonalDetailsPage /></RequireAuth>} />
