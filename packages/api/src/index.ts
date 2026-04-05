@@ -107,3 +107,12 @@ export {
     getMyApplicationAudit,
 } from './applications';
 export type { ApplicationData, ApplicationDocument, DoctorApplication } from './applications';
+
+// ── Voice (Transcription) ──
+export {
+    transcribeAudio,
+    getVoiceConfig,
+    TranscriptionError,
+    VoiceDisabledError,
+} from './voice';
+export type { VoiceConfig, TranscriptionResult } from './voice';

@@ -5,7 +5,7 @@ import { t } from '@cliniqone/i18n';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
 import { BrandSpinner } from '../../components/BrandSpinner';
-import { TestTube } from '@cliniqone/ui';
+import { TestTube, CheckCircle } from '@cliniqone/ui';
 
 export default function InterventionBookingPage() {
     const { id } = useParams<{ id: string }>();
@@ -61,7 +61,7 @@ export default function InterventionBookingPage() {
                                 <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '4px 0 0' }}>{iv.type} • Priority: {iv.priority}</p>
                             </div>
                             {iv.status === 'patient_accepted' ? (
-                                <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', padding: '4px 10px', borderRadius: 8, backgroundColor: '#05966920' }}>Accepted ✓</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', padding: '4px 10px', borderRadius: 8, backgroundColor: '#05966920', display: 'inline-flex', alignItems: 'center', gap: 4 }}>Accepted <CheckCircle size={12} color="#059669" /></span>
                             ) : (
                                 <button onClick={() => handleBook(iv.id)} disabled={booking}
                                     style={{ padding: '6px 14px', borderRadius: 8, border: 'none', backgroundColor: '#1A8A9E', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>

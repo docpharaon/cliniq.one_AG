@@ -5,6 +5,7 @@ import { t } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { BackButton } from '../../components/BackButton';
 import { useToast } from '../../components/ToastProvider';
+import { CheckCircle } from '@cliniqone/ui';
 
 export default function LegalPage() {
     const navigate = useNavigate();
@@ -94,7 +95,7 @@ export default function LegalPage() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0, color: '#fff', fontSize: 14, fontWeight: 700,
                     }}>
-                        {accepted && '✓'}
+                        {accepted && <CheckCircle size={16} color="#fff" />}
                     </div>
                     <span style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: '22px' }}>
                         I have read and agree to the <strong style={{ color: '#1A8A9E' }}>Terms of Service</strong> and <strong style={{ color: '#1A8A9E' }}>Privacy Policy</strong>

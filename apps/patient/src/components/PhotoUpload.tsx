@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { X } from '@cliniqone/ui';
 
 interface PhotoUploadProps {
     photos: string[];
@@ -50,7 +51,7 @@ export function PhotoUpload({ photos, onAdd, onRemove, maxPhotos = 5, label }: P
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
                         >
-                            ✕
+                            <X size={10} color="#fff" strokeWidth={3} />
                         </button>
                     </div>
                 ))}

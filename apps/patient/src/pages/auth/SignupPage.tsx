@@ -8,7 +8,7 @@ import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
 import { SocialLoginButton } from '../../components/SocialLoginButton';
-import { Eye, EyeOff, CheckCircle } from '@cliniqone/ui';
+import { Eye, EyeOff, CheckCircle, ChevronRight } from '@cliniqone/ui';
 
 export default function SignupPage() {
     const navigate = useNavigate();
@@ -118,7 +118,7 @@ export default function SignupPage() {
                 {/* Phone */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                     <div style={{ ...inputStyle, width: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                        {countryCode} ▼
+                        {countryCode} <ChevronRight size={12} color="var(--text-secondary)" style={{ transform: 'rotate(90deg)' }} />
                     </div>
                     <div style={{ flex: 1 }}>
                         <label style={labelStyle}>{t('auth.phone')}</label>
@@ -177,7 +177,7 @@ export default function SignupPage() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0, color: '#fff', fontSize: 14, fontWeight: 700,
                     }}>
-                        {termsAccepted && '✓'}
+                        {termsAccepted && <CheckCircle size={16} color="#fff" />}
                     </div>
                     <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                         {t('auth.termsAgree')} <Link to="/auth/legal" style={{ color: '#1A8A9E', fontWeight: 600 }}>{t('auth.termsOfService')}</Link> {t('auth.and')} <Link to="/auth/legal" style={{ color: '#1A8A9E', fontWeight: 600 }}>{t('auth.privacyPolicy')}</Link>

@@ -41,30 +41,46 @@ export default function LoginPage() {
         try {
             const supabase = createBrowserSupabase();
 
-            // Wait for Supabase to auto-detect hash tokens and establish session
-            const session = await new Promise<any>((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    sub.unsubscribe();
-                    reject(new Error('Session timeout — please try again'));
-                }, 10000);
+            // Parse tokens directly from the hash — more reliable than onAuthStateChange
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
 
-                const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, sess) => {
-                    if (event === 'SIGNED_IN' && sess) {
-                        clearTimeout(timeout);
-                        sub.unsubscribe();
-                        resolve(sess);
-                    }
-                });
+            let session: any = null;
 
-                // Also check if session is already available
-                supabase.auth.getSession().then(({ data: { session: existing } }) => {
-                    if (existing) {
-                        clearTimeout(timeout);
-                        sub.unsubscribe();
-                        resolve(existing);
-                    }
+            if (accessToken && refreshToken) {
+                // Explicitly set the session from hash tokens
+                const { data, error: sessError } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
                 });
-            });
+                if (sessError) throw sessError;
+                session = data.session;
+            } else {
+                // Fallback: wait for onAuthStateChange
+                session = await new Promise<any>((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        sub.unsubscribe();
+                        reject(new Error('Session timeout — please try again'));
+                    }, 15000);
+
+                    const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, sess) => {
+                        if (event === 'SIGNED_IN' && sess) {
+                            clearTimeout(timeout);
+                            sub.unsubscribe();
+                            resolve(sess);
+                        }
+                    });
+
+                    supabase.auth.getSession().then(({ data: { session: existing } }) => {
+                        if (existing) {
+                            clearTimeout(timeout);
+                            sub.unsubscribe();
+                            resolve(existing);
+                        }
+                    });
+                });
+            }
 
             if (!session) {
                 setError('OAuth session could not be established');
@@ -72,7 +88,7 @@ export default function LoginPage() {
                 return;
             }
 
-            console.log('[Login] OAuth session for:', session.user.email);
+
 
             // Validate role
             const roleOk = await validateAdminRole(supabase, session.user.id, session.user.email || undefined);
@@ -90,7 +106,7 @@ export default function LoginPage() {
             console.error('[Login] OAuth callback error:', err);
             // Ignore abort errors from StrictMode
             if (err?.name === 'AbortError' || (err?.message && err.message.includes('abort'))) {
-                console.log('[Login] Ignoring abort error');
+
                 return;
             }
             setError(err?.message || 'OAuth callback failed');

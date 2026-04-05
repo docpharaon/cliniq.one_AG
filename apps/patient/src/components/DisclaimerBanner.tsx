@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info, AlertTriangle, Siren } from '@cliniqone/ui';
+import { Info, AlertTriangle, Siren, X } from '@cliniqone/ui';
 
 interface DisclaimerBannerProps {
     message: string;
@@ -37,7 +37,7 @@ export function DisclaimerBanner({ message, type = 'info', onDismiss }: Disclaim
                     onClick={onDismiss}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.text, fontWeight: 700, fontSize: 14 }}
                 >
-                    ✕
+                    <X size={12} color={colors.text} strokeWidth={2.5} />
                 </button>
             )}
         </div>

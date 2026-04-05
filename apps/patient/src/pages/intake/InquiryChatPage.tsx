@@ -4,6 +4,7 @@ import { supabase } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { BackButton } from '../../components/BackButton';
+import { ArrowUp } from '@cliniqone/ui';
 
 type Message = { id: string; role: 'patient' | 'doctor' | 'system'; content: string; created_at: string };
 
@@ -77,7 +78,7 @@ export default function InquiryChatPage() {
                     placeholder={t('inquiry.inputPlaceholder')}
                     style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 15, outline: 'none' }} />
                 <button onClick={handleSend} disabled={sending || !input.trim()}
-                    style={{ padding: '12px 20px', borderRadius: 12, border: 'none', backgroundColor: input.trim() ? '#1A8A9E' : '#334155', color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed' }}>↑</button>
+                    style={{ padding: '12px 20px', borderRadius: 12, border: 'none', backgroundColor: input.trim() ? '#1A8A9E' : '#334155', color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowUp size={18} color="#fff" strokeWidth={2.5} /></button>
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 import { setLocale, useLocale } from '@cliniqone/i18n';
 import { BackButton } from '../../components/BackButton';
+import { CheckCircle } from '@cliniqone/ui';
 
 export default function LanguagePage() {
     const lang = useLocale();
@@ -25,7 +26,7 @@ export default function LanguagePage() {
                         }}>
                         <span style={{ fontSize: 24 }}>{l.flag}</span>
                         <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', flex: 1, textAlign: 'left' }}>{l.label}</span>
-                        {lang === l.code && <span style={{ color: '#1A8A9E', fontSize: 16 }}>✓</span>}
+                        {lang === l.code && <CheckCircle size={16} color="#1A8A9E" />}
                     </button>
                 ))}
             </div>

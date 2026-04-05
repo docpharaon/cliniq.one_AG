@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { t } from '@cliniqone/i18n';
 import { BackButton } from '../../components/BackButton';
-import { Brain } from '@cliniqone/ui';
+import { Brain, CheckCircle } from '@cliniqone/ui';
 
 export default function TelepsychiatryConsentPage() {
     const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function TelepsychiatryConsentPage() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0, color: '#fff', fontSize: 14, fontWeight: 700,
                     }}>
-                        {accepted && '✓'}
+                        {accepted && <CheckCircle size={16} color="#fff" />}
                     </div>
                     <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
                         I have read and agree to the telepsychiatry consent form

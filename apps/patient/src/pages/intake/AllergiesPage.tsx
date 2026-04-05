@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { t } from '@cliniqone/i18n';
 import { useIntakeStore } from '../../stores/intakeStore';
 import { BackButton } from '../../components/BackButton';
-import { AlertTriangle } from '@cliniqone/ui';
+import { AlertTriangle, X } from '@cliniqone/ui';
 
 export default function AllergiesPage() {
     const navigate = useNavigate();
@@ -46,7 +46,7 @@ export default function AllergiesPage() {
                 {items.map((item, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--bg-card)', borderRadius: 10, padding: '10px 14px', marginBottom: 6, border: '1px solid var(--border)' }}>
                         <span style={{ fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={14} color="#DC2626" /> {item}</span>
-                        <button onClick={() => handleRemove(i)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                        <button onClick={() => handleRemove(i)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={14} color="#DC2626" strokeWidth={2.5} /></button>
                     </div>
                 ))}
 

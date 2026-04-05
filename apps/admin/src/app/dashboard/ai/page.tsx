@@ -67,10 +67,10 @@ type SequenceInfo = {
 
 const SEQUENCE_TYPE_META: Record<string, { label: string; emoji: string; color: string; bg: string; border: string }> = {
     global_intake: { label: 'Global Intake', emoji: '🌐', color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/30' },
-    specialty: { label: 'Specialty', emoji: '🩺', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-    refill: { label: 'Refill', emoji: '💊', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-    followup: { label: 'Follow-Up', emoji: '🔄', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
-    global_wrapup: { label: 'Global Wrapup', emoji: '📋', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    specialty: { label: 'Phase 2 · Core', emoji: '🩺', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    refill: { label: 'Phase 2 · Refill', emoji: '💊', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+    followup: { label: 'Phase 2 · Follow-Up', emoji: '🔄', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
+    global_wrapup: { label: 'Phase 3 · Wrap', emoji: '📋', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
     legacy: { label: 'Legacy', emoji: '📦', color: 'text-text-muted', bg: 'bg-bg-elevated', border: 'border-border' },
 };
 
@@ -440,20 +440,7 @@ export default function AIPage() {
         setSavingActivation(false);
     }
 
-    async function handleSetActiveSequence() {
-        if (!selectedSequenceId) return;
-        setSavingActivation(true);
-        setActivationMsg('');
-        try {
-            await savePlatformSetting('ai_active_sequence_id', selectedSequenceId, 'ai', 'Active AI sequence for patient chatbot');
-            setActiveSequenceId(selectedSequenceId);
-            setActivationMsg('✅ Active sequence updated!');
-            setTimeout(() => setActivationMsg(''), 3000);
-        } catch {
-            setActivationMsg('❌ Error updating sequence');
-        }
-        setSavingActivation(false);
-    }
+
 
     // ── Publish Drafts ───────────────────────────
     async function handlePublishDrafts() {
@@ -684,9 +671,7 @@ RULES:
         return acc;
     }, {} as Record<string, PromptRow[]>);
 
-    // Nodes without pathway conditions (linear flow)
-    const linearNodes = sequenceNodes.filter(n => !n.pathway_condition);
-    const branchNodes = sequenceNodes.filter(n => !!n.pathway_condition);
+
 
     const selectedSequence = sequences.find(s => s.id === selectedSequenceId);
 
@@ -760,25 +745,24 @@ RULES:
                             </div>
                         </div>
 
-                        {/* ── Three-Phase Pipeline ───────── */}
+                        {/* ── Global Intake Pipeline ───────── */}
                         <div className="glass rounded-2xl p-5 border border-border">
                             <div className="flex items-center gap-2 mb-4">
                                 <Zap className="w-4 h-4 text-accent" />
-                                <h3 className="text-sm font-bold text-text-primary">Patient Intake Pipeline</h3>
-                                <span className="text-[10px] text-text-muted bg-bg-elevated px-2 py-0.5 rounded-full border border-border">Three-Phase Model</span>
+                                <h3 className="text-sm font-bold text-text-primary">Global Intake</h3>
                             </div>
                             <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                                {/* Phase 1: Global Intake */}
+                                {/* Phase 1: Intro */}
                                 <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-center min-w-[130px]">
-                                    <p className="text-lg mb-1">🌐</p>
-                                    <p className="text-xs font-bold text-teal-400">Global Intake</p>
+                                    <p className="text-lg mb-1">👋</p>
+                                    <p className="text-xs font-bold text-teal-400">Phase 1 · Intro</p>
                                     <p className="text-[10px] text-text-muted mt-0.5">{sequences.filter(s => s.sequence_type === 'global_intake').length > 0 ? '✓ Configured' : '✗ Missing'}</p>
                                 </div>
                                 <ArrowRight className="w-4 h-4 text-text-muted flex-shrink-0" />
-                                {/* Phase 2: Pathway Branch */}
-                                <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-bg-elevated border border-border text-center min-w-[160px]">
-                                    <p className="text-lg mb-1">🔀</p>
-                                    <p className="text-xs font-bold text-text-primary">Pathway Detection</p>
+                                {/* Phase 2: Core */}
+                                <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center min-w-[160px]">
+                                    <p className="text-lg mb-1">🩺</p>
+                                    <p className="text-xs font-bold text-blue-400">Phase 2 · Core</p>
                                     <div className="flex items-center justify-center gap-1.5 mt-1.5">
                                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${sequences.some(s => s.sequence_type === 'specialty') ? 'bg-blue-500/15 text-blue-400' : 'bg-bg-tertiary text-text-muted'}`}>🩺 Specialty</span>
                                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${sequences.some(s => s.sequence_type === 'refill') ? 'bg-emerald-500/15 text-emerald-400' : 'bg-bg-tertiary text-text-muted'}`}>💊 Refill</span>
@@ -786,18 +770,18 @@ RULES:
                                     </div>
                                 </div>
                                 <ArrowRight className="w-4 h-4 text-text-muted flex-shrink-0" />
-                                {/* Phase 3: Global Wrapup */}
+                                {/* Phase 3: Wrap */}
                                 <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center min-w-[130px]">
                                     <p className="text-lg mb-1">📋</p>
-                                    <p className="text-xs font-bold text-amber-400">Global Wrapup</p>
+                                    <p className="text-xs font-bold text-amber-400">Phase 3 · Wrap</p>
                                     <p className="text-[10px] text-text-muted mt-0.5">{sequences.filter(s => s.sequence_type === 'global_wrapup').length > 0 ? '✓ Configured' : '✗ Missing'}</p>
                                 </div>
                             </div>
                             <p className="text-[10px] text-text-muted mt-3 leading-relaxed">
-                                Every patient goes through <span className="text-teal-400 font-semibold">Global Intake</span> (greeting → complaint → pathway classification),
-                                then branches to <span className="text-blue-400 font-semibold">Specialty</span>, <span className="text-emerald-400 font-semibold">Refill</span>,
-                                or <span className="text-violet-400 font-semibold">Follow-Up</span> based on AI classification,
-                                then finishes with <span className="text-amber-400 font-semibold">Global Wrapup</span> (summary → addendum → integrity check).
+                                The <span className="text-teal-400 font-semibold">Global Intake</span> guides every patient through
+                                <span className="text-teal-400 font-semibold"> Intro</span> →
+                                <span className="text-blue-400 font-semibold"> Core</span> →
+                                <span className="text-amber-400 font-semibold"> Wrap</span>.
                             </p>
                         </div>
 
@@ -1046,16 +1030,7 @@ RULES:
                                             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                                             <span>Active sequence: <span className="text-success font-semibold">{sequences.find(s => s.id === activeSequenceId)?.name}</span></span>
                                         </div>
-                                        {selectedSequenceId && selectedSequenceId !== activeSequenceId && (
-                                            <button
-                                                onClick={handleSetActiveSequence}
-                                                disabled={savingActivation}
-                                                className="flex items-center gap-1.5 text-xs text-accent font-semibold hover:underline disabled:opacity-50"
-                                            >
-                                                {savingActivation ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                                                Switch to selected
-                                            </button>
-                                        )}
+
                                     </div>
                                     <div className="flex items-center gap-2 text-xs text-text-muted">
                                         <span>Config version: <span className="text-purple font-bold">{chatbotVersion}</span></span>
@@ -1518,52 +1493,92 @@ RULES:
                                     <div className="space-y-4">
                                         {sequences.length > 0 ? (
                                             <>
-                                                {/* Group sequences by type */}
-                                                {(['global_intake', 'specialty', 'refill', 'followup', 'global_wrapup', 'legacy'] as const).map(seqType => {
-                                                    const groupSeqs = sequences.filter(s => (s.sequence_type || 'legacy') === seqType);
-                                                    if (groupSeqs.length === 0) return null;
-                                                    const meta = SEQUENCE_TYPE_META[seqType] || SEQUENCE_TYPE_META.legacy;
-                                                    return (
-                                                        <div key={seqType}>
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${meta.bg} ${meta.border} ${meta.color}`}>
-                                                                    {meta.emoji} {meta.label}
-                                                                </span>
-                                                                {seqType === 'specialty' && <span className="text-[10px] text-text-muted">{groupSeqs.length} specialties</span>}
-                                                            </div>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                                {groupSeqs.map(seq => (
-                                                                    <button
-                                                                        key={seq.id}
-                                                                        onClick={() => setSelectedSequenceId(seq.id)}
-                                                                        className={`text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
-                                                                            ? `${meta.border} ${meta.bg} shadow-[0_0_16px_rgba(45,212,191,0.08)]`
-                                                                            : 'border-border bg-bg-elevated hover:bg-bg-tertiary hover:border-border'
-                                                                            }`}
-                                                                    >
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className={`w-2 h-2 rounded-full ${seq.id === selectedSequenceId ? meta.color.replace('text-', 'bg-') : 'bg-text-muted/30'}`} />
-                                                                            <span className={`text-sm font-medium ${seq.id === selectedSequenceId ? meta.color : 'text-text-primary'}`}>
-                                                                                {seq.name}
-                                                                            </span>
-                                                                            {seq.specialty && (
-                                                                                <span className="text-[10px] text-text-muted capitalize">{seq.specialty.replace('_', ' ')}</span>
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2 mt-0.5 ml-4">
-                                                                            {seq.is_default && (
-                                                                                <span className="text-[10px] text-amber-400 font-semibold">⭐ Default</span>
-                                                                            )}
-                                                                            {seq.id === activeSequenceId && (
-                                                                                <span className="text-[10px] text-success font-semibold">● Live</span>
-                                                                            )}
-                                                                        </div>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
+                                                {/* Global Intake — all sequences under one umbrella */}
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-teal-500/10 border-teal-500/30 text-teal-400">
+                                                            🌐 Global Intake
+                                                        </span>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {/* Phase 1 · Intro */}
+                                                        {sequences.filter(s => s.sequence_type === 'global_intake').map(seq => (
+                                                            <button
+                                                                key={seq.id}
+                                                                onClick={() => setSelectedSequenceId(seq.id)}
+                                                                className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
+                                                                    ? 'border-teal-500/30 bg-teal-500/10 shadow-[0_0_16px_rgba(45,212,191,0.08)]'
+                                                                    : 'border-border bg-bg-elevated hover:bg-bg-tertiary hover:border-border'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm">👋</span>
+                                                                    <span className={`text-sm font-medium ${seq.id === selectedSequenceId ? 'text-teal-400' : 'text-text-primary'}`}>Phase 1 · Intro</span>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                        {/* Phase 2 · Core (specialty + pathway flows) */}
+                                                        {sequences.filter(s => ['specialty', 'refill', 'followup'].includes(s.sequence_type || '')).map(seq => {
+                                                            const meta = SEQUENCE_TYPE_META[seq.sequence_type || 'specialty'];
+                                                            return (
+                                                                <button
+                                                                    key={seq.id}
+                                                                    onClick={() => setSelectedSequenceId(seq.id)}
+                                                                    className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
+                                                                        ? `${meta.border} ${meta.bg} shadow-[0_0_16px_rgba(59,130,246,0.08)]`
+                                                                        : 'border-border bg-bg-elevated hover:bg-bg-tertiary hover:border-border'
+                                                                        }`}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm">{meta.emoji}</span>
+                                                                        <span className={`text-sm font-medium ${seq.id === selectedSequenceId ? meta.color : 'text-text-primary'}`}>{seq.name}</span>
+                                                                        <span className="text-[9px] text-text-muted">Phase 2</span>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        {/* Phase 3 · Wrap */}
+                                                        {sequences.filter(s => s.sequence_type === 'global_wrapup').map(seq => (
+                                                            <button
+                                                                key={seq.id}
+                                                                onClick={() => setSelectedSequenceId(seq.id)}
+                                                                className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
+                                                                    ? 'border-amber-500/30 bg-amber-500/10 shadow-[0_0_16px_rgba(245,158,11,0.08)]'
+                                                                    : 'border-border bg-bg-elevated hover:bg-bg-tertiary hover:border-border'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm">📋</span>
+                                                                    <span className={`text-sm font-medium ${seq.id === selectedSequenceId ? 'text-amber-400' : 'text-text-primary'}`}>Phase 3 · Wrap</span>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {/* Legacy sequences (if any) */}
+                                                {sequences.filter(s => !s.sequence_type || s.sequence_type === 'legacy').length > 0 && (
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-bg-elevated border-border text-text-muted">
+                                                                📦 Legacy
+                                                            </span>
                                                         </div>
-                                                    );
-                                                })}
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {sequences.filter(s => !s.sequence_type || s.sequence_type === 'legacy').map(seq => (
+                                                                <button
+                                                                    key={seq.id}
+                                                                    onClick={() => setSelectedSequenceId(seq.id)}
+                                                                    className={`text-left px-4 py-3 rounded-xl border transition-all duration-200 ${seq.id === selectedSequenceId
+                                                                        ? 'border-border bg-bg-elevated'
+                                                                        : 'border-border bg-bg-elevated hover:bg-bg-tertiary'
+                                                                        }`}
+                                                                >
+                                                                    <span className="text-sm font-medium text-text-muted">{seq.name}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </>
                                         ) : (
                                             <div className="text-center py-6 border border-dashed border-border rounded-xl">
@@ -1583,7 +1598,7 @@ RULES:
                                         <div className="mt-4 pt-4 border-t border-border/50">
                                             <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-2">Flow Steps ({sequenceNodes.length})</p>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {linearNodes.map(node => {
+                                                {sequenceNodes.map(node => {
                                                     const isSystem = node.node_type === 'system_gate' || node.node_type === 'system_analysis';
                                                     return (
                                                     <div
@@ -1606,11 +1621,6 @@ RULES:
                                                     </div>
                                                     );
                                                 })}
-                                                {branchNodes.length > 0 && (
-                                                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-faded/30 border border-purple/20 text-[11px] text-purple">
-                                                        +{branchNodes.length} branch nodes
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     )}

@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { t, getLocale, isRTL } from '@cliniqone/i18n';
-import { useIntakeStore, buildSnapshot, type ChatMessage, SPECIALTY_PATHWAY_MAP } from '../../stores/intakeStore';
+import { useIntakeStore, buildSnapshot, buildFlowEntry, type ChatMessage, SPECIALTY_PATHWAY_MAP } from '../../stores/intakeStore';
 import { useAuthStore } from '../../stores/authStore';
 import {
     chatSection, fetchDefaultSequence, fetchSequenceByType, filterNodesBySpecialty,
     fetchProtocolConfig, fetchChatbotVersion, checkChatbotEnabled,
     analyzeConcern, checkSpecialtyGate, analyzeIntegrity, classifyPathway,
-    type SequenceNode, type ChatSectionResult,
+    type SequenceNode, type SequenceResult, type ChatSectionResult,
 } from '../../services/aiService';
 import { getVoiceConfig, type VoiceConfig } from '../../services/audioService';
 import { supabase } from '@cliniqone/api';
@@ -22,7 +22,7 @@ import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { BackButton } from '../../components/BackButton';
 import { VoiceInputBar, RecordingIndicator } from '../../components/VoiceInputBar';
 import { useToast } from '../../components/ToastProvider';
-import { Search, Siren, AlertTriangle, Ban } from '@cliniqone/ui';
+import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp } from '@cliniqone/ui';
 import aiDoctorAvatar from '../../../assets/ai-doctor-avatar.jpg';
 
 // ── Strip internal AI routing tags before display ──
@@ -37,9 +37,9 @@ function stripInternalTags(text: string): string {
         .trim();
 }
 
-// ── Constants ────────────────────────────
-const MAX_TURNS = 40;
-const SECTION_MAX_TURNS = 8;
+// ── Constants (defaults — overridden by platform_settings on mount) ────────────────────────────
+const DEFAULT_MAX_TURNS = 40;
+const DEFAULT_SECTION_MAX_TURNS = 8;
 const AUTO_SAVE_INTERVAL = 30_000;
 
 export default function AiChatPage() {
@@ -58,11 +58,26 @@ export default function AiChatPage() {
         locumDoctor, locumGreetingPrompt,
         addMessage, setAiTyping, setProgress, setSequenceNodes,
         setCurrentNodeIndex, setActivePathway, setSessionId,
-        setCurrentPhase, setDetectedPathway,
+        setCurrentPhase, setDetectedPathway, addSequenceFlowEntry,
         setAiSummary, incrementGibberish, resetGibberish,
         addProtocolFlag, addQA, setMedications, setAllergies,
         setAiError, clearAiError, setSpecialty, setChiefComplaint,
     } = useIntakeStore();
+
+    // ── Helper: persist sequence flow to DB (best-effort, non-blocking) ──
+    async function persistSequenceFlow() {
+        try {
+            const state = useIntakeStore.getState();
+            if (!state.sessionId) return;
+            await supabase.from('intake_sessions').update({
+                sequence_flow: state.sequenceFlow,
+                detected_pathway: state.detectedPathway,
+                current_phase: state.currentPhase,
+            }).eq('id', state.sessionId);
+        } catch (err) {
+            console.warn('[AiChat] persistSequenceFlow failed (migration pending?):', err);
+        }
+    }
 
     // Local state
     const [input, setInput] = useState('');
@@ -77,31 +92,57 @@ export default function AiChatPage() {
     const initializedRef = useRef(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+    // DB-driven turn limits (loaded from platform_settings)
+    const [MAX_TURNS, setMaxTurns] = useState(DEFAULT_MAX_TURNS);
+    const [SECTION_MAX_TURNS, setSectionMaxTurns] = useState(DEFAULT_SECTION_MAX_TURNS);
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await supabase
+                    .from('platform_settings')
+                    .select('key, value')
+                    .in('key', ['ai_section_max_turns', 'ai_session_max_turns']);
+                if (data) {
+                    for (const row of data) {
+                        if (row.key === 'ai_section_max_turns') setSectionMaxTurns(parseInt(row.value) || DEFAULT_SECTION_MAX_TURNS);
+                        if (row.key === 'ai_session_max_turns') setMaxTurns(parseInt(row.value) || DEFAULT_MAX_TURNS);
+                    }
+                }
+            } catch { /* fallback to defaults */ }
+        })();
+    }, []);
+
     // Voice input state
     const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>({
         enabled: false, defaultMode: 'push_to_talk', maxDuration: 60, silenceThreshold: 1500,
     });
     const [showVoiceInput, setShowVoiceInput] = useState(true); // true = voice mode visible (vs text-only)
+    const [autoSendVoice, setAutoSendVoice] = useState(true); // auto-send after transcription (like admin)
+    const pendingAutoSendRef = useRef(false);
     const rtl = isRTL();
 
     // Voice input hook
     const voiceInput = useVoiceInput({
         onTranscriptReady: (text) => {
-            // Inject transcribed text and send
-            setInput(text);
-            // Auto-send after a brief delay so the patient sees the text
-            setTimeout(() => {
-                const sendInput = text.trim();
-                if (sendInput) {
-                    setInput('');
-                    handleSendWithText(sendInput);
-                }
-            }, 300);
+            // Inject transcribed text into input
+            setInput(prev => prev ? `${prev} ${text.trim()}` : text.trim());
+            // If auto-send is on, mark for auto-send
+            if (autoSendVoice) {
+                pendingAutoSendRef.current = true;
+            }
         },
         language: lang,
         voiceConfig,
         enabled: voiceConfig.enabled,
     });
+
+    // Auto-send after voice transcription (like admin pattern)
+    useEffect(() => {
+        if (pendingAutoSendRef.current && input.trim() && !isAiTyping) {
+            pendingAutoSendRef.current = false;
+            handleSendDirect(input.trim());
+        }
+    }, [input]);
 
     // Load voice config on mount
     useEffect(() => {
@@ -145,7 +186,7 @@ export default function AiChatPage() {
 
         // ── Pathway Classification (Node ③) ──────────────
         if (node.node_type === 'system_classify' && node.step_key === 'pathway_classify') {
-            addMessage(createSystemMsg('Analyzing your concern…'));
+            // Silent processing — no UI message (matches admin sandbox behavior)
             setAiTyping(true);
 
             try {
@@ -158,16 +199,18 @@ export default function AiChatPage() {
                     }
 
                     // Load the locum doctor's specialty sequence
-                    const specialtyNodes = await fetchSequenceByType('specialty', locumDoctor.specialty);
-                    const loadedNodes = specialtyNodes.length > 0
-                        ? specialtyNodes
-                        : await fetchSequenceByType('specialty', 'family_medicine');
+                    let result = await fetchSequenceByType('specialty', locumDoctor.specialty);
+                    if (result.nodes.length === 0) {
+                        result = await fetchSequenceByType('specialty', 'family_medicine');
+                    }
 
-                    setSequenceNodes(loadedNodes);
+                    addSequenceFlowEntry(buildFlowEntry('specialty', result));
+                    setSequenceNodes(result.nodes);
                     setCurrentPhase('specialty');
                     setCurrentNodeIndex(0);
                     setAiTyping(false);
-                    await advanceToNode(0, loadedNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, result.nodes);
                     return;
                 }
 
@@ -187,33 +230,65 @@ export default function AiChatPage() {
                     const determined = analysis.specialty || 'family_medicine';
                     setSpecialty(determined);
                     setChiefComplaint(complaintText);
+                    console.log('[AiChat] Specialty detected:', determined, 'complaint:', complaintText);
 
                     // 3. Load specialty sequence
-                    let specialtyNodes = await fetchSequenceByType('specialty', determined);
-                    if (specialtyNodes.length === 0) {
+                    let specialtyResult = await fetchSequenceByType('specialty', determined);
+                    console.log(`[AiChat] Specialty sequence "${determined}":`, specialtyResult.nodes.length, 'nodes');
+                    if (specialtyResult.nodes.length === 0) {
                         console.warn(`[AiChat] No specialty sequence for "${determined}", falling back to FM`);
-                        specialtyNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                        specialtyResult = await fetchSequenceByType('specialty', 'family_medicine');
+                        console.log('[AiChat] FM fallback:', specialtyResult.nodes.length, 'nodes');
                     }
 
                     // 4. If still no nodes, fall back to legacy flow
-                    if (specialtyNodes.length === 0) {
+                    if (specialtyResult.nodes.length === 0) {
                         console.warn('[AiChat] No specialty sequences available, falling back to legacy flow');
-                        const legacyNodes = await fetchDefaultSequence();
-                        const filtered = filterNodesBySpecialty(legacyNodes, determined);
+                        const legacyResult = await fetchDefaultSequence();
+                        addSequenceFlowEntry(buildFlowEntry('specialty', legacyResult));
+                        const filtered = filterNodesBySpecialty(legacyResult.nodes, determined);
                         setSequenceNodes(filtered);
-                        // Find first node after system nodes in legacy
                         const firstChat = filtered.findIndex(n => n.node_type === 'chat' && n.step_key !== 'greeting');
                         setCurrentNodeIndex(firstChat >= 0 ? firstChat : 0);
                         setAiTyping(false);
+                        await persistSequenceFlow();
                         await advanceToNode(firstChat >= 0 ? firstChat : 0, filtered);
                         return;
                     }
 
-                    setSequenceNodes(specialtyNodes);
+                    // Filter to chat nodes only, skip greeting (already done in global_intake)
+                    // This matches admin sandbox behavior exactly
+                    const chatNodes = specialtyResult.nodes.filter(
+                        n => (n.node_type === 'chat' || !n.node_type) && n.step_key !== 'greeting'
+                    );
+                    console.log('[AiChat] Specialty chat nodes (post-filter):', chatNodes.length, chatNodes.map(n => n.step_key));
+
+                    if (chatNodes.length === 0) {
+                        // All nodes were system/greeting — fall back to FM
+                        console.warn('[AiChat] Specialty sequence had no usable chat nodes, falling back to FM');
+                        specialtyResult = await fetchSequenceByType('specialty', 'family_medicine');
+                        const fmChatNodes = specialtyResult.nodes.filter(
+                            n => (n.node_type === 'chat' || !n.node_type) && n.step_key !== 'greeting'
+                        );
+                        if (fmChatNodes.length > 0) {
+                            addSequenceFlowEntry(buildFlowEntry('specialty', specialtyResult));
+                            setSequenceNodes(fmChatNodes);
+                            setCurrentPhase('specialty');
+                            setCurrentNodeIndex(0);
+                            setAiTyping(false);
+                            await persistSequenceFlow();
+                            await advanceToNode(0, fmChatNodes);
+                            return;
+                        }
+                    }
+
+                    addSequenceFlowEntry(buildFlowEntry('specialty', specialtyResult));
+                    setSequenceNodes(chatNodes);
                     setCurrentPhase('specialty');
                     setCurrentNodeIndex(0);
                     setAiTyping(false);
-                    await advanceToNode(0, specialtyNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, chatNodes);
                 } else if (pathwayResult.pathway === 'refill') {
                     // ── Refill Pathway ──────────────────────────
                     console.log('[AiChat] Loading refill pathway');
@@ -223,25 +298,27 @@ export default function AiChatPage() {
                     setSpecialty('family_medicine'); // Refills default to FM
 
                     // 1. Try loading the dedicated refill sequence
-                    let refillNodes = await fetchSequenceByType('refill');
+                    let refillResult = await fetchSequenceByType('refill');
 
                     // 2. Fallback: FM specialty sequence
-                    if (refillNodes.length === 0) {
+                    if (refillResult.nodes.length === 0) {
                         console.warn('[AiChat] No refill sequence found, falling back to FM specialty');
-                        refillNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                        refillResult = await fetchSequenceByType('specialty', 'family_medicine');
                     }
 
                     // 3. Ultimate fallback: legacy
-                    if (refillNodes.length === 0) {
-                        const legacyNodes = await fetchDefaultSequence();
-                        refillNodes = filterNodesBySpecialty(legacyNodes, 'family_medicine');
+                    if (refillResult.nodes.length === 0) {
+                        const legacyResult = await fetchDefaultSequence();
+                        refillResult = { ...legacyResult, nodes: filterNodesBySpecialty(legacyResult.nodes, 'family_medicine') };
                     }
 
-                    setSequenceNodes(refillNodes);
+                    addSequenceFlowEntry(buildFlowEntry('refill', refillResult));
+                    setSequenceNodes(refillResult.nodes);
                     setCurrentPhase('refill');
                     setCurrentNodeIndex(0);
                     setAiTyping(false);
-                    await advanceToNode(0, refillNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, refillResult.nodes);
 
                 } else {
                     // ── Follow-Up Pathway ───────────────────────
@@ -255,46 +332,52 @@ export default function AiChatPage() {
                     setSpecialty(analysis.specialty || 'family_medicine');
 
                     // 1. Try loading the dedicated follow-up sequence
-                    let followupNodes = await fetchSequenceByType('followup');
+                    let followupResult = await fetchSequenceByType('followup');
 
                     // 2. Fallback: specialty sequence for the detected concern
-                    if (followupNodes.length === 0) {
+                    if (followupResult.nodes.length === 0) {
                         console.warn('[AiChat] No follow-up sequence found, falling back to specialty');
                         const determined = useIntakeStore.getState().specialty;
-                        followupNodes = await fetchSequenceByType('specialty', determined);
-                        if (followupNodes.length === 0) {
-                            followupNodes = await fetchSequenceByType('specialty', 'family_medicine');
+                        followupResult = await fetchSequenceByType('specialty', determined);
+                        if (followupResult.nodes.length === 0) {
+                            followupResult = await fetchSequenceByType('specialty', 'family_medicine');
                         }
                     }
 
                     // 3. Ultimate fallback: legacy
-                    if (followupNodes.length === 0) {
-                        const legacyNodes = await fetchDefaultSequence();
-                        followupNodes = filterNodesBySpecialty(legacyNodes, 'family_medicine');
+                    if (followupResult.nodes.length === 0) {
+                        const legacyResult = await fetchDefaultSequence();
+                        followupResult = { ...legacyResult, nodes: filterNodesBySpecialty(legacyResult.nodes, 'family_medicine') };
                     }
 
-                    setSequenceNodes(followupNodes);
+                    addSequenceFlowEntry(buildFlowEntry('followup', followupResult));
+                    setSequenceNodes(followupResult.nodes);
                     setCurrentPhase('followup');
                     setCurrentNodeIndex(0);
                     setAiTyping(false);
-                    await advanceToNode(0, followupNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, followupResult.nodes);
                 }
             } catch (err) {
                 console.error('[AiChat] Pathway/specialty classification failed:', err);
                 setAiTyping(false);
                 // Fallback: load FM sequence
-                const fmNodes = await fetchSequenceByType('specialty', 'family_medicine');
-                if (fmNodes.length > 0) {
-                    setSequenceNodes(fmNodes);
+                const fmResult = await fetchSequenceByType('specialty', 'family_medicine');
+                if (fmResult.nodes.length > 0) {
+                    addSequenceFlowEntry(buildFlowEntry('specialty', fmResult));
+                    setSequenceNodes(fmResult.nodes);
                     setCurrentPhase('specialty');
                     setCurrentNodeIndex(0);
-                    await advanceToNode(0, fmNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, fmResult.nodes);
                 } else {
                     // Ultimate fallback: legacy flow
-                    const legacyNodes = await fetchDefaultSequence();
-                    setSequenceNodes(legacyNodes);
+                    const legacyResult = await fetchDefaultSequence();
+                    addSequenceFlowEntry(buildFlowEntry('specialty', legacyResult));
+                    setSequenceNodes(legacyResult.nodes);
                     setCurrentNodeIndex(0);
-                    await advanceToNode(0, legacyNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, legacyResult.nodes);
                 }
             }
             return;
@@ -302,7 +385,7 @@ export default function AiChatPage() {
 
         // ── Legacy: Complaint Analysis (for backward compat with legacy sequences) ──
         if (node.node_type === 'system_analysis' && node.step_key === 'complaint_analysis') {
-            addMessage(createSystemMsg('Analyzing your concern…'));
+            // Silent processing — no UI message (matches admin sandbox behavior)
             setAiTyping(true);
 
             try {
@@ -360,11 +443,13 @@ export default function AiChatPage() {
                     // In phase model: reload FM specialty sequence
                     const phase = useIntakeStore.getState().currentPhase;
                     if (phase === 'specialty') {
-                        const fmNodes = await fetchSequenceByType('specialty', 'family_medicine');
-                        if (fmNodes.length > 0) {
-                            setSequenceNodes(fmNodes);
+                        const fmResult = await fetchSequenceByType('specialty', 'family_medicine');
+                        if (fmResult.nodes.length > 0) {
+                            addSequenceFlowEntry(buildFlowEntry('specialty', fmResult));
+                            setSequenceNodes(fmResult.nodes);
                             setCurrentNodeIndex(0);
-                            await advanceToNode(0, fmNodes);
+                            await persistSequenceFlow();
+                            await advanceToNode(0, fmResult.nodes);
                             return;
                         }
                     }
@@ -431,33 +516,98 @@ export default function AiChatPage() {
     // ── Advance to a chat node ─────────────────
     async function advanceToNode(nodeIdx: number, nodes: SequenceNode[]) {
         const activeNodes = nodes || sequenceNodes;
+        console.log(`[AiChat] advanceToNode(${nodeIdx}/${activeNodes.length})`, activeNodes[nodeIdx]?.step_key || 'END', 'type:', activeNodes[nodeIdx]?.node_type);
         if (nodeIdx >= activeNodes.length) {
             // ── Phase transition: end of current phase ──
             const phase = useIntakeStore.getState().currentPhase;
+            console.log(`[AiChat] Phase "${phase}" exhausted, checking transitions...`);
+
+            if (phase === 'intake') {
+                // ── Intake → Specialty phase transition (matches admin sandbox) ──
+                console.log('[AiChat] Intake complete → detecting specialty & loading Phase 2');
+                setAiTyping(true);
+                try {
+                    const patientMsgs = messages.filter(m => m.role === 'patient');
+                    const complaintText = patientMsgs.map(m => m.content).join(' ') || chiefComplaint;
+                    setChiefComplaint(complaintText);
+
+                    // Classify pathway
+                    const pathwayResult = await classifyPathway(
+                        [...fullConversationHistory, ...conversationHistory],
+                        lang,
+                    );
+                    setDetectedPathway(pathwayResult.pathway);
+                    console.log('[AiChat] Pathway:', pathwayResult.pathway);
+
+                    // Analyze specialty
+                    const analysis = await analyzeConcern(complaintText, lang);
+                    const determined = analysis.specialty || 'family_medicine';
+                    setSpecialty(determined);
+                    console.log('[AiChat] Specialty:', determined);
+
+                    // Load specialty sequence
+                    let specResult = await fetchSequenceByType('specialty', determined);
+                    console.log(`[AiChat] Specialty "${determined}":`, specResult.nodes.length, 'raw nodes');
+                    if (specResult.nodes.length === 0) {
+                        specResult = await fetchSequenceByType('specialty', 'family_medicine');
+                        console.log('[AiChat] FM fallback:', specResult.nodes.length, 'raw nodes');
+                    }
+
+                    // Filter to chat-only, skip greeting (matches admin)
+                    const chatNodes = specResult.nodes.filter(
+                        n => (n.node_type === 'chat' || !n.node_type) && n.step_key !== 'greeting'
+                    );
+                    console.log('[AiChat] Specialty chat nodes:', chatNodes.length, chatNodes.map(n => n.step_key));
+
+                    if (chatNodes.length > 0) {
+                        addSequenceFlowEntry(buildFlowEntry('specialty', specResult));
+                        setSequenceNodes(chatNodes);
+                        setCurrentPhase('specialty');
+                        setCurrentNodeIndex(0);
+                        setAiTyping(false);
+                        setFullConversationHistory(prev => [...prev, ...conversationHistory]);
+                        setConversationHistory([]);
+                        await persistSequenceFlow();
+                        await advanceToNode(0, chatNodes);
+                        return;
+                    }
+                } catch (err) {
+                    console.error('[AiChat] Intake→specialty failed:', err);
+                }
+                setAiTyping(false);
+            }
 
             if (phase === 'specialty' || phase === 'refill' || phase === 'followup') {
-                // Specialty/refill/followup phase done → load global_wrapup
-                console.log(`[AiChat] Phase "${phase}" complete, transitioning to wrapup`);
-                const wrapupNodes = await fetchSequenceByType('global_wrapup');
-                if (wrapupNodes.length > 0) {
-                    setSequenceNodes(wrapupNodes);
+                // Specialty/refill/followup done → load global_wrapup
+                console.log(`[AiChat] Phase "${phase}" complete → wrapup`);
+                const wrapupResult = await fetchSequenceByType('global_wrapup');
+                const wrapupChatNodes = wrapupResult.nodes.filter(
+                    n => (n.node_type === 'chat' || !n.node_type) && n.step_key !== 'greeting'
+                );
+                console.log(`[AiChat] Wrapup: ${wrapupResult.nodes.length} total, ${wrapupChatNodes.length} chat`);
+                if (wrapupChatNodes.length > 0) {
+                    addSequenceFlowEntry(buildFlowEntry('wrapup', wrapupResult));
+                    setSequenceNodes(wrapupChatNodes);
                     setCurrentPhase('wrapup');
                     setCurrentNodeIndex(0);
-                    await advanceToNode(0, wrapupNodes);
+                    await persistSequenceFlow();
+                    await advanceToNode(0, wrapupChatNodes);
                     return;
                 }
             }
 
-            // Wrapup done (or no wrapup found) → navigate to review
+            // All phases done → review
+            console.log('[AiChat] All phases exhausted → review');
             navigate('/intake/review');
             return;
         }
 
         const node = activeNodes[nodeIdx];
 
-        // If it's a system node, process it
-        if (node.node_type !== 'chat') {
-            await processSystemNode(nodeIdx, activeNodes);
+        // Skip system nodes silently (matches admin sandbox — system logic runs at phase boundaries)
+        if (node.node_type && node.node_type !== 'chat') {
+            console.log(`[AiChat] Skipping system node: ${node.step_key} (${node.node_type})`);
+            await advanceToNode(nodeIdx + 1, activeNodes);
             return;
         }
 
@@ -491,17 +641,19 @@ export default function AiChatPage() {
             return;
         }
 
+        // Auto-ask: immediately get the AI's first question for this section
+        // (matches admin sandbox behavior — seamless section transitions)
         setAiTyping(true);
         try {
             const currentState = useIntakeStore.getState();
-            const patientContext = `Chief Complaint: ${currentState.chiefComplaint}\nSpecialty: ${currentState.specialty}\nMedications: ${currentState.medications.join(', ')}\nAllergies: ${currentState.allergies.join(', ')}`;
+            const patientContext = `Chief Complaint: ${currentState.chiefComplaint}\nSpecialty: ${currentState.specialty}\nMedications: ${currentState.medications.join(', ')}\nAllergies: ${currentState.allergies.join(', ')}\n\nPrevious conversation summary (${fullConversationHistory.length} messages exchanged so far).`;
 
             const result = await chatSection({
                 section: node.step_key,
                 promptId: node.prompt_id || undefined,
-                conversationHistory: [],
+                conversationHistory: [],  // Fresh section — context comes via patientContext
                 language: lang,
-                patientContext: `${patientContext}\n\nPrevious conversation summary (${fullConversationHistory.length} messages exchanged so far).`,
+                patientContext,
             });
 
             const { cleanContent } = parseViolationTag(result.response);
@@ -561,12 +713,14 @@ export default function AiChatPage() {
                 }
 
                 // ── Three-Phase Model: load global_intake sequence first ──
-                let nodes = await fetchSequenceByType('global_intake');
-                if (nodes.length === 0) {
+                let intakeResult = await fetchSequenceByType('global_intake');
+                if (intakeResult.nodes.length === 0) {
                     // Fallback: legacy monolithic sequence
                     console.warn('[AiChat] No global_intake sequence found, falling back to legacy');
-                    nodes = await fetchDefaultSequence();
+                    intakeResult = await fetchDefaultSequence();
                 }
+                addSequenceFlowEntry(buildFlowEntry('intake', intakeResult));
+                const nodes = intakeResult.nodes;
                 setSequenceNodes(nodes);
                 setCurrentPhase('intake');
 
@@ -669,17 +823,6 @@ export default function AiChatPage() {
         }
     }
 
-    // Voice-compatible send: accepts text parameter for voice transcriptions
-    async function handleSendWithText(voiceText: string) {
-        if (!voiceText.trim() || isAiTyping) return;
-        if (Date.now() < cooldownUntil) return;
-        // Set the input so handleSend can use it, then call handleSend
-        setInput(voiceText);
-        // Use a small delay to let React update the state
-        await new Promise(r => setTimeout(r, 50));
-        handleSendDirect(voiceText);
-    }
-
     async function handleSend() {
         handleSendDirect(input.trim());
     }
@@ -750,15 +893,41 @@ export default function AiChatPage() {
         setAiTyping(true);
         try {
             const currentNode = sequenceNodes[currentNodeIndex];
-            const newHistory = [...conversationHistory, { role: 'user', content: text }];
+            const section = currentNode?.step_key || 'hpi';
             const currentState = useIntakeStore.getState();
+            const patientContext = `Chief Complaint: ${currentState.chiefComplaint}\nSpecialty: ${currentState.specialty}\nMedications: ${currentState.medications.join(', ')}\nAllergies: ${currentState.allergies.join(', ')}`;
+
+            // ── Greeting auto-advance (matches admin sandbox) ──
+            // After user's first message in greeting, immediately advance to next section.
+            // The greeting is a 1-turn section — user says what brought them in, we move on.
+            if (section === 'greeting') {
+                // Add QA pair for greeting
+                const lastAiMsg = messages.filter(m => m.role === 'ai').pop();
+                if (lastAiMsg) addQA(lastAiMsg.content, text);
+
+                // Save greeting context
+                setFullConversationHistory(prev => [...prev, ...conversationHistory, { role: 'user', content: text }]);
+                setConversationHistory([]);
+                setSectionTurnCount(0);
+                sectionTurnCountRef.current = 0;
+
+                // Advance immediately — no follow-up in greeting
+                const nextIdx = currentNodeIndex + 1;
+                setAiTyping(false);
+                await advanceToNode(nextIdx, sequenceNodes);
+
+                clearAiError();
+                return;
+            }
+
+            const newHistory = [...conversationHistory, { role: 'user', content: text }];
 
             const result = await chatSection({
-                section: currentNode?.step_key || 'hpi',
+                section,
                 promptId: currentNode?.prompt_id || undefined,
                 conversationHistory: newHistory,
                 language: lang,
-                patientContext: `Chief Complaint: ${currentState.chiefComplaint}\nSpecialty: ${currentState.specialty}\nMedications: ${currentState.medications.join(', ')}\nAllergies: ${currentState.allergies.join(', ')}`,
+                patientContext,
             });
 
             const { cleanContent, violation } = parseViolationTag(result.response);
@@ -781,13 +950,7 @@ export default function AiChatPage() {
             const nodeMaxTurns = currentNode?.max_turns || SECTION_MAX_TURNS;
             if (result.sectionComplete || newTurnCount >= nodeMaxTurns) {
                 const nextIdx = currentNodeIndex + 1;
-                if (nextIdx >= sequenceNodes.length) {
-                    // Phase transition handled by advanceToNode
-                    await advanceToNode(nextIdx, sequenceNodes);
-                } else {
-                    // Advance — may hit system nodes
-                    await advanceToNode(nextIdx, sequenceNodes);
-                }
+                await advanceToNode(nextIdx, sequenceNodes);
             }
 
             clearAiError();
@@ -822,12 +985,18 @@ export default function AiChatPage() {
         }
     }, [isAiTyping, voiceInput.voiceMode, voiceInput.voiceState, messages.length]);
 
-    // Auto-save snapshot periodically
+    // Auto-save snapshot periodically (includes sequence flow tracking)
     useEffect(() => {
         if (!sessionId) return;
         const timer = setInterval(async () => {
-            const snapshot = buildSnapshot(useIntakeStore.getState(), { conversationHistory, sectionTurnCount });
-            await supabase.from('intake_sessions').update({ snapshot: snapshot as any }).eq('id', sessionId);
+            const state = useIntakeStore.getState();
+            const snapshot = buildSnapshot(state, { conversationHistory, sectionTurnCount });
+            // Always save the snapshot
+            await supabase.from('intake_sessions').update({
+                snapshot: snapshot as any,
+            }).eq('id', sessionId);
+            // Best-effort: persist sequence tracking (columns may not exist yet)
+            persistSequenceFlow();
         }, AUTO_SAVE_INTERVAL);
         return () => clearInterval(timer);
     }, [sessionId, conversationHistory, sectionTurnCount]);
@@ -926,7 +1095,11 @@ export default function AiChatPage() {
                             }}
                         />
                         <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', backgroundColor: 'var(--bg-card)' }}>
-                            <span className="typing-dots" style={{ fontSize: 18, color: 'var(--text-tertiary)' }}>⬤ ⬤ ⬤</span>
+                            <span className="typing-dots" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0s' }} />
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0.2s' }} />
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'typingBounce 1.4s ease infinite', animationDelay: '0.4s' }} />
+                            </span>
                         </div>
                     </div>
                 )}
@@ -1006,7 +1179,7 @@ export default function AiChatPage() {
                                 flexShrink: 0,
                             }}
                         >
-                            🎤
+                            <Mic size={18} color="currentColor" />
                         </button>
                     )}
 
@@ -1015,11 +1188,39 @@ export default function AiChatPage() {
                             padding: '12px 20px', borderRadius: 12, border: 'none',
                             backgroundColor: input.trim() ? '#1A8A9E' : '#334155',
                             color: '#fff', fontSize: 15, fontWeight: 700, cursor: input.trim() ? 'pointer' : 'not-allowed',
-                            flexShrink: 0,
+                            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                        ↑
+                        <ArrowUp size={18} color="#fff" strokeWidth={2.5} />
                     </button>
                 </div>
+
+                {/* Auto-send voice toggle (like admin) */}
+                {voiceConfig.enabled && showVoiceInput && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        gap: 6, paddingTop: 4,
+                    }}>
+                        <label style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            cursor: 'pointer', userSelect: 'none',
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={autoSendVoice}
+                                onChange={e => setAutoSendVoice(e.target.checked)}
+                                style={{ width: 13, height: 13, accentColor: '#1A8A9E', cursor: 'pointer' }}
+                            />
+                            <span style={{
+                                fontSize: 11,
+                                fontWeight: autoSendVoice ? 600 : 400,
+                                color: autoSendVoice ? '#1A8A9E' : 'var(--text-tertiary)',
+                                transition: 'color 0.2s',
+                            }}>
+                                {rtl ? 'إرسال تلقائي بالصوت' : 'Auto-send voice'}
+                            </span>
+                        </label>
+                    </div>
+                )}
             </div>
 
             {/* ── Announced Modal ─────────────── */}

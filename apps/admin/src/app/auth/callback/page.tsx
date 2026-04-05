@@ -29,7 +29,7 @@ export default function AuthCallbackPage() {
                 return;
             }
 
-            console.log('[AuthCallback] Exchanging code for session...');
+
 
             // Exchange code for session (PKCE flow)
             const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -45,7 +45,7 @@ export default function AuthCallbackPage() {
                 return;
             }
 
-            console.log('[AuthCallback] Session established for:', data.session.user.email);
+
 
             // Validate admin role
             const userId = data.session.user.id;
@@ -57,11 +57,11 @@ export default function AuthCallbackPage() {
                 .eq('id', userId)
                 .single() as { data: { role: string } | null };
 
-            console.log('[AuthCallback] DB role:', userData?.role, 'Email:', userEmail);
+
 
             if (userData && (userData.role === 'admin' || userData.role === 'superadmin')) {
                 // User exists with admin role — redirect to dashboard
-                console.log('[AuthCallback] Admin access granted, redirecting...');
+
                 window.location.href = '/dashboard';
                 return;
             }
@@ -69,7 +69,7 @@ export default function AuthCallbackPage() {
             // Bootstrap: initial superadmin account
             const INITIAL_SUPERADMIN = import.meta.env.VITE_INITIAL_SUPERADMIN || 'momen@momencrafts.com';
             if (userEmail === INITIAL_SUPERADMIN) {
-                console.log('[AuthCallback] Bootstrap superadmin for:', userEmail);
+
                 try {
                     if (userData) {
                         // User exists but has wrong role — upgrade to superadmin
@@ -104,7 +104,7 @@ export default function AuthCallbackPage() {
             console.error('[AuthCallback] Error:', err);
             // Ignore abort errors from StrictMode
             if (err?.name === 'AbortError' || err?.message?.includes('abort')) {
-                console.log('[AuthCallback] Ignoring abort error (StrictMode)');
+
                 return;
             }
             setError(err?.message || 'Authentication failed.');

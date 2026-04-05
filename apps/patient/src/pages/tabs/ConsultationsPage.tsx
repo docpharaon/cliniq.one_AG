@@ -8,7 +8,7 @@ import { FadeIn } from '../../components/FadeIn';
 import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { haptic } from '../../hooks/useHaptics';
-import { Search, Stethoscope, ClipboardList, Refresh, Download, Share } from '@cliniqone/ui';
+import { Search, Stethoscope, ClipboardList, Refresh, Download, Share, X, ArrowUp } from '@cliniqone/ui';
 
 const STATUS_FILTERS = [
     { key: 'all', labelKey: 'consultations.filterAll' },
@@ -127,7 +127,7 @@ export default function ConsultationsPage() {
                         <Search size={16} color="#2DD4BF" />
                         <input placeholder={t('consultations.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
                             style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 14 }} />
-                        {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14 }}>✕</button>}
+                        {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={14} color="var(--text-tertiary)" strokeWidth={2.5} /></button>}
                     </div>
                 </FadeIn>
 
@@ -148,7 +148,7 @@ export default function ConsultationsPage() {
                         <button onClick={() => { haptic.select(); setSortNewest(!sortNewest); }} className="pressable" style={{
                             padding: '6px 12px', borderRadius: 20, backgroundColor: 'var(--bg-card)',
                             border: 'none', color: 'var(--text-secondary)', fontSize: 12,
-                        }}>{sortNewest ? '↓ ' + t('consultations.sortNewest') : '↑ ' + t('consultations.sortOldest')}</button>
+                        }}><ArrowUp size={12} color="currentColor" style={{ transform: sortNewest ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginRight: 4 }} /> {sortNewest ? t('consultations.sortNewest') : t('consultations.sortOldest')}</button>
                     </div>
                 </FadeIn>
 

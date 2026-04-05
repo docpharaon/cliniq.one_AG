@@ -65,7 +65,7 @@ export function getSupabaseAdmin() {
     return _adminClient!;
 }
 
-/** @deprecated Use getSupabaseAdmin() — kept for backward compat with queries.ts */
+/** Admin client via lazy proxy — backward compat with queries.ts */
 export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
     get(_target, prop) {
         return (getSupabaseAdmin() as any)[prop];

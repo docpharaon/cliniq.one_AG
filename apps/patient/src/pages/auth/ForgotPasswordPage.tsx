@@ -4,6 +4,7 @@ import { supabase } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
+import { Lock, ArrowLeft } from '@cliniqone/ui';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -34,7 +35,7 @@ export default function ForgotPasswordPage() {
                 <div style={{ paddingTop: 16, marginBottom: 32 }}><BackButton /></div>
 
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                    <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>🔐</span>
+                    <Lock size={48} color="#1A8A9E" style={{ display: 'block', marginBottom: 16, margin: '0 auto 16px' }} />
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('auth.forgotPassword')}</h1>
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: '20px' }}>
                         {sent ? 'We sent a password reset link to your email. Check your inbox.' : t('auth.forgotPasswordDescription')}
@@ -81,7 +82,7 @@ export default function ForgotPasswordPage() {
 
                 <div style={{ textAlign: 'center', marginTop: 24 }}>
                     <Link to="/auth/login" style={{ fontSize: 14, color: '#1A8A9E', fontWeight: 600, textDecoration: 'none' }}>
-                        ← Back to login
+                        <ArrowLeft size={14} color="#1A8A9E" style={{ display: 'inline', marginRight: 4 }} /> Back to login
                     </Link>
                 </div>
             </div>

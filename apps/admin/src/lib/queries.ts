@@ -1227,17 +1227,6 @@ export async function deleteSchedule(id: string) {
     return { success: true, error: null };
 }
 
-// ──────────────────────────────────────────
-// News Articles
-// ──────────────────────────────────────────
-
-// (Legacy getNewsArticles removed — see backward-compat stub near getCampaigns)
-
-// ──────────────────────────────────────────
-// Advertisements
-// ──────────────────────────────────────────
-
-// (Legacy getAdvertisements removed — see backward-compat stub near getCampaigns)
 
 // ──────────────────────────────────────────
 // AI Prompts
@@ -1521,6 +1510,28 @@ export async function getDefaultSequence() {
         return getSequenceWithNodes(fallback.id);
     }
     return getSequenceWithNodes(data.id);
+}
+
+// ── Three-Phase Model: fetch sequence by type + optional specialty ──
+export async function getSequenceByType(
+    sequenceType: 'global_intake' | 'global_wrapup' | 'specialty' | 'refill' | 'followup',
+    specialty?: string,
+) {
+    let query = supabaseAdmin
+        .from('prompt_sequences')
+        .select('id')
+        .eq('sequence_type', sequenceType);
+
+    if (sequenceType === 'specialty' && specialty) {
+        query = query.eq('specialty', specialty);
+    }
+
+    const { data: seq, error } = await query.limit(1).maybeSingle();
+    if (error || !seq) {
+        console.warn(`[getSequenceByType] No sequence for type="${sequenceType}" specialty="${specialty || 'none'}"`);
+        return null;
+    }
+    return getSequenceWithNodes(seq.id);
 }
 
 export async function createPromptSequence(name: string, isDefault = false) {
@@ -3043,6 +3054,7 @@ export async function disableSpecialty(params: {
     reasonText: string;
     patientMessage?: string;
     adminUserId: string;
+    fmConfidenceThreshold?: number;
 }) {
     // Safety: family_medicine can never be disabled
     if (params.specialty === 'family_medicine') {
@@ -3060,6 +3072,7 @@ export async function disableSpecialty(params: {
             patient_message: params.patientMessage || null,
             disabled_by: params.adminUserId,
             disabled_at: new Date().toISOString(),
+            fm_confidence_threshold: params.fmConfidenceThreshold ?? 50,
         })
         .select()
         .single();

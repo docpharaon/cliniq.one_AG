@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SectionId, SequenceNode, LocumDoctor, PathwayClassification } from '../services/aiService';
+import type { SectionId, SequenceNode, SequenceResult, LocumDoctor, PathwayClassification } from '../services/aiService';
 
 // ── Specialty → Pathway Mapping ─────────────────
 // When a patient selects a doctor with one of these specialties,
@@ -8,6 +8,33 @@ export const SPECIALTY_PATHWAY_MAP: Record<string, string> = {
     psychiatry: 'psychiatry_general',
     orthopedics: 'orthopedics_general',
 };
+
+// ── Sequence Flow Entry (tracking) ──────────────
+export interface SequenceFlowEntry {
+    phase: string;           // intake, specialty, refill, followup, wrapup
+    sequenceId: string | null;
+    sequenceName: string | null;
+    sequenceType: string | null;
+    specialty: string | null;
+    startedAt: string;       // ISO timestamp
+    nodeCount: number;
+}
+
+/** Build a SequenceFlowEntry from a SequenceResult */
+export function buildFlowEntry(
+    phase: string,
+    result: SequenceResult,
+): SequenceFlowEntry {
+    return {
+        phase,
+        sequenceId: result.sequenceId,
+        sequenceName: result.sequenceName,
+        sequenceType: result.sequenceType,
+        specialty: result.specialty,
+        startedAt: new Date().toISOString(),
+        nodeCount: result.nodes.length,
+    };
+}
 
 // ── Chat Message Type ───────────────────────────
 export interface ChatMessage {
@@ -44,6 +71,9 @@ export interface IntakeSnapshot {
     patientAddendum: string | null;
     conversationHistory: { role: string; content: string }[];
     sectionTurnCount: number;
+    sequenceFlow: SequenceFlowEntry[];
+    detectedPathway: 'new_visit' | 'refill' | 'follow_up' | null;
+    currentPhase: string;
 }
 
 // ── Phase type for three-phase model ────────────
@@ -75,9 +105,11 @@ interface IntakeState {
     currentNodeIndex: number;
     activePathway: string | null;
 
-    // Three-Phase Model (Option C)
     currentPhase: IntakePhase;
     detectedPathway: 'new_visit' | 'refill' | 'follow_up' | null;
+
+    // Sequence flow tracking (for admin follow-up)
+    sequenceFlow: SequenceFlowEntry[];
 
     // QA tracking (for AI analysis)
     qaHistory: { question: string; answer: string }[];
@@ -144,6 +176,8 @@ interface IntakeState {
     // Phase actions
     setCurrentPhase: (phase: IntakePhase) => void;
     setDetectedPathway: (pathway: 'new_visit' | 'refill' | 'follow_up' | null) => void;
+    addSequenceFlowEntry: (entry: SequenceFlowEntry) => void;
+    setSequenceFlow: (flow: SequenceFlowEntry[]) => void;
 
     // Medication verification actions
     setMedicationVerifications: (verifications: Record<string, unknown>[]) => void;
@@ -176,6 +210,7 @@ const initialState = {
     currentNodeIndex: 0,
     currentPhase: 'intake' as IntakePhase,
     detectedPathway: null as 'new_visit' | 'refill' | 'follow_up' | null,
+    sequenceFlow: [] as SequenceFlowEntry[],
     activePathway: null as string | null,
     qaHistory: [] as { question: string; answer: string }[],
     aiSummary: null as Record<string, unknown> | null,
@@ -233,6 +268,8 @@ export const useIntakeStore = create<IntakeState>((set) => ({
     setActivePathway: (activePathway) => set({ activePathway }),
     setCurrentPhase: (currentPhase) => set({ currentPhase }),
     setDetectedPathway: (detectedPathway) => set({ detectedPathway }),
+    addSequenceFlowEntry: (entry) => set((s) => ({ sequenceFlow: [...s.sequenceFlow, entry] })),
+    setSequenceFlow: (sequenceFlow) => set({ sequenceFlow }),
 
     // Medication verification (ephemeral)
     setMedicationVerifications: (medicationVerifications) => set({ medicationVerifications }),
@@ -261,6 +298,9 @@ export const useIntakeStore = create<IntakeState>((set) => ({
         gibberishCount: snapshot.gibberishCount ?? 0,
         medications: snapshot.medications || [],
         allergies: snapshot.allergies || [],
+        sequenceFlow: snapshot.sequenceFlow || [],
+        detectedPathway: snapshot.detectedPathway || null,
+        currentPhase: (snapshot.currentPhase as IntakePhase) || 'intake',
         isAiTyping: false,
         lastFailedMessage: null,
         aiErrorType: null,
@@ -291,5 +331,8 @@ export function buildSnapshot(
         patientAddendum: state.patientAddendum,
         conversationHistory: extra.conversationHistory,
         sectionTurnCount: extra.sectionTurnCount,
+        sequenceFlow: state.sequenceFlow,
+        detectedPathway: state.detectedPathway,
+        currentPhase: state.currentPhase,
     };
 }

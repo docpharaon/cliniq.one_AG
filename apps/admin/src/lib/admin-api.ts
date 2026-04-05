@@ -65,6 +65,45 @@ export async function callAdminApi<T = unknown>(
 }
 
 /**
+ * Call the ai-intake edge function (same handler as patient app).
+ * Used by admin sandbox to route chat through the production chat-section handler
+ * so admin tests exactly what patients experience. Supports admin auth (service key).
+ */
+export async function callAiIntake<T = unknown>(
+    action: string,
+    payload: Record<string, unknown> = {},
+): Promise<T> {
+    const supabaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+        (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) || '';
+    const anonKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+        (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || '';
+    const serviceKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY) ||
+        (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) || '';
+
+    // Try user JWT first, service key as fallback
+    const token = await getSessionToken();
+    const authToken = token || serviceKey || anonKey;
+
+    const res = await fetch(`${supabaseUrl}/functions/v1/ai-intake`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            'apikey': anonKey,
+            ...(serviceKey ? { 'x-admin-key': serviceKey } : {}),
+        },
+        body: JSON.stringify({ action, ...payload }),
+    });
+
+    if (!res.ok) {
+        const errText = await res.text().catch(() => '(unreadable)');
+        throw new Error(`ai-intake error: ${res.status} ${errText.substring(0, 200)}`);
+    }
+
+    return await res.json() as T;
+}
+
+/**
  * Call the admin-api edge function for SSE streaming.
  * Returns the raw Response for streaming consumption.
  */

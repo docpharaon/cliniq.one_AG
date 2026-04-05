@@ -228,97 +228,9 @@ Deno.serve(async (req: Request) => {
                 }
             }
 
-            // ── CHAT TEST (forward to existing ai-intake edge function pattern) ──
+            // ── CHAT TEST — deprecated, now routes through ai-intake/chat-section ──
             case 'chat-test': {
-                // This is the largest route — forward the entire payload
-                // The logic is identical to the Next.js route but runs in Deno
-                const { messages, section = 'greeting', promptId, language = 'en', mode = 'draft', debug: wantDebug = false } = payload;
-
-                const apiKey = await getOpenAIKey();
-                if (!apiKey) return json({ error: 'OpenAI API key not configured' }, 500);
-                const config = await getModelConfig();
-
-                // Resolve prompt
-                let systemPrompt = '';
-                let promptVersion = 0;
-                let promptName = section;
-                let promptSource = 'hardcoded';
-                let resolvedPromptId: string | null = null;
-
-                if (promptId) {
-                    const { data } = await supabase.from('ai_prompts').select('content, version').eq('id', promptId).single();
-                    if (data) { systemPrompt = data.content; promptVersion = data.version; promptName = `prompt:${promptId}`; promptSource = 'explicit'; resolvedPromptId = promptId; }
-                }
-
-                if (!systemPrompt) {
-                    const { data: sequences } = await supabase.from('prompt_sequences').select('id').eq('is_default', true).limit(1);
-                    const seqId = sequences?.[0]?.id;
-                    if (seqId) {
-                        const { data: nodes } = await supabase.from('prompt_sequence_nodes').select('prompt_id, ai_prompts(id, name, content, version)').eq('sequence_id', seqId).eq('step_key', section).limit(1);
-                        const p = nodes?.[0]?.ai_prompts as any;
-                        if (p) { systemPrompt = p.content; promptVersion = p.version; promptName = p.name || section; promptSource = 'sequence'; resolvedPromptId = p.id; }
-                    }
-                }
-
-                if (!systemPrompt) {
-                    systemPrompt = `You are a medical intake AI for cliniq.one. Current section: ${section}. Ask relevant questions. When done, end with: [SECTION_COMPLETE]`;
-                }
-
-                const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary'];
-                if (!NO_COMPLETE_SECTIONS.includes(section)) {
-                    systemPrompt += '\n\nWhen you feel you have enough information for this section, end your message with exactly: [SECTION_COMPLETE]';
-                    systemPrompt += `\n\nIMPORTANT behavioral rules:\n- Ask exactly ONE question per message.\n- Keep responses concise.\n- When done, emit [SECTION_COMPLETE].`;
-                }
-
-                if (section !== 'pathway') {
-                    systemPrompt += language === 'ar' ? '\n\nIMPORTANT: Respond entirely in Arabic.' : '\n\nIMPORTANT: Respond in English.';
-                }
-
-                // Get global guard
-                if (section !== 'pathway') {
-                    const { data: guardData } = await supabase.from('ai_prompts').select('content').eq('prompt_type', 'global_guard').eq('is_active', true).order('updated_at', { ascending: false }).limit(1);
-                    const guard = guardData?.[0]?.content;
-                    if (guard) systemPrompt = `${guard}\n\n---\n\n${systemPrompt}`;
-                }
-
-                const historyForAI = (messages || []).filter((m: any) => m.role !== 'system').map((m: any) => ({
-                    role: m.role === 'user' ? 'user' : 'assistant',
-                    content: m.content,
-                }));
-
-                const openaiMessages = [{ role: 'system', content: systemPrompt }, ...historyForAI];
-
-                const fetchStart = Date.now();
-                const aiData = await callOpenAI(apiKey, config.model, config.temperature, openaiMessages);
-                const latencyMs = Date.now() - fetchStart;
-
-                let rawContent = aiData.choices?.[0]?.message?.content || '';
-                const sectionComplete = rawContent.includes('[SECTION_COMPLETE]');
-                const violationMatch = rawContent.match(/\[VIOLATION:([^\]]+)\]/);
-
-                const cleanContent = rawContent.replace(/\[SECTION_COMPLETE\]/g, '').replace(/\[VIOLATION:[^\]]+\]/g, '').trim();
-
-                let chatbotVersion = '0';
-                try { const { data: v } = await supabase.from('platform_settings').select('value').eq('key', 'chatbot_version').single(); chatbotVersion = v?.value ?? '0'; } catch {}
-
-                const result: any = {
-                    content: cleanContent,
-                    response: cleanContent,
-                    sectionComplete,
-                    violation: violationMatch ? violationMatch[1] : null,
-                    promptVersion,
-                    chatbotVersion,
-                };
-
-                if (wantDebug) {
-                    result.debug = {
-                        systemPrompt, messagesSent: openaiMessages, rawResponse: rawContent,
-                        section, prompt: { name: promptName, version: promptVersion, id: resolvedPromptId, source: promptSource },
-                        tokenUsage: aiData.usage || null, model: config.model, temperature: config.temperature, latencyMs,
-                    };
-                }
-
-                return json(result);
+                return json({ error: 'chat-test is deprecated. Admin sandbox now uses ai-intake/chat-section directly for identical behavior to patient app.' }, 410);
             }
 
             // ── SEED SEQUENCE ─────────────────────────

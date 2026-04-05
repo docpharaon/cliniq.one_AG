@@ -18,6 +18,7 @@ import {
     CheckCircle2,
     XCircle,
     FileText,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -72,6 +73,7 @@ export default function SpecialtiesPage() {
     const [disableReason, setDisableReason] = useState('doctor_unavailable');
     const [disableText, setDisableText] = useState('');
     const [disablePatientMsg, setDisablePatientMsg] = useState('');
+    const [fmThreshold, setFmThreshold] = useState(50);
     const [disableLoading, setDisableLoading] = useState(false);
 
     // Tabs
@@ -114,6 +116,7 @@ export default function SpecialtiesPage() {
             reasonText: disableText.trim(),
             patientMessage: disablePatientMsg.trim() || undefined,
             adminUserId: adminId,
+            fmConfidenceThreshold: fmThreshold,
         });
         setDisableLoading(false);
         if (res.error) {
@@ -163,6 +166,7 @@ export default function SpecialtiesPage() {
         setDisableReason('doctor_unavailable');
         setDisableText('');
         setDisablePatientMsg('');
+        setFmThreshold(50);
         setShowDisableModal(true);
     };
 
@@ -289,6 +293,20 @@ export default function SpecialtiesPage() {
                                                     Disabled {new Date(override.disabled_at).toLocaleString()}
                                                     {override.admin_name && <> by {override.admin_name}</>}
                                                 </div>
+                                                {override.fm_confidence_threshold != null && (
+                                                    <div className="flex items-center gap-2 mt-1 pt-1 border-t border-error/10">
+                                                        <SlidersHorizontal className="w-3 h-3 text-text-muted" />
+                                                        <span className="text-[10px] text-text-muted">FM Threshold:</span>
+                                                        <span className={`text-[10px] font-bold ${
+                                                            override.fm_confidence_threshold <= 30 ? 'text-success' :
+                                                            override.fm_confidence_threshold <= 70 ? 'text-warning' : 'text-error'
+                                                        }`}>
+                                                            {override.fm_confidence_threshold}%
+                                                            {override.fm_confidence_threshold <= 30 ? ' (Lenient)' :
+                                                             override.fm_confidence_threshold <= 70 ? ' (Balanced)' : ' (Strict)'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -586,6 +604,59 @@ export default function SpecialtiesPage() {
                                     />
                                 </div>
                             )}
+
+                            {/* FM Confidence Threshold Slider */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-text-primary mb-3">
+                                    <SlidersHorizontal className="w-4 h-4 text-accent" />
+                                    FM Redirect Threshold
+                                </label>
+                                <p className="text-[11px] text-text-muted mb-3 leading-relaxed">
+                                    Minimum AI confidence that Family Medicine can handle the complaint before redirecting.
+                                    Higher = stricter (fewer redirects to FM).
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={100}
+                                        step={5}
+                                        value={fmThreshold}
+                                        onChange={e => setFmThreshold(Number(e.target.value))}
+                                        className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
+                                        style={{
+                                            background: `linear-gradient(to right, #2DD4BF 0%, #F59E0B ${fmThreshold}%, rgba(255,255,255,0.1) ${fmThreshold}%)`,
+                                        }}
+                                    />
+                                    <span className={`text-lg font-bold min-w-[3rem] text-right ${
+                                        fmThreshold <= 30 ? 'text-success' :
+                                        fmThreshold <= 70 ? 'text-warning' : 'text-error'
+                                    }`}>
+                                        {fmThreshold}%
+                                    </span>
+                                </div>
+                                <div className="flex gap-2 mt-3">
+                                    {[
+                                        { label: '🟢 Lenient', value: 20, desc: 'Redirect easily' },
+                                        { label: '🟡 Balanced', value: 50, desc: 'Default' },
+                                        { label: '🔴 Strict', value: 80, desc: 'Block most redirects' },
+                                    ].map(preset => (
+                                        <button
+                                            key={preset.value}
+                                            type="button"
+                                            onClick={() => setFmThreshold(preset.value)}
+                                            className={`flex-1 px-3 py-2 rounded-xl border text-center transition-all ${
+                                                fmThreshold === preset.value
+                                                    ? 'border-accent bg-accent/10 ring-1 ring-accent/30'
+                                                    : 'border-border hover:border-border-hover'
+                                            }`}
+                                        >
+                                            <span className="text-xs font-bold text-text-primary block">{preset.label}</span>
+                                            <span className="text-[10px] text-text-muted">{preset.desc}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
                             {/* Warning */}
                             <div className="flex items-start gap-3 p-3 rounded-xl bg-error/5 border border-error/20">

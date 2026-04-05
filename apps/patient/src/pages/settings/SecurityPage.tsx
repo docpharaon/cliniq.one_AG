@@ -3,7 +3,7 @@ import { supabase } from '@cliniqone/api';
 import { t } from '@cliniqone/i18n';
 import { useToast } from '../../components/ToastProvider';
 import { BackButton } from '../../components/BackButton';
-import { Lock, Eye, EyeOff } from '@cliniqone/ui';
+import { Lock, Eye, EyeOff, CheckCircle } from '@cliniqone/ui';
 import { haptic } from '../../hooks/useHaptics';
 
 export default function SecurityPage() {
@@ -77,7 +77,7 @@ export default function SecurityPage() {
                     )}
                     {confirmPw.length > 0 && newPw === confirmPw && (
                         <small style={{ fontSize: 12, color: '#059669', marginTop: 4, display: 'block' }}>
-                            ✓ {t('auth.passwordsMatch')}
+                            <CheckCircle size={12} color="#059669" style={{ display: 'inline', marginRight: 4 }} /> {t('auth.passwordsMatch')}
                         </small>
                     )}
                 </div>

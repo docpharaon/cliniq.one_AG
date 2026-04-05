@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { t } from '@cliniqone/i18n';
+import { CheckCircle } from '@cliniqone/ui';
 
 export default function AnalyzingPage() {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function AnalyzingPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
                     {['Checking symptoms…', 'Analyzing medical history…', 'Preparing summary…'].map((step, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ color: '#1A8A9E' }}>✓</span>
+                            <CheckCircle size={14} color="#1A8A9E" />
                             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{step}</span>
                         </div>
                     ))}

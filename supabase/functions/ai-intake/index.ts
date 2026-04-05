@@ -114,9 +114,11 @@ function detectSoftRedirect(aiResponse: string): string | null {
 // ── CORS: restrict to known origins ──────────────────────
 const ALLOWED_ORIGINS = [
     'http://localhost:3001',    // admin panel dev
+    'http://localhost:3002',    // patient app dev (vite)
     'http://localhost:5173',    // vite dev
     'http://localhost:8081',    // expo dev
     'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8081',
     'capacitor://localhost',    // iOS Capacitor
@@ -141,12 +143,16 @@ const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // ── Auth Verification ───────────────────────────
-// Supports both user JWT tokens and admin service-role key
+// Supports user JWT tokens, admin service-role key, and admin user role check
 async function verifyAuth(req: Request): Promise<{ userId: string; isAdmin?: boolean } | null> {
     // Admin bypass via service-role key header
     const adminKey = req.headers.get('x-admin-key');
     console.log('[verifyAuth] x-admin-key present:', !!adminKey, 'serviceKey present:', !!supabaseServiceKey, 'match:', adminKey === supabaseServiceKey);
     if (adminKey && adminKey === supabaseServiceKey) {
+        return { userId: 'admin', isAdmin: true };
+    }
+    // Also accept x-admin-key as a service_role JWT
+    if (adminKey && isServiceRoleJwt(adminKey)) {
         return { userId: 'admin', isAdmin: true };
     }
 
@@ -160,18 +166,47 @@ async function verifyAuth(req: Request): Promise<{ userId: string; isAdmin?: boo
     if (token === supabaseServiceKey) {
         return { userId: 'admin', isAdmin: true };
     }
+    // Admin bypass: service-role JWT format
+    if (isServiceRoleJwt(token)) {
+        return { userId: 'admin', isAdmin: true };
+    }
 
     try {
-        // Use admin client to verify user token (avoids anon key format issues)
+        // Use admin client to verify user token
         const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
         console.log('[verifyAuth] getUser result:', { userId: user?.id, error: error?.message });
         if (error || !user) return null;
+
+        // Check if user is admin/superadmin — grant isAdmin flag
+        try {
+            const { data: userData } = await supabaseAdmin
+                .from('users')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            if (userData?.role === 'admin' || userData?.role === 'superadmin') {
+                return { userId: user.id, isAdmin: true };
+            }
+        } catch { /* not admin, continue as regular user */ }
+
         return { userId: user.id };
     } catch (e) {
         console.log('[verifyAuth] getUser exception:', e);
         return null;
     }
 }
+
+// Helper: check if a token is a service-role JWT
+function isServiceRoleJwt(token: string): boolean {
+    try {
+        const payloadB64 = token.split('.')[1];
+        if (!payloadB64) return false;
+        const payload = JSON.parse(atob(payloadB64));
+        const projectRef = (supabaseUrl || '').match(/\/\/([^.]+)/)?.[1] || '';
+        return payload.role === 'service_role' && payload.ref === projectRef;
+    } catch { return false; }
+}
+
 
 // ── Config (reads from platform_settings) ───────
 async function getConfig(): Promise<{ apiKey: string; model: string; temperature: number }> {
@@ -475,18 +510,23 @@ async function chatWithConversation(
 
 async function analyzeConcern(concern: string, language: string) {
     const system = `You are a medical triage AI for cliniq.one. Analyze the patient's concern and determine:
-1. Which specialty to route to (dermatology, family_medicine, psychiatry, orthopedics, pediatrics, or diet)
+1. Which specialty to route to (dermatology, family_medicine, psychiatry, orthopedics, pediatrics, or diet_nutrition)
 2. The urgency level (routine, urgent, or emergency)
 3. Key medical keywords extracted
 
-Routing rules:
-- Skin/hair/nail/rash/acne/eczema/psoriasis/cosmetic concerns → dermatology
-- Joint pain/bone pain/muscle pain/back pain/neck pain/knee/shoulder/hip/ankle/wrist/elbow/spine/fracture/sprain/arthritis/osteoporosis/gout/tendon/ligament/cartilage/disc/sciatica/orthopedic concerns → orthopedics
-- Mental health/depression/anxiety/mood/sleep disturbance/psychiatric/ADHD/bipolar/psychosis/stress/trauma → psychiatry
-- Child health/infant/toddler/baby/newborn/childhood illness/pediatric fever/growth/development/vaccination/teething/colic/childhood rash/ear infection in children → pediatrics
-- Weight management/nutrition/diet plan/eating habits/obesity/underweight/meal planning/calorie/BMI/food allergy/dietary supplement/malnutrition/metabolic diet/cholesterol diet/diabetes diet → diet
-- General illness/fever/pain/chronic disease/multi-system → family_medicine
-- Life-threatening symptoms → emergency (specialty = null)
+AGGRESSIVE ROUTING — FAVOR SUBSPECIALTIES OVER FAMILY MEDICINE:
+Route to a subspecialty even at moderate confidence (60%+). Only use family_medicine as a LAST RESORT when the complaint is genuinely multi-system or truly non-specific.
+
+Priority routing rules (check in this order):
+1. ORTHOPEDICS → joint pain, bone pain, muscle pain, back pain, neck pain, knee, shoulder, hip, ankle, wrist, elbow, spine, fracture, sprain, arthritis, osteoporosis, gout, tendon, ligament, cartilage, disc herniation, sciatica, sports injury, stiffness, swelling in joints, limited range of motion, numbness/tingling in extremities
+2. DERMATOLOGY → skin, rash, acne, moles, eczema, psoriasis, hair loss, nail problems, itching, hives, blisters, warts, sunburn, cosmetic skin concerns, wound that won't heal, skin discoloration, allergic skin reaction
+3. PSYCHIATRY → depression, anxiety, mood changes, sleep problems, insomnia, stress, panic attacks, ADHD, bipolar, psychosis, trauma/PTSD, self-harm, substance abuse, eating disorder (behavioral), OCD, phobias, grief, burnout
+4. PEDIATRICS → child health, infant, toddler, baby, newborn, childhood illness, pediatric fever, growth concerns, development delays, vaccination, teething, colic, childhood rash, ear infection in children, school problems, bedwetting
+5. DIET & NUTRITION → weight management, nutrition, diet plan, eating habits, obesity, underweight, meal planning, BMI, food intolerance, dietary supplement, malnutrition, metabolic diet, cholesterol diet, diabetes diet, food allergy management
+6. FAMILY MEDICINE (LAST RESORT) → ONLY if the complaint spans multiple unrelated systems, is extremely vague ("I don't feel well"), or genuinely fits no subspecialty above. Examples: general checkup, multiple unrelated symptoms, fever without localizing signs, chronic disease management spanning multiple specialties
+7. EMERGENCY → life-threatening symptoms (specialty = null)
+
+IMPORTANT: Do NOT default to family_medicine. If ANY subspecialty above matches with even moderate confidence, route there.
 
 Respond in JSON: { "specialty": string|null, "category": string, "urgency": "routine"|"urgent"|"emergency", "keywords": string[], "confidence": number, "reasoning": string }
 
@@ -765,8 +805,11 @@ Respond in JSON:
                     riskLevel: 'medium' as const,
                 });
 
-                if (triage.canBeManaged) {
-                    // 3a. FM CAN handle — reroute
+                // Read admin-configured FM confidence threshold (default 50)
+                const fmThreshold = override.fm_confidence_threshold ?? 50;
+
+                if (triage.canBeManaged && triage.confidence >= fmThreshold) {
+                    // 3a. FM CAN handle AND meets confidence threshold — reroute
                     if (override.mode === 'silent') {
                         result = {
                             allowed: false,
@@ -788,7 +831,7 @@ Respond in JSON:
                         // Generate patient-friendly message if admin didn't provide one
                         const patientMessage = override.patient_message || (
                             language === 'ar'
-                                ? `نعتذر، خدمة ${targetSpecialty === 'orthopedics' ? 'جراحة العظام' : targetSpecialty === 'psychiatry' ? 'الطب النفسي' : targetSpecialty === 'dermatology' ? 'الأمراض الجلدية' : targetSpecialty === 'pediatrics' ? 'طب الأطفال' : targetSpecialty === 'diet' ? 'التغذية' : targetSpecialty} غير متاحة مؤقتاً. يمكننا تحويل استشارتك إلى طبيب أسرة مؤهل يمكنه مساعدتك.`
+                                ? `نعتذر، خدمة ${targetSpecialty === 'orthopedics' ? 'جراحة العظام' : targetSpecialty === 'psychiatry' ? 'الطب النفسي' : targetSpecialty === 'dermatology' ? 'الأمراض الجلدية' : targetSpecialty === 'pediatrics' ? 'طب الأطفال' : (targetSpecialty === 'diet' || targetSpecialty === 'diet_nutrition') ? 'التغذية' : targetSpecialty} غير متاحة مؤقتاً. يمكننا تحويل استشارتك إلى طبيب أسرة مؤهل يمكنه مساعدتك.`
                                 : `We apologize, but our ${targetSpecialty.replace(/_/g, ' ')} service is temporarily unavailable. We can route your consultation to a qualified Family Medicine doctor who can assist you.`
                         );
 
@@ -822,7 +865,7 @@ Respond in JSON:
                     }
 
                     const apologyMessage = language === 'ar'
-                        ? `نعتذر بشدة، خدمة ${targetSpecialty === 'orthopedics' ? 'جراحة العظام' : targetSpecialty === 'psychiatry' ? 'الطب النفسي' : targetSpecialty === 'dermatology' ? 'الأمراض الجلدية' : targetSpecialty === 'pediatrics' ? 'طب الأطفال' : targetSpecialty === 'diet' ? 'التغذية' : targetSpecialty} غير متاحة حالياً، وشكواك تتطلب أخصائياً. نعتذر عن الإزعاج وقد تم إبلاغ الإدارة. سيتم التواصل معك في أقرب وقت.`
+                        ? `نعتذر بشدة، خدمة ${targetSpecialty === 'orthopedics' ? 'جراحة العظام' : targetSpecialty === 'psychiatry' ? 'الطب النفسي' : targetSpecialty === 'dermatology' ? 'الأمراض الجلدية' : targetSpecialty === 'pediatrics' ? 'طب الأطفال' : (targetSpecialty === 'diet' || targetSpecialty === 'diet_nutrition') ? 'التغذية' : targetSpecialty} غير متاحة حالياً، وشكواك تتطلب أخصائياً. نعتذر عن الإزعاج وقد تم إبلاغ الإدارة. سيتم التواصل معك في أقرب وقت.`
                         : `We sincerely apologize, but our ${targetSpecialty.replace(/_/g, ' ')} service is currently unavailable, and your concern requires specialist attention that cannot be addressed by a general practitioner. Our administration has been notified and we will reach out to you as soon as this service is restored.`;
 
                     result = {
@@ -895,16 +938,25 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                 const maxTokens = params.maxTokens || 1000;
                 const history = params.conversationHistory || [];
                 const patientContext = params.patientContext || '';
+                const wantDebug = params.debug === true;
+                const turnCount = params.turnCount || 0;
+                const maxTurns = params.maxTurns || 0;
 
                 // 1. Resolve prompt
                 let systemPrompt = '';
                 let promptVersion = 0;
+                let promptName = section;
+                let promptSource = 'hardcoded';
+                let resolvedPromptId: string | null = null;
 
                 if (promptId) {
                     const promptData = await getPromptById(promptId, mode);
                     if (promptData) {
                         systemPrompt = promptData.content;
                         promptVersion = promptData.version;
+                        promptName = `prompt:${promptId}`;
+                        promptSource = 'explicit';
+                        resolvedPromptId = promptId;
                     }
                 }
 
@@ -935,7 +987,7 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                 }
 
                 // 3a. Append concise rules for non-HPI interview sections
-                const CONCISE_SECTIONS = ['medications', 'allergies', 'family_history', 'social_history', 'review_of_systems'];
+                const CONCISE_SECTIONS = ['additional_complaints', 'medications', 'allergies', 'family_history', 'social_history', 'review_of_systems'];
                 if (CONCISE_SECTIONS.includes(section)) {
                     systemPrompt += CONCISE_SECTIONS_SUFFIX;
                 }
@@ -1009,8 +1061,16 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
 
                 // 8. Build OpenAI messages
                 const config = await getConfig();
+
+                // ── Turn limit nudge — encourage AI to wrap up when approaching max turns ──
+                let promptWithTurnNudge = finalPrompt;
+                if (maxTurns > 0 && turnCount >= maxTurns - 2) {
+                    promptWithTurnNudge += `\n\nCRITICAL: You are at turn ${turnCount + 1}/${maxTurns} for this section. You MUST conclude this section NOW. Summarize what you have gathered and end your response with [SECTION_COMPLETE].`;
+                    console.log(`[chat-section] Turn limit nudge: ${turnCount + 1}/${maxTurns} for ${section}`);
+                }
+
                 const openaiMessages = [
-                    { role: 'system', content: finalPrompt },
+                    { role: 'system', content: promptWithTurnNudge },
                     ...trimmedHistory.map((m: { role: string; content: string }) => ({
                         role: m.role === 'patient' ? 'user' : m.role === 'ai' ? 'assistant' : m.role,
                         content: m.content,
@@ -1018,6 +1078,7 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                 ];
 
                 // 9. Call OpenAI
+                const fetchStart = Date.now();
                 const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -1038,6 +1099,7 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                 }
 
                 const aiData = await aiRes.json();
+                const latencyMs = Date.now() - fetchStart;
                 const rawContent = aiData.choices?.[0]?.message?.content || '';
 
                 // 10. Post-process response
@@ -1078,6 +1140,23 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                     promptVersion,
                     chatbotVersion,
                 };
+
+                // Debug payload for admin sandbox — never sent to patients
+                if (wantDebug) {
+                    (result as any).debug = {
+                        systemPrompt: finalPrompt,
+                        rawResponse: rawContent,
+                        section,
+                        messagesSent: openaiMessages,
+                        prompt: { name: promptName, version: promptVersion, id: resolvedPromptId, source: promptSource },
+                        tokenUsage: aiData.usage || null,
+                        model: config.model,
+                        temperature: config.temperature,
+                        latencyMs,
+                        aiTurnsInSection: turnCount + 1,
+                        maxTurns: maxTurns || null,
+                    };
+                }
                 break;
             }
             case 'verify-medication': {

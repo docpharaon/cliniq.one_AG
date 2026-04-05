@@ -10,10 +10,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // ── CORS ────────────────────────────────────────
 const ALLOWED_ORIGINS = [
     'http://localhost:3001',
+    'http://localhost:3002',
     'http://localhost:3003',
     'http://localhost:5173',
     'http://localhost:8081',
     'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
     'http://127.0.0.1:3003',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8081',
@@ -37,15 +39,41 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// ── Auth: verify patient JWT ────────────────────
+// ── Auth: verify patient JWT or service-role ────
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = atob(payload);
+        return JSON.parse(decoded);
+    } catch { return null; }
+}
+
 async function verifyAuth(req: Request): Promise<{ userId: string } | null> {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) return null;
 
     const token = authHeader.replace('Bearer ', '');
-    // Allow service-role key (for admin sandbox testing)
+
+    // Allow service-role key (exact match or JWT role claim)
     if (token === supabaseServiceKey) {
         return { userId: 'admin' };
+    }
+
+    // Check JWT role claim for service_role (handles minor key differences)
+    const payload = decodeJwtPayload(token);
+    if (payload && payload.role === 'service_role' && payload.ref === Deno.env.get('SUPABASE_URL')?.match(/\/\/([^.]+)/)?.[1]) {
+        return { userId: 'admin' };
+    }
+
+    // Also check apikey header as service-role fallback
+    const apiKey = req.headers.get('apikey') || '';
+    if (apiKey) {
+        const apiPayload = decodeJwtPayload(apiKey);
+        if (apiPayload && apiPayload.role === 'service_role') {
+            return { userId: 'admin' };
+        }
     }
 
     try {

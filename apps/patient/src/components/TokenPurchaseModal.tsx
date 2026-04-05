@@ -5,6 +5,7 @@ import { t, toLocalNum } from '@cliniqone/i18n';
 import { useToast } from './ToastProvider';
 import { usePurchase } from '../hooks/usePurchase';
 import { useAuthStore } from '../stores/authStore';
+import { CheckCircle } from '@cliniqone/ui';
 
 interface TokenPurchaseModalProps {
     visible: boolean;
@@ -76,7 +77,7 @@ export function TokenPurchaseModal({ visible, onClose, currentBalance }: TokenPu
                                 <span style={{ fontSize: 17, fontWeight: 700, color: '#1A8A9E' }}>{toLocalNum(pkg.price_sar.toFixed(2))} <span style={{ fontSize: 12 }}>ر.س</span></span>
                                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>(${toLocalNum(pkg.price_usd.toFixed(2))})</span>
                                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>{toLocalNum(perToken)} {t('tokens.perToken')}</span>
-                                {isSelected && <span style={styles.checkmark}>✓</span>}
+                                {isSelected && <span style={styles.checkmark}><CheckCircle size={14} color="#fff" /></span>}
                             </button>
                         );
                     })}

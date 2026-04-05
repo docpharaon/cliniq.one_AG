@@ -79,6 +79,17 @@ export interface SequenceNode {
     } | null;
 }
 
+// ── Sequence result with metadata ───────────────
+export interface SequenceResult {
+    nodes: SequenceNode[];
+    sequenceId: string | null;
+    sequenceName: string | null;
+    sequenceType: string | null;
+    specialty: string | null;
+}
+
+const EMPTY_SEQUENCE_RESULT: SequenceResult = { nodes: [], sequenceId: null, sequenceName: null, sequenceType: null, specialty: null };
+
 // ── Locum Doctor (resolved from code) ───────────
 export interface LocumDoctor {
     id: string;
@@ -270,8 +281,9 @@ export async function logProtocolEvent(params: {
     }
 }
 
-// ── Fetch Active Sequence from Admin Config ─────
-export async function fetchDefaultSequence(): Promise<SequenceNode[]> {
+// ── Fetch Active Sequence from Admin Config (LEGACY FALLBACK) ─────
+// In three-phase model, prefer fetchSequenceByType('global_intake') instead.
+export async function fetchDefaultSequence(): Promise<SequenceResult> {
     try {
         // 1. First try the admin-configured active sequence ID
         const { data: setting } = await supabase
@@ -281,14 +293,25 @@ export async function fetchDefaultSequence(): Promise<SequenceNode[]> {
             .single();
 
         if (setting?.value) {
+            const { data: seqRow } = await supabase
+                .from('prompt_sequences')
+                .select('id, name, sequence_type, specialty')
+                .eq('id', setting.value)
+                .single();
             const nodes = await fetchSequenceNodes(setting.value);
-            if (nodes.length > 0) return nodes;
+            if (nodes.length > 0) return {
+                nodes,
+                sequenceId: seqRow?.id || setting.value,
+                sequenceName: seqRow?.name || 'Admin Active Sequence',
+                sequenceType: seqRow?.sequence_type || 'legacy',
+                specialty: seqRow?.specialty || null,
+            };
         }
 
         // 2. Fallback: get the default sequence
         const { data: seq, error: seqErr } = await supabase
             .from('prompt_sequences')
-            .select('id')
+            .select('id, name, sequence_type, specialty')
             .eq('is_default', true)
             .single();
 
@@ -296,19 +319,21 @@ export async function fetchDefaultSequence(): Promise<SequenceNode[]> {
             // 3. Fallback: get the first sequence
             const { data: fallback } = await supabase
                 .from('prompt_sequences')
-                .select('id')
+                .select('id, name, sequence_type, specialty')
                 .order('created_at')
                 .limit(1)
                 .single();
-            if (!fallback) return [];
+            if (!fallback) return EMPTY_SEQUENCE_RESULT;
 
-            return fetchSequenceNodes(fallback.id);
+            const nodes = await fetchSequenceNodes(fallback.id);
+            return { nodes, sequenceId: fallback.id, sequenceName: fallback.name, sequenceType: fallback.sequence_type, specialty: fallback.specialty };
         }
 
-        return fetchSequenceNodes(seq.id);
+        const nodes = await fetchSequenceNodes(seq.id);
+        return { nodes, sequenceId: seq.id, sequenceName: seq.name, sequenceType: seq.sequence_type, specialty: seq.specialty };
     } catch (err) {
         console.error('Failed to fetch default sequence:', err);
-        return [];
+        return EMPTY_SEQUENCE_RESULT;
     }
 }
 
@@ -581,14 +606,15 @@ export async function resolveLocum(
 
 // ── Three-Phase Sequence Model (Option C) ───────
 // Fetch a sequence by its type (global_intake, global_wrapup, specialty, refill, followup)
+// Returns full metadata for sequence tracking
 export async function fetchSequenceByType(
     sequenceType: 'global_intake' | 'global_wrapup' | 'specialty' | 'refill' | 'followup',
     specialty?: string,
-): Promise<SequenceNode[]> {
+): Promise<SequenceResult> {
     try {
         let query = supabase
             .from('prompt_sequences')
-            .select('id')
+            .select('id, name, sequence_type, specialty')
             .eq('sequence_type', sequenceType);
 
         if (sequenceType === 'specialty' && specialty) {
@@ -599,13 +625,20 @@ export async function fetchSequenceByType(
 
         if (error || !seq) {
             console.warn(`[fetchSequenceByType] No sequence found for type="${sequenceType}" specialty="${specialty || 'none'}"`);
-            return [];
+            return EMPTY_SEQUENCE_RESULT;
         }
 
-        return fetchSequenceNodes(seq.id);
+        const nodes = await fetchSequenceNodes(seq.id);
+        return {
+            nodes,
+            sequenceId: seq.id,
+            sequenceName: seq.name,
+            sequenceType: seq.sequence_type,
+            specialty: seq.specialty,
+        };
     } catch (err) {
         console.error('[fetchSequenceByType] Error:', err);
-        return [];
+        return EMPTY_SEQUENCE_RESULT;
     }
 }
 

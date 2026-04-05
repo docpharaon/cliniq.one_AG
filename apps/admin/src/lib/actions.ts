@@ -72,6 +72,7 @@ import {
     getPromptSequences,
     getSequenceWithNodes,
     getDefaultSequence,
+    getSequenceByType,
     createPromptSequence,
     updatePromptSequence,
     deletePromptSequence,
@@ -457,6 +458,13 @@ export async function fetchDefaultSequence() {
     return getDefaultSequence();
 }
 
+export async function fetchSequenceByType(
+    sequenceType: 'global_intake' | 'global_wrapup' | 'specialty' | 'refill' | 'followup',
+    specialty?: string,
+) {
+    return getSequenceByType(sequenceType, specialty);
+}
+
 export async function addPromptSequence(name: string, isDefault?: boolean) {
     return createPromptSequence(name, isDefault);
 }
@@ -832,6 +840,7 @@ export async function doDisableSpecialty(params: {
     reasonText: string;
     patientMessage?: string;
     adminUserId: string;
+    fmConfidenceThreshold?: number;
 }) {
     return disableSpecialty(params);
 }

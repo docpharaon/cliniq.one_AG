@@ -9,7 +9,7 @@ export { Stethoscope, Pill, Brain, Bone, TestTube, Hospital, Microscope, Skincar
 export { Search, Home, Settings, User, Users, Bell, Eye, EyeOff, Globe, LogOut, ChevronRight, ArrowLeft, Moon, Sun, Monitor } from './navigation';
 
 // Actions
-export { Camera, Upload, Download, Save, Trash, Refresh, Sparkles, Paperclip, Edit, Send, Share } from './actions';
+export { Camera, Upload, Download, Save, Trash, Refresh, Sparkles, Paperclip, Edit, Send, Share, Mic, Keyboard, ArrowUp, X, Square, PointerFinger, RefreshCcw } from './actions';
 
 // Status
 export { CheckCircle, XCircle, AlertTriangle, Clock, Lock, Shield, Ban, Siren, Info, Zap, FireTruck } from './status';

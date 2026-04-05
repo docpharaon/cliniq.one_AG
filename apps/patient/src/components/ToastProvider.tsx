@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import React, { useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Info } from '@cliniqone/ui';
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from '@cliniqone/ui';
 
 // ── Types ──────────────────────────────────────
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -109,7 +109,7 @@ function ToastItem({ toast }: { toast: Toast }) {
                     paddingLeft: 8,
                 }}
             >
-                ✕
+                <X size={12} color="#6B7280" strokeWidth={2.5} />
             </button>
         </div>
     );

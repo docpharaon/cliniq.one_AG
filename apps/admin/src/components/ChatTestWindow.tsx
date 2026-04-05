@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, RotateCcw, Bot, User, ChevronDown, FileCode, Loader2, Copy, Download, Play, Square, ClipboardList, Brain, Check, Sparkles, FileEdit, ArrowRight, Zap, Bug, Mic, MicOff } from 'lucide-react';
-import { fetchDefaultSequence, fetchSequenceWithNodes, updatePrompt, addPromptSequence, addSequenceNode, createPrompt, fetchPlatformSetting } from '@/lib/actions';
-import { callAdminApi, callAdminApiStream } from '@/lib/admin-api';
+import { fetchDefaultSequence, fetchSequenceWithNodes, fetchSequenceByType, updatePrompt, addPromptSequence, addSequenceNode, createPrompt, fetchPlatformSetting } from '@/lib/actions';
+import { callAdminApi, callAdminApiStream, callAiIntake } from '@/lib/admin-api';
+import { useVoiceInput } from '@/lib/useVoiceInput';
 
 // ── Types ────────────────────────────────────
 type DebugPayload = {
@@ -40,6 +41,7 @@ type SequenceNode = {
     gender_condition: string | null;
     specialty_condition: string | null;
     node_type?: 'chat' | 'system_gate' | 'system_analysis' | 'system_integrity' | null;
+    max_turns?: number | null;
     ai_prompts: { id: string; name: string; prompt_type: string; is_active: boolean; version: number } | null;
 };
 
@@ -508,7 +510,9 @@ export default function ChatTestWindow({
     const [selectedPromptId, setSelectedPromptId] = useState<string>(promptOverrideId || '');
     const [showPromptPicker, setShowPromptPicker] = useState(false);
     const [detectedPathway, setDetectedPathway] = useState<string | null>(null);
-    const [activeFlow, setActiveFlow] = useState<{ id: string; label: string; emoji: string; prompt_id?: string | null; step_key: string; prompt_name?: string; prompt_version?: number }[]>([]);
+    const [currentPhase, setCurrentPhase] = useState<'global_intake' | 'specialty' | 'wrapup' | 'refill' | 'followup'>('global_intake');
+    const currentPhaseRef = useRef<'global_intake' | 'specialty' | 'wrapup' | 'refill' | 'followup'>('global_intake');
+    const [activeFlow, setActiveFlow] = useState<{ id: string; label: string; emoji: string; prompt_id?: string | null; step_key: string; max_turns?: number | null; prompt_name?: string; prompt_version?: number }[]>([]);
     const [loadingSequence, setLoadingSequence] = useState(true);
     const [allNodes, setAllNodes] = useState<SequenceNode[]>([]);
     const [sequenceName, setSequenceName] = useState<string>('');
@@ -534,6 +538,20 @@ export default function ChatTestWindow({
     const isCompleteRef = useRef(false);
     const currentSectionIdxRef = useRef(0);
     const activeFlowRef = useRef(activeFlow);
+
+    // ── Section message scoping — prevent history bleeding between sections ──
+    const sectionStartIdxRef = useRef(0); // index into messages[] where current section starts
+    const patientContextRef = useRef(''); // accumulated summary from completed sections
+
+    // ── Per-section turn limit tracking (parity with patient app) ──
+    const [sectionTurnCount, setSectionTurnCount] = useState(0);
+    const sectionTurnCountRef = useRef(0);
+    const [sectionMaxTurnsDefault, setSectionMaxTurnsDefault] = useState(8);
+    useEffect(() => {
+        fetchPlatformSetting('ai_section_max_turns').then(val => {
+            if (val) setSectionMaxTurnsDefault(parseInt(val) || 8);
+        });
+    }, []);
 
     // ── Report & Analysis state ──
     const [showReportPanel, setShowReportPanel] = useState(false);
@@ -572,81 +590,27 @@ export default function ChatTestWindow({
     const debugModeRef = useRef(false);
     useEffect(() => { debugModeRef.current = debugMode; }, [debugMode]);
 
-    // ── Voice input state (admin sandbox) ──
-    const [isRecording, setIsRecording] = useState(false);
-    const [isTranscribing, setIsTranscribing] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
+    // ── Voice input (shared hook — same engine as patient app) ──
+    const voiceInput = useVoiceInput({
+        onTranscriptReady: (text) => setInput(prev => prev ? `${prev} ${text.trim()}` : text.trim()),
+        language: chatLanguageRef.current as 'en' | 'ar',
+        voiceConfig: { enabled: true, defaultMode: 'push_to_talk', maxDuration: 60, silenceThreshold: 1500 },
+        enabled: true,
+        authOverride: {
+            supabaseUrl: import.meta.env?.VITE_SUPABASE_URL || '',
+            authToken: import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env?.VITE_SUPABASE_ANON_KEY || '',
+            anonKey: import.meta.env?.VITE_SUPABASE_ANON_KEY || '',
+        },
+    });
+    // Backward-compatible aliases for UI
+    const isRecording = voiceInput.voiceState === 'listening';
+    const isTranscribing = voiceInput.voiceState === 'processing';
 
-    async function handleMicToggle() {
+    function handleMicToggle() {
         if (isRecording) {
-            // Stop recording
-            mediaRecorderRef.current?.stop();
-            return;
-        }
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                ? 'audio/webm;codecs=opus'
-                : 'audio/webm';
-            const recorder = new MediaRecorder(stream, { mimeType });
-            audioChunksRef.current = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) audioChunksRef.current.push(e.data);
-            };
-
-            recorder.onstop = async () => {
-                stream.getTracks().forEach(t => t.stop());
-                setIsRecording(false);
-                setIsTranscribing(true);
-
-                try {
-                    const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-                    if (audioBlob.size < 500) {
-                        setIsTranscribing(false);
-                        return; // Too short
-                    }
-
-                    // Get Supabase URL for edge function call
-                    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || '';
-                    const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
-                    const serviceKey = import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
-
-                    const formData = new FormData();
-                    formData.append('audio', audioBlob, 'recording.webm');
-                    formData.append('language', chatLanguageRef.current);
-
-                    const res = await fetch(`${supabaseUrl}/functions/v1/audio-transcribe`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${serviceKey || anonKey}`,
-                            'apikey': anonKey,
-                        },
-                        body: formData,
-                    });
-
-                    if (res.ok) {
-                        const { text } = await res.json();
-                        if (text?.trim()) {
-                            setInput(prev => prev ? `${prev} ${text.trim()}` : text.trim());
-                        }
-                    } else {
-                        console.warn('[ChatTest] Transcription failed:', res.status);
-                    }
-                } catch (err) {
-                    console.warn('[ChatTest] Transcription error:', err);
-                } finally {
-                    setIsTranscribing(false);
-                }
-            };
-
-            recorder.start();
-            mediaRecorderRef.current = recorder;
-            setIsRecording(true);
-        } catch (err) {
-            console.warn('[ChatTest] Mic access denied:', err);
+            voiceInput.stopListening();
+        } else {
+            voiceInput.startListening();
         }
     }
 
@@ -676,16 +640,23 @@ export default function ChatTestWindow({
     // ── Load sequence from DB ────────────────
     const loadSequence = useCallback(async () => {
         try {
-            // Use the passed sequenceId if provided, otherwise fetch the default
             let seq: { name?: string; nodes: SequenceNode[] } | null = null;
             if (sequenceId) {
+                // Specific sequence passed (e.g. from Interview Flow page)
                 seq = await fetchSequenceWithNodes(sequenceId) as { name?: string; nodes: SequenceNode[] } | null;
             } else {
-                seq = await fetchDefaultSequence() as { name?: string; nodes: SequenceNode[] } | null;
+                // Three-phase model: start with global_intake
+                seq = await fetchSequenceByType('global_intake') as { name?: string; nodes: SequenceNode[] } | null;
+                // Fallback to legacy Default Intake Flow if no global_intake sequence exists
+                if (!seq || !seq.nodes?.length) {
+                    seq = await fetchDefaultSequence() as { name?: string; nodes: SequenceNode[] } | null;
+                }
             }
             if (seq && seq.nodes?.length > 0) {
-                setSequenceName(seq.name || 'Default Flow');
+                setSequenceName(seq.name || 'Global Intake');
                 setAllNodes(seq.nodes);
+                setCurrentPhase('global_intake');
+                currentPhaseRef.current = 'global_intake';
                 buildInitialFlow(seq.nodes);
             } else {
                 setSequenceName('Fallback (hardcoded)');
@@ -705,6 +676,7 @@ export default function ChatTestWindow({
             emoji: n.emoji,
             prompt_id: n.prompt_id,
             step_key: n.step_key,
+            max_turns: n.max_turns || null,
             prompt_name: n.ai_prompts?.name,
             prompt_version: n.ai_prompts?.version,
         };
@@ -717,21 +689,27 @@ export default function ChatTestWindow({
         const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
         // Also filter out specialty-specific nodes unless they match the sandbox specialty
         const specFilter = (n: SequenceNode) => !n.specialty_condition;
-        const beforePathway = nodes.filter(n =>
-            !n.pathway_condition && n.sort_order <= (pathwayNode?.sort_order ?? 0)
-            && (!n.gender_condition || n.gender_condition === sex)
-            && isChat(n) && specFilter(n)
-        );
-        const afterPathway = nodes.filter(n =>
-            !n.pathway_condition && n.sort_order > (pathwayNode?.sort_order ?? 999)
-            && (!n.gender_condition || n.gender_condition === sex)
-            && isChat(n) && specFilter(n)
-        );
+        const genderFilter = (n: SequenceNode) => !n.gender_condition || n.gender_condition === sex;
 
-        const flow = [
-            ...beforePathway.map(nodeToFlowItem),
-            ...afterPathway.map(nodeToFlowItem),
-        ];
+        let flow: ReturnType<typeof nodeToFlowItem>[];
+
+        if (!pathwayNode) {
+            // No pathway node (three-phase model) — include all chat nodes
+            flow = nodes.filter(n => isChat(n) && specFilter(n) && genderFilter(n)).map(nodeToFlowItem);
+        } else {
+            const beforePathway = nodes.filter(n =>
+                !n.pathway_condition && n.sort_order <= (pathwayNode.sort_order ?? 0)
+                && genderFilter(n) && isChat(n) && specFilter(n)
+            );
+            const afterPathway = nodes.filter(n =>
+                !n.pathway_condition && n.sort_order > (pathwayNode.sort_order ?? 999)
+                && genderFilter(n) && isChat(n) && specFilter(n)
+            );
+            flow = [
+                ...beforePathway.map(nodeToFlowItem),
+                ...afterPathway.map(nodeToFlowItem),
+            ];
+        }
         setActiveFlow(flow);
     }
 
@@ -779,9 +757,37 @@ export default function ChatTestWindow({
         if (!loadingSequence) startChat();
     }, [loadingSequence]);
 
-    // ── API call — routes through admin-api edge function ──
-    // The admin-api 'chat-test' action resolves prompts from DB, applies guards,
-    // and calls OpenAI directly. This mirrors the old Next.js /api/chat-test route.
+    // ── Section message helpers ──────────────
+    /** Slice only messages from the current section (since the last transition boundary) */
+    function getSectionMessages(allMsgs: Message[]): Message[] {
+        const startIdx = sectionStartIdxRef.current;
+        return allMsgs.slice(startIdx);
+    }
+
+    /** Build a brief context summary from a completed section's messages */
+    function appendSectionContext(sectionLabel: string, sectionMsgs: Message[]) {
+        const relevant = sectionMsgs.filter(m => m.role !== 'system');
+        if (relevant.length === 0) return;
+        const summary = relevant.map(m => {
+            const role = m.role === 'ai' ? 'AI' : 'Patient';
+            // Truncate long messages to keep context compact
+            const content = m.content.length > 200 ? m.content.slice(0, 200) + '...' : m.content;
+            return `[${role}]: ${content}`;
+        }).join('\n');
+        patientContextRef.current += `\n--- ${sectionLabel} ---\n${summary}\n`;
+    }
+
+    /** Mark current section boundary — call when advancing to a new section */
+    function markSectionBoundary(currentMsgCount: number, completedSectionLabel?: string, completedSectionMsgs?: Message[]) {
+        if (completedSectionLabel && completedSectionMsgs) {
+            appendSectionContext(completedSectionLabel, completedSectionMsgs);
+        }
+        sectionStartIdxRef.current = currentMsgCount;
+    }
+
+    // ── API call — routes through ai-intake edge function (same as patient app) ──
+    // Uses the production 'chat-section' handler so admin tests identical behavior.
+    // Admin-only: passes 'debug' flag for backend visibility + 'draft' mode for testing prompts.
     async function callAI(
         chatMessages: Message[],
         section: string,
@@ -791,21 +797,29 @@ export default function ChatTestWindow({
         console.log(`[ChatTest] callAI section=${section} messages=${chatMessages.length}`);
 
         try {
-            console.log(`[ChatTest] → admin-api chat-test section=${section}`);
+            console.log(`[ChatTest] → ai-intake chat-section section=${section}`);
 
-            // Call admin-api edge function (already has auth + OpenAI logic)
-            const data = await callAdminApi<any>('chat-test', {
-                messages: chatMessages.map(m => ({
-                    role: m.role === 'ai' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
-                    content: m.content,
-                })),
+            // Call ai-intake edge function (same handler as patient app)
+            const data = await callAiIntake<any>('chat-section', {
                 section,
                 promptId: promptId ?? (selectedPromptId || undefined),
+                conversationHistory: chatMessages.map(m => ({
+                    role: m.role === 'ai' ? 'ai' : m.role === 'system' ? 'system' : 'patient',
+                    content: m.content,
+                })),
                 language: chatLanguageRef.current,
+                mode: 'draft',
+                patientContext: patientContextRef.current || undefined,
+                maxTokens: 1000,
                 debug: debugModeRef.current,
+                turnCount: sectionTurnCountRef.current,
+                maxTurns: (() => {
+                    const node = activeFlowRef.current.find(n => n.step_key === section);
+                    return node?.max_turns || sectionMaxTurnsDefault;
+                })(),
             });
 
-            console.log('[ChatTest] ← admin-api response:', {
+            console.log('[ChatTest] ← ai-intake response:', {
                 hasResponse: !!data?.response,
                 sectionComplete: data?.sectionComplete,
                 section,
@@ -834,6 +848,12 @@ export default function ChatTestWindow({
         setIsComplete(false);
         setDetectedPathway(null);
         setStrikeCount(0);
+        setCurrentPhase('global_intake');
+        currentPhaseRef.current = 'global_intake';
+        sectionStartIdxRef.current = 0;
+        patientContextRef.current = '';
+        setSectionTurnCount(0);
+        sectionTurnCountRef.current = 0;
         if (allNodes.length > 0) buildInitialFlow(allNodes);
         setIsTyping(true);
 
@@ -923,6 +943,12 @@ export default function ChatTestWindow({
                     section = nextNode.step_key;
                     setCurrentSectionIdx(nextIdx);
 
+                    // Mark greeting section as complete, start new section
+                    const greetingMsgs = getSectionMessages(newMessages);
+                    markSectionBoundary(newMessages.length, `${currentNode?.emoji || '👋'} ${currentNode?.label || 'Greeting'}`, greetingMsgs);
+                    setSectionTurnCount(0);
+                    sectionTurnCountRef.current = 0;
+
                     if (nextNode.step_key === 'pathway') {
                         const promptInfo = nextNode.prompt_name ? ` [Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}]` : '';
                         const sysMsg: Message = {
@@ -958,8 +984,10 @@ export default function ChatTestWindow({
             setMessages(prev => [...prev, placeholderAiMsg]);
 
             // Use the correct node's prompt_id for the current section
+            // IMPORTANT: Only send current section messages, not entire history
             const sectionNode = activeFlow.find(n => n.step_key === section) || currentNode;
-            const result = await callAI(newMessages, section, sectionNode?.prompt_id ?? undefined, (token) => {
+            const sectionMsgs = getSectionMessages(newMessages);
+            const result = await callAI(sectionMsgs, section, sectionNode?.prompt_id ?? undefined, (token) => {
                 setMessages(prev => prev.map(m =>
                     m.id === aiMsgId ? { ...m, content: m.content + token } : m
                 ));
@@ -1055,7 +1083,30 @@ export default function ChatTestWindow({
                 setMessages(prev => [...prev, violationSysMsg]);
             }
 
-            if (result.sectionComplete) {
+            // ── Per-section turn tracking (parity with patient app) ──
+            const newTurnCount = sectionTurnCountRef.current + 1;
+            sectionTurnCountRef.current = newTurnCount;
+            setSectionTurnCount(newTurnCount);
+            const currentFlowNode = activeFlow.find(n => n.step_key === section);
+            const nodeMaxTurns = currentFlowNode?.max_turns || sectionMaxTurnsDefault;
+            const forceAdvance = !result.sectionComplete && newTurnCount >= nodeMaxTurns;
+
+            if (result.sectionComplete || forceAdvance) {
+                if (forceAdvance) {
+                    const forceSysMsg: Message = {
+                        id: uid(), role: 'system',
+                        content: `⏰ Max turns (${nodeMaxTurns}) reached — auto-advancing to next section`,
+                        timestamp: Date.now(),
+                    };
+                    setMessages(prev => [...prev, forceSysMsg]);
+                }
+                // Mark current section as complete and capture its messages for context
+                const completedNode = activeFlow.find(n => n.step_key === section);
+                const completedSectionMsgs = getSectionMessages(newMessages);
+                // Reset turn counter for next section
+                setSectionTurnCount(0);
+                sectionTurnCountRef.current = 0;
+                
                 const nextIdx = currentSectionIdx + 1;
                 const currentFlow = detectedPathway ? flow : activeFlow;
                 if (nextIdx < currentFlow.length) {
@@ -1063,6 +1114,7 @@ export default function ChatTestWindow({
 
                     if (nextNode.step_key === 'summary') {
                         setCurrentSectionIdx(nextIdx);
+                        // Summary needs full conversation for context
                         await generateSummary([...newMessages, { id: aiMsgId, role: 'ai', content: result.content, timestamp: Date.now() }], nextNode.prompt_id ?? undefined);
                         return;
                     }
@@ -1071,7 +1123,6 @@ export default function ChatTestWindow({
                     if (nextNode.step_key === 'photo_capture') {
                         const skipMsg: Message = { id: uid(), role: 'system', content: '📸 Photo upload — skipped (test mode)', timestamp: Date.now() };
                         setMessages(prev => [...prev, skipMsg]);
-                        // Advance past photo_capture to the next node
                         const postPhotoIdx = nextIdx + 1;
                         if (postPhotoIdx < currentFlow.length) {
                             const postPhotoNode = currentFlow[postPhotoIdx];
@@ -1080,6 +1131,8 @@ export default function ChatTestWindow({
                                 await generateSummary([...newMessages, skipMsg], postPhotoNode.prompt_id ?? undefined);
                                 return;
                             }
+                            // Mark boundary before the post-photo section
+                            markSectionBoundary(newMessages.length + 1, `${completedNode?.emoji || '📋'} ${completedNode?.label || section}`, completedSectionMsgs);
                             const promptInfo2 = postPhotoNode.prompt_name ? ` → Prompt: ${postPhotoNode.prompt_name} v${postPhotoNode.prompt_version}` : '';
                             const sysMsg2: Message = { id: uid(), role: 'system', content: `${postPhotoNode.emoji} Starting: ${postPhotoNode.label}${promptInfo2}`, timestamp: Date.now() };
                             setMessages(prev => [...prev, sysMsg2]);
@@ -1087,7 +1140,7 @@ export default function ChatTestWindow({
                             const autoMsgId2 = uid();
                             setMessages(prev => [...prev, { id: autoMsgId2, role: 'ai' as const, content: '', timestamp: Date.now() }]);
                             const autoResult2 = await callAI(
-                                [...newMessages, skipMsg, sysMsg2],
+                                [],  // Fresh section — no prior messages
                                 postPhotoNode.step_key,
                                 postPhotoNode.prompt_id ?? undefined,
                                 (token) => { setMessages(prev => prev.map(m => m.id === autoMsgId2 ? { ...m, content: m.content + token } : m)); },
@@ -1096,6 +1149,9 @@ export default function ChatTestWindow({
                         }
                         return;
                     }
+
+                    // Mark section boundary — saves completed section context, resets message window
+                    markSectionBoundary(newMessages.length, `${completedNode?.emoji || '📋'} ${completedNode?.label || section}`, completedSectionMsgs);
 
                     const promptInfo = nextNode.prompt_name ? ` → Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}` : '';
                     const sysMsg: Message = {
@@ -1108,10 +1164,11 @@ export default function ChatTestWindow({
                     setCurrentSectionIdx(nextIdx);
 
                     // Auto-advance: ask the first question of the next section
+                    // Only send empty messages — context comes via patientContext in the system prompt
                     const autoMsgId = uid();
                     setMessages(prev => [...prev, { id: autoMsgId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
                     const autoResult = await callAI(
-                        [...newMessages, { id: aiMsgId, role: 'ai' as const, content: result.content, timestamp: Date.now() }, sysMsg],
+                        [],  // Fresh section — patientContext provides continuity
                         nextNode.step_key,
                         nextNode.prompt_id ?? undefined,
                         (token) => {
@@ -1120,7 +1177,179 @@ export default function ChatTestWindow({
                     );
                     setMessages(prev => prev.map(m => m.id === autoMsgId ? { ...m, content: autoResult.content } : m));
                 } else {
-                    setIsComplete(true);
+                    // ── Phase Transition Stitching ──────────────────
+                    // Current phase exhausted — load the next phase's sequence
+                    // Mark the final section of this phase as complete
+                    markSectionBoundary(newMessages.length, `${completedNode?.emoji || '📋'} ${completedNode?.label || section}`, completedSectionMsgs);
+                    
+                    const phase = currentPhaseRef.current;
+
+                    if (phase === 'global_intake') {
+                        // Finished global_intake → detect specialty via AI (matches patient app)
+                        console.log('[ChatTest] Phase transition: global_intake → specialty detection starting');
+                        const allMsgText = [...newMessages, { id: aiMsgId, role: 'ai' as const, content: result.content, timestamp: Date.now() }]
+                            .filter(m => m.role !== 'system')
+                            .map(m => m.content)
+                            .join(' ');
+
+                        // Use AI analysis for proper specialty detection (not regex)
+                        let detectedSpec = 'family_medicine';
+                        try {
+                            const patientMsgs = [...newMessages, { id: aiMsgId, role: 'ai' as const, content: result.content, timestamp: Date.now() }]
+                                .filter(m => m.role === 'user')
+                                .map(m => m.content)
+                                .join(' ');
+                            console.log('[ChatTest] Calling analyze-concern with:', patientMsgs.substring(0, 100));
+                            const analysis = await callAiIntake<{ specialty?: string }>('analyze-concern', {
+                                concern: patientMsgs || allMsgText,
+                                language: 'en',
+                            });
+                            console.log('[ChatTest] analyze-concern result:', analysis);
+                            detectedSpec = analysis.specialty || 'family_medicine';
+                        } catch (err) {
+                            console.warn('[ChatTest] Specialty detection failed, defaulting to FM:', err);
+                        }
+                        console.log('[ChatTest] Final detected specialty:', detectedSpec);
+
+                        const phaseSys: Message = {
+                            id: uid(),
+                            role: 'system',
+                            content: `📌 🔀 Phase transition: Phase 1 → Phase 2 · Core (${detectedSpec})`,
+                            timestamp: Date.now(),
+                        };
+                        setMessages(prev => [...prev, phaseSys]);
+
+                        try {
+                            let specSeq = await fetchSequenceByType('specialty', detectedSpec) as { name?: string; nodes: SequenceNode[] } | null;
+                            if (!specSeq || !specSeq.nodes?.length) {
+                                specSeq = await fetchSequenceByType('specialty', 'family_medicine') as { name?: string; nodes: SequenceNode[] } | null;
+                            }
+                            if (specSeq && specSeq.nodes?.length > 0) {
+                                const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
+                                const specFlowItems = specSeq.nodes.filter(isChat).map(n => ({
+                                    id: n.step_key,
+                                    label: n.label,
+                                    emoji: n.emoji,
+                                    prompt_id: n.prompt_id,
+                                    step_key: n.step_key,
+                                    prompt_name: n.ai_prompts?.name,
+                                    prompt_version: n.ai_prompts?.version,
+                                }));
+
+                                setActiveFlow(prev => {
+                                    const newFlow = [...prev, ...specFlowItems];
+                                    activeFlowRef.current = newFlow;
+                                    return newFlow;
+                                });
+                                setCurrentPhase('specialty');
+                                currentPhaseRef.current = 'specialty';
+                                setSequenceName(specSeq.name || `Specialty: ${detectedSpec}`);
+
+                                const specStartIdx = currentSectionIdx + 1;
+                                setCurrentSectionIdx(specStartIdx);
+                                currentSectionIdxRef.current = specStartIdx;
+                                const firstSpecNode = specFlowItems[0];
+                                const startSys: Message = {
+                                    id: uid(),
+                                    role: 'system',
+                                    content: `${firstSpecNode.emoji} Starting: ${firstSpecNode.label}`,
+                                    timestamp: Date.now(),
+                                };
+                                setMessages(prev => [...prev, startSys]);
+
+                                // Fresh section — patientContext carries over continuity
+                                const autoMsgId = uid();
+                                setMessages(prev => [...prev, { id: autoMsgId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                                const autoResult = await callAI(
+                                    [],  // Fresh section start
+                                    firstSpecNode.step_key,
+                                    firstSpecNode.prompt_id ?? undefined,
+                                    (token) => {
+                                        setMessages(prev => prev.map(m => m.id === autoMsgId ? { ...m, content: m.content + token } : m));
+                                    },
+                                );
+                                setMessages(prev => prev.map(m => m.id === autoMsgId ? { ...m, content: autoResult.content } : m));
+                            } else {
+                                setIsComplete(true);
+                            }
+                        } catch (err) {
+                            console.error('[ChatTest] Failed to load specialty sequence:', err);
+                            setIsComplete(true);
+                        }
+                    } else if (phase === 'specialty') {
+                        const phaseSys: Message = {
+                            id: uid(),
+                            role: 'system',
+                            content: `📌 🔀 Phase transition: Specialty → Global Wrap`,
+                            timestamp: Date.now(),
+                        };
+                        setMessages(prev => [...prev, phaseSys]);
+
+                        try {
+                            const wrapSeq = await fetchSequenceByType('global_wrapup') as { name?: string; nodes: SequenceNode[] } | null;
+                            if (wrapSeq && wrapSeq.nodes?.length > 0) {
+                                const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
+                                const wrapFlowItems = wrapSeq.nodes.filter(isChat).map(n => ({
+                                    id: n.step_key,
+                                    label: n.label,
+                                    emoji: n.emoji,
+                                    prompt_id: n.prompt_id,
+                                    step_key: n.step_key,
+                                    prompt_name: n.ai_prompts?.name,
+                                    prompt_version: n.ai_prompts?.version,
+                                }));
+
+                                setActiveFlow(prev => {
+                                    const newFlow = [...prev, ...wrapFlowItems];
+                                    activeFlowRef.current = newFlow;
+                                    return newFlow;
+                                });
+                                setCurrentPhase('wrapup');
+                                currentPhaseRef.current = 'wrapup';
+                                setSequenceName(wrapSeq.name || 'Global Wrap');
+
+                                const wrapStartIdx = currentSectionIdx + 1;
+                                setCurrentSectionIdx(wrapStartIdx);
+                                currentSectionIdxRef.current = wrapStartIdx;
+                                const firstWrapNode = wrapFlowItems[0];
+
+                                if (firstWrapNode.step_key === 'summary') {
+                                    // Summary is a one-shot generation — use full conversation context
+                                    await generateSummary(
+                                        [...messagesRef.current],
+                                        firstWrapNode.prompt_id ?? undefined,
+                                    );
+                                } else {
+                                    const startSys: Message = {
+                                        id: uid(),
+                                        role: 'system',
+                                        content: `${firstWrapNode.emoji} Starting: ${firstWrapNode.label}`,
+                                        timestamp: Date.now(),
+                                    };
+                                    setMessages(prev => [...prev, startSys]);
+
+                                    const autoMsgId = uid();
+                                    setMessages(prev => [...prev, { id: autoMsgId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                                    const autoResult = await callAI(
+                                        [],  // Fresh section start
+                                        firstWrapNode.step_key,
+                                        firstWrapNode.prompt_id ?? undefined,
+                                        (token) => {
+                                            setMessages(prev => prev.map(m => m.id === autoMsgId ? { ...m, content: m.content + token } : m));
+                                        },
+                                    );
+                                    setMessages(prev => prev.map(m => m.id === autoMsgId ? { ...m, content: autoResult.content } : m));
+                                }
+                            } else {
+                                setIsComplete(true);
+                            }
+                        } catch (err) {
+                            console.error('[ChatTest] Failed to load wrapup sequence:', err);
+                            setIsComplete(true);
+                        }
+                    } else {
+                        setIsComplete(true);
+                    }
                 }
             }
         } catch (err) {
@@ -1164,7 +1393,44 @@ export default function ChatTestWindow({
             setMessages(prev => prev.map(m =>
                 m.id === summaryMsgId ? { ...m, content: result.content } : m
             ));
-            setIsComplete(true);
+
+            // After summary, advance to next node (e.g., patient_addendum) if one exists
+            const summaryIdx = currentSectionIdxRef.current;
+            const summaryFlow = activeFlowRef.current;
+            const nextAfterSummaryIdx = summaryIdx + 1;
+
+            if (nextAfterSummaryIdx < summaryFlow.length) {
+                const nextNode = summaryFlow[nextAfterSummaryIdx];
+                // Mark summary section boundary
+                markSectionBoundary(messagesRef.current.length, '📋 Clinical Summary', []);
+
+                const promptInfo = nextNode.prompt_name ? ` → Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}` : '';
+                const startSys: Message = {
+                    id: uid(),
+                    role: 'system',
+                    content: `${nextNode.emoji} Starting: ${nextNode.label}${promptInfo}`,
+                    timestamp: Date.now(),
+                };
+                setMessages(prev => [...prev, startSys]);
+                setCurrentSectionIdx(nextAfterSummaryIdx);
+                currentSectionIdxRef.current = nextAfterSummaryIdx;
+
+                // Auto-advance: generate first AI message for next section
+                const autoAdvId = uid();
+                setMessages(prev => [...prev, { id: autoAdvId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                const autoAdvResult = await callAI(
+                    [],  // Fresh section — patientContext provides continuity
+                    nextNode.step_key,
+                    nextNode.prompt_id ?? undefined,
+                    (token) => {
+                        setMessages(prev => prev.map(m => m.id === autoAdvId ? { ...m, content: m.content + token } : m));
+                    },
+                );
+                setMessages(prev => prev.map(m => m.id === autoAdvId ? { ...m, content: autoAdvResult.content } : m));
+            } else {
+                isCompleteRef.current = true;
+                setIsComplete(true);
+            }
         } catch {
             const errMsg: Message = {
                 id: uid(),
@@ -1204,6 +1470,10 @@ export default function ChatTestWindow({
         setCurrentSectionIdx(0);
         setIsComplete(false);
         setDetectedPathway(null);
+        sectionStartIdxRef.current = 0;
+        patientContextRef.current = '';
+        setSectionTurnCount(0);
+        sectionTurnCountRef.current = 0;
         if (allNodes.length > 0) buildInitialFlow(allNodes);
         setIsTyping(true);
 
@@ -1292,6 +1562,14 @@ export default function ChatTestWindow({
                     const nextNode = flow[nextIdx];
                     section = nextNode.step_key;
                     setCurrentSectionIdx(nextIdx);
+                    currentSectionIdxRef.current = nextIdx;
+
+                    // Mark greeting section complete
+                    const greetingMsgs = getSectionMessages(allMsgs);
+                    markSectionBoundary(allMsgs.length, `${currentNode?.emoji || '👋'} ${currentNode?.label || 'Greeting'}`, greetingMsgs);
+                    setSectionTurnCount(0);
+                    sectionTurnCountRef.current = 0;
+
                     const promptInfo = nextNode.prompt_name ? ` → Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}` : '';
                     const sysMsg: Message = {
                         id: uid(), role: 'system',
@@ -1306,7 +1584,10 @@ export default function ChatTestWindow({
             const aiMsgId = uid();
             setMessages(prev => [...prev, { id: aiMsgId, role: 'ai', content: '', timestamp: Date.now() }]);
 
-            const result = await callAI(allMsgs, section, currentNode?.prompt_id ?? undefined, (token) => {
+            // Use scoped messages + correct prompt_id for current section
+            const sectionNode = flow.find(n => n.step_key === section) || currentNode;
+            const sectionMsgs = getSectionMessages(allMsgs);
+            const result = await callAI(sectionMsgs, section, sectionNode?.prompt_id ?? undefined, (token) => {
                 setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: m.content + token } : m));
             });
 
@@ -1320,18 +1601,22 @@ export default function ChatTestWindow({
                     result.content = result.content.replace(/\[PATHWAY:(new_visit|follow_up|refill)\]\s*/g, '').trim();
                     const pathSys: Message = { id: uid(), role: 'system', content: `Detected pathway: ${pathway === 'new_visit' ? '🆕 New Visit' : pathway === 'follow_up' ? '🔄 Follow-up' : '💊 Refill'}`, timestamp: Date.now() };
                     setMessages(prev => [...prev.map(m => m.id === aiMsgId ? { ...m, content: result.content } : m), pathSys]);
+
+                    // Mark pathway section boundary
+                    markSectionBoundary(allMsgs.length + 2, `🔀 ${currentNode?.label || 'Pathway'}`, getSectionMessages(allMsgs));
+
                     const pIdx = newFlow.findIndex(n => n.step_key === 'pathway');
                     if (pIdx + 1 < newFlow.length) {
                         const nn = newFlow[pIdx + 1];
                         const startSys: Message = { id: uid(), role: 'system', content: `${nn.emoji} Starting: ${nn.label}`, timestamp: Date.now() };
                         setMessages(prev => [...prev, startSys]);
                         setCurrentSectionIdx(pIdx + 1);
+                        currentSectionIdxRef.current = pIdx + 1;
 
-                        // Auto-advance: ask the first question of the next section
                         const autoMsgId = uid();
                         setMessages(prev => [...prev, { id: autoMsgId, role: 'ai', content: '', timestamp: Date.now() }]);
                         const autoResult = await callAI(
-                            [...allMsgs, { id: aiMsgId, role: 'ai', content: result.content, timestamp: Date.now() }, pathSys, startSys],
+                            [],  // Fresh section
                             nn.step_key,
                             nn.prompt_id ?? undefined,
                             (token) => {
@@ -1371,7 +1656,29 @@ export default function ChatTestWindow({
                 }]);
             }
 
-            if (result.sectionComplete) {
+            // ── Per-section turn tracking (auto-bot — parity with patient app) ──
+            const newTurnCount = sectionTurnCountRef.current + 1;
+            sectionTurnCountRef.current = newTurnCount;
+            setSectionTurnCount(newTurnCount);
+            const currentFlowNode = flow.find(n => n.step_key === section);
+            const nodeMaxTurns = currentFlowNode?.max_turns || sectionMaxTurnsDefault;
+            const forceAdvance = !result.sectionComplete && newTurnCount >= nodeMaxTurns;
+
+            if (result.sectionComplete || forceAdvance) {
+                if (forceAdvance) {
+                    setMessages(prev => [...prev, {
+                        id: uid(), role: 'system' as const,
+                        content: `⏰ Max turns (${nodeMaxTurns}) reached — auto-advancing to next section`,
+                        timestamp: Date.now(),
+                    }]);
+                }
+                // Capture completed section info for context
+                const completedNode = flow.find(n => n.step_key === section);
+                const completedSectionMsgs = getSectionMessages(allMsgs);
+                // Reset turn counter for next section
+                setSectionTurnCount(0);
+                sectionTurnCountRef.current = 0;
+
                 const curFlowIdx = currentSectionIdxRef.current;
                 const curFlow = activeFlowRef.current;
                 const nextIdx = curFlowIdx + 1;
@@ -1386,10 +1693,14 @@ export default function ChatTestWindow({
                         return;
                     }
 
-                    // Skip photo_capture in admin tester (no camera available)
+                    // Skip photo_capture in admin tester
                     if (nextNode.step_key === 'photo_capture') {
                         const skipMsg2: Message = { id: uid(), role: 'system', content: '📸 Photo upload — skipped (test mode)', timestamp: Date.now() };
                         setMessages(prev => [...prev, skipMsg2]);
+
+                        // Mark section boundary
+                        markSectionBoundary(messagesRef.current.length + 1, `${completedNode?.emoji || '📋'} ${completedNode?.label || section}`, completedSectionMsgs);
+
                         const postPhotoIdx2 = nextIdx + 1;
                         if (postPhotoIdx2 < curFlow.length) {
                             const postPhotoNode2 = curFlow[postPhotoIdx2];
@@ -1402,10 +1713,11 @@ export default function ChatTestWindow({
                             const transSysMsg2: Message = { id: uid(), role: 'system', content: `${postPhotoNode2.emoji} Starting: ${postPhotoNode2.label}${promptInfo3}`, timestamp: Date.now() };
                             setMessages(prev => [...prev, transSysMsg2]);
                             setCurrentSectionIdx(postPhotoIdx2);
+                            currentSectionIdxRef.current = postPhotoIdx2;
                             const autoAdvMsgId2 = uid();
                             setMessages(prev => [...prev, { id: autoAdvMsgId2, role: 'ai' as const, content: '', timestamp: Date.now() }]);
                             const autoAdvResult2 = await callAI(
-                                [...messagesRef.current, skipMsg2, transSysMsg2],
+                                [],  // Fresh section
                                 postPhotoNode2.step_key,
                                 postPhotoNode2.prompt_id ?? undefined,
                                 (token) => { setMessages(prev => prev.map(m => m.id === autoAdvMsgId2 ? { ...m, content: m.content + token } : m)); },
@@ -1414,16 +1726,21 @@ export default function ChatTestWindow({
                         }
                         return;
                     }
+
+                    // Mark section boundary
+                    markSectionBoundary(messagesRef.current.length, `${completedNode?.emoji || '📋'} ${completedNode?.label || section}`, completedSectionMsgs);
+
                     const promptInfo = nextNode.prompt_name ? ` → Prompt: ${nextNode.prompt_name} v${nextNode.prompt_version}` : '';
                     const transSysMsg: Message = { id: uid(), role: 'system', content: `${nextNode.emoji} Starting: ${nextNode.label}${promptInfo}`, timestamp: Date.now() };
                     setMessages(prev => [...prev, transSysMsg]);
                     setCurrentSectionIdx(nextIdx);
+                    currentSectionIdxRef.current = nextIdx;
 
-                    // Auto-advance: ask the first question of the next section
+                    // Auto-advance with scoped messages
                     const autoAdvMsgId = uid();
                     setMessages(prev => [...prev, { id: autoAdvMsgId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
                     const autoAdvResult = await callAI(
-                        [...messagesRef.current, transSysMsg],
+                        [],  // Fresh section — patientContext provides continuity
                         nextNode.step_key,
                         nextNode.prompt_id ?? undefined,
                         (token) => {
@@ -1432,7 +1749,122 @@ export default function ChatTestWindow({
                     );
                     setMessages(prev => prev.map(m => m.id === autoAdvMsgId ? { ...m, content: autoAdvResult.content } : m));
                 } else {
-                    setIsComplete(true);
+                    // ── Phase Transition Stitching (auto-bot) ──────────
+                    // Mark final section of this phase as complete
+                    markSectionBoundary(messagesRef.current.length, `${completedNode?.emoji || '📋'} ${completedNode?.label || section}`, completedSectionMsgs);
+
+                    const phase = currentPhaseRef.current;
+
+                    if (phase === 'global_intake') {
+                        console.log('[ChatTest] AutoBot phase transition: global_intake → specialty detection');
+                        // Use AI analysis for proper specialty detection (not regex)
+                        let detSpec = 'family_medicine';
+                        try {
+                            const patientText = messagesRef.current
+                                .filter(m => m.role === 'user')
+                                .map(m => m.content).join(' ');
+                            console.log('[ChatTest] AutoBot: analyzing concern:', patientText.substring(0, 100));
+                            const analysis = await callAiIntake<{ specialty?: string }>('analyze-concern', {
+                                concern: patientText,
+                                language: 'en',
+                            });
+                            console.log('[ChatTest] AutoBot: analyze-concern result:', analysis);
+                            detSpec = analysis.specialty || 'family_medicine';
+                        } catch (err) {
+                            console.warn('[ChatTest] AutoBot: specialty detection failed:', err);
+                        }
+                        console.log('[ChatTest] AutoBot: detected specialty:', detSpec);
+
+                        const pSys: Message = { id: uid(), role: 'system', content: `📌 🔀 Phase transition: Phase 1 → Phase 2 · Core (${detSpec})`, timestamp: Date.now() };
+                        setMessages(prev => [...prev, pSys]);
+
+                        try {
+                            let sSeq = await fetchSequenceByType('specialty', detSpec) as { name?: string; nodes: SequenceNode[] } | null;
+                            if (!sSeq || !sSeq.nodes?.length) sSeq = await fetchSequenceByType('specialty', 'family_medicine') as { name?: string; nodes: SequenceNode[] } | null;
+                            if (sSeq && sSeq.nodes?.length > 0) {
+                                const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
+                                const items = sSeq.nodes.filter(isChat).map(n => ({
+                                    id: n.step_key, label: n.label, emoji: n.emoji,
+                                    prompt_id: n.prompt_id, step_key: n.step_key,
+                                    prompt_name: n.ai_prompts?.name, prompt_version: n.ai_prompts?.version,
+                                }));
+                                setActiveFlow(prev => {
+                                    const newFlow = [...prev, ...items];
+                                    activeFlowRef.current = newFlow;
+                                    return newFlow;
+                                });
+                                setCurrentPhase('specialty');
+                                currentPhaseRef.current = 'specialty';
+                                setSequenceName(sSeq.name || `Specialty: ${detSpec}`);
+
+                                const sIdx = curFlowIdx + 1;
+                                setCurrentSectionIdx(sIdx);
+                                currentSectionIdxRef.current = sIdx;
+                                const fNode = items[0];
+                                const sSys: Message = { id: uid(), role: 'system', content: `${fNode.emoji} Starting: ${fNode.label}`, timestamp: Date.now() };
+                                setMessages(prev => [...prev, sSys]);
+
+                                const aMsgId = uid();
+                                setMessages(prev => [...prev, { id: aMsgId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                                const aRes = await callAI(
+                                    [],  // Fresh section
+                                    fNode.step_key, fNode.prompt_id ?? undefined,
+                                    (token) => { setMessages(prev => prev.map(m => m.id === aMsgId ? { ...m, content: m.content + token } : m)); },
+                                );
+                                setMessages(prev => prev.map(m => m.id === aMsgId ? { ...m, content: aRes.content } : m));
+                            } else { setIsComplete(true); }
+                        } catch { setIsComplete(true); }
+                    } else if (phase === 'specialty') {
+                        const pSys: Message = { id: uid(), role: 'system', content: `📌 🔀 Phase transition: Specialty → Global Wrap`, timestamp: Date.now() };
+                        setMessages(prev => [...prev, pSys]);
+
+                        try {
+                            const wSeq = await fetchSequenceByType('global_wrapup') as { name?: string; nodes: SequenceNode[] } | null;
+                            if (wSeq && wSeq.nodes?.length > 0) {
+                                const isChat = (n: SequenceNode) => !n.node_type || n.node_type === 'chat';
+                                const items = wSeq.nodes.filter(isChat).map(n => ({
+                                    id: n.step_key, label: n.label, emoji: n.emoji,
+                                    prompt_id: n.prompt_id, step_key: n.step_key,
+                                    prompt_name: n.ai_prompts?.name, prompt_version: n.ai_prompts?.version,
+                                }));
+                                setActiveFlow(prev => {
+                                    const newFlow = [...prev, ...items];
+                                    activeFlowRef.current = newFlow;
+                                    return newFlow;
+                                });
+                                setCurrentPhase('wrapup');
+                                currentPhaseRef.current = 'wrapup';
+                                setSequenceName(wSeq.name || 'Global Wrap');
+
+                                const wIdx = curFlowIdx + 1;
+                                setCurrentSectionIdx(wIdx);
+                                currentSectionIdxRef.current = wIdx;
+                                const fNode = items[0];
+
+                                if (fNode.step_key === 'summary') {
+                                    // Summary is a one-shot generation — use full conversation context
+                                    await generateSummary(
+                                        [...messagesRef.current],
+                                        fNode.prompt_id ?? undefined,
+                                    );
+                                } else {
+                                    const wSys: Message = { id: uid(), role: 'system', content: `${fNode.emoji} Starting: ${fNode.label}`, timestamp: Date.now() };
+                                    setMessages(prev => [...prev, wSys]);
+
+                                    const aMsgId = uid();
+                                    setMessages(prev => [...prev, { id: aMsgId, role: 'ai' as const, content: '', timestamp: Date.now() }]);
+                                    const aRes = await callAI(
+                                        [],  // Fresh section
+                                        fNode.step_key, fNode.prompt_id ?? undefined,
+                                        (token) => { setMessages(prev => prev.map(m => m.id === aMsgId ? { ...m, content: m.content + token } : m)); },
+                                    );
+                                    setMessages(prev => prev.map(m => m.id === aMsgId ? { ...m, content: aRes.content } : m));
+                                }
+                            } else { setIsComplete(true); }
+                        } catch { setIsComplete(true); }
+                    } else {
+                        setIsComplete(true);
+                    }
                 }
             }
         } catch (err) {
@@ -2043,6 +2475,9 @@ export default function ChatTestWindow({
                                 <span className="text-text-muted">Current Section:</span>
                                 <span className="ml-1.5 text-text-primary font-semibold">
                                     {activeFlow[currentSectionIdx]?.emoji} {activeFlow[currentSectionIdx]?.label || '—'}
+                                </span>
+                                <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ background: sectionTurnCount >= (activeFlow[currentSectionIdx]?.max_turns || sectionMaxTurnsDefault) - 2 ? '#dc262620' : '#1A8A9E20', color: sectionTurnCount >= (activeFlow[currentSectionIdx]?.max_turns || sectionMaxTurnsDefault) - 2 ? '#dc2626' : '#1A8A9E' }}>
+                                    Turn {sectionTurnCount}/{activeFlow[currentSectionIdx]?.max_turns || sectionMaxTurnsDefault}
                                 </span>
                             </div>
                             <div>

@@ -9,7 +9,7 @@ import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { FadeIn } from '../../components/FadeIn';
 import { haptic } from '../../hooks/useHaptics';
-import { Stethoscope, ClipboardList, TestTube, Coins, Info, Search, Refresh } from '@cliniqone/ui';
+import { Stethoscope, ClipboardList, TestTube, Coins, Info, Search, Refresh, ChevronRight } from '@cliniqone/ui';
 import type { ConsultationStatus } from '@cliniqone/types';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -95,7 +95,7 @@ export default function HomePage() {
                             <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('dashboard.activeConsultation')}</p>
                             <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{getStatusLabel(activeConsultation.status)}</p>
                         </div>
-                        <span style={{ fontSize: 18, color: '#1A8A9E' }}>→</span>
+                        <ChevronRight size={18} color="#1A8A9E" />
                     </div>
                 )}
 
@@ -144,7 +144,7 @@ export default function HomePage() {
                             </div>
                         </div>
                         <div className="cta-hero-arrow" style={{ position: 'relative', zIndex: 1 }}>
-                            <span style={{ fontSize: 18, color: '#fff', fontWeight: 700 }}>→</span>
+                            <ChevronRight size={18} color="#fff" />
                         </div>
                     </div>
                 </FadeIn>

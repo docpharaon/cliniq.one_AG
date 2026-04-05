@@ -51,6 +51,9 @@ export default function SubmitPage() {
                     patient_addendum: store.patientAddendum,
                     requested_doctor_id: store.requestedDoctorId,
                     doctor_selection_method: store.doctorSelectionMethod,
+                    // Sequence tracking for follow-up
+                    sequence_flow: store.sequenceFlow,
+                    detected_pathway: store.detectedPathway,
                 }).select('id').single(),
                 { timeout: 10000, retries: 1, label: 'createConsultation' },
             );

@@ -2,6 +2,7 @@
 // VoiceInputBar — Voice mode UI for AI chat
 // Shows mic button, waveform, states, and controls
 // ─────────────────────────────────────────────────
+import { AlertTriangle, Keyboard, Square, X, RefreshCcw, PointerFinger, Mic } from '@cliniqone/ui';
 import { AudioWaveform } from './AudioWaveform';
 import type { VoiceState, VoiceMode } from '../hooks/useVoiceInput';
 
@@ -61,7 +62,7 @@ export function VoiceInputBar({
                 border: '1px solid rgba(239, 68, 68, 0.2)',
                 animation: 'fadeIn 0.2s ease',
             }}>
-                <span style={{ fontSize: '16px' }}>⚠️</span>
+                <AlertTriangle size={16} color="#ef4444" />
                 <p style={{
                     flex: 1,
                     fontSize: '13px',
@@ -105,7 +106,7 @@ export function VoiceInputBar({
                         whiteSpace: 'nowrap',
                     }}
                 >
-                    {isRTL ? '⌨️ اكتب' : '⌨️ Type'}
+                    <Keyboard size={12} color="currentColor" style={{ marginRight: 4 }} />{isRTL ? 'اكتب' : 'Type'}
                 </button>
             </div>
         );
@@ -226,7 +227,7 @@ export function VoiceInputBar({
                             cursor: 'pointer',
                         }}
                     >
-                        ✕ {isRTL ? 'إلغاء' : 'Cancel'}
+                        <X size={12} color="currentColor" style={{ marginRight: 3 }} />{isRTL ? 'إلغاء' : 'Cancel'}
                     </button>
 
                     <button
@@ -246,9 +247,10 @@ export function VoiceInputBar({
                             cursor: 'pointer',
                         }}
                     >
+                        <Square size={12} color="currentColor" style={{ marginRight: 3 }} />
                         {voiceMode === 'push_to_talk'
-                            ? (isRTL ? '⏹ إيقاف' : '⏹ Done')
-                            : (isRTL ? '⏹ إيقاف' : '⏹ Stop')
+                            ? (isRTL ? 'إيقاف' : 'Done')
+                            : (isRTL ? 'إيقاف' : 'Stop')
                         }
                     </button>
                 </div>
@@ -294,23 +296,24 @@ export function VoiceInputBar({
                     : (isRTL ? 'تبديل إلى اضغط للتحدث' : 'Switch to push-to-talk')
                 }
             >
-                {voiceMode === 'auto_mic' ? '🔄' : '👆'}
+                {voiceMode === 'auto_mic' ? <RefreshCcw size={14} color="currentColor" /> : <PointerFinger size={14} color="currentColor" />}
             </button>
 
-            {/* Mic Button */}
+            {/* Mic Button — rounded square like admin */}
             <button
                 onClick={onStartListening}
-                aria-label={isRTL ? 'بدء الإدخال الصوتي' : 'Start voice input'}
+                aria-label={isRTL ? 'اضغط للتحدث' : 'Push to talk'}
+                title={isRTL ? 'اضغط للتحدث' : 'Push to talk'}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     width: '40px',
                     height: '40px',
-                    borderRadius: '50%',
-                    border: '2px solid rgba(26, 138, 158, 0.3)',
-                    background: 'rgba(26, 138, 158, 0.08)',
-                    color: 'var(--color-accent, #1A8A9E)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+                    background: 'var(--bg-card, rgba(26, 138, 158, 0.08))',
+                    color: 'var(--color-text-muted, #666)',
                     fontSize: '18px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
@@ -318,17 +321,17 @@ export function VoiceInputBar({
                     flexShrink: 0,
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(26, 138, 158, 0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(26, 138, 158, 0.5)';
-                    e.currentTarget.style.boxShadow = '0 0 16px rgba(26, 138, 158, 0.2)';
+                    e.currentTarget.style.color = 'var(--color-accent, #1A8A9E)';
+                    e.currentTarget.style.borderColor = 'rgba(26, 138, 158, 0.4)';
+                    e.currentTarget.style.boxShadow = '0 0 12px rgba(26, 138, 158, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(26, 138, 158, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(26, 138, 158, 0.3)';
+                    e.currentTarget.style.color = 'var(--color-text-muted, #666)';
+                    e.currentTarget.style.borderColor = 'var(--color-border, rgba(255,255,255,0.1))';
                     e.currentTarget.style.boxShadow = 'none';
                 }}
             >
-                🎤
+                <Mic size={18} color="currentColor" />
             </button>
         </div>
     );

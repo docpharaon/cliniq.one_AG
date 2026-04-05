@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Pill } from '@cliniqone/ui';
+import { CheckCircle, Pill, X } from '@cliniqone/ui';
 
 interface MedicationVerificationCardProps {
     medication: {
@@ -38,7 +38,7 @@ export function MedicationVerificationCard({ medication, onVerify, onRemove }: M
                         backgroundColor: '#059669', color: '#fff', fontSize: 12,
                         fontWeight: 600, cursor: 'pointer',
                     }}>
-                        ✓ Verify
+                        <CheckCircle size={12} color="#fff" style={{ marginRight: 4, display: 'inline' }} /> Verify
                     </button>
                 )}
                 <button onClick={onRemove} style={{
@@ -46,7 +46,7 @@ export function MedicationVerificationCard({ medication, onVerify, onRemove }: M
                     border: '1px solid var(--border)', backgroundColor: 'transparent',
                     color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer',
                 }}>
-                    ✕
+                    <X size={12} color="currentColor" strokeWidth={2.5} />
                 </button>
             </div>
         </div>
