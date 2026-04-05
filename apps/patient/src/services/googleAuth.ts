@@ -62,7 +62,7 @@ async function handleCapacitorGoogleOAuth(): Promise<boolean> {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: 'com.cliniqone.patient://callback',
+                redirectTo: 'com.cliniqone.patient.cap://callback',
                 skipBrowserRedirect: true,
                 queryParams: { prompt: 'select_account' },
             },

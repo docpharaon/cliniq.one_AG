@@ -59,7 +59,7 @@ async function handleCapacitorAppleOAuth(): Promise<boolean> {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'apple',
             options: {
-                redirectTo: 'com.cliniqone.patient://callback',
+                redirectTo: 'com.cliniqone.patient.cap://callback',
                 skipBrowserRedirect: true,
                 queryParams: { prompt: 'consent' },
             },
