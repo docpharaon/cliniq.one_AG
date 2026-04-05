@@ -376,7 +376,7 @@ workflows:
           success: true
           failure: true
 
-  # ─── DOCTOR Android ─────────────────────────────────────────
+  # ─── DOCTOR Android (Play Store) ────────────────────────────
   doctor-android:
     name: Doctor Android
     instance_type: linux_x2
@@ -386,7 +386,7 @@ workflows:
       java: 17
       groups:
         - supabase_credentials
-        - android_signing  # optional — APK built unsigned if absent
+        - android_signing
     triggering:
       events:
         - push
@@ -408,24 +408,29 @@ workflows:
           cd apps/doctor-capacitor
           ../../node_modules/.bin/cap add android 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync android
-      - name: Build APK
+      - name: Build AAB (signed)
         script: |
           cd apps/doctor-capacitor/android
           if [ -n "$CM_KEYSTORE" ]; then
             echo "$CM_KEYSTORE" | base64 --decode > /tmp/keystore.jks
             export CM_KEYSTORE_PATH=/tmp/keystore.jks
-            ./gradlew assembleRelease \
+            ./gradlew bundleRelease \
               -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
               -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
               -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
               -Pandroid.injected.signing.key.password="$CM_KEY_PASSWORD"
           else
-            echo "No keystore found — building unsigned APK"
-            ./gradlew assembleRelease
+            echo "No keystore found — building unsigned AAB"
+            ./gradlew bundleRelease
           fi
     artifacts:
+      - apps/doctor-capacitor/android/app/build/outputs/bundle/**/*.aab
       - apps/doctor-capacitor/android/app/build/outputs/apk/**/*.apk
     publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
       slack:
         channel: '#general'
         notify_on_build_start: true

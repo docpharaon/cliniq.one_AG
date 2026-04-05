@@ -75,14 +75,30 @@ export default function ChatReportsPanel() {
             const supabase = createBrowserSupabase();
             let query = supabase
                 .from('chat_reports')
-                .select('*, users(nickname, email)')
+                .select('*')
                 .order('created_at', { ascending: false })
                 .limit(100);
             if (filter !== 'all') {
                 query = query.eq('status', filter);
             }
-            const { data } = await query;
-            setReports((data as ChatReport[]) || []);
+            const { data: rawReports } = await query;
+            const reports = (rawReports as ChatReport[]) || [];
+
+            // Batch-fetch user info (no FK on chat_reports.patient_id)
+            const patientIds = [...new Set(reports.map(r => r.patient_id).filter(Boolean))];
+            if (patientIds.length > 0) {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('id, nickname, email')
+                    .in('id', patientIds);
+                const userMap = new Map((users || []).map(u => [u.id, u]));
+                for (const report of reports) {
+                    const user = userMap.get(report.patient_id);
+                    if (user) report.users = { nickname: user.nickname, email: user.email };
+                }
+            }
+
+            setReports(reports);
         } catch (err) {
             console.error('Failed to load reports:', err);
         }

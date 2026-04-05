@@ -56,6 +56,7 @@ export function getSupabaseAdmin() {
     if (!_adminClient && supabaseUrl && supabaseServiceKey) {
         _adminClient = createClient(supabaseUrl, supabaseServiceKey, {
             auth: {
+                storageKey: 'sb-admin-service-role',
                 autoRefreshToken: false,
                 persistSession: false,
                 detectSessionInUrl: false,

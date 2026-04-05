@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import DashboardShell from '@/components/DashboardShell';
 import { supabaseAdmin } from '@/lib/supabase';
 import { FlaskConical, Check, X, Loader2, RefreshCw, Mail, ExternalLink, FileText, Linkedin, Phone, ChevronDown, ChevronUp, Shield, Key, Clock, RotateCw } from 'lucide-react';
@@ -364,9 +364,8 @@ export default function TestersPage() {
                                 </thead>
                                 <tbody>
                                     {testers.map(t => (
-                                        <>
+                                        <Fragment key={t.id}>
                                             <tr
-                                                key={t.id}
                                                 className={`border-b border-accent/5 hover:bg-accent/[0.03] transition-colors cursor-pointer ${expandedId === t.id ? 'bg-accent/[0.03]' : ''}`}
                                                 onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
                                             >
@@ -543,7 +542,7 @@ export default function TestersPage() {
                                                     </td>
                                                 </tr>
                                             )}
-                                        </>
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </table>

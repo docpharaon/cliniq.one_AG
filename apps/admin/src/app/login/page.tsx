@@ -39,25 +39,61 @@ export default function LoginPage() {
 
     async function handleOAuthCallback() {
         try {
+
             const supabase = createBrowserSupabase();
 
-            // Parse tokens directly from the hash — more reliable than onAuthStateChange
+            // Parse tokens directly from the hash
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token');
 
+
+
+            // Clean hash from URL immediately to prevent double-processing
+            window.history.replaceState(null, '', '/login');
+
             let session: any = null;
 
             if (accessToken && refreshToken) {
-                // Explicitly set the session from hash tokens
+                // Strategy 1: Explicitly set the session from hash tokens
                 const { data, error: sessError } = await supabase.auth.setSession({
                     access_token: accessToken,
                     refresh_token: refreshToken,
                 });
-                if (sessError) throw sessError;
-                session = data.session;
+
+
+                if (sessError) {
+                    console.warn('[Login] setSession error (will try getSession fallback):', sessError.message);
+                    // Don't throw — try getSession fallback below
+                } else {
+                    session = data.session;
+                }
+
+                // Strategy 2: If setSession returned null session (clock skew can cause this),
+                // try getSession() which may have the session from auto-detection
+                if (!session) {
+
+                    const { data: fallbackData } = await supabase.auth.getSession();
+                    session = fallbackData?.session;
+
+                }
+
+                // Strategy 3: If still no session, try refreshing with the refresh token
+                if (!session && refreshToken) {
+
+                    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession({
+                        refresh_token: refreshToken,
+                    });
+                    if (refreshError) {
+                        console.warn('[Login] refreshSession error:', refreshError.message);
+                    } else {
+                        session = refreshData?.session;
+
+                    }
+                }
             } else {
-                // Fallback: wait for onAuthStateChange
+                // No hash tokens — wait for onAuthStateChange or existing session
+
                 session = await new Promise<any>((resolve, reject) => {
                     const timeout = setTimeout(() => {
                         sub.unsubscribe();
@@ -65,6 +101,7 @@ export default function LoginPage() {
                     }, 15000);
 
                     const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, sess) => {
+
                         if (event === 'SIGNED_IN' && sess) {
                             clearTimeout(timeout);
                             sub.unsubscribe();
@@ -83,7 +120,8 @@ export default function LoginPage() {
             }
 
             if (!session) {
-                setError('OAuth session could not be established');
+                console.error('[Login] All session establishment strategies failed');
+                setError('OAuth session could not be established. This may be caused by a device clock mismatch — please check that your system time is correct.');
                 setCheckingOAuth(false);
                 return;
             }
@@ -91,22 +129,24 @@ export default function LoginPage() {
 
 
             // Validate role
+
             const roleOk = await validateAdminRole(supabase, session.user.id, session.user.email || undefined);
+
+
             if (!roleOk) {
                 await supabase.auth.signOut();
                 setError('Unauthorized: Your account does not have admin access.');
                 setCheckingOAuth(false);
-                window.history.replaceState(null, '', '/login');
                 return;
             }
 
-            // Clean hash and redirect
+            // Redirect to dashboard
+
             window.location.href = '/dashboard';
         } catch (err: any) {
             console.error('[Login] OAuth callback error:', err);
             // Ignore abort errors from StrictMode
             if (err?.name === 'AbortError' || (err?.message && err.message.includes('abort'))) {
-
                 return;
             }
             setError(err?.message || 'OAuth callback failed');

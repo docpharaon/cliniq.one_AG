@@ -199,6 +199,7 @@ export default function AIPage() {
     const [voiceDefaultMode, setVoiceDefaultMode] = useState('push_to_talk');
     const [voiceMaxDuration, setVoiceMaxDuration] = useState(60);
     const [voiceSilenceThreshold, setVoiceSilenceThreshold] = useState(1500);
+    const [voiceAutoSendDelay, setVoiceAutoSendDelay] = useState(2500);
     const [voiceUsageMinutes, setVoiceUsageMinutes] = useState('0');
     const [voiceUsageCount, setVoiceUsageCount] = useState('0');
     const [voiceEstimatedCost, setVoiceEstimatedCost] = useState('$0.000');
@@ -294,6 +295,9 @@ export default function AIPage() {
         });
         fetchPlatformSetting('voice_input_silence_threshold_ms').then(val => {
             if (val) setVoiceSilenceThreshold(parseInt(val, 10));
+        });
+        fetchPlatformSetting('voice_auto_send_delay_ms').then(val => {
+            if (val) setVoiceAutoSendDelay(parseInt(val, 10));
         });
         fetchPlatformSetting('voice_transcription_model').then(val => {
             if (val) setVoiceModel(val);
@@ -1374,7 +1378,7 @@ RULES:
                             </div>
 
                             {/* Parameters */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>
                                     <label className="text-xs font-semibold text-text-secondary block mb-1">Model</label>
                                     <select
@@ -1410,6 +1414,19 @@ RULES:
                                         className="w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
                                     />
                                 </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-text-secondary block mb-1">Auto-Send Delay (ms)</label>
+                                    <input
+                                        type="number"
+                                        value={voiceAutoSendDelay}
+                                        onChange={e => setVoiceAutoSendDelay(parseInt(e.target.value, 10) || 0)}
+                                        min={0}
+                                        max={10000}
+                                        step={500}
+                                        className="w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                                    />
+                                    <p className="text-[10px] text-text-muted mt-1">Review time before voice auto-sends. 0 = instant.</p>
+                                </div>
                             </div>
 
                             {/* Usage This Month */}
@@ -1442,6 +1459,7 @@ RULES:
                                             await savePlatformSetting('voice_input_default_mode', voiceDefaultMode, 'voice', 'Default voice mode: push_to_talk or auto_mic');
                                             await savePlatformSetting('voice_input_max_duration_sec', String(voiceMaxDuration), 'voice', 'Max recording duration in seconds');
                                             await savePlatformSetting('voice_input_silence_threshold_ms', String(voiceSilenceThreshold), 'voice', 'VAD silence threshold in milliseconds');
+                                            await savePlatformSetting('voice_auto_send_delay_ms', String(voiceAutoSendDelay), 'voice', 'Delay in ms before voice transcription auto-sends');
                                             await savePlatformSetting('voice_transcription_model', voiceModel, 'voice', 'OpenAI transcription model');
                                             setVoiceMsg('✅ Voice settings saved!');
                                         } catch {

@@ -1834,7 +1834,7 @@ export async function getPlatformSetting(key: string) {
         .from('platform_settings')
         .select('value')
         .eq('key', key)
-        .single();
+        .maybeSingle();
     if (error) return null;
     return data?.value ?? null;
 }

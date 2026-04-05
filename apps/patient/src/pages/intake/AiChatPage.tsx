@@ -92,20 +92,22 @@ export default function AiChatPage() {
     const initializedRef = useRef(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-    // DB-driven turn limits (loaded from platform_settings)
+    // DB-driven turn limits + voice timing (loaded from platform_settings)
     const [MAX_TURNS, setMaxTurns] = useState(DEFAULT_MAX_TURNS);
     const [SECTION_MAX_TURNS, setSectionMaxTurns] = useState(DEFAULT_SECTION_MAX_TURNS);
+    const [autoSendDelayMs, setAutoSendDelayMs] = useState(2500); // default 2.5s, overridden by DB
     useEffect(() => {
         (async () => {
             try {
                 const { data } = await supabase
                     .from('platform_settings')
                     .select('key, value')
-                    .in('key', ['ai_section_max_turns', 'ai_session_max_turns']);
+                    .in('key', ['ai_section_max_turns', 'ai_session_max_turns', 'voice_auto_send_delay_ms']);
                 if (data) {
                     for (const row of data) {
                         if (row.key === 'ai_section_max_turns') setSectionMaxTurns(parseInt(row.value) || DEFAULT_SECTION_MAX_TURNS);
                         if (row.key === 'ai_session_max_turns') setMaxTurns(parseInt(row.value) || DEFAULT_MAX_TURNS);
+                        if (row.key === 'voice_auto_send_delay_ms') setAutoSendDelayMs(parseInt(row.value) || 2500);
                     }
                 }
             } catch { /* fallback to defaults */ }
@@ -114,11 +116,12 @@ export default function AiChatPage() {
 
     // Voice input state
     const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>({
-        enabled: false, defaultMode: 'push_to_talk', maxDuration: 60, silenceThreshold: 1500,
+        enabled: false, defaultMode: 'push_to_talk', maxDuration: 60, silenceThreshold: 2200,
     });
     const [showVoiceInput, setShowVoiceInput] = useState(true); // true = voice mode visible (vs text-only)
     const [autoSendVoice, setAutoSendVoice] = useState(true); // auto-send after transcription (like admin)
     const pendingAutoSendRef = useRef(false);
+    const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rtl = isRTL();
 
     // Voice input hook
@@ -136,13 +139,32 @@ export default function AiChatPage() {
         enabled: voiceConfig.enabled,
     });
 
-    // Auto-send after voice transcription (like admin pattern)
+    // Auto-send after voice transcription — with a short delay so the patient
+    // has time to read / correct the transcription before it fires.
+    // Delay is admin-controllable via platform_settings → voice_auto_send_delay_ms
     useEffect(() => {
         if (pendingAutoSendRef.current && input.trim() && !isAiTyping) {
             pendingAutoSendRef.current = false;
-            handleSendDirect(input.trim());
+            // Clear any previous pending timer (e.g. if user edits the text)
+            if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+            // If delay is 0, send immediately (no review time)
+            if (autoSendDelayMs <= 0) {
+                handleSendDirect(input.trim());
+                return;
+            }
+            autoSendTimerRef.current = setTimeout(() => {
+                const currentInput = input.trim();
+                if (currentInput) handleSendDirect(currentInput);
+                autoSendTimerRef.current = null;
+            }, autoSendDelayMs);
         }
-    }, [input]);
+        return () => {
+            if (autoSendTimerRef.current) {
+                clearTimeout(autoSendTimerRef.current);
+                autoSendTimerRef.current = null;
+            }
+        };
+    }, [input, autoSendDelayMs]);
 
     // Load voice config on mount
     useEffect(() => {
