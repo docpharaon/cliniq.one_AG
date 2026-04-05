@@ -17,7 +17,14 @@ export default function ReportBugPage() {
         if (!description.trim()) return;
         setSubmitting(true);
         try {
-            await supabase.from('feedback').insert({ patient_id: user?.id, type: category, comment: description.trim(), rating: 0 });
+            const categoryMap: Record<string, string> = { bug: 'ui', feature: 'chat', other: 'other' };
+            await supabase.from('error_reports').insert({
+                user_id: user?.id,
+                reporter_name: user?.nickname || user?.email || 'Patient',
+                category: categoryMap[category] || 'other',
+                description: description.trim(),
+                status: 'open',
+            });
             toast(t('bugReport.successMessage'), 'success');
             setDescription('');
         } catch (err: any) {

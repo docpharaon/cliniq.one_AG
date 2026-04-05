@@ -12,7 +12,7 @@ export { Search, Home, Settings, User, Users, Bell, Eye, EyeOff, Globe, LogOut, 
 export { Camera, Upload, Download, Save, Trash, Refresh, Sparkles, Paperclip, Edit, Send, Share, Mic, Keyboard, ArrowUp, X, Square, PointerFinger, RefreshCcw } from './actions';
 
 // Status
-export { CheckCircle, XCircle, AlertTriangle, Clock, Lock, Shield, Ban, Siren, Info, Zap, FireTruck } from './status';
+export { CheckCircle, XCircle, AlertTriangle, Clock, Lock, Shield, Ban, Siren, Info, Zap, FireTruck, Flag } from './status';
 
 // Finance
 export { Coins, Gem, CreditCard, Gift, Key, Star, Briefcase } from './finance';

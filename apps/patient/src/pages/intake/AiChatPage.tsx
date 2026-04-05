@@ -22,7 +22,7 @@ import { DisclaimerBanner } from '../../components/DisclaimerBanner';
 import { BackButton } from '../../components/BackButton';
 import { VoiceInputBar, RecordingIndicator } from '../../components/VoiceInputBar';
 import { useToast } from '../../components/ToastProvider';
-import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp } from '@cliniqone/ui';
+import { Search, Siren, AlertTriangle, Ban, Mic, ArrowUp, Flag } from '@cliniqone/ui';
 import aiDoctorAvatar from '../../../assets/ai-doctor-avatar.jpg';
 
 // ── Strip internal AI routing tags before display ──
@@ -81,6 +81,13 @@ export default function AiChatPage() {
 
     // Local state
     const [input, setInput] = useState('');
+
+    // Inline report state
+    const [reportingMsgId, setReportingMsgId] = useState<string | null>(null);
+    const [reportCategory, setReportCategory] = useState('wrongQuestion');
+    const [reportDescription, setReportDescription] = useState('');
+    const [reportSubmitting, setReportSubmitting] = useState(false);
+    const [reportSubmittedSet, setReportSubmittedSet] = useState<Set<string>>(new Set());
     const [conversationHistory, setConversationHistory] = useState<{ role: string; content: string }[]>([]);
     const [fullConversationHistory, setFullConversationHistory] = useState<{ role: string; content: string }[]>([]);
     const [sectionTurnCount, setSectionTurnCount] = useState(0);
@@ -1023,6 +1030,43 @@ export default function AiChatPage() {
         return () => clearInterval(timer);
     }, [sessionId, conversationHistory, sectionTurnCount]);
 
+    // ── Inline Report Handler ─────────────────────
+    async function handleReportSubmit() {
+        if (!reportingMsgId || !user?.id) return;
+        setReportSubmitting(true);
+        try {
+            const reportedMsg = messages.find(m => m.id === reportingMsgId);
+            const recentContext = messages.slice(-10).map(m => `[${m.role}] ${m.content}`).join('\n');
+            const categoryMap: Record<string, string> = {
+                wrongQuestion: 'ai_response', repeatedQuestion: 'ai_response',
+                inappropriate: 'ai_response', stuckLoop: 'ai_response',
+                skippedSection: 'missing_info', otherIssue: 'other',
+            };
+            await supabase.from('error_reports').insert({
+                user_id: user.id,
+                reporter_name: user.nickname || user.email || 'Patient',
+                category: categoryMap[reportCategory] || 'other',
+                description: [
+                    `[${t(`report.${reportCategory}`)}]`,
+                    reportDescription.trim() ? `Patient note: ${reportDescription.trim()}` : '',
+                    `\n--- Flagged message ---\n${reportedMsg?.content || '(unknown)'}`,
+                    `\n--- Recent context (last 10) ---\n${recentContext}`,
+                    `\nSession: ${sessionId || 'N/A'} | Node: ${sequenceNodes[currentNodeIndex]?.step_key || 'N/A'} | Phase: ${currentPhase}`,
+                ].filter(Boolean).join('\n'),
+                status: 'open',
+            });
+            setReportSubmittedSet(prev => new Set(prev).add(reportingMsgId));
+            toast(t('report.submitted'), 'success');
+        } catch (err: any) {
+            toast(err?.message || t('report.submitFailed'), 'error');
+        } finally {
+            setReportSubmitting(false);
+            setReportingMsgId(null);
+            setReportCategory('wrongQuestion');
+            setReportDescription('');
+        }
+    }
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-primary)', paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0, transition: 'padding-bottom 0.15s ease-out' }}>
             {/* Header */}
@@ -1103,6 +1147,27 @@ export default function AiChatPage() {
                                 </div>
                             )}
                         </div>
+                        {/* Flag / Report button for AI messages */}
+                        {msg.role === 'ai' && (
+                            <button
+                                onClick={() => {
+                                    if (reportSubmittedSet.has(msg.id)) return;
+                                    setReportingMsgId(msg.id);
+                                    setReportCategory('wrongQuestion');
+                                    setReportDescription('');
+                                }}
+                                title={reportSubmittedSet.has(msg.id) ? t('aiChat.reportedConfirm') : t('aiChat.reportIssueButton')}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    padding: 4, opacity: reportSubmittedSet.has(msg.id) ? 0.4 : 0.25,
+                                    transition: 'opacity 0.2s', alignSelf: 'flex-end', flexShrink: 0,
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.opacity = reportSubmittedSet.has(msg.id) ? '0.4' : '0.7')}
+                                onMouseLeave={e => (e.currentTarget.style.opacity = reportSubmittedSet.has(msg.id) ? '0.4' : '0.25')}
+                            >
+                                <Flag size={12} color={reportSubmittedSet.has(msg.id) ? '#059669' : 'var(--text-tertiary)'} />
+                            </button>
+                        )}
                     </div>
                 ))}
 
@@ -1307,6 +1372,88 @@ export default function AiChatPage() {
                         }}>
                             {t('aiChat.returnHome')}
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Inline Report Modal ─────────────── */}
+            {reportingMsgId && (
+                <div style={{
+                    position: 'fixed', inset: 0, backgroundColor: '#00000090',
+                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100,
+                    padding: '0 0 0 0',
+                }} onClick={() => setReportingMsgId(null)}>
+                    <div style={{
+                        maxWidth: 480, width: '100%', backgroundColor: 'var(--bg-card)',
+                        borderRadius: '20px 20px 0 0', padding: '24px 20px 32px',
+                        border: '1px solid var(--border)', borderBottom: 'none',
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                            <Flag size={18} color="#D97706" />
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                                {t('report.title')}
+                            </h3>
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: '19px' }}>
+                            {t('report.description')}
+                        </p>
+
+                        {/* Category chips */}
+                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 8px', textTransform: 'uppercase' }}>
+                            {t('report.whatHappened')}
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                            {(['wrongQuestion', 'repeatedQuestion', 'inappropriate', 'stuckLoop', 'skippedSection', 'otherIssue'] as const).map(key => (
+                                <button key={key} onClick={() => setReportCategory(key)} style={{
+                                    padding: '7px 12px', borderRadius: 10, fontSize: 12,
+                                    border: `1px solid ${reportCategory === key ? '#D97706' : '#334155'}`,
+                                    backgroundColor: reportCategory === key ? '#D9770620' : 'var(--bg-primary)',
+                                    color: reportCategory === key ? '#D97706' : 'var(--text-secondary)',
+                                    cursor: 'pointer', transition: 'all 0.15s',
+                                }}>
+                                    {t(`report.${key}`)}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Optional description */}
+                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 6px', textTransform: 'uppercase' }}>
+                            {t('report.describeIssue')} <span style={{ fontWeight: 400, textTransform: 'none' }}>({t('settings.optional')})</span>
+                        </p>
+                        <textarea
+                            value={reportDescription}
+                            onChange={e => setReportDescription(e.target.value)}
+                            placeholder={t('report.placeholder')}
+                            rows={3}
+                            style={{
+                                width: '100%', padding: '10px 14px', borderRadius: 10,
+                                border: '1px solid var(--border)', backgroundColor: 'var(--bg-primary)',
+                                color: 'var(--text-primary)', fontSize: 13, resize: 'vertical',
+                                boxSizing: 'border-box', outline: 'none', marginBottom: 6,
+                            }}
+                        />
+                        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: '16px' }}>
+                            {t('report.infoNote')}
+                        </p>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setReportingMsgId(null)} style={{
+                                flex: 1, padding: '12px', borderRadius: 12,
+                                border: '1px solid #475569', backgroundColor: 'transparent',
+                                color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                            }}>
+                                {t('common.cancel')}
+                            </button>
+                            <button onClick={handleReportSubmit} disabled={reportSubmitting} style={{
+                                flex: 1, padding: '12px', borderRadius: 12, border: 'none',
+                                backgroundColor: '#D97706', color: '#fff', fontSize: 14, fontWeight: 700,
+                                cursor: reportSubmitting ? 'not-allowed' : 'pointer',
+                                opacity: reportSubmitting ? 0.7 : 1,
+                            }}>
+                                {reportSubmitting ? t('settings.saving') : t('report.submitButton')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
