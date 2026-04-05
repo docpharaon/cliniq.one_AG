@@ -138,20 +138,20 @@ export function PermissionGate({ children, requireCamera = true }: PermissionGat
     // ── Open native app settings or show instructions ──
     const handleOpenSettings = useCallback(async () => {
         try {
-            const { Browser } = await import('@capacitor/browser');
-            // Android intent URL to open this app's permission settings
-            await Browser.open({
-                url: 'package:com.cliniqone.patient.cap',
-                toolbarColor: '#0B1120',
-            });
-        } catch {
-            // Web/fallback — clear instructions
-            alert(
-                isArabic
-                    ? 'افتح إعدادات المتصفح أو التطبيق → الأذونات → فعّل الميكروفون والكاميرا'
-                    : 'Open your browser or app Settings → Permissions → Enable Microphone & Camera'
-            );
-        }
+            // On Capacitor Android — use App plugin to get package info then open settings
+            const { Capacitor } = await import('@capacitor/core');
+            if (Capacitor.isNativePlatform()) {
+                // Direct Android intent to app settings
+                window.location.href = 'intent:#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;data=package:com.cliniqone.patient.cap;end';
+                return;
+            }
+        } catch { /* not native */ }
+        // Web fallback — clear instructions
+        alert(
+            isArabic
+                ? 'افتح إعدادات المتصفح أو التطبيق → الأذونات → فعّل الميكروفون والكاميرا'
+                : 'Open your browser or app Settings → Permissions → Enable Microphone & Camera'
+        );
     }, [isArabic]);
 
     // ── Reset denied status so the native dialog can re-appear ──
@@ -179,7 +179,7 @@ export function PermissionGate({ children, requireCamera = true }: PermissionGat
     const stepConfig = {
         mic: {
             icon: (
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#1A8A9E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A8A9E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
@@ -197,7 +197,7 @@ export function PermissionGate({ children, requireCamera = true }: PermissionGat
         },
         camera: {
             icon: (
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#1A8A9E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A8A9E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
                 </svg>
@@ -233,7 +233,7 @@ export function PermissionGate({ children, requireCamera = true }: PermissionGat
                         backgroundColor: isDenied ? 'rgba(220, 38, 38, 0.06)' : 'rgba(26, 138, 158, 0.06)',
                     }}>
                         {isDenied ? (
-                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10" />
                                 <line x1="15" y1="9" x2="9" y2="15" />
                                 <line x1="9" y1="9" x2="15" y2="15" />
@@ -352,7 +352,8 @@ const st: Record<string, CSSProperties> = {
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#0B1120',
-        overflow: 'hidden',
+        overflow: 'auto',
+        padding: '24px 0',
     },
     ambientGlow: {
         position: 'absolute',
@@ -375,10 +376,10 @@ const st: Record<string, CSSProperties> = {
         width: '100%',
     },
     logo: {
-        width: 56,
-        height: 56,
+        width: 44,
+        height: 44,
         objectFit: 'contain',
-        marginBottom: 28,
+        marginBottom: 16,
         opacity: 0.7,
     },
     card: {
@@ -386,19 +387,19 @@ const st: Record<string, CSSProperties> = {
         backgroundColor: 'rgba(30, 41, 59, 0.5)',
         border: '1px solid rgba(148, 163, 184, 0.1)',
         borderRadius: 20,
-        padding: '32px 24px 28px',
+        padding: '24px 20px 20px',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
     },
     iconCircle: {
-        width: 96,
-        height: 96,
+        width: 72,
+        height: 72,
         borderRadius: '50%',
         border: '2px solid',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        margin: '0 auto 20px',
+        margin: '0 auto 14px',
     },
     title: {
         fontSize: 20,
