@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">cliniq.one</string>
+    <string name="title_activity_main">cliniq.one</string>
+    <string name="package_name">com.cliniqone.patient.cap</string>
+    <string name="custom_url_scheme">com.cliniqone.patient.cap</string>
+    <string name="widget_description">View your token balance, consultation status, and daily health tips at a glance.</string>
+</resources>

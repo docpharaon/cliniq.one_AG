@@ -5,7 +5,7 @@ import logoImg from '../../assets/logo.png';
 import type { CSSProperties } from 'react';
 
 const STORAGE_KEY = 'cliniq_beta_banner_seen';
-const AUTO_DISMISS_MS = 4_000;
+const AUTO_DISMISS_MS = 25_000;
 
 // Confetti colors — premium palette
 const CONFETTI_COLORS = [

@@ -135,6 +135,33 @@ export function PermissionGate({ children, requireCamera = true }: PermissionGat
         advanceStep();
     }
 
+    // ── Open native app settings or show instructions ──
+    const handleOpenSettings = useCallback(async () => {
+        try {
+            const { Browser } = await import('@capacitor/browser');
+            // Android intent URL to open this app's permission settings
+            await Browser.open({
+                url: 'package:com.cliniqone.patient.cap',
+                toolbarColor: '#0B1120',
+            });
+        } catch {
+            // Web/fallback — clear instructions
+            alert(
+                isArabic
+                    ? 'افتح إعدادات المتصفح أو التطبيق → الأذونات → فعّل الميكروفون والكاميرا'
+                    : 'Open your browser or app Settings → Permissions → Enable Microphone & Camera'
+            );
+        }
+    }, [isArabic]);
+
+    // ── Reset denied status so the native dialog can re-appear ──
+    const handleRetry = useCallback(async () => {
+        if (currentStep === 'mic') setMicStatus('prompt');
+        else setCameraStatus('prompt');
+        // Slight delay then re-trigger
+        setTimeout(() => handleAllow(), 200);
+    }, [currentStep, handleAllow]);
+
     function finishGate() {
         localStorage.setItem(CACHE_KEY, Date.now().toString());
         setGateActive(false);
@@ -255,13 +282,38 @@ export function PermissionGate({ children, requireCamera = true }: PermissionGat
                             </button>
                         </>
                     ) : (
-                        <button
-                            id={`permission-continue-${currentStep}`}
-                            onClick={handleSkip}
-                            style={st.allowButton}
-                        >
-                            <span>{isArabic ? 'متابعة' : 'Continue Anyway'}</span>
-                        </button>
+                        <>
+                            {/* Open Settings — deep link */}
+                            <button
+                                id={`permission-settings-${currentStep}`}
+                                onClick={handleOpenSettings}
+                                style={st.allowButton}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                </svg>
+                                <span>{isArabic ? 'فتح الإعدادات' : 'Open Settings'}</span>
+                            </button>
+
+                            {/* Try Again */}
+                            <button
+                                id={`permission-retry-${currentStep}`}
+                                onClick={handleRetry}
+                                style={st.retryButton}
+                            >
+                                {isArabic ? '🔄 حاول مرة أخرى' : '🔄 Try Again'}
+                            </button>
+
+                            {/* Continue without */}
+                            <button
+                                id={`permission-continue-${currentStep}`}
+                                onClick={handleSkip}
+                                style={st.skipButton}
+                            >
+                                {isArabic ? 'متابعة بدون' : 'Continue without'}
+                            </button>
+                        </>
                     )}
                 </div>
 
@@ -388,6 +440,21 @@ const st: Record<string, CSSProperties> = {
         cursor: 'pointer',
         padding: '8px 16px',
         transition: 'color 0.2s',
+    },
+    retryButton: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        padding: '12px 24px',
+        borderRadius: 14,
+        border: '1px solid rgba(26, 138, 158, 0.3)',
+        background: 'rgba(26, 138, 158, 0.08)',
+        color: '#2DD4BF',
+        fontSize: 15,
+        fontWeight: 600,
+        cursor: 'pointer',
+        marginBottom: 8,
     },
     dotsRow: {
         display: 'flex',

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  cliniq.one Patient Widget Layout — 4×3 dark theme
+  © cliniq.one — Proprietary and confidential.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_background">
+
+    <!-- Row 1: Brand + Token Balance -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="cliniq.one"
+            android:textColor="#14B8A6"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💰 "
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/txt_token_balance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="–"
+                android:textColor="#14B8A6"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" tokens"
+                android:textColor="#94A3B8"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1E293B"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Row 2: Active Consultation Status -->
+    <TextView
+        android:id="@+id/txt_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No active consultations"
+        android:textColor="#F1F5F9"
+        android:textSize="13sp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Divider -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1E293B"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Row 3: Health Tip of the Day -->
+    <TextView
+        android:id="@+id/txt_tip_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💡 Stay Healthy"
+        android:textColor="#F1F5F9"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/txt_tip_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open the app for health tips"
+        android:textColor="#94A3B8"
+        android:textSize="11sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Row 4: Quick Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/btn_new_consult"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:gravity="center"
+            android:text="🩺 New Consult"
+            android:textColor="#14B8A6"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/widget_button_bg"
+            android:clickable="true" />
+
+        <TextView
+            android:id="@+id/btn_history"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:text="📋 History"
+            android:textColor="#14B8A6"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/widget_button_bg"
+            android:clickable="true" />
+    </LinearLayout>
+</LinearLayout>

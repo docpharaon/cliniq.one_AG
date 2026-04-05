@@ -7,9 +7,13 @@ dist/
 .expo/
 *.tsbuildinfo
 
-# Expo
-android/
-ios/
+# Legacy Expo-generated native dirs (use *-capacitor/ dirs instead)
+apps/doctor/android/
+apps/doctor/ios/
+apps/patient/android/
+apps/patient/ios/
+apps/admin/android/
+apps/admin/ios/
 web-build/
 
 # Environment

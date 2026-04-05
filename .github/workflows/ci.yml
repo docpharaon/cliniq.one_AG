@@ -52,9 +52,9 @@ jobs:
           path: apps/${{ matrix.app }}/.next
           retention-days: 1
 
-  # ─── Expo web exports (doctor + patient) ────────────────
-  build-expo:
-    name: Build Expo Apps
+  # ─── Vite builds (doctor + patient) ──────────────────────
+  build-vite:
+    name: Build Vite Apps
     needs: install
     runs-on: ubuntu-latest
     strategy:
@@ -67,11 +67,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci --legacy-peer-deps
-      - name: Export ${{ matrix.app }} web
-        run: cd apps/${{ matrix.app }} && npx expo export --platform web
+      - name: Build ${{ matrix.app }} web
+        run: cd apps/${{ matrix.app }} && npm run build
         env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
   # ─── E2E tests (admin only — Next.js server required) ──
   e2e:
