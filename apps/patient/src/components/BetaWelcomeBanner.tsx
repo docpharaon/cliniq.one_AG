@@ -1,8 +1,14 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { t, useLocale } from '@cliniqone/i18n';
 import { haptic } from '../hooks/useHaptics';
 import logoImg from '../../assets/logo.png';
+import bannerAudioSrc from '../../assets/banner-ambient.mp3';
 import type { CSSProperties } from 'react';
+
+/** Default playback volume (0–1) */
+const AUDIO_VOLUME = 0.25;
+/** Fade-out duration when dismissing (ms) */
+const AUDIO_FADE_MS = 600;
 
 /** Tracks whether the user has ever completed the forced first-run banner */
 const FIRST_SEEN_KEY = 'cliniq_beta_banner_first_seen';
@@ -88,6 +94,11 @@ export function BetaWelcomeBanner() {
     const isFirstRun = useRef(true);
     const [ctaUnlocked, setCtaUnlocked] = useState(false);
 
+    // ── Audio state ──
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [audioMuted, setAudioMuted] = useState(false);
+    const [audioReady, setAudioReady] = useState(false);
+
     // Generate once
     const confetti = useMemo(() => generateConfetti(30), []);
     const stars = useMemo(() => generateStars(12), []);
@@ -115,14 +126,78 @@ export function BetaWelcomeBanner() {
         };
     }, []);
 
+    // ── Audio: autoplay at low volume, loop ──
+    useEffect(() => {
+        const audio = new Audio(bannerAudioSrc);
+        audio.loop = true;
+        audio.volume = AUDIO_VOLUME;
+        audioRef.current = audio;
+
+        // Attempt autoplay — browsers may block until user interaction
+        const tryPlay = async () => {
+            try {
+                await audio.play();
+                setAudioReady(true);
+            } catch {
+                // Autoplay blocked — will start on user tap of unmute toggle
+                setAudioMuted(true);
+                setAudioReady(true);
+            }
+        };
+        tryPlay();
+
+        return () => {
+            audio.pause();
+            audio.src = '';
+            audioRef.current = null;
+        };
+    }, []);
+
+    /** Toggle mute/unmute */
+    const toggleMute = useCallback(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (audioMuted) {
+            audio.volume = AUDIO_VOLUME;
+            audio.play().catch(() => {});
+            setAudioMuted(false);
+        } else {
+            audio.volume = 0;
+            setAudioMuted(true);
+        }
+        haptic.light();
+    }, [audioMuted]);
+
+    /** Fade audio out smoothly */
+    const fadeOutAudio = useCallback(() => {
+        const audio = audioRef.current;
+        if (!audio || audio.paused) return;
+        const steps = 20;
+        const stepMs = AUDIO_FADE_MS / steps;
+        const volumeStep = audio.volume / steps;
+        let current = 0;
+        const iv = setInterval(() => {
+            current++;
+            audio.volume = Math.max(0, audio.volume - volumeStep);
+            if (current >= steps) {
+                clearInterval(iv);
+                audio.pause();
+            }
+        }, stepMs);
+    }, []);
+
     const dismiss = () => {
         if (dismissing) return;
         // On first run, only allow dismiss after CTA is unlocked
         if (isFirstRun.current && !ctaUnlocked) return;
         setDismissing(true);
         haptic.medium();
+        // Fade out audio
+        fadeOutAudio();
         // Mark first run as complete so future visits are skippable
         try { localStorage.setItem(FIRST_SEEN_KEY, 'true'); } catch {}
+        // Notify TabLayout to show the tab bar
+        window.dispatchEvent(new Event('beta-banner-dismissed'));
         // Fade out
         setTimeout(() => setVisible(false), 400);
     };
@@ -145,6 +220,33 @@ export function BetaWelcomeBanner() {
                 transition: dismissing ? 'opacity 0.4s ease-out' : undefined,
             }}
         >
+            {/* ── Audio mute/unmute toggle ── */}
+            {audioReady && (
+                <button
+                    onClick={toggleMute}
+                    aria-label={audioMuted ? 'Unmute' : 'Mute'}
+                    style={{
+                        ...s.audioToggle,
+                        ...(audioMuted ? s.audioToggleMuted : {}),
+                    }}
+                >
+                    {audioMuted ? (
+                        /* Speaker off icon */
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <line x1="23" y1="9" x2="17" y2="15" />
+                            <line x1="17" y1="9" x2="23" y2="15" />
+                        </svg>
+                    ) : (
+                        /* Speaker on icon with waves */
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" opacity="0.4" />
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                        </svg>
+                    )}
+                </button>
+            )}
             {/* Confetti particles */}
             {confetti.map(c => (
                 <div
@@ -300,6 +402,32 @@ const s: Record<string, CSSProperties> = {
         flexDirection: 'column',
         overflow: 'hidden',
     },
+
+    // ── Audio Toggle ──
+    audioToggle: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 10001,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        border: '1px solid rgba(45, 212, 191, 0.3)',
+        background: 'rgba(45, 212, 191, 0.1)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        color: '#2DD4BF',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+    } as CSSProperties,
+    audioToggleMuted: {
+        background: 'rgba(255, 255, 255, 0.06)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        color: 'rgba(241, 245, 249, 0.4)',
+    } as CSSProperties,
     scrollContainer: {
         flex: 1,
         overflowY: 'auto',

@@ -62,8 +62,6 @@ export function VoiceInputBar({
     const isHoldingRef = useRef(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    if (!isSupported || !enabled) return null;
-
     const formatDuration = (sec: number) => {
         const m = Math.floor(sec / 60);
         const s = sec % 60;
@@ -138,6 +136,9 @@ export function VoiceInputBar({
             if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         };
     }, []);
+
+    // ── Early return AFTER all hooks (React rules of hooks) ──
+    if (!isSupported || !enabled) return null;
 
     // ── Error Toast ─────────────────────────────
     if (voiceState === 'error' && error) {
