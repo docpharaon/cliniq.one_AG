@@ -137,6 +137,16 @@ export function VoiceInputBar({
         };
     }, []);
 
+    // ── Idle tap handler (must be before early return — React rules of hooks) ──
+    const isAutoMode = voiceMode === 'auto_mic';
+    const handleIdleTap = useCallback(() => {
+        if (voiceState !== 'idle') return;
+        if (isAutoMode) {
+            // Auto mode: single tap starts, VAD handles stopping
+            onStartListening();
+        }
+    }, [voiceState, isAutoMode, onStartListening]);
+
     // ── Early return AFTER all hooks (React rules of hooks) ──
     if (!isSupported || !enabled) return null;
 
@@ -478,15 +488,7 @@ export function VoiceInputBar({
     // ── Idle State: Mic Button ──
     // Auto-mic mode: tap to start (VAD auto-stops on silence)
     // PTT mode: hold to talk, swipe up to lock
-    const isAutoMode = voiceMode === 'auto_mic';
-
-    const handleIdleTap = useCallback(() => {
-        if (voiceState !== 'idle') return;
-        if (isAutoMode) {
-            // Auto mode: single tap starts, VAD handles stopping
-            onStartListening();
-        }
-    }, [voiceState, isAutoMode, onStartListening]);
+    // Note: isAutoMode and handleIdleTap are declared before the early return above
 
     return (
         <div
