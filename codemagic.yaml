@@ -83,9 +83,30 @@ workflows:
           ls -la "$APP_DIR/"
       - name: Set up code signing
         script: |
+          # Generate a fresh private key for this build
           openssl genrsa -out /tmp/cert_key.pem 2048
           export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
           keychain initialize
+
+          # Revoke ALL existing Distribution certificates so we can create
+          # a fresh one that matches our newly generated private key.
+          # (Apple limits the number of active Distribution certs.)
+          echo "=== Revoking old Distribution certificates ==="
+          CERT_IDS=$(app-store-connect certificates list \
+            --type DISTRIBUTION \
+            --state ISSUED 2>/dev/null \
+            | grep -oE '[A-Z0-9]{10,}' | head -5 || true)
+          if [ -n "$CERT_IDS" ]; then
+            for CID in $CERT_IDS; do
+              echo "Revoking certificate: $CID"
+              app-store-connect certificates delete "$CID" 2>/dev/null || \
+                echo "  (Could not revoke $CID — may not exist or already revoked)"
+            done
+          else
+            echo "No existing Distribution certificates found to revoke"
+          fi
+
+          # Now fetch/create signing files — this will create a new cert
           app-store-connect fetch-signing-files "com.cliniqone.patient.cap" \
             --type IOS_APP_STORE \
             --create
