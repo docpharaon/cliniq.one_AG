@@ -1357,7 +1357,7 @@ export default function AiChatPage() {
                             }}>
                                 {msg.sectionLabel && msg.role === 'ai' && (
                                     <p style={{ fontSize: 10, fontWeight: 700, color: '#1A8A9E', margin: '0 0 4px', textTransform: 'uppercase' }}>
-                                        {msg.sectionLabel}
+                                        {getLocalizedLabel(msg.sectionLabel, lang)}
                                     </p>
                                 )}
                                 <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
@@ -1969,7 +1969,7 @@ export default function AiChatPage() {
                 {/* Input — hidden during photo capture, med label capture, or report upload */}
                 {!showPhotoCapture && !showMedLabelCapture && !showReportUpload && (
                     <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-                        {/* Voice Input Bar (shown when voice mode is active and listening/processing/error) */}
+                        {/* Voice Input Bar — full-width row (listening/processing/error) */}
                         {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState !== 'idle' && (
                             <VoiceInputBar
                                 voiceState={voiceInput.voiceState}
@@ -1989,7 +1989,27 @@ export default function AiChatPage() {
                             />
                         )}
 
-                        {/* Text input row */}
+                        {/* Voice mode selector — full-width row ABOVE text input (idle only) */}
+                        {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState === 'idle' && (
+                            <VoiceInputBar
+                                voiceState={voiceInput.voiceState}
+                                audioLevel={voiceInput.audioLevel}
+                                error={voiceInput.error}
+                                voiceMode={voiceInput.voiceMode}
+                                recordingDuration={voiceInput.recordingDuration}
+                                isSupported={voiceInput.isSupported}
+                                enabled={voiceConfig.enabled}
+                                isRTL={rtl}
+                                onStartListening={voiceInput.startListening}
+                                onStopListening={voiceInput.stopListening}
+                                onCancel={voiceInput.cancelRecording}
+                                onSetVoiceMode={voiceInput.setVoiceMode}
+                                onSwitchToText={() => setShowVoiceInput(false)}
+                                onDismissError={voiceInput.cancelRecording}
+                            />
+                        )}
+
+                        {/* Text input + send row */}
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                             <input
                                 ref={inputRef}
@@ -2005,26 +2025,6 @@ export default function AiChatPage() {
                                 }}
                             />
 
-                            {/* Voice mic button (idle state) */}
-                            {voiceConfig.enabled && showVoiceInput && voiceInput.voiceState === 'idle' && (
-                                <VoiceInputBar
-                                    voiceState={voiceInput.voiceState}
-                                    audioLevel={voiceInput.audioLevel}
-                                    error={voiceInput.error}
-                                    voiceMode={voiceInput.voiceMode}
-                                    recordingDuration={voiceInput.recordingDuration}
-                                    isSupported={voiceInput.isSupported}
-                                    enabled={voiceConfig.enabled}
-                                    isRTL={rtl}
-                                    onStartListening={voiceInput.startListening}
-                                    onStopListening={voiceInput.stopListening}
-                                    onCancel={voiceInput.cancelRecording}
-                                    onSetVoiceMode={voiceInput.setVoiceMode}
-                                    onSwitchToText={() => setShowVoiceInput(false)}
-                                    onDismissError={voiceInput.cancelRecording}
-                                />
-                            )}
-
                             {/* Show mic toggle if voice was hidden */}
                             {voiceConfig.enabled && !showVoiceInput && (
                                 <button
@@ -2032,14 +2032,14 @@ export default function AiChatPage() {
                                     aria-label={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
                                     title={rtl ? 'تبديل إلى الصوت' : 'Switch to voice'}
                                     style={{
-                                        width: 40, height: 40, borderRadius: '50%',
-                                        border: '1px solid var(--border)', background: 'transparent',
-                                        color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer',
+                                        width: 44, height: 44, borderRadius: 14,
+                                        border: '1px solid var(--border)', background: 'rgba(26, 138, 158, 0.08)',
+                                        color: 'var(--text-muted)', cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         flexShrink: 0,
                                     }}
                                 >
-                                    <Mic size={18} color="currentColor" />
+                                    <Mic size={20} color="currentColor" />
                                 </button>
                             )}
 
@@ -2053,34 +2053,6 @@ export default function AiChatPage() {
                                 <ArrowUp size={18} color="#fff" strokeWidth={2.5} />
                             </button>
                         </div>
-
-                        {/* Auto-send voice toggle (like admin) */}
-                        {voiceConfig.enabled && showVoiceInput && (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                gap: 6, paddingTop: 4,
-                            }}>
-                                <label style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                                    cursor: 'pointer', userSelect: 'none',
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={autoSendVoice}
-                                        onChange={e => setAutoSendVoice(e.target.checked)}
-                                        style={{ width: 13, height: 13, accentColor: '#1A8A9E', cursor: 'pointer' }}
-                                    />
-                                    <span style={{
-                                        fontSize: 11,
-                                        fontWeight: autoSendVoice ? 600 : 400,
-                                        color: autoSendVoice ? '#1A8A9E' : 'var(--text-tertiary)',
-                                        transition: 'color 0.2s',
-                                    }}>
-                                        {rtl ? 'إرسال تلقائي بالصوت' : 'Auto-send voice'}
-                                    </span>
-                                </label>
-                            </div>
-                        )}
                     </div>
                 )}
 
