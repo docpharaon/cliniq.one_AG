@@ -71,7 +71,7 @@ export function LandingPage() {
 }
 
 const s: Record<string, CSSProperties> = {
-    container: { display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: colors.bgPrimary },
+    container: { display: 'flex', flexDirection: 'column', minHeight: '100vh', height: '100dvh', backgroundColor: colors.bgPrimary },
     header: { display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: spacing.xl, paddingBottom: spacing.md, position: 'relative' },
     headerLogo: { width: 200, height: 55, objectFit: 'contain' },
     flagButton: { position: 'absolute', top: spacing.lg, right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: colors.bgCard, border: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' },

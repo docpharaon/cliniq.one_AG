@@ -59,7 +59,7 @@ export function SplashPage() {
 }
 
 const s: Record<string, CSSProperties> = {
-    container: { position: 'fixed', inset: 0, width: '100%', height: '100%', backgroundColor: '#0A0E1A', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', zIndex: 9999 },
+    container: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100dvh', minHeight: '100vh', backgroundColor: '#0A0E1A', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', zIndex: 9999, overflow: 'hidden' },
     video: { position: 'absolute', inset: 0, width: '100%', height: '100%' },
     overlay: { position: 'absolute', inset: 0, backgroundColor: 'rgba(10, 14, 26, 0.45)' },
     logoContainer: { zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' },

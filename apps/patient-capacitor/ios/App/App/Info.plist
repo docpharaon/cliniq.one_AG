@@ -49,6 +49,18 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Deep link URL scheme for OAuth callbacks -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.cliniqone.patient.cap</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.cliniqone.patient.cap</string>
+			</array>
+		</dict>
+	</array>
 	<!-- Privacy usage descriptions required by Capacitor plugins -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>cliniq.one needs access to your photo library to attach images to your medical consultations.</string>
