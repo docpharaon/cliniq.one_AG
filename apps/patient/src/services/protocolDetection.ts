@@ -146,7 +146,25 @@ const VALID_SHORT_ANSWERS = new Set([
     'weekly', 'monthly', 'rarely', 'never', 'always', 'sometimes',
     'none', 'nothing', 'same', 'worse', 'better', 'normal',
     'dayly', 'dayli', 'idk', 'n/a', 'dunno', 'dont know',
-    'لا', 'نعم', 'اي', 'أي', 'لأ',
+    // Arabic — affirmatives
+    'لا', 'نعم', 'اي', 'أي', 'لأ', 'ايوا', 'آه', 'اه', 'صح', 'تمام', 'ماشي', 'أكيد', 'طبعاً',
+    // Arabic — negatives
+    'أبداً', 'مافي', 'ما في', 'مو', 'مب',
+    // Arabic — navigation
+    'يلا', 'خلاص', 'بس', 'كفاية',
+    // Arabic — medical words
+    'ألم', 'صداع', 'حرارة', 'سعال', 'دوخة', 'غثيان', 'تعب', 'إسهال', 'إمساك',
+    'حكة', 'طفح', 'ورم', 'نزيف', 'ضغط', 'سكر', 'حساسية', 'التهاب',
+    // Arabic — Gulf dialect
+    'وش', 'ليش', 'كيف', 'وين', 'متى', 'شلون', 'زين',
+    // Arabic — Egyptian dialect
+    'ايه', 'ازاي', 'فين', 'ليه', 'كويس',
+    // Arabic — Levantine dialect
+    'شو', 'كيفك', 'هلق', 'منيح', 'طيب',
+    // Arabic — cultural expressions
+    'الحمدلله', 'ماشاءالله', 'إنشاءالله', 'يارب', 'الله يشفي',
+    // Arabic — common fillers
+    'ممكن', 'يمكن', 'كثير', 'قليل', 'دائماً', 'أحياناً', 'غلط', 'إيه',
 ]);
 
 // ── Gibberish Detection ─────────────────────────
@@ -156,7 +174,17 @@ function isGibberish(text: string): boolean {
 
     if (VALID_SHORT_ANSWERS.has(lower)) return false;
     if (trimmed.length < 3) return true;
-    if (isArabic(trimmed)) return false;
+
+    // ── Arabic-specific gibberish checks ──
+    if (isArabic(trimmed)) {
+        // Repeated Arabic character (3+ of same letter)
+        if (/([\u0600-\u06FF])\1{2,}/.test(trimmed)) return true;
+        // Single very long Arabic word with no spaces (>15 chars) — likely mashing
+        const arabicAlpha = trimmed.replace(/[^\u0600-\u06FF]/g, '');
+        if (!trimmed.includes(' ') && arabicAlpha.length > 15) return true;
+        // Valid Arabic input — pass through (semantic gibberish caught by AI)
+        return false;
+    }
 
     const latinChars = trimmed.replace(/[^a-zA-Z]/g, '');
     if (latinChars.length > 3) {

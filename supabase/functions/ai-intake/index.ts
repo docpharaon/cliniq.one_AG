@@ -259,6 +259,26 @@ async function getGlobalGuard(mode: 'draft' | 'active' = 'active'): Promise<stri
     }
 }
 
+// ── Get Arabic guard supplement (prepended only when language=ar) ──
+async function getArabicGuard(): Promise<string | null> {
+    const cached = _guardCache['arabic_guard'];
+    if (cached && Date.now() - cached.ts < 60_000) return cached.content;
+    try {
+        const { data } = await supabaseAdmin
+            .from('ai_prompts')
+            .select('content')
+            .eq('prompt_type', 'arabic_guard')
+            .eq('is_active', true)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+        const content = data?.[0]?.content ?? null;
+        _guardCache['arabic_guard'] = { content, ts: Date.now() };
+        return content;
+    } catch {
+        return null;
+    }
+}
+
 // ── Get admin-configurable prompt by type (cached 60s) ──
 // Used by verify-medication and analyze-drug-label actions
 // so admins can modify the AI protocol from the dashboard.
@@ -369,6 +389,39 @@ const VALID_SHORT = new Set([
     'hello', 'hey', 'bye', 'thanks',
 ]);
 
+// ── Valid Arabic words — bypass gibberish detection ──
+const VALID_ARABIC = new Set([
+    // Affirmatives
+    'نعم', 'اي', 'أي', 'ايوا', 'آه', 'اه', 'صح', 'تمام', 'ماشي', 'أكيد', 'طبعاً',
+    // Negatives
+    'لا', 'لأ', 'أبداً', 'مافي', 'مو', 'مب',
+    // Navigation
+    'يلا', 'خلاص', 'بس', 'كفاية',
+    // Common medical words
+    'ألم', 'صداع', 'حرارة', 'سعال', 'دوخة', 'غثيان', 'تعب', 'إسهال', 'إمساك',
+    'حكة', 'طفح', 'ورم', 'نزيف', 'ضغط', 'سكر', 'حساسية', 'التهاب',
+    // Gulf dialect
+    'وش', 'ليش', 'كيف', 'وين', 'متى', 'شلون', 'زين',
+    // Egyptian dialect
+    'ايه', 'ازاي', 'فين', 'ليه', 'كويس',
+    // Levantine dialect
+    'شو', 'كيفك', 'هلق', 'منيح', 'طيب',
+    // Cultural expressions
+    'الحمدلله', 'ماشاءالله', 'إنشاءالله', 'يارب',
+    // Common fillers that are valid
+    'ممكن', 'يمكن', 'كثير', 'قليل', 'دائماً', 'أحياناً', 'غلط',
+]);
+
+// ── Arabic text detection helper ──
+// Returns true if ≥40% of alpha characters are Arabic (\u0600-\u06FF)
+function isArabicText(text: string): boolean {
+    const arabicChars = (text.match(/[\u0600-\u06FF]/g) || []).length;
+    const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
+    const totalAlpha = arabicChars + latinChars;
+    if (totalAlpha === 0) return false;
+    return arabicChars / totalAlpha >= 0.4;
+}
+
 function detectGibberish(text: string): { isGibberish: boolean; reason?: string } {
     const trimmed = text.trim();
     if (!trimmed) return { isGibberish: false };
@@ -379,6 +432,43 @@ function detectGibberish(text: string): { isGibberish: boolean; reason?: string 
     // Strip spaces and check the alpha content
     const alphaOnly = trimmed.replace(/[^a-zA-Z\u0600-\u06FF]/g, ''); // keep Latin + Arabic
     if (alphaOnly.length < 3) return { isGibberish: false }; // too short to judge
+
+    // ── Arabic text — dedicated Arabic gibberish pathway ──
+    if (isArabicText(trimmed)) {
+        // 0. Arabic whitelist — exact match on normalized Arabic text
+        const arabicNorm = trimmed.replace(/[\s\u0610-\u065F\u0670\u06D6-\u06ED]/g, ''); // strip diacritics + spaces
+        if (VALID_ARABIC.has(arabicNorm) || VALID_ARABIC.has(trimmed)) {
+            return { isGibberish: false };
+        }
+
+        // 1. Repeated Arabic character runs (3+ of same letter — Arabic words rarely repeat >2)
+        if (/([\u0600-\u06FF])\1{2,}/i.test(alphaOnly)) {
+            return { isGibberish: true, reason: 'arabic_repeated_characters' };
+        }
+
+        // 2. Keyboard-adjacent Arabic patterns (common keyboard mashing)
+        const arabicKeyboardRuns = /([قثصض])\1|([شسشس]){2,}|([قث]){2,}|([صض]){2,}/;
+        if (arabicKeyboardRuns.test(trimmed) && trimmed.replace(/\s/g, '').length < 6) {
+            return { isGibberish: true, reason: 'arabic_keyboard_pattern' };
+        }
+
+        // 3. All-diacritics (tashkeel only, no base letters)
+        const baseletters = trimmed.replace(/[\s\u0610-\u065F\u0670\u06D6-\u06ED]/g, '');
+        if (baseletters.length === 0 && trimmed.length > 0) {
+            return { isGibberish: true, reason: 'diacritics_only' };
+        }
+
+        // 4. Single very long Arabic "word" with no spaces (>15 chars) — likely mashing
+        const arWords = trimmed.split(/\s+/);
+        if (arWords.length === 1 && alphaOnly.length > 15) {
+            return { isGibberish: true, reason: 'arabic_single_long_word' };
+        }
+
+        // Arabic text passes — semantic gibberish is caught by AI (Layer 3)
+        return { isGibberish: false };
+    }
+
+    // ── English-specific checks below ──
 
     // 1. Repeated character runs (e.g., "DDDDDESC", "AAAAAAA")
     if (/(.)\1{4,}/i.test(alphaOnly)) {
@@ -424,6 +514,15 @@ const GIBBERISH_RESPONSES = [
     "It looks like your message may have had a typo. Could you please try again with a clear response?",
     "I want to make sure I capture your information accurately. Could you please provide a clear answer?",
 ];
+
+const GIBBERISH_RESPONSES_AR = [
+    "لم أتمكن من فهم ذلك. حاول مرة أخرى، أو اكتب جملة من كلمات قليلة.",
+    "يبدو أن هناك خطأ في الرسالة. هل يمكنك إعادة الكتابة بوضوح؟",
+    "أريد التأكد من تسجيل معلوماتك بدقة. هل يمكنك تقديم إجابة واضحة؟",
+];
+
+const GIBBERISH_ESCALATED_EN = "I've noticed several unclear messages. If you're having trouble, please try typing your response more carefully, or simply respond with 'yes', 'no', or a brief answer.";
+const GIBBERISH_ESCALATED_AR = "لاحظت عدة رسائل غير واضحة. إذا كنت تواجه صعوبة، حاول الكتابة بشكل أوضح، أو ببساطة أجب بـ 'نعم' أو 'لا' أو إجابة مختصرة.";
 
 // ── OpenAI call helper (structured JSON responses) ────
 async function callOpenAI(
@@ -1011,19 +1110,29 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
 
                 // 4. Append language instruction
                 if (language === 'ar') {
-                    systemPrompt += '\n\nIMPORTANT: Respond entirely in Arabic (العربية). Use formal Arabic (فصحى) with a warm, patient-friendly tone. Transliterate any medical terms the patient may not understand.';
+                    systemPrompt += `\n\nCRITICAL LANGUAGE RULES — YOU MUST FOLLOW THESE:
+- You MUST respond ONLY in Arabic (العربية). Do NOT use English at any point in your response.
+- Use formal Arabic (فصحى) with a warm, patient-friendly tone.
+- Transliterate medical terms the patient may not understand.
+- BRAND NAME RULE: The name "cliniq.one" is a trademark. NEVER translate, transliterate, or convert it to Arabic script. Always write it exactly as: cliniq.one (in Latin characters). Do NOT write كلينيك وان or any Arabic equivalent.`;
                 } else {
-                    systemPrompt += `\n\nIMPORTANT: Respond in English.`;
+                    systemPrompt += `\n\nIMPORTANT: Respond in English. The brand name "cliniq.one" must always appear in Latin characters exactly as written.`;
                 }
 
                 // 5. Sanitize
                 systemPrompt = sanitizeSystemPrompt(systemPrompt);
 
-                // 6. Prepend global guard
+                // 6. Prepend global guard + Arabic guard (when Arabic)
                 const guard = await getGlobalGuard(mode);
-                const finalPrompt = guard
-                    ? `${guard}\n\n---\n\n${systemPrompt}`
-                    : systemPrompt;
+                const arabicGuard = language === 'ar' ? await getArabicGuard() : null;
+                let finalPrompt: string;
+                if (guard && arabicGuard) {
+                    finalPrompt = `${guard}\n\n${arabicGuard}\n\n---\n\n${systemPrompt}`;
+                } else if (guard) {
+                    finalPrompt = `${guard}\n\n---\n\n${systemPrompt}`;
+                } else {
+                    finalPrompt = systemPrompt;
+                }
 
                 // 7. Gibberish pre-check — intercept before calling OpenAI (saves tokens)
                 const lastUserMsg = [...history].reverse().find((m: { role: string }) => m.role === 'patient' || m.role === 'user');
@@ -1042,9 +1151,10 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                             }
                         }
 
+                        const isAr = language === 'ar';
                         const responseText = consecutiveGibberish >= 3
-                            ? "I've noticed several unclear messages. If you're having trouble, please try typing your response more carefully, or simply respond with 'yes', 'no', or a brief answer."
-                            : GIBBERISH_RESPONSES[Math.floor(Math.random() * GIBBERISH_RESPONSES.length)];
+                            ? (isAr ? GIBBERISH_ESCALATED_AR : GIBBERISH_ESCALATED_EN)
+                            : (isAr ? GIBBERISH_RESPONSES_AR : GIBBERISH_RESPONSES)[Math.floor(Math.random() * (isAr ? GIBBERISH_RESPONSES_AR : GIBBERISH_RESPONSES).length)];
 
                         const chatbotVersion = await getChatbotVersion();
                         result = {

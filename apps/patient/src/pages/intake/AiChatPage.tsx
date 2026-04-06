@@ -39,7 +39,21 @@ function stripInternalTags(text: string): string {
         .replace(/\[ADDENDUM_DONE\]/gi, '')
         .replace(/\[NO_RESPONSE_NEEDED\]/gi, '')
         .replace(/\[VIOLATION:[^\]]+\]/gi, '')
+        // Brand name protection — force Arabic transliterations back to cliniq.one
+        .replace(/كلينيك[\s.]?وان/g, 'cliniq.one')
+        .replace(/كلنيك[\s.]?ون/g, 'cliniq.one')
         .trim();
+}
+
+// ── Render cliniq.one as blue bold inline text ──
+function renderBrandedContent(text: string): React.ReactNode {
+    const parts = text.split(/(cliniq\.one)/gi);
+    if (parts.length === 1) return text; // no brand name found
+    return parts.map((part, i) =>
+        /cliniq\.one/i.test(part)
+            ? <span key={i} style={{ color: '#1A8A9E', fontWeight: 700 }}>cliniq.one</span>
+            : part
+    );
 }
 
 // ── Arabic translations for DB node labels ────────────────────────────
@@ -1077,6 +1091,11 @@ export default function AiChatPage() {
             const { cleanContent, violation } = parseViolationTag(result.response);
             const displayContent = stripInternalTags(cleanContent);
 
+            // Wire server/AI violation to client strike counter
+            if (violation === 'nonsense' || violation === 'off_topic') {
+                incrementGibberish();
+            }
+
             // Add QA pair
             const lastAiMsg = messages.filter(m => m.role === 'ai').pop();
             if (lastAiMsg) addQA(lastAiMsg.content, text);
@@ -1111,6 +1130,8 @@ export default function AiChatPage() {
 
     // ── Phase 2: Auto-Listen ─────────────────────
     // When AI finishes responding and voice is in auto-mic mode, auto-reopen mic
+    // Delay scales with response length so the patient has time to read before
+    // the mic opens and starts recording silence.
     useEffect(() => {
         if (
             !isAiTyping &&
@@ -1121,10 +1142,14 @@ export default function AiChatPage() {
             messages.length > 0 &&
             messages[messages.length - 1]?.role === 'ai'
         ) {
-            // Brief delay so the patient can read the AI response
+            // Calculate reading time: base 4s + ~80ms per word, capped at 15s
+            const lastMsg = messages[messages.length - 1]?.content || '';
+            const wordCount = lastMsg.split(/\s+/).filter(Boolean).length;
+            const readingDelayMs = Math.min(15_000, 4_000 + wordCount * 80);
+
             const timer = setTimeout(() => {
                 voiceInput.startListening();
-            }, 1200);
+            }, readingDelayMs);
             return () => clearTimeout(timer);
         }
     }, [isAiTyping, voiceInput.voiceMode, voiceInput.voiceState, messages.length]);
@@ -1360,7 +1385,7 @@ export default function AiChatPage() {
                                         {getLocalizedLabel(msg.sectionLabel, lang)}
                                     </p>
                                 )}
-                                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.role === 'ai' ? renderBrandedContent(msg.content) : msg.content}</p>
                                 {/* Photo thumbnails in message */}
                                 {msg.imageUrls && msg.imageUrls.length > 0 && (
                                     <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
