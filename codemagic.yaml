@@ -149,17 +149,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
           echo "=== Patched Info.plist ==="
           cat "$PLIST"
-      - name: Fix SPM paths (Windows→macOS)
-        script: |
-          # Package.swift was generated on Windows with backslash paths
-          # Convert them to forward slashes for macOS
-          PKG="apps/patient-capacitor/ios/App/CapApp-SPM/Package.swift"
-          if grep -q '\\\\' "$PKG" 2>/dev/null; then
-            echo "Fixing backslash paths in Package.swift"
-            sed -i '' 's|\\\\|/|g' "$PKG"
-          fi
-          echo "=== Package.swift paths ==="
-          grep 'path:' "$PKG" | head -5
+
       - name: Build IPA
         script: |
           set -e
