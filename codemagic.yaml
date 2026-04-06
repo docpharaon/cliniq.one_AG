@@ -149,18 +149,85 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
           echo "=== Patched Info.plist ==="
           cat "$PLIST"
+      - name: Fix SPM paths (Windows→macOS)
+        script: |
+          # Package.swift was generated on Windows with backslash paths
+          # Convert them to forward slashes for macOS
+          PKG="apps/patient-capacitor/ios/App/CapApp-SPM/Package.swift"
+          if grep -q '\\\\' "$PKG" 2>/dev/null; then
+            echo "Fixing backslash paths in Package.swift"
+            sed -i '' 's|\\\\|/|g' "$PKG"
+          fi
+          echo "=== Package.swift paths ==="
+          grep 'path:' "$PKG" | head -5
       - name: Build IPA
         script: |
+          set -e
           cd apps/patient-capacitor/ios/App
-          if [ -d "App.xcworkspace" ]; then
-            xcode-project build-ipa \
-              --workspace "App.xcworkspace" \
-              --scheme "App"
-          else
-            xcode-project build-ipa \
-              --project "App.xcodeproj" \
-              --scheme "App"
+
+          PP_UUID=$(cat /tmp/pp_uuid.txt)
+          TEAM_ID=$(cat /tmp/team_id.txt)
+
+          # 1. Resolve SPM dependencies first
+          echo "=== Resolving SPM packages ==="
+          xcodebuild -project "App.xcodeproj" \
+            -scheme "App" \
+            -resolvePackageDependencies \
+            2>&1 | tail -20
+
+          # 2. Archive
+          echo "=== Archiving ==="
+          xcodebuild archive \
+            -project "App.xcodeproj" \
+            -scheme "App" \
+            -configuration Release \
+            -archivePath "$CM_BUILD_DIR/App.xcarchive" \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE="$PP_UUID" \
+            -allowProvisioningUpdates
+
+          # 3. Create ExportOptions.plist
+          cat > /tmp/ExportOptions.plist <<EOPLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.cliniqone.patient.cap</key>
+                  <string>${PP_UUID}</string>
+              </dict>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOPLIST
+
+          # 4. Export IPA
+          echo "=== Exporting IPA ==="
+          xcodebuild -exportArchive \
+            -archivePath "$CM_BUILD_DIR/App.xcarchive" \
+            -exportPath "build/ios/ipa" \
+            -exportOptionsPlist /tmp/ExportOptions.plist
+
+          echo "=== IPA output ==="
+          ls -la build/ios/ipa/
+          IPA_COUNT=$(find build/ios/ipa -name "*.ipa" | wc -l)
+          if [ "$IPA_COUNT" -eq 0 ]; then
+            echo "ERROR: No IPA file produced!"
+            exit 1
           fi
+          echo "SUCCESS: Found $IPA_COUNT IPA file(s)"
     artifacts:
       - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
