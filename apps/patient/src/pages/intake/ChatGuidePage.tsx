@@ -7,6 +7,7 @@ import {
     Bot, MessageSquare, Mic, Lock, Shield, CheckCircle,
     ChevronRight, ChevronUp, Keyboard, Flag, Sparkles,
 } from '@cliniqone/ui';
+import guideAudio from '../../../assets/guide-audio.mp3';
 
 // ── Brand colors ─────────────────────────────────────
 const TEAL = '#1A8A9E';
@@ -147,6 +148,21 @@ export default function ChatGuidePage() {
     const touchStartX = useRef(0);
     const touchDelta = useRef(0);
     const containerRef = useRef<HTMLDivElement>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // ── Background audio — soft ambient on mount ──
+    useEffect(() => {
+        const audio = new Audio(guideAudio);
+        audio.loop = true;
+        audio.volume = 0.15;
+        audioRef.current = audio;
+        audio.play().catch(() => { /* autoplay blocked — silent fail */ });
+        return () => {
+            audio.pause();
+            audio.src = '';
+            audioRef.current = null;
+        };
+    }, []);
 
     const isLast = current === slides.length - 1;
 
@@ -350,37 +366,23 @@ export default function ChatGuidePage() {
                 {isLast && (
                     <FadeIn delay={650} duration={400}>
                         <div style={{
-                            marginTop: 20,
-                            padding: '14px 16px',
-                            borderRadius: 14,
-                            background: 'linear-gradient(135deg, rgba(249,115,22,0.06) 0%, rgba(245,158,11,0.04) 100%)',
-                            border: '1px dashed rgba(245,158,11,0.3)',
+                            marginTop: 14,
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            background: 'linear-gradient(135deg, rgba(249,115,22,0.05) 0%, rgba(245,158,11,0.03) 100%)',
+                            border: '1px dashed rgba(245,158,11,0.25)',
                             display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 12,
+                            alignItems: 'center',
+                            gap: 8,
                         }}>
-                            <div style={{
-                                width: 32, height: 32, borderRadius: 8,
-                                background: 'rgba(245,158,11,0.12)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0,
+                            <Sparkles size={14} color={AMBER} style={{ flexShrink: 0 }} />
+                            <p style={{
+                                fontSize: 11, color: 'var(--text-secondary)',
+                                margin: 0, lineHeight: '16px',
                             }}>
-                                <Sparkles size={16} color={AMBER} />
-                            </div>
-                            <div>
-                                <p style={{
-                                    fontSize: 13, fontWeight: 700, color: AMBER,
-                                    margin: '0 0 3px',
-                                }}>
-                                    {t('chatGuide.betaTitle')}
-                                </p>
-                                <p style={{
-                                    fontSize: 12, color: 'var(--text-secondary)',
-                                    margin: 0, lineHeight: '18px',
-                                }}>
-                                    {t('chatGuide.betaDesc')}
-                                </p>
-                            </div>
+                                <span style={{ fontWeight: 700, color: AMBER }}>{t('chatGuide.betaTitle')}</span>{' '}
+                                {t('chatGuide.betaDesc')}
+                            </p>
                         </div>
                     </FadeIn>
                 )}
