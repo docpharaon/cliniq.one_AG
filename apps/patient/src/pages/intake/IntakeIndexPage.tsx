@@ -50,7 +50,7 @@ export default function IntakeIndexPage() {
 
     function handleStart() {
         reset();
-        navigate('/intake/ai-chat');
+        navigate('/intake/chat-guide');
     }
 
     function handleStartWithLocum() {
@@ -61,7 +61,7 @@ export default function IntakeIndexPage() {
         if (savedDoctor) {
             setLocumDoctor(savedDoctor, savedGreeting);
         }
-        navigate('/intake/ai-chat');
+        navigate('/intake/chat-guide');
     }
 
     return (

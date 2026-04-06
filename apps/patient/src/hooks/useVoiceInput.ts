@@ -52,8 +52,8 @@ export function useVoiceInput({
     const [transcript, setTranscript] = useState('');
     const [audioLevel, setAudioLevel] = useState(0);
     const [error, setError] = useState<string | null>(null);
-    // Patient app always defaults to auto_mic for automatic turn-by-turn listening
-    const [voiceMode, setVoiceMode] = useState<VoiceMode>('auto_mic');
+    // Default to PTT (hold-to-talk). Auto-mic activates only via swipe-to-lock.
+    const [voiceMode, setVoiceMode] = useState<VoiceMode>('push_to_talk');
     const [recordingDuration, setRecordingDuration] = useState(0);
 
     // Refs for cleanup

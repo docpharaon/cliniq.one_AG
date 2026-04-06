@@ -1107,5 +1107,28 @@
         "creatorName": "Dr. Momen Pharaon",
         "enterButton": "Let's Begin",
         "skipHint": "Push to skip"
+    },
+    "chatGuide": {
+        "slide1Title": "How the Chat Works",
+        "slide1Desc": "You'll have a conversation with our AI medical assistant — designed by certified physicians.",
+        "slide1Tip1": "Answer clearly and honestly — a real doctor reviews everything you share",
+        "slide1Tip2": "The chat follows structured sections: symptoms → history → medications → summary",
+        "slide1Tip3": "Quick-reply buttons will appear when available — tap them for faster answers",
+        "slide2Title": "Voice Input",
+        "slide2Desc": "You can speak your answers instead of typing. Here's how:",
+        "slide2Tip1": "Hold the mic button to speak, then release to send your message",
+        "slide2Tip2": "Swipe up while holding to lock continuous recording mode",
+        "slide2Tip3": "Speak clearly in a quiet place, and stay in your selected language for accurate transcription",
+        "slide2Tip4": "You can always switch to typing by tapping the keyboard icon",
+        "slide3Title": "Before You Begin",
+        "slide3Desc": "A few tips to get the most out of your consultation:",
+        "slide3Tip1": "This takes about 10 minutes — find a comfortable, quiet spot",
+        "slide3Tip2": "Stay on topic for the most accurate medical intake",
+        "slide3Tip3": "You can flag any AI message if something seems wrong or off-topic",
+        "slide3Tip4": "Your data is encrypted and only shared with your treating physician",
+        "betaTitle": "🧪 We're in Testing Phase",
+        "betaDesc": "cliniq.one is currently in beta. Your feedback helps us improve — please report any issues you encounter!",
+        "next": "Next",
+        "startChat": "Start Chat ✨"
     }
 }

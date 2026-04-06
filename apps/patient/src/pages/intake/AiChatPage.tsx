@@ -219,7 +219,7 @@ export default function AiChatPage() {
 
     // Voice input state
     const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>({
-        enabled: false, defaultMode: 'auto_mic', maxDuration: 60, silenceThreshold: 3000,
+        enabled: false, defaultMode: 'push_to_talk', maxDuration: 60, silenceThreshold: 3000,
     });
     const [showVoiceInput, setShowVoiceInput] = useState(true); // true = voice mode visible (vs text-only)
     const [autoSendVoice, setAutoSendVoice] = useState(true); // auto-send after transcription (like admin)

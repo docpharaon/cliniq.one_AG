@@ -44,6 +44,7 @@ import SubmitPage from './pages/intake/SubmitPage';
 import AnalyzingPage from './pages/intake/AnalyzingPage';
 import ReportChatPage from './pages/intake/ReportChatPage';
 import InquiryChatPage from './pages/intake/InquiryChatPage';
+import ChatGuidePage from './pages/intake/ChatGuidePage';
 
 // Consultation pages
 import ConsultationDetailPage from './pages/consultation/ConsultationDetailPage';
@@ -195,6 +196,7 @@ function AppInner() {
                 <Route path="/intake/allergies" element={<RequireOnboarding><AllergiesPage /></RequireOnboarding>} />
                 <Route path="/intake/medications" element={<RequireOnboarding><MedicationsPage /></RequireOnboarding>} />
                 <Route path="/intake/questions" element={<RequireOnboarding><QuestionsPage /></RequireOnboarding>} />
+                <Route path="/intake/chat-guide" element={<RequireOnboarding><ChatGuidePage /></RequireOnboarding>} />
                 <Route path="/intake/ai-chat" element={<RequireOnboarding><AiChatPage /></RequireOnboarding>} />
                 <Route path="/intake/psych-screening" element={<RequireOnboarding><PsychScreeningPage /></RequireOnboarding>} />
                 <Route path="/intake/telepsychiatry-consent" element={<RequireOnboarding><TelepsychiatryConsentPage /></RequireOnboarding>} />
