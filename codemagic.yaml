@@ -152,21 +152,60 @@ workflows:
       - name: Build IPA
         script: |
           cd apps/patient-capacitor/ios/App
-          echo "Building IPA (signing via use-profiles)"
+          echo "Building IPA via xcodebuild archive + export"
 
-          # Resolve Swift Package Manager dependencies first
-          echo "=== Resolving SPM dependencies ==="
-          xcodebuild -resolvePackageDependencies \
+          PP_UUID=$(cat /tmp/pp_uuid.txt)
+          TEAM_ID=$(cat /tmp/team_id.txt)
+
+          # Create ExportOptions.plist for IPA export
+          cat > /tmp/ExportOptions.plist <<EOPLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.cliniqone.patient.cap</key>
+                  <string>${PP_UUID}</string>
+              </dict>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOPLIST
+
+          # Archive
+          echo "=== Archiving ==="
+          xcodebuild archive \
             -project "App.xcodeproj" \
             -scheme "App" \
-            -clonedSourcePackagesDirPath "$HOME/Library/Developer/Xcode/DerivedData/SPMCache" \
-            2>&1 | tail -5
+            -archivePath "build/ios/App.xcarchive" \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE="$PP_UUID" \
+            -allowProvisioningUpdates \
+            2>&1 | tail -20
 
-          # Build IPA using xcode-project (with SPM deps resolved)
-          xcode-project build-ipa \
-            --project "App.xcodeproj" \
-            --scheme "App"
+          # Export IPA
+          echo "=== Exporting IPA ==="
+          mkdir -p build/ios/ipa
+          xcodebuild -exportArchive \
+            -archivePath "build/ios/App.xcarchive" \
+            -exportPath "build/ios/ipa" \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            2>&1 | tail -10
 
+          echo "=== IPA output ==="
+          ls -la build/ios/ipa/
     artifacts:
       - apps/patient-capacitor/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
