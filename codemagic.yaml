@@ -54,18 +54,43 @@ workflows:
       - name: Add and sync iOS platform
         script: |
           cd apps/patient-capacitor
+
+          # Save corrected Package.swift before cap sync (it regenerates with OS-specific paths)
+          PKG_FILE="ios/App/CapApp-SPM/Package.swift"
+          cp "$PKG_FILE" /tmp/Package.swift.bak 2>/dev/null || true
+
           ../../node_modules/.bin/cap add ios 2>&1 || echo "cap add finished (may already exist)"
           ../../node_modules/.bin/cap sync ios
           ../../node_modules/.bin/cap copy ios
 
-          # Ensure web assets are in ios/App/App/public
-          APP_DIR="ios/App/App"
-          if [ ! -d "$APP_DIR/public" ]; then
-            echo "public/ missing after sync, copying manually from webDir"
-            cp -R ../patient/dist "$APP_DIR/public"
+          # Restore corrected Package.swift (cap sync may have regenerated it with backslashes)
+          if [ -f /tmp/Package.swift.bak ]; then
+            cp /tmp/Package.swift.bak "$PKG_FILE"
+            echo "Restored corrected Package.swift"
           fi
-          echo "=== public/ contents ==="
-          ls -la "$APP_DIR/public/" | head -10
+          # Safety net: fix any remaining backslash paths
+          if grep -q '\\' "$PKG_FILE" 2>/dev/null; then
+            sed -i '' 's|\\|/|g' "$PKG_FILE"
+            echo "Fixed backslash paths in Package.swift"
+          fi
+
+          # Force-copy web assets to ios/App/App/public (gitignored, must always be recreated)
+          APP_DIR="ios/App/App"
+          rm -rf "$APP_DIR/public"
+          mkdir -p "$APP_DIR/public"
+          if [ -d "../patient/dist" ]; then
+            cp -R ../patient/dist/* "$APP_DIR/public/" 2>/dev/null || cp -R ../patient/dist/. "$APP_DIR/public/"
+            echo "Copied web assets from ../patient/dist"
+          fi
+
+          FILE_COUNT=$(find "$APP_DIR/public" -type f 2>/dev/null | wc -l)
+          echo "public/ has $FILE_COUNT files"
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: public/ is empty after copy!"
+            ls -la ../patient/ 2>/dev/null || true
+            ls -la ../patient/dist/ 2>/dev/null || true
+            exit 1
+          fi
 
           # Ensure capacitor.config.json exists
           if [ ! -f "$APP_DIR/capacitor.config.json" ]; then
@@ -81,6 +106,8 @@ workflows:
 
           echo "=== iOS App contents ==="
           ls -la "$APP_DIR/"
+          echo "=== public/ sample ==="
+          ls "$APP_DIR/public/" | head -10
       - name: Set up code signing
         script: |
           # Generate a fresh private key for this build
