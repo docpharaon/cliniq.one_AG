@@ -34,7 +34,10 @@ workflows:
       cancel_previous_builds: true
     scripts:
       - name: Install dependencies
-        script: npm ci --legacy-peer-deps
+        script: |
+          npm ci --legacy-peer-deps
+          # package-lock.json from Windows is missing macOS optional deps
+          npm install @rollup/rollup-darwin-arm64 --no-save 2>/dev/null || true
       - name: Write patient .env
         script: |
           cat > apps/patient/.env << EOF
