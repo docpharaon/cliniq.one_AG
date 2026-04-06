@@ -103,10 +103,12 @@ workflows:
             exit 1
           fi
 
-          # Ensure capacitor.config.json exists
+          # Ensure capacitor.config.json exists with full config
           if [ ! -f "$APP_DIR/capacitor.config.json" ]; then
             echo "Creating capacitor.config.json"
-            echo '{"appId":"com.cliniqone.patient.cap","appName":"cliniq.one","webDir":"public","server":{"androidScheme":"https","iosScheme":"https"}}' > "$APP_DIR/capacitor.config.json"
+            cat > "$APP_DIR/capacitor.config.json" <<CAPEOF
+{"appId":"com.cliniqone.patient.cap","appName":"cliniq.one","webDir":"public","server":{"androidScheme":"https","iosScheme":"https"},"ios":{"scheme":"App","backgroundColor":"#0A0E1A","contentInset":"never","preferredContentMode":"mobile","scrollEnabled":false},"plugins":{"SplashScreen":{"launchAutoHide":true,"launchShowDuration":0,"backgroundColor":"#0A0E1A"},"StatusBar":{"style":"DARK","backgroundColor":"#0A0E1A","overlaysWebView":true},"Keyboard":{"resize":"none","resizeOnFullScreen":false}}}
+CAPEOF
           fi
 
           # Ensure config.xml exists (Xcode project references it)

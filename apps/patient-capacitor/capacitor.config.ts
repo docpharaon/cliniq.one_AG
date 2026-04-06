@@ -19,8 +19,9 @@ const config: CapacitorConfig = {
   ios: {
     scheme: 'App',
     backgroundColor: '#0A0E1A',
-    contentInset: 'automatic',
+    contentInset: 'never',
     preferredContentMode: 'mobile',
+    scrollEnabled: false,
   },
   plugins: {
     SplashScreen: {
@@ -31,6 +32,7 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'DARK',
       backgroundColor: '#0A0E1A',
+      overlaysWebView: true,
     },
     Keyboard: {
       resize: 'none',
