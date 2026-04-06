@@ -115,7 +115,7 @@ function getLocalizedLabel(label: string | undefined, lang: 'en' | 'ar'): string
 
 // ── Constants (defaults — overridden by platform_settings on mount) ────────────────────────────
 const DEFAULT_MAX_TURNS = 40;
-const DEFAULT_SECTION_MAX_TURNS = 8;
+const DEFAULT_SECTION_MAX_TURNS = 6;
 const AUTO_SAVE_INTERVAL = 30_000;
 
 export default function AiChatPage() {
