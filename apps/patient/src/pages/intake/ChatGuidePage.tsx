@@ -4,7 +4,7 @@ import { t, isRTL } from '@cliniqone/i18n';
 import { FadeIn } from '../../components/FadeIn';
 import { BackButton } from '../../components/BackButton';
 import {
-    Bot, MessageSquare, Mic, Lock, Shield, CheckCircle,
+    MessageSquare, Mic, Lock, Shield, CheckCircle,
     ChevronRight, ChevronUp, Keyboard, Flag, Sparkles,
 } from '@cliniqone/ui';
 import guideAudio from '../../../assets/guide-audio.mp3';
@@ -42,7 +42,12 @@ function getSlides(rtl: boolean): Slide[] {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         border: '1px solid rgba(26,138,158,0.2)',
                     }}>
-                        <Bot size={28} color={TEAL} />
+                        <span style={{
+                            fontSize: 14, fontWeight: 800, letterSpacing: '-0.02em',
+                            background: `linear-gradient(135deg, ${TEAL}, ${CYAN})`,
+                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                            fontFamily: 'Inter, system-ui, sans-serif',
+                        }}>cliniq.one</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <div style={{
