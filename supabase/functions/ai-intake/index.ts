@@ -14,7 +14,7 @@ const MAX_CONVERSATION_MESSAGES = 40; // Sliding window: keep last N messages
 const MAX_MESSAGE_LENGTH = 3000;      // Max chars per patient message
 
 // ── Sections that don't use [SECTION_COMPLETE] ──
-const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary', 'photo_capture', 'med_label_capture', 'patient_addendum'];
+const NO_COMPLETE_SECTIONS = ['greeting', 'pathway', 'summary', 'photo_capture', 'med_label_capture', 'patient_addendum', 'wa_greeting', 'wa_addendum'];
 
 // ── Behavioral suffix (appended to all interview section prompts) ──
 const BEHAVIOR_SUFFIX = `
@@ -25,12 +25,14 @@ IMPORTANT behavioral rules:
 - Do NOT use concluding or farewell language like "That concludes...", "I have everything I need", or "Your intake is complete". You are NOT the one who decides when the interview ends.
 - SINGLE QUESTION: Each message must contain exactly ONE question. Never ask multiple questions in one message — even if they seem related. Wait for the patient's answer before asking the next.
 - SECTION COMPLETION: When you have enough information, append [SECTION_COMPLETE] at the end of your last response. Do NOT post a closing summary or thank-you — just add the tag silently after the patient's last answer is addressed. The system will automatically transition.
-- PRIOR INFORMATION: If the patient context already contains information relevant to THIS section (e.g., allergies or medications mentioned earlier), do NOT skip this section. Instead, state precisely what you understood for THIS section only, then ask: "Would you like to confirm this, or is there anything you'd like to add?" Only emit [SECTION_COMPLETE] after the patient confirms or provides additional info.
+- PRIOR INFORMATION: If the patient context already contains information relevant to THIS section (e.g., allergies or medications mentioned earlier), do NOT skip this section. Instead, briefly confirm what you know and ask if they have anything to add. Only emit [SECTION_COMPLETE] after their response.
 - If the patient answers "no", "none", or "nothing" to an opening question, accept it and emit [SECTION_COMPLETE]. Do NOT ask a follow-up confirmation.
 - Keep responses concise (1-2 sentences + your ONE question). Never repeat information the patient already provided.
 - Accept short answers like "no", "yes", "ok", numbers, and brief phrases as valid responses.
 - SKIP HANDLING: If the patient says "skip", "next", "pass", or "move on", IMMEDIATELY accept it and emit [SECTION_COMPLETE]. Do NOT repeat the question, guilt the patient, or add a disclaimer. The patient has the right to skip any section.
-- You MUST ask at least ONE question before emitting [SECTION_COMPLETE]. Never complete a section without asking anything.`;
+- You MUST ask at least ONE question before emitting [SECTION_COMPLETE]. Never complete a section without asking anything.
+- NO CONFIRMATION TURNS: Do NOT end a section with a read-back or confirmation question like "Earlier you mentioned X. Is that correct?" or "Would you like to add anything else?" or "Do you have any other details to add?". When you have enough information, simply emit [SECTION_COMPLETE]. The doctor will clarify anything unclear.
+- NO SUMMARIES: Do NOT summarize the patient's answers within or at the end of a section. The system generates summaries automatically.`;
 
 // ── Summary suffix (appended only to the summary section prompt) ──
 const SUMMARY_SUFFIX = `
@@ -46,11 +48,13 @@ IMPORTANT summary rules:
 const CONCISE_SECTIONS_SUFFIX = `
 
 EFFICIENCY RULES FOR THIS SECTION:
-- Keep this section SHORT. Ask 1-2 questions maximum, not more.
+- Keep this section SHORT. Ask 1-3 questions maximum, not more.
+- The numbered items in the SECTION RULES above are a MENU of possible topics, NOT a checklist. Select only the 1-3 most clinically relevant items based on the patient's chief complaint. You do NOT need to ask every item.
 - If the patient answers "no", "none", "nothing", "never", "nope", "n/a", or any clear negative to your opening question, accept it immediately and emit [SECTION_COMPLETE]. Do NOT ask a follow-up confirmation or rephrase.
-- Do NOT break the section into multiple sub-topics. Consolidate into a single, comprehensive opening question.
+- Do NOT break the section into multiple sub-topics. Consolidate related questions into a single, comprehensive question when possible.
 - Example: Instead of asking about smoking, then alcohol, then exercise separately, ask: "Do you smoke, drink alcohol, or exercise regularly?"
 - If the patient already provided relevant information earlier in the conversation, briefly confirm it and emit [SECTION_COMPLETE].
+- If the patient's answer covers information you planned to ask next, skip that question.
 - Remember: the doctor will follow up on anything unclear. Your job is screening, not exhaustive questioning.`;
 
 // ── Addendum suffix (appended only to the patient_addendum section) ──
@@ -116,10 +120,12 @@ const ALLOWED_ORIGINS = [
     'http://localhost:3001',    // admin panel dev
     'http://localhost:3002',    // patient app dev (vite)
     'http://localhost:3003',    // doctor app dev
+    'http://localhost:3004',    // wa-intake dev
     'http://localhost:5173',    // vite dev
     'http://localhost:8081',    // expo dev
     'http://127.0.0.1:3001',
     'http://127.0.0.1:3002',
+    'http://127.0.0.1:3004',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8081',
     'capacitor://localhost',    // iOS Capacitor
@@ -171,6 +177,11 @@ async function verifyAuth(req: Request): Promise<{ userId: string; isAdmin?: boo
     // Admin bypass: service-role JWT format
     if (isServiceRoleJwt(token)) {
         return { userId: 'admin', isAdmin: true };
+    }
+    // Anonymous access: anon key passed as Bearer token (wa-intake)
+    if (token === supabaseAnonKey) {
+        console.log('[verifyAuth] Anonymous access via anon key');
+        return { userId: 'anonymous' };
     }
 
     try {
@@ -1079,7 +1090,7 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
 
                 // 2b. Section isolation — prevent AI from skipping sections based on prior conversation
                 if (!NO_COMPLETE_SECTIONS.includes(section)) {
-                    systemPrompt += `\n\nCRITICAL — NEW SECTION STARTING: This is the "${section.replace(/_/g, ' ').toUpperCase()}" section. This is a completely new, independent section of the intake interview. You MUST NOT skip this section or emit [SECTION_COMPLETE] without engaging the patient. If the patient already mentioned information relevant to this section earlier in the conversation, you should acknowledge/confirm that information and then ask if there is anything else to add. For example: "Earlier you mentioned [X]. Is that correct? Do you have any other [topic]?" If no prior info was mentioned, ask your standard opening question. Either way, you must have at least one exchange with the patient before completing this section.`;
+                    systemPrompt += `\n\nCRITICAL — NEW SECTION STARTING: This is the "${section.replace(/_/g, ' ').toUpperCase()}" section. You MUST NOT skip this section or emit [SECTION_COMPLETE] without asking at least one question. If the patient already mentioned information relevant to this section earlier, briefly confirm it (e.g. "You mentioned [X] — anything else to add for this section?") and emit [SECTION_COMPLETE] after their response. Do NOT do a full read-back or multi-sentence confirmation. If no prior info was mentioned, ask your standard opening question.`;
                 }
 
                 // 3. Append behavioral rules (except greeting/summary)
@@ -1088,7 +1099,7 @@ Language context: ${pathwayLang === 'ar' ? 'Patient may be speaking Arabic' : 'P
                 }
 
                 // 3a. Append concise rules for non-HPI interview sections
-                const CONCISE_SECTIONS = ['additional_complaints', 'medications', 'allergies', 'family_history', 'social_history', 'review_of_systems'];
+                const CONCISE_SECTIONS = ['additional_complaints', 'medications', 'allergies', 'family_history', 'social_history', 'review_of_systems', 'skin_triggers', 'skin_history', 'past_medical_history'];
                 if (CONCISE_SECTIONS.includes(section)) {
                     systemPrompt += CONCISE_SECTIONS_SUFFIX;
                 }

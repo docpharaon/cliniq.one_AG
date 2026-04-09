@@ -117,11 +117,15 @@ export function useVoiceInput({
                     ? 'لم أتمكن من فهم ذلك. حاول مرة أخرى أو اكتب بدلاً من ذلك.'
                     : "Couldn't understand that. Try again or type instead.");
                 setVoiceState('error');
+                cleanup(); // Release AudioContext + stream to avoid leaks
                 return;
             }
 
             setVoiceState('idle');
             onTranscriptReady(result.text);
+            // Release AudioContext + MediaStream so subsequent recordings
+            // don't hit the iOS/Safari AudioContext limit (max ~4-6).
+            cleanup();
         } catch (err) {
             if (err instanceof VoiceDisabledError) {
                 setError(language === 'ar' ? 'الإدخال الصوتي معطل حالياً' : 'Voice input is currently disabled');
@@ -133,6 +137,7 @@ export function useVoiceInput({
                     : 'Something went wrong. Try again or type instead.');
             }
             setVoiceState('error');
+            cleanup(); // Release resources even on error to avoid leaks
         }
     }, [language, onTranscriptReady, cleanup, authOverride]);
 

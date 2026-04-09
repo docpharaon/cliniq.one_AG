@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { handleGoogleSignIn } from '../../services/googleAuth';
 import { handleAppleSignIn } from '../../services/appleAuth';
 import { useToast } from '../../components/ToastProvider';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 import logoImg from '../../assets/logo.png';
 import type { CSSProperties } from 'react';
 
@@ -71,6 +72,7 @@ export function LoginPage() {
 
     return (
         <div style={s.container}>
+            <NoInternetOverlay />
             <div className="page-enter" style={s.content}>
                 {/* Header */}
                 <div style={s.header}>

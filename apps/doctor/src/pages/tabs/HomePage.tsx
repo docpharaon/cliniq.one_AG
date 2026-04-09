@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, Clock, Siren, CheckCircle, Gem, ClipboardList, PartyPopper, Zap, Coins, Settings, Info } from '@cliniqone/ui';
+import { colors, typography, Clock, Siren, CheckCircle, Gem, ClipboardList, PartyPopper, Zap, Coins, Settings, Info, Bell } from '@cliniqone/ui';
 import type { CliniqIconProps } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useDoctorStats, usePendingQueue, useDoctorConsultations } from '../../hooks/useDoctorData';
+import { useDoctorNotifications } from '../../hooks/useDoctorNotifications';
 import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import type { CSSProperties, ReactNode } from 'react';
@@ -23,6 +24,7 @@ export function HomePage() {
     const navigate = useNavigate();
     const { doctor } = useAuthStore();
     const [refreshing, setRefreshing] = useState(false);
+    const { unreadCount } = useDoctorNotifications();
 
     const { data: stats, refetch: refetchStats } = useDoctorStats(doctor?.id || '');
     const { data: pendingItems, isLoading: pendingLoading, refetch: refetchPending } = usePendingQueue(doctor?.specialty || '');
@@ -64,9 +66,31 @@ export function HomePage() {
                         </div>
                         {doctor?.sandbox_mode && <span style={{ fontSize: 11, color: colors.warning, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Siren size={12} color={colors.warning} /> Sandbox Mode</span>}
                     </div>
-                    <div style={s.statusBadge}>
-                        <div style={{ width: 8, height: 8, borderRadius: 4, marginRight: 6, backgroundColor: doctor?.is_accepting ? colors.success : colors.warning }} />
-                        <span style={{ fontSize: typography.caption.fontSize, color: colors.textSecondary }}>{doctor?.is_accepting ? 'Accepting' : 'Paused'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {/* Notification bell */}
+                        <button
+                            id="notification-bell"
+                            onClick={() => { haptic.light(); navigate('/notifications'); }}
+                            style={{ position: 'relative', background: 'none', border: 'none', padding: 8, cursor: 'pointer' }}
+                        >
+                            <Bell size={22} color={colors.textSecondary} />
+                            {unreadCount > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: 2, right: 2,
+                                    minWidth: 18, height: 18, borderRadius: 9,
+                                    backgroundColor: colors.error, color: '#fff',
+                                    fontSize: 10, fontWeight: 800,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: '0 4px', lineHeight: 1,
+                                }}>
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                        <div style={s.statusBadge}>
+                            <div style={{ width: 8, height: 8, borderRadius: 4, marginRight: 6, backgroundColor: doctor?.is_accepting ? colors.success : colors.warning }} />
+                            <span style={{ fontSize: typography.caption.fontSize, color: colors.textSecondary }}>{doctor?.is_accepting ? 'Accepting' : 'Paused'}</span>
+                        </div>
                     </div>
                 </div>
 

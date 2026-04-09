@@ -3,6 +3,7 @@ import { haptic } from '../../hooks/useHaptics';
 import { colors, spacing, typography, radius, ClipboardList, Stethoscope, MessageSquare } from '@cliniqone/ui';
 import type { CliniqIconProps } from '@cliniqone/ui';
 import { FadeIn } from '../../components/FadeIn';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 import logoImg from '../../assets/logo.png';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -38,6 +39,7 @@ export function LandingPage() {
 
     return (
         <div style={s.container}>
+            <NoInternetOverlay />
             <div style={s.content}>
                 {/* Hero */}
                 <FadeIn>

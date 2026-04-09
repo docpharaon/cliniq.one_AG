@@ -3256,3 +3256,110 @@ export async function getAuditLog(page = 1, perPage = 20, search?: string) {
 
     return { data: rows, total: count ?? 0, error: null };
 }
+
+// ──────────────────────────────────────────
+// WA Subscriptions & API Keys
+// ──────────────────────────────────────────
+
+export async function getWaSubscriptions() {
+    const { data, error } = await supabaseAdmin
+        .from('doctor_subscriptions')
+        .select('*, doctor:doctors!doctor_subscriptions_doctor_id_fkey(id, display_name, full_name, specialty, identifier_code, status)')
+        .order('created_at', { ascending: false });
+    if (error) { console.error('[getWaSubscriptions]', error.message); return []; }
+    return (data ?? []).map((s: Record<string, unknown>) => ({
+        ...s,
+        doctor_name: (s.doctor as Record<string, unknown>)?.display_name ?? (s.doctor as Record<string, unknown>)?.full_name ?? 'Unknown',
+        doctor_specialty: (s.doctor as Record<string, unknown>)?.specialty ?? '',
+        doctor_code: (s.doctor as Record<string, unknown>)?.identifier_code ?? '',
+        doctor_status: (s.doctor as Record<string, unknown>)?.status ?? '',
+    }));
+}
+
+export async function getWaSubscriptionStats() {
+    const [totalRes, activeRes, trialRes, expiredRes] = await Promise.all([
+        supabaseAdmin.from('doctor_subscriptions').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('doctor_subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabaseAdmin.from('doctor_subscriptions').select('*', { count: 'exact', head: true }).eq('plan', 'trial'),
+        supabaseAdmin.from('doctor_subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'expired'),
+    ]);
+
+    // Get total sessions used this month
+    const { data: usageData } = await supabaseAdmin
+        .from('doctor_subscriptions')
+        .select('sessions_used')
+        .eq('status', 'active');
+    const totalSessions = (usageData ?? []).reduce((sum: number, r: { sessions_used: number }) => sum + (r.sessions_used || 0), 0);
+
+    return {
+        total: totalRes.count ?? 0,
+        active: activeRes.count ?? 0,
+        trials: trialRes.count ?? 0,
+        expired: expiredRes.count ?? 0,
+        totalSessions,
+    };
+}
+
+export async function manageWaSubscriptionRpc(doctorId: string, plan: string, action: string) {
+    const { data, error } = await supabaseAdmin
+        // @ts-ignore — RPC not in generated types yet
+        .rpc('manage_wa_subscription', {
+            p_doctor_id: doctorId,
+            p_plan: plan,
+            p_action: action,
+        });
+    if (error) { console.error('[manageWaSubscription]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function getWaApiKeys(doctorId?: string) {
+    let query = supabaseAdmin
+        .from('wa_api_keys')
+        .select('*, doctor:doctors!wa_api_keys_doctor_id_fkey(display_name, full_name, specialty)')
+        .order('created_at', { ascending: false });
+    if (doctorId) query = query.eq('doctor_id', doctorId);
+    const { data, error } = await query;
+    if (error) { console.error('[getWaApiKeys]', error.message); return []; }
+    return (data ?? []).map((k: Record<string, unknown>) => ({
+        ...k,
+        doctor_name: (k.doctor as Record<string, unknown>)?.display_name ?? (k.doctor as Record<string, unknown>)?.full_name ?? '',
+    }));
+}
+
+export async function generateWaApiKeyRpc(doctorId: string, label: string) {
+    const { data, error } = await supabaseAdmin
+        // @ts-ignore — RPC not in generated types yet
+        .rpc('generate_wa_key', {
+            p_doctor_id: doctorId,
+            p_label: label || 'Default',
+        });
+    if (error) { console.error('[generateWaKey]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function toggleWaApiKey(keyId: string, isActive: boolean) {
+    const { error } = await supabaseAdmin
+        .from('wa_api_keys')
+        // @ts-ignore — table not in generated types yet
+        .update({ is_active: isActive } as never)
+        .eq('id', keyId);
+    if (error) { console.error('[toggleWaApiKey]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function deleteWaApiKey(keyId: string) {
+    const { error } = await supabaseAdmin
+        .from('wa_api_keys')
+        .delete()
+        .eq('id', keyId);
+    if (error) { console.error('[deleteWaApiKey]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function getWaSessionsCount() {
+    const { count, error } = await supabaseAdmin
+        .from('wa_intake_sessions')
+        .select('*', { count: 'exact', head: true });
+    if (error) return 0;
+    return count ?? 0;
+}

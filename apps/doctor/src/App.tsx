@@ -24,6 +24,11 @@ import { SettingsPage } from './pages/tabs/SettingsPage';
 import { ConsultationDetailPage } from './pages/consultation/ConsultationDetailPage';
 import { RespondPage } from './pages/consultation/RespondPage';
 import { InterventionOrderPage } from './pages/consultation/InterventionOrderPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { LanguagePage } from './pages/settings/LanguagePage';
+import { DeleteAccountPage } from './pages/settings/DeleteAccountPage';
+import { NotificationSettingsPage } from './pages/settings/NotificationSettingsPage';
+import { AboutPage } from './pages/settings/AboutPage';
 
 // Components
 import { TabBar } from './components/TabBar';
@@ -162,6 +167,15 @@ function AppInner() {
                 <Route path="/consultation/:id" element={<RequireAuth><ConsultationDetailPage /></RequireAuth>} />
                 <Route path="/consultation/:id/respond" element={<RequireAuth><RespondPage /></RequireAuth>} />
                 <Route path="/consultation/:id/intervention-order" element={<RequireAuth><InterventionOrderPage /></RequireAuth>} />
+
+                {/* Notifications (protected) */}
+                <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
+
+                {/* Settings sub-pages (protected) */}
+                <Route path="/settings/language" element={<RequireAuth><LanguagePage /></RequireAuth>} />
+                <Route path="/settings/delete-account" element={<RequireAuth><DeleteAccountPage /></RequireAuth>} />
+                <Route path="/settings/notifications" element={<RequireAuth><NotificationSettingsPage /></RequireAuth>} />
+                <Route path="/settings/about" element={<RequireAuth><AboutPage /></RequireAuth>} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

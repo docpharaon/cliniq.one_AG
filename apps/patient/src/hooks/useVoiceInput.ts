@@ -158,12 +158,17 @@ export function useVoiceInput({
                     ? 'لم أتمكن من فهم ذلك. حاول مرة أخرى أو اكتب بدلاً من ذلك.'
                     : "Couldn't understand that. Try again or type instead.");
                 setVoiceState('error');
+                cleanup(); // Release AudioContext + stream to avoid leaks
                 return;
             }
 
             setTranscript(result.text);
             setVoiceState('idle');
             onTranscriptReady(result.text);
+            // ── Release AudioContext + MediaStream so subsequent recordings
+            //    don't hit the iOS/Safari AudioContext limit (max ~4-6).
+            //    Without this, the old context leaks and new recordings fail.
+            cleanup();
         } catch (err) {
             if (err instanceof VoiceDisabledError) {
                 setError(language === 'ar'
@@ -177,6 +182,7 @@ export function useVoiceInput({
                     : 'Something went wrong. Try again or type instead.');
             }
             setVoiceState('error');
+            cleanup(); // Release resources even on error to avoid leaks
         }
     }, [language, onTranscriptReady, cleanup]);
 

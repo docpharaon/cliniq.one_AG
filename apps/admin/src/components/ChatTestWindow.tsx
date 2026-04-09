@@ -127,7 +127,7 @@ function uid() {
 }
 
 // ── Auto-Bot Patient Profiles ────────────────
-type AutoBotProfile = {
+export type AutoBotProfile = {
     id: string;
     label: string;
     emoji: string;
@@ -466,7 +466,7 @@ Rules: 1-3 sentences. Naturally bilingual — don't be random, be realistic. Hav
     },
 ];
 
-function buildProfiles(overrides?: { name?: string; age?: string; sex?: 'male' | 'female' | '' }): AutoBotProfile[] {
+export function buildProfiles(overrides?: { name?: string; age?: string; sex?: 'male' | 'female' | '' }): AutoBotProfile[] {
     return [
         // English patient profiles
         generatePatientProfile('dermatology', overrides),

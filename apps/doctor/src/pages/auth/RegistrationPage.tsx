@@ -5,6 +5,7 @@ import { supabase, createApplication, uploadApplicationDocument, acceptDisclaime
 import type { ApplicationData } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 import { DocumentUploader } from '../../components/DocumentUploader';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 
 const STEPS_PERMANENT = ['Type', 'Personal', 'Professional', 'Documents', 'Review'];
 const STEPS_LOCUM = ['Type', 'Invite Code', 'Personal', 'Professional', 'Documents', 'Review'];

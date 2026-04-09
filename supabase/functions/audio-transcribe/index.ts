@@ -229,7 +229,12 @@ serve(async (req: Request) => {
         const transcribeForm = new FormData();
         transcribeForm.append('file', audioFile, 'recording.webm');
         transcribeForm.append('model', config.model);
-        transcribeForm.append('language', language === 'ar' ? 'ar' : 'en');
+        // Only whisper-1 supports the 'language' parameter.
+        // gpt-4o-transcribe / gpt-4o-mini-transcribe auto-detect language
+        // and reject it with an error if provided.
+        if (config.model === 'whisper-1') {
+            transcribeForm.append('language', language === 'ar' ? 'ar' : 'en');
+        }
         transcribeForm.append('response_format', 'json');
 
         const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -244,7 +249,7 @@ serve(async (req: Request) => {
             const errText = await response.text();
             console.error(`[audio-transcribe] OpenAI error: ${response.status} ${errText}`);
             return new Response(
-                JSON.stringify({ error: 'Transcription failed', detail: response.status }),
+                JSON.stringify({ error: 'Transcription failed', detail: response.status, openai_error: errText }),
                 { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
             );
         }

@@ -3,10 +3,10 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import StatCard from '@/components/StatCard';
 import PromptEditorModal from '@/components/PromptEditorModal';
-import ChatTestWindow from '@/components/ChatTestWindow';
+import ChatTestWindow, { buildProfiles, type AutoBotProfile } from '@/components/ChatTestWindow';
 import SequenceBuilderContent from '@/components/SequenceBuilderContent';
 import ChatReportsPanel from '@/components/ChatReportsPanel';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAIPrompts, deletePrompt, savePlatformSetting, fetchPlatformSetting, fetchPromptSequences, fetchSequenceWithNodes, fetchDraftCount, doPublishDrafts, fetchRecentPromptActivity, fetchLocumCodeDoctors, doGenerateLocumCode, doAssignLocumCode, doRevokeLocumCode, doSearchDoctorsForLocum, fetchIntegrityStats } from '@/lib/actions';
 import {
     Bot,
@@ -43,6 +43,11 @@ import {
     FlaskConical,
     Users,
     Mic,
+    Grid2X2,
+    Layers,
+    X,
+    StopCircle,
+    PlayCircle,
 } from 'lucide-react';
 
 type PromptRow = {
@@ -104,6 +109,41 @@ export default function AIPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showChatbot, setShowChatbot] = useState(false);
+
+    // Multi-tester state
+    const [multiTestMode, setMultiTestMode] = useState(false);
+    const [multiInstances, setMultiInstances] = useState<Array<{ id: string; profile: AutoBotProfile }>>([]);
+    const multiIdCounter = useRef(0);
+
+    function addMultiInstance() {
+        if (multiInstances.length >= 4) return;
+        const profiles = buildProfiles();
+        // Pick a random patient profile (not adversarial)
+        const patientProfiles = profiles.filter(p => p.category === 'patient');
+        const profile = patientProfiles[Math.floor(Math.random() * patientProfiles.length)];
+        multiIdCounter.current++;
+        setMultiInstances(prev => [...prev, { id: `multi_${multiIdCounter.current}_${Date.now()}`, profile }]);
+    }
+
+    function removeMultiInstance(id: string) {
+        setMultiInstances(prev => prev.filter(i => i.id !== id));
+    }
+
+    function clearAllMultiInstances() {
+        setMultiInstances([]);
+    }
+
+    function spawnMultiBatch(count: number) {
+        const profiles = buildProfiles();
+        const patientProfiles = profiles.filter(p => p.category === 'patient');
+        const newInstances: Array<{ id: string; profile: AutoBotProfile }> = [];
+        for (let i = 0; i < count && (multiInstances.length + newInstances.length) < 4; i++) {
+            const profile = patientProfiles[Math.floor(Math.random() * patientProfiles.length)];
+            multiIdCounter.current++;
+            newInstances.push({ id: `multi_${multiIdCounter.current}_${Date.now()}`, profile });
+        }
+        setMultiInstances(prev => [...prev, ...newInstances]);
+    }
 
     // Modal state
     const [modalOpen, setModalOpen] = useState(false);
@@ -1489,9 +1529,154 @@ RULES:
                             <FlaskConical className="w-4 h-4 text-purple" />
                             <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Testing Sandbox</h2>
                             <div className="flex-1 h-px bg-border" />
+
+                            {/* Single / Multi toggle */}
+                            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-bg-elevated border border-border">
+                                <button
+                                    onClick={() => setMultiTestMode(false)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                                        !multiTestMode
+                                            ? 'bg-accent/20 text-accent shadow-sm'
+                                            : 'text-text-muted hover:text-text-primary'
+                                    }`}
+                                >
+                                    <Layers className="w-3.5 h-3.5" />
+                                    Single
+                                </button>
+                                <button
+                                    onClick={() => setMultiTestMode(true)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                                        multiTestMode
+                                            ? 'bg-purple/20 text-purple shadow-sm'
+                                            : 'text-text-muted hover:text-text-primary'
+                                    }`}
+                                >
+                                    <Grid2X2 className="w-3.5 h-3.5" />
+                                    Multi-Test
+                                    {multiInstances.length > 0 && (
+                                        <span className="ml-0.5 px-1.5 py-0 rounded-full bg-purple/30 text-purple text-[9px] font-bold">{multiInstances.length}</span>
+                                    )}
+                                </button>
+                            </div>
+
                             <span className="text-[10px] text-text-muted bg-bg-elevated px-2 py-0.5 rounded-full border border-border">No data stored</span>
                         </div>
 
+                        {/* ── Multi-Test Mode ───────────────────── */}
+                        {multiTestMode && (
+                            <div className="space-y-4">
+                                {/* Multi-test toolbar */}
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-bg-elevated/60 border border-purple/20">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={addMultiInstance}
+                                            disabled={multiInstances.length >= 4 || !selectedSequenceId}
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs font-bold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(168,85,247,0.3)] transition-all disabled:opacity-40 disabled:hover:translate-y-0"
+                                        >
+                                            <PlayCircle className="w-3.5 h-3.5" />
+                                            + Add Tester
+                                        </button>
+                                        <button
+                                            onClick={() => spawnMultiBatch(2)}
+                                            disabled={multiInstances.length >= 3 || !selectedSequenceId}
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-bg-card border border-border text-xs font-semibold text-text-secondary hover:text-accent hover:border-accent/30 transition-all disabled:opacity-40"
+                                        >
+                                            <Grid2X2 className="w-3.5 h-3.5" />
+                                            + Add 2
+                                        </button>
+                                        <button
+                                            onClick={() => spawnMultiBatch(4)}
+                                            disabled={multiInstances.length >= 1 || !selectedSequenceId}
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-bg-card border border-border text-xs font-semibold text-text-secondary hover:text-accent hover:border-accent/30 transition-all disabled:opacity-40"
+                                        >
+                                            <Layers className="w-3.5 h-3.5" />
+                                            + Add 4
+                                        </button>
+                                    </div>
+                                    <div className="flex-1" />
+                                    <div className="flex items-center gap-2">
+                                        {multiInstances.length > 0 && (
+                                            <span className="text-[10px] text-text-muted">
+                                                {multiInstances.length}/4 panels
+                                            </span>
+                                        )}
+                                        {multiInstances.length > 0 && (
+                                            <button
+                                                onClick={clearAllMultiInstances}
+                                                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-error/10 border border-error/20 text-xs font-semibold text-error hover:bg-error/20 transition-all"
+                                            >
+                                                <StopCircle className="w-3.5 h-3.5" />
+                                                Clear All
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {!selectedSequenceId && sequences.length > 0 && (
+                                    <div className="flex items-center gap-2 p-4 rounded-xl bg-warning/10 border border-warning/20">
+                                        <Info className="w-4 h-4 text-warning flex-shrink-0" />
+                                        <p className="text-xs text-warning">Select a sequence in <button onClick={() => setMultiTestMode(false)} className="underline font-semibold">Single mode</button> first, then switch to Multi-Test.</p>
+                                    </div>
+                                )}
+
+                                {/* Multi-test grid */}
+                                {multiInstances.length > 0 ? (
+                                    <div className={`grid gap-4 ${
+                                        multiInstances.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
+                                        multiInstances.length === 2 ? 'grid-cols-1 lg:grid-cols-2' :
+                                        'grid-cols-1 lg:grid-cols-2'
+                                    }`} style={{ minHeight: '70vh' }}>
+                                        {multiInstances.map(instance => (
+                                            <div key={instance.id} className="relative group" style={{ height: multiInstances.length <= 2 ? '80vh' : '70vh' }}>
+                                                {/* Close button overlay */}
+                                                <button
+                                                    onClick={() => removeMultiInstance(instance.id)}
+                                                    className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-error/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error shadow-lg"
+                                                    title="Remove this tester"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                                {/* Profile badge */}
+                                                <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-[10px] font-semibold text-white border border-white/10">
+                                                    <span>{instance.profile.emoji}</span>
+                                                    <span>{instance.profile.label}</span>
+                                                </div>
+                                                <ChatTestWindow
+                                                    key={instance.id}
+                                                    onClose={() => removeMultiInstance(instance.id)}
+                                                    prompts={prompts}
+                                                    sequenceId={selectedSequenceId || undefined}
+                                                    promptOverrideId={selectedPromptOverride || undefined}
+                                                    mode="inline"
+                                                    autoStartProfile={instance.profile}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 gap-4 rounded-2xl border-2 border-dashed border-border">
+                                        <div className="w-16 h-16 rounded-2xl bg-purple/10 flex items-center justify-center">
+                                            <Grid2X2 className="w-8 h-8 text-purple/50" />
+                                        </div>
+                                        <div className="text-center">
+                                            <h3 className="text-sm font-bold text-text-primary mb-1">Multi-Test Mode</h3>
+                                            <p className="text-xs text-text-muted max-w-xs">Add up to 4 concurrent AI testers to run side-by-side with random patient profiles for faster analysis.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => spawnMultiBatch(2)}
+                                            disabled={!selectedSequenceId}
+                                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs font-bold hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(168,85,247,0.3)] transition-all disabled:opacity-40"
+                                        >
+                                            <PlayCircle className="w-4 h-4" />
+                                            Launch 2 Testers
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── Single-Test Mode (original sandbox) ─ */}
+                        {!multiTestMode && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                             {/* Left: Configuration Panel */}
@@ -1789,6 +1974,7 @@ RULES:
                                 )}
                             </div>
                         </div>
+                        )}
 
                     </div>
                 )}

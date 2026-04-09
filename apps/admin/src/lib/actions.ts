@@ -147,6 +147,14 @@ import {
     getAuditLog,
     testOpenAIConnection,
     inviteAdminUser,
+    getWaSubscriptions,
+    getWaSubscriptionStats,
+    manageWaSubscriptionRpc,
+    getWaApiKeys,
+    generateWaApiKeyRpc,
+    toggleWaApiKey,
+    deleteWaApiKey,
+    getWaSessionsCount,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -892,4 +900,38 @@ export async function doRevokeLocumCode(doctorId: string) {
 
 export async function doSearchDoctorsForLocum(query: string) {
     return searchDoctorsForLocum(query);
+}
+
+// ── WA Subscriptions & API Keys ─────────────
+
+export async function fetchWaSubscriptions() {
+    return getWaSubscriptions();
+}
+
+export async function fetchWaSubscriptionStats() {
+    return getWaSubscriptionStats();
+}
+
+export async function doManageWaSubscription(doctorId: string, plan: string, action: string) {
+    return manageWaSubscriptionRpc(doctorId, plan, action);
+}
+
+export async function fetchWaApiKeys(doctorId?: string) {
+    return getWaApiKeys(doctorId);
+}
+
+export async function doGenerateWaApiKey(doctorId: string, label: string) {
+    return generateWaApiKeyRpc(doctorId, label);
+}
+
+export async function doToggleWaApiKey(keyId: string, isActive: boolean) {
+    return toggleWaApiKey(keyId, isActive);
+}
+
+export async function doDeleteWaApiKey(keyId: string) {
+    return deleteWaApiKey(keyId);
+}
+
+export async function fetchWaSessionsCount() {
+    return getWaSessionsCount();
 }
