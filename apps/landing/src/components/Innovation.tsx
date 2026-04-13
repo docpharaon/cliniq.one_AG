@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
-import { MessageSquare, ArrowRightLeft, ClipboardList, UserCheck, Zap, Shield, Camera, HeartHandshake } from 'lucide-react';
+import { MessageSquare, ArrowRightLeft, ClipboardList, UserCheck, Zap, Shield, Camera, HeartHandshake, Radio, Mic } from 'lucide-react';
 
 export default function Innovation() {
     const { t } = useI18n();
@@ -67,7 +67,7 @@ export default function Innovation() {
                     <h3 className="text-center text-2xl font-bold text-navy mb-3">{t('innov.pillars_title')}</h3>
                     <p className="text-center text-text-muted mb-10 max-w-xl mx-auto">{t('innov.pillars_sub')}</p>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
                         {[
                             { icon: MessageSquare, key: 'innov.p1', desc: 'innov.p1_desc', color: 'text-accent', bg: 'bg-accent-faded' },
                             { icon: ArrowRightLeft, key: 'innov.p2', desc: 'innov.p2_desc', color: 'text-blue', bg: 'bg-blue-faded' },
@@ -77,6 +77,8 @@ export default function Innovation() {
                             { icon: UserCheck, key: 'innov.p6', desc: 'innov.p6_desc', color: 'text-accent', bg: 'bg-accent-faded' },
                             { icon: Camera, key: 'innov.p7', desc: 'innov.p7_desc', color: 'text-blue', bg: 'bg-blue-faded' },
                             { icon: HeartHandshake, key: 'innov.p8', desc: 'innov.p8_desc', color: 'text-accent', bg: 'bg-accent-faded' },
+                            { icon: Radio, key: 'innov.p9', desc: 'innov.p9_desc', color: 'text-[#25D366]', bg: 'bg-[#25D366]/10' },
+                            { icon: Mic, key: 'innov.p10', desc: 'innov.p10_desc', color: 'text-blue', bg: 'bg-blue-faded' },
                         ].map((pillar) => {
                             const Icon = pillar.icon;
                             return (

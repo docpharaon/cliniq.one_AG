@@ -938,3 +938,79 @@ html, body {
     text-align: center;
     margin-top: 8px;
 }
+
+/* Pulse for start button */
+@keyframes pulse-start {
+    0% { box-shadow: 0 4px 24px rgba(26, 138, 158, 0.25); }
+    50% { box-shadow: 0 4px 32px rgba(26, 138, 158, 0.45); }
+    100% { box-shadow: 0 4px 24px rgba(26, 138, 158, 0.25); }
+}
+
+.btn-start:not(:disabled) {
+    animation: pulse-start 2.5s infinite;
+}
+
+/* Footer Styling */
+.powered-by {
+    padding: 16px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: transparent;
+    opacity: 0.7;
+    margin-top: auto;
+}
+
+.powered-by i {
+    font-style: normal;
+    font-weight: 400;
+}
+
+.powered-by a {
+    color: var(--teal);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Welcome Page Doctor Avatar */
+.doctor-profile-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.doctor-avatar-welcome {
+    width: 90px;
+    height: 90px;
+    border-radius: var(--radius-full);
+    border: 3px solid var(--teal-dim);
+    padding: 3px;
+    background: var(--bg-card);
+    object-fit: cover;
+    box-shadow: var(--shadow-md);
+}
+
+.doctor-avatar-placeholder {
+    width: 90px;
+    height: 90px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--teal-dim), var(--cyan-dim));
+    border: 3px solid var(--teal-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+}
+
+/* Session Expiry Display */
+.session-expiry {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    margin-top: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}

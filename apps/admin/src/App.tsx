@@ -39,6 +39,8 @@ import TestersPage from '@/app/dashboard/testers/page';
 import TokensPage from '@/app/dashboard/tokens/page';
 import UsersPage from '@/app/dashboard/users/page';
 import WaSubscriptionsPage from '@/app/dashboard/wa-subscriptions/page';
+import WaBookingsPage from '@/app/dashboard/wa-bookings/page';
+import WaChatSessionsPage from '@/app/dashboard/wa-sessions/page';
 import NotFoundPage from '@/app/not-found';
 import AuthCallbackPage from '@/app/auth/callback/page';
 
@@ -103,6 +105,8 @@ export default function App() {
                 <Route path="/dashboard/tokens" element={<DashboardLayout><TokensPage /></DashboardLayout>} />
                 <Route path="/dashboard/users" element={<DashboardLayout><UsersPage /></DashboardLayout>} />
                 <Route path="/dashboard/wa-subscriptions" element={<DashboardLayout><WaSubscriptionsPage /></DashboardLayout>} />
+                <Route path="/dashboard/wa-bookings" element={<DashboardLayout><WaBookingsPage /></DashboardLayout>} />
+                <Route path="/dashboard/wa-sessions" element={<DashboardLayout><WaChatSessionsPage /></DashboardLayout>} />
 
                 {/* 404 */}
                 <Route path="*" element={<NotFoundPage />} />

@@ -1,15 +1,15 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
-import { Target, MessageSquare, Globe, Pill, Lock, Smartphone, ClipboardList, Zap, Stethoscope, BarChart3, Coins, Building2 } from 'lucide-react';
+import { Target, MessageSquare, Globe, Pill, Lock, Smartphone, ClipboardList, Zap, Stethoscope, BarChart3, Coins, Building2, MessageCircle, Mic, Link2, CalendarCheck } from 'lucide-react';
 
 export default function ForWho() {
     const { t } = useI18n();
 
-    const patientKeys = ['who.p1', 'who.p2', 'who.p3', 'who.p4', 'who.p5', 'who.p6'];
-    const patientIcons = [Target, MessageSquare, Globe, Pill, Lock, Smartphone];
-    const doctorKeys = ['who.d1', 'who.d2', 'who.d3', 'who.d4', 'who.d5', 'who.d6'];
-    const doctorIcons = [ClipboardList, Zap, Stethoscope, BarChart3, Coins, Building2];
+    const patientKeys = ['who.p1', 'who.p2', 'who.p3', 'who.p7', 'who.p8', 'who.p9', 'who.p4', 'who.p5', 'who.p6', 'who.p10'];
+    const patientIcons = [Target, MessageSquare, Globe, MessageCircle, Mic, Link2, Pill, Lock, Smartphone, CalendarCheck];
+    const doctorKeys = ['who.d1', 'who.d2', 'who.d3', 'who.d7', 'who.d8', 'who.d9', 'who.d4', 'who.d5', 'who.d6'];
+    const doctorIcons = [ClipboardList, Zap, Stethoscope, Link2, MessageCircle, CalendarCheck, BarChart3, Coins, Building2];
 
     return (
         <section className="py-24 sm:py-32 section-alt">

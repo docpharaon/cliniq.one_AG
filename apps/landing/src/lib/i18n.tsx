@@ -394,6 +394,94 @@ const translations: Record<string, Record<Locale, string>> = {
     'showcase.try_it': { en: 'Try it', ar: 'جرّبه' },
     'showcase.explore': { en: 'Open Interactive Demo', ar: 'افتح العرض التفاعلي' },
     'showcase.note': { en: 'Interactive mockups — click to explore the full app experience', ar: 'نماذج تفاعلية — اضغط لاستكشاف تجربة التطبيق الكاملة' },
+    'showcase.wa_intake_title': { en: 'WhatsApp Intake', ar: 'استقبال واتساب' },
+    'showcase.wa_intake_desc': { en: 'Complete your medical intake via a simple web link shared by your doctor — no app download needed. Works on any device.', ar: 'أكمل تقييمك الطبي عبر رابط بسيط يشاركه طبيبك — بدون تحميل تطبيق. يعمل على أي جهاز.' },
+
+    // ─── CHANNELS (NEW SECTION) ───
+    'channels.tag': { en: 'Multiple Access Points', ar: 'نقاط وصول متعددة' },
+    'channels.h2_1': { en: 'Start Your Consultation', ar: 'ابدأ استشارتك' },
+    'channels.h2_2': { en: 'Your Way', ar: 'بطريقتك' },
+    'channels.sub': { en: 'Choose the channel that works best for you — mobile app, WhatsApp, or a web link from your doctor. Same quality care, three convenient ways.', ar: 'اختر الطريقة الأنسب لك — تطبيق الجوال، واتساب، أو رابط من طبيبك. نفس جودة الرعاية، بثلاث طرق مريحة.' },
+
+    'channels.app_title': { en: 'Mobile App', ar: 'تطبيق الجوال' },
+    'channels.app_desc': { en: 'Download the full cliniq.one app for the complete experience — AI intake, consultations, wallet, prescriptions, and follow-ups.', ar: 'حمّل تطبيق cliniq.one الكامل لتجربة شاملة — استقبال ذكي، استشارات، محفظة، وصفات، ومتابعات.' },
+    'channels.app_badge': { en: 'Full Experience', ar: 'التجربة الكاملة' },
+    'channels.app_f1': { en: 'AI-powered medical interview', ar: 'مقابلة طبية بالذكاء الاصطناعي' },
+    'channels.app_f2': { en: 'Token wallet & e-prescriptions', ar: 'محفظة رموز ووصفات إلكترونية' },
+    'channels.app_f3': { en: 'Consultation history & follow-ups', ar: 'سجل الاستشارات والمتابعات' },
+    'channels.app_f4': { en: 'Available on iOS & Android', ar: 'متاح على iOS و Android' },
+
+    'channels.wa_title': { en: 'WhatsApp', ar: 'واتساب' },
+    'channels.wa_desc': { en: 'Send a message to start your medical intake directly in WhatsApp. Share photos, voice messages, and complete your assessment without leaving the app.', ar: 'أرسل رسالة لبدء تقييمك الطبي مباشرة عبر واتساب. شارك صوراً ورسائل صوتية وأكمل تقييمك بدون مغادرة التطبيق.' },
+    'channels.wa_badge': { en: 'Zero Friction', ar: 'سهولة تامة' },
+    'channels.wa_f1': { en: 'No app download required', ar: 'بدون تحميل تطبيق' },
+    'channels.wa_f2': { en: 'Voice messages supported', ar: 'دعم الرسائل الصوتية' },
+    'channels.wa_f3': { en: 'Photo sharing during intake', ar: 'مشاركة الصور أثناء التقييم' },
+    'channels.wa_f4': { en: 'Automated appointment booking', ar: 'حجز مواعيد تلقائي' },
+
+    'channels.web_title': { en: 'Doctor Link', ar: 'رابط الطبيب' },
+    'channels.web_desc': { en: 'Your doctor shares a personalized link. Open it in any browser to complete your intake — no accounts, no downloads, instant access.', ar: 'طبيبك يشاركك رابطاً مخصصاً. افتحه في أي متصفح لإكمال تقييمك — بدون حسابات، بدون تحميل، وصول فوري.' },
+    'channels.web_badge': { en: 'Instant Access', ar: 'وصول فوري' },
+    'channels.web_f1': { en: 'Personalized link from your doctor', ar: 'رابط مخصص من طبيبك' },
+    'channels.web_f2': { en: 'Works on any device & browser', ar: 'يعمل على أي جهاز ومتصفح' },
+    'channels.web_f3': { en: 'No account or download needed', ar: 'بدون حساب أو تحميل' },
+    'channels.web_f4': { en: 'Same AI-powered intake quality', ar: 'نفس جودة التقييم الذكي' },
+
+    'channels.note': { en: 'All channels connect to the same licensed doctors and AI-powered clinical system', ar: 'جميع القنوات تتصل بنفس الأطباء المرخّصين ونظام الذكاء الاصطناعي السريري' },
+
+    // ─── UPDATED HOW IT WORKS ───
+    'how.s5_title': { en: 'Book an Appointment', ar: 'احجز موعداً' },
+    'how.s5_desc': { en: 'Need an in-person visit? Book directly through the platform — select your location, preferred date, and available time slot.', ar: 'تحتاج زيارة شخصية؟ احجز مباشرة عبر المنصة — اختر الموقع والتاريخ والوقت المتاح.' },
+    'how.s5_detail': { en: 'Integrated scheduling with doctor availability. Automatic reminders via WhatsApp.', ar: 'جدولة متكاملة مع توافر الطبيب. تذكيرات تلقائية عبر واتساب.' },
+    'how.channels_intro': { en: 'Choose how you want to start', ar: 'اختر كيف تريد أن تبدأ' },
+    'how.channel_app': { en: '📱 Mobile App', ar: '📱 تطبيق الجوال' },
+    'how.channel_wa': { en: '💬 WhatsApp', ar: '💬 واتساب' },
+    'how.channel_web': { en: '🌐 Doctor Link', ar: '🌐 رابط الطبيب' },
+
+    // ─── UPDATED FOR WHO — PATIENTS ───
+    'who.p7': { en: 'WhatsApp intake — no app download needed', ar: 'تقييم عبر واتساب — بدون تحميل تطبيق' },
+    'who.p8': { en: 'Voice messages for easier symptom description', ar: 'رسائل صوتية لوصف الأعراض بسهولة' },
+    'who.p9': { en: 'Doctor-shared personalized intake links', ar: 'روابط تقييم مخصصة من طبيبك' },
+    'who.p10': { en: 'Appointment booking with automated reminders', ar: 'حجز مواعيد مع تذكيرات تلقائية' },
+
+    // ─── UPDATED FOR WHO — DOCTORS ───
+    'who.d7': { en: 'Share personalized intake links with patients', ar: 'شارك روابط تقييم مخصصة مع مرضاك' },
+    'who.d8': { en: 'WhatsApp notifications for new consultations', ar: 'إشعارات واتساب للاستشارات الجديدة' },
+    'who.d9': { en: 'Integrated appointment scheduling', ar: 'جدولة مواعيد متكاملة' },
+
+    // ─── UPDATED HERO ───
+    'hero.badge_v2': { en: 'App · WhatsApp · Web — Licensed Doctors · KSA & UAE', ar: 'تطبيق · واتساب · ويب — أطباء مرخّصون · السعودية والإمارات' },
+    'hero.stat5_val': { en: '3', ar: '3' },
+    'hero.stat5_label': { en: 'Access Channels', ar: 'قنوات وصول' },
+
+    // ─── UPDATED ABOUT ───
+    'about.f7_title': { en: 'WhatsApp Integration', ar: 'تكامل واتساب' },
+    'about.f7_desc': { en: 'Complete your medical intake via WhatsApp — send messages, photos, and voice notes. No app download needed for the patient.', ar: 'أكمل تقييمك الطبي عبر واتساب — أرسل رسائل وصوراً وملاحظات صوتية. بدون تحميل تطبيق للمريض.' },
+    'about.f8_title': { en: 'Doctor-Shared Links', ar: 'روابط مخصصة من الطبيب' },
+    'about.f8_desc': { en: 'Doctors share personalized web links with patients. One click opens the intake — no accounts, no downloads, works on any device.', ar: 'يشارك الأطباء روابط مخصصة مع مرضاهم. ضغطة واحدة تفتح التقييم — بدون حسابات، بدون تحميل، يعمل على أي جهاز.' },
+    'about.f9_title': { en: 'Appointment Booking', ar: 'حجز المواعيد' },
+    'about.f9_desc': { en: 'Integrated scheduling system — patients select location, date, and time slot. Automated reminders via WhatsApp keep everyone on track.', ar: 'نظام جدولة متكامل — المريض يختار الموقع والتاريخ والوقت. تذكيرات تلقائية عبر واتساب تبقي الجميع على المسار.' },
+
+    // ─── UPDATED INNOVATION ───
+    'innov.p9': { en: 'Multi-Channel Patient Access', ar: 'وصول متعدد القنوات للمريض' },
+    'innov.p9_desc': { en: 'Patients choose their preferred channel — mobile app, WhatsApp, or a web link from their doctor. Same clinical quality across every touchpoint.', ar: 'المريض يختار قناته المفضلة — تطبيق جوال، واتساب، أو رابط من طبيبه. نفس الجودة السريرية في كل نقطة وصول.' },
+    'innov.p10': { en: 'Voice-Powered Intake', ar: 'تقييم بالصوت' },
+    'innov.p10_desc': { en: 'Patients can describe symptoms via voice messages — automatically transcribed and processed by the AI clinical engine.', ar: 'المريض يقدر يوصف أعراضه برسائل صوتية — تُنسخ وتُعالج تلقائياً بواسطة محرك الذكاء الاصطناعي السريري.' },
+
+    // ─── NAV (channels) ───
+    'nav.channels': { en: 'Channels', ar: 'القنوات' },
+
+    // ─── PASSWORD GATE ───
+    'gate.title': { en: 'Cut the ribbon to enter', ar: 'قص الشريط للدخول' },
+    'gate.sub': { en: 'This is a private MVP preview. Enter the access code shared with you to continue.', ar: 'هذه نسخة معاينة خاصة للمنصة. أدخل رمز الوصول المشترك معك للمتابعة.' },
+    'gate.placeholder': { en: 'Enter access code', ar: 'أدخل رمز الوصول' },
+    'gate.error': { en: 'Invalid access code. Please try again.', ar: 'رمز الوصول غير صالح. يرجى المحاولة مرة أخرى.' },
+    'gate.submit': { en: 'Enter private access', ar: 'دخول الوصول الخاص' },
+    'gate.verifying': { en: 'Verifying...', ar: 'جاري التحقق...' },
+    'gate.tag1': { en: 'Founder access', ar: 'وصول المؤسسين' },
+    'gate.tag2': { en: 'Pre-release build', ar: 'نسخة ما قبل الإطلاق' },
+    'gate.tag3': { en: 'Password protected', ar: 'محمي بكلمة مرور' },
+    'gate.copyright': { en: '© 2026 cliniq.one · A Momencraft venture', ar: '© 2026 cliniq.one · إحدى مشاريع Momencraft' },
 };
 
 const I18nContext = createContext<I18nContextType | null>(null);

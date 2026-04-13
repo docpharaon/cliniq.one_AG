@@ -12,6 +12,7 @@ export default function Header() {
         { key: 'nav.doctors', href: '#doctors' },
         { key: 'nav.howItWorks', href: '#how-it-works' },
         { key: 'nav.about', href: '#about' },
+        { key: 'nav.channels', href: '#channels' },
         { key: 'nav.safety', href: '#safety' },
         { key: 'nav.download', href: '#download' },
     ];

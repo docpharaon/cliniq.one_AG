@@ -29,7 +29,7 @@ export default function Hero() {
         { val: 'hero.stat1_val', label: 'hero.stat1_label' },
         { val: 'hero.stat2_val', label: 'hero.stat2_label' },
         { val: 'hero.stat3_val', label: 'hero.stat3_label' },
-        { val: 'hero.stat4_val', label: 'hero.stat4_label' },
+        { val: 'hero.stat5_val', label: 'hero.stat5_label' },
     ];
 
     const trustBadges = [
@@ -53,7 +53,7 @@ export default function Hero() {
                     <div className="text-center lg:text-start">
                         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-faded border border-accent/10 mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                            <span className="text-sm text-accent font-medium">{t('hero.badge')}</span>
+                            <span className="text-sm text-accent font-medium">{t('hero.badge_v2')}</span>
                         </div>
 
                         <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>

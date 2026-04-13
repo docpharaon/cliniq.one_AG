@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>cliniq.one — WhatsApp Patient Journey Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFFFFF;--bg2:#F5F8FA;--bg3:#EDF2F7;--card:#FFFFFF;
+  --acc:#1A8A9E;--accd:#157A8C;--accl:#2BA3B8;
+  --txt:#1E293B;--txts:#64748B;--txtm:#94A3B8;
+  --ok:#059669;--okf:rgba(34,197,94,0.15);
+  --warn:#D97706;--warnf:rgba(245,158,11,0.15);
+  --err:#DC2626;--errf:rgba(239,68,68,0.15);
+  --bdr:#DEE5ED;--r:10px;--rx:18px;--r2:24px;
+  --f:'Inter','Noto Sans Arabic',system-ui,sans-serif;
+  --wa-green:#25D366;--wa-dark:#075E54;--wa-light:#DCF8C6;--wa-bg:#ECE5DD;
+  --wa-chat-bg:#E5DDD5;--wa-blue:#34B7F1;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+html,body{height:100%;background:#1a1a2e;color:var(--txt);font-family:var(--f);-webkit-font-smoothing:antialiased;overflow:hidden;}
+html[dir="rtl"]{direction:rtl;}
+
+/* ── iPhone Frame ── */
+.iphone-outer{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:860px;background:linear-gradient(145deg,#e8edf2,#d1d8e0);border-radius:56px;padding:14px;box-shadow:0 0 0 2px rgba(0,0,0,0.05),0 20px 60px rgba(0,0,0,0.3),inset 0 2px 0 rgba(255,255,255,0.4);}
+.iphone-bezel{width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:var(--bg);}
+.iphone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;z-index:9998;display:flex;align-items:center;justify-content:center;gap:8px;}
+.iphone-notch::before{content:'';width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#333,#111);}
+.iphone-notch::after{content:'';width:40px;height:4px;border-radius:2px;background:#222;}
+.iphone-status{position:absolute;top:0;left:0;right:0;height:34px;z-index:9997;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:600;color:var(--txt);}
+.iphone-status .time{font-weight:700;}.iphone-status .icons{display:flex;gap:4px;font-size:11px;}
+.iphone-home-indicator{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(0,0,0,0.15);z-index:9998;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+
+.wm{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#25D366,#128C7E);color:#fff;text-align:center;font-size:10px;font-weight:700;padding:2px;letter-spacing:2px;text-transform:uppercase;}
+.scr{display:none;position:absolute;inset:0;top:34px;bottom:24px;overflow-y:auto;overflow-x:hidden;}
+.scr.active{display:flex;flex-direction:column;animation:slideUp 0.4s ease;}
+.frame{width:100%;height:100%;position:relative;overflow:hidden;background:var(--bg);}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideLeft{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes typing{0%{opacity:0.3}50%{opacity:1}100%{opacity:0.3}}
+@keyframes bounceIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes checkmark{0%{stroke-dashoffset:100}100%{stroke-dashoffset:0}}
+@keyframes confetti{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(-100px) rotate(720deg);opacity:0}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes msgAppear{from{opacity:0;transform:translateY(10px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;transition:all 0.2s;font-family:var(--f);}
+.btn-p{background:linear-gradient(135deg,var(--acc),var(--accd));color:#fff;}
+.btn-wa{background:var(--wa-green);color:#fff;border-radius:24px;}
+.btn-o{background:transparent;border:2px solid var(--acc);color:var(--acc);}
+
+/* ── WhatsApp Notification Style ── */
+.wa-notif{background:#fff;border-radius:16px;padding:14px;margin:12px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e8e8e8;}
+.wa-notif-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.wa-notif-avatar{width:40px;height:40px;border-radius:50%;background:var(--wa-green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0;}
+.wa-notif-name{font-size:13px;font-weight:700;color:#333;}
+.wa-notif-time{font-size:11px;color:#999;margin-top:1px;}
+.wa-notif-body{font-size:13px;line-height:1.6;color:#333;background:#f0f9f0;border-radius:12px;padding:12px;border-left:4px solid var(--wa-green);}
+.wa-notif-link{display:block;color:#007bff;font-size:12px;margin-top:8px;text-decoration:underline;word-break:break-all;}
+
+/* ── WhatsApp Chat ── */
+.wa-chat-header{background:var(--wa-dark);padding:10px 16px;display:flex;align-items:center;gap:10px;color:#fff;}
+.wa-chat-avatar{width:36px;height:36px;border-radius:50%;background:var(--wa-green);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.wa-chat-body{flex:1;overflow-y:auto;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect fill="%23E5DDD5" width="80" height="80"/><circle cx="40" cy="40" r="1" fill="%23D4CDC3" opacity="0.5"/></svg>') repeat;background-size:60px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;}
+.wa-bubble{max-width:85%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;position:relative;animation:msgAppear 0.3s ease;}
+.wa-bubble.received{background:#fff;align-self:flex-start;border-top-left-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.06);}
+.wa-bubble.sent{background:var(--wa-light);align-self:flex-end;border-top-right-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.06);}
+.wa-bubble .wa-time{font-size:10px;color:#999;display:block;text-align:right;margin-top:2px;}
+.wa-bubble .wa-check{font-size:11px;color:var(--wa-blue);margin-left:4px;}
+.wa-input-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0f0f0;border-top:1px solid #ddd;}
+.wa-input-bar input{flex:1;border:none;background:#fff;border-radius:20px;padding:8px 14px;font-size:13px;outline:none;font-family:var(--f);}
+.wa-send-btn{width:36px;height:36px;border-radius:50%;background:var(--wa-green);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* ── Intake Web App ── */
+.intake-header{background:var(--acc);padding:14px 16px;display:flex;align-items:center;gap:10px;color:#fff;}
+.intake-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.intake-chat-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg2);}
+.intake-bubble{max-width:82%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6;animation:msgAppear 0.3s ease;}
+.intake-bubble.ai{background:var(--card);align-self:flex-start;border:1px solid var(--bdr);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.intake-bubble.patient{background:linear-gradient(135deg,var(--acc),var(--accd));color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.intake-input-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border-top:1px solid var(--bdr);}
+.intake-input-bar input{flex:1;border:1px solid var(--bdr);background:var(--bg3);border-radius:24px;padding:10px 16px;font-size:13px;outline:none;font-family:var(--f);}
+.intake-send-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--accd));border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.2s;}
+.intake-send-btn:hover{transform:scale(1.1);}
+
+/* ── Booking Cards ── */
+.booking-card{background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:14px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:12px;}
+.booking-card:hover{border-color:var(--acc);box-shadow:0 4px 16px rgba(26,138,158,0.12);transform:translateY(-2px);}
+.booking-card.selected{border-color:var(--acc);background:rgba(26,138,158,0.04);box-shadow:0 0 0 2px rgba(26,138,158,0.2);}
+.booking-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.date-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.date-chip{padding:12px 8px;border-radius:12px;text-align:center;border:1px solid var(--bdr);cursor:pointer;transition:all 0.2s;background:#fff;}
+.date-chip:hover{border-color:var(--acc);}
+.date-chip.selected{background:var(--acc);color:#fff;border-color:var(--acc);}
+.time-chip{padding:10px 14px;border-radius:10px;text-align:center;border:1px solid var(--bdr);cursor:pointer;transition:all 0.2s;background:#fff;font-size:13px;}
+.time-chip:hover{border-color:var(--acc);}
+.time-chip.selected{background:var(--acc);color:#fff;border-color:var(--acc);}
+
+/* ── Progress Steps ── */
+.progress-bar{display:flex;align-items:center;padding:10px 16px;background:var(--bg2);gap:2px;}
+.progress-step{flex:1;height:4px;border-radius:2px;background:var(--bdr);transition:all 0.3s;}
+.progress-step.done{background:var(--acc);}
+.progress-step.active{background:var(--accl);animation:pulse 2s infinite;}
+
+/* ── Step Navigation ── */
+.step-nav{position:absolute;bottom:60px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:100;padding:0 16px;}
+.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);cursor:pointer;transition:all 0.3s;}
+.step-dot.active{background:#fff;width:24px;border-radius:4px;}
+
+/* ── Side Panel ── */
+.side-panel{position:fixed;top:50%;right:30px;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:100;}
+.side-btn{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);color:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;font-size:16px;}
+.side-btn:hover{background:rgba(255,255,255,0.1);color:#fff;transform:scale(1.1);}
+.side-btn.active{background:var(--acc);color:#fff;border-color:var(--acc);}
+.side-btn .tooltip{position:absolute;right:54px;background:rgba(0,0,0,0.85);color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:all 0.2s;transform:translateX(10px);}
+.side-btn:hover .tooltip{opacity:1;transform:translateX(0);}
+
+/* ── Confirmation Success ── */
+.success-circle{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--wa-green),#128C7E);display:flex;align-items:center;justify-content:center;margin:0 auto;animation:bounceIn 0.6s ease;}
+.confetti-piece{position:absolute;width:6px;height:6px;border-radius:50%;animation:confetti 1.5s ease-out forwards;}
+
+/* ── Typography ── */
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--txtm);font-weight:700;text-align:center;padding:8px 0;}
+.powered-by{text-align:center;padding:12px;font-size:11px;color:var(--txtm);}
+.powered-by a{color:var(--acc);text-decoration:none;font-weight:700;}
+
+/* ── Screen info ── */
+.screen-label{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);color:rgba(255,255,255,0.8);padding:8px 20px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:1px;z-index:200;text-align:center;white-space:nowrap;transition:all 0.3s;}
+
+/* ── Extra Step label ── */
+.step-label{position:fixed;top:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.4);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;z-index:200;}
+</style>
+</head>
+<body>
+
+<div class="wm"><span class="mi" style="font-size:12px">whatsapp</span> WHATSAPP PATIENT JOURNEY — MOCKUP DEMO <span class="mi" style="font-size:12px">whatsapp</span></div>
+
+<div class="step-label" id="stepLabel">STEP 1 OF 11 — DEEP LINK RECEIVED</div>
+
+<!-- ── Side Navigation ── -->
+<div class="side-panel">
+  <div class="side-btn active" onclick="goStep(0)" title="Deep Link"><span class="mi" style="font-size:18px">link</span><span class="tooltip">① Deep Link</span></div>
+  <div class="side-btn" onclick="goStep(1)" title="Open Link"><span class="mi" style="font-size:18px">open_in_browser</span><span class="tooltip">② Open in Browser</span></div>
+  <div class="side-btn" onclick="goStep(2)" title="Welcome"><span class="mi" style="font-size:18px">waving_hand</span><span class="tooltip">③ Welcome Screen</span></div>
+  <div class="side-btn" onclick="goStep(3)" title="AI Chat"><span class="mi" style="font-size:18px">smart_toy</span><span class="tooltip">④ AI Medical Chat</span></div>
+  <div class="side-btn" onclick="goStep(4)" title="Photo Upload"><span class="mi" style="font-size:18px">photo_camera</span><span class="tooltip">⑤ Photo Upload</span></div>
+  <div class="side-btn" onclick="goStep(5)" title="Report"><span class="mi" style="font-size:18px">assignment</span><span class="tooltip">⑥ AI Report Ready</span></div>
+  <div class="side-btn" onclick="goStep(6)" title="Pick Location"><span class="mi" style="font-size:18px">location_on</span><span class="tooltip">⑦ Pick Location</span></div>
+  <div class="side-btn" onclick="goStep(7)" title="Pick Date"><span class="mi" style="font-size:18px">calendar_month</span><span class="tooltip">⑧ Pick Date</span></div>
+  <div class="side-btn" onclick="goStep(8)" title="Pick Time"><span class="mi" style="font-size:18px">schedule</span><span class="tooltip">⑨ Pick Time</span></div>
+  <div class="side-btn" onclick="goStep(9)" title="Confirmed"><span class="mi" style="font-size:18px">check_circle</span><span class="tooltip">⑩ Booking Confirmed</span></div>
+  <div class="side-btn" onclick="goStep(10)" title="WA Confirm"><span class="mi" style="font-size:18px">mark_chat_read</span><span class="tooltip">⑪ WA Confirmation</span></div>
+</div>
+
+<div class="iphone-outer">
+<div class="iphone-bezel">
+<div class="iphone-notch"></div>
+<div class="iphone-status">
+  <span class="time">6:14 PM</span>
+  <span class="icons">
+    <span class="mi" style="font-size:11px">signal_cellular_alt</span>
+    <span class="mi" style="font-size:11px">wifi</span>
+    <span class="mi" style="font-size:11px">battery_full</span>
+  </span>
+</div>
+<div class="frame" id="app">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 1: WhatsApp Deep Link Received  -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr active" id="scr-deeplink" onclick="goStep(1)">
+  <!-- WhatsApp header -->
+  <div class="wa-chat-header">
+    <div style="font-size:16px;cursor:pointer;" class="mi">arrow_back</div>
+    <div class="wa-chat-avatar">👨‍⚕️</div>
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:700;">عيادة د. سارة الراشد</div>
+      <div style="font-size:11px;opacity:0.7;">آخر ظهور اليوم ٥:٣٠ م</div>
+    </div>
+    <span class="mi" style="font-size:20px;opacity:0.7">videocam</span>
+    <span class="mi" style="font-size:20px;opacity:0.7">call</span>
+  </div>
+
+  <!-- Chat area -->
+  <div class="wa-chat-body" style="flex:1;">
+    <div class="section-label" style="color:#8696a0;">اليوم</div>
+
+    <div class="wa-bubble received" style="animation-delay:0.2s">
+      <div style="font-size:12px;font-weight:700;color:var(--wa-dark);margin-bottom:4px;">عيادة د. سارة الراشد</div>
+      مرحباً أحمد! 👋
+      <br><br>
+      تم إنشاء رابط استشارتك الطبية. يرجى الضغط على الرابط أدناه لبدء المقابلة الطبية الذكية قبل موعدك:
+      <br><br>
+      <a href="#" style="color:#007bff;text-decoration:underline;font-size:12px;word-break:break-all;">🔗 wa-intake.cliniq.one/?doc=WA-X7K9</a>
+      <br><br>
+      <span style="font-size:12px;color:#666;">⏱️ المقابلة تستغرق ٣-٥ دقائق فقط</span>
+      <span class="wa-time">٦:١٢ م <span class="wa-check">✓✓</span></span>
+    </div>
+
+    <div class="wa-bubble sent" style="animation-delay:0.5s">
+      شكراً! رح أفتح الرابط الحين 👍
+      <span class="wa-time">٦:١٤ م <span class="wa-check">✓✓</span></span>
+    </div>
+  </div>
+
+  <div class="wa-input-bar">
+    <span class="mi" style="color:#54656F;font-size:22px">mood</span>
+    <input type="text" placeholder="اكتب رسالة..." dir="rtl">
+    <span class="mi" style="color:#54656F;font-size:22px">attach_file</span>
+    <div class="wa-send-btn"><span class="mi" style="font-size:18px">mic</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 2: Browser Opening Link         -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-browser" onclick="goStep(2)">
+  <!-- Safari-like browser bar -->
+  <div style="background:#f8f8f8;padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #e0e0e0;">
+    <span class="mi" style="color:#007AFF;font-size:18px">arrow_back_ios</span>
+    <div style="flex:1;background:#fff;border:1px solid #ddd;border-radius:10px;padding:6px 12px;display:flex;align-items:center;gap:6px;">
+      <span class="mi" style="color:#888;font-size:14px">lock</span>
+      <span style="font-size:12px;color:#333;font-weight:500;">wa-intake.cliniq.one/?doc=WA-X7K9</span>
+    </div>
+    <span class="mi" style="color:#007AFF;font-size:18px">share</span>
+  </div>
+
+  <!-- Loading state -->
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--bg2);">
+    <div style="position:relative;">
+      <div style="width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(--acc),var(--accd));display:flex;align-items:center;justify-content:center;animation:float 2s ease-in-out infinite;">
+        <span style="font-size:32px;">🏥</span>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:15px;font-weight:700;color:var(--txt);">جاري تحميل المساعد الطبي...</p>
+      <p style="font-size:12px;color:var(--txtm);margin-top:4px;">cliniq.one — استشارات طبية ذكية</p>
+    </div>
+    <div style="width:200px;height:4px;border-radius:2px;overflow:hidden;background:var(--bdr);">
+      <div style="height:100%;width:65%;background:linear-gradient(90deg,var(--acc),var(--accl));border-radius:2px;background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+    </div>
+    <p style="font-size:11px;color:var(--txtm);margin-top:20px;">🔒 اتصال آمن ومشفر</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 3: Welcome / Doctor Info        -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-welcome" onclick="goStep(3)">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(26,138,158,0.06),transparent 70%);">
+    <!-- Doctor card -->
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--accd));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px;border:3px solid rgba(26,138,158,0.2);">
+        <span class="mi" style="color:#fff">medical_services</span>
+      </div>
+      <h2 style="font-size:18px;font-weight:800;color:var(--txt);">د. سارة الراشد</h2>
+      <p style="font-size:13px;color:var(--txtm);">جلدية — مدينة الملك فهد الطبية</p>
+      <div style="display:inline-flex;padding:4px 12px;border-radius:20px;background:var(--okf);color:var(--ok);font-size:11px;font-weight:700;margin-top:6px;gap:4px;">
+        <span class="mi" style="font-size:12px">verified</span> طبيب موثق
+      </div>
+    </div>
+
+    <!-- Welcome text -->
+    <div style="background:var(--bg2);border-radius:16px;padding:16px;text-align:center;margin-bottom:20px;border:1px solid var(--bdr);">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:6px;">مساعد الاستشارة الطبية</h3>
+      <p style="font-size:13px;color:var(--txts);line-height:1.7;">سيطرح عليك المساعد الذكي أسئلة حول حالتك لإعداد تقرير طبي مفصل لطبيبك.</p>
+    </div>
+
+    <!-- Name input -->
+    <div style="width:100%;margin-bottom:16px;">
+      <label style="font-size:12px;font-weight:600;color:var(--txts);display:block;margin-bottom:6px;">اسمك (اختياري)</label>
+      <input type="text" value="أحمد خالد" style="width:100%;padding:12px 16px;border:1px solid var(--bdr);border-radius:12px;background:var(--bg3);font-size:14px;font-family:var(--f);outline:none;text-align:right;" dir="rtl">
+    </div>
+
+    <!-- Start button -->
+    <button class="btn btn-p" style="width:100%;border-radius:14px;">
+      <span class="mi">smart_toy</span>
+      ابدأ المقابلة
+    </button>
+
+    <p style="font-size:10px;color:var(--txtm);text-align:center;margin-top:12px;">⚕️ هذا المساعد لا يقدم تشخيصاً طبياً</p>
+
+    <div class="powered-by">
+      <p><i>Powered by</i> <a href="https://cliniq.one">cliniq.one</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 4: AI Medical Chat              -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-chat" onclick="goStep(4)">
+  <div class="intake-header">
+    <span class="mi" style="font-size:20px">arrow_back</span>
+    <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+      <span class="mi" style="font-size:16px">smart_toy</span>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:700;">مساعد cliniq.one</div>
+      <div style="font-size:11px;opacity:0.8;">● متصل</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;">
+      🏥 الشكوى الرئيسية
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar">
+    <div class="progress-step done"></div>
+    <div class="progress-step active"></div>
+    <div class="progress-step"></div>
+    <div class="progress-step"></div>
+    <div class="progress-step"></div>
+  </div>
+
+  <div class="intake-chat-body">
+    <div class="intake-bubble ai">
+      مرحباً أحمد! 👋 أنا المساعد الطبي الذكي. سأطرح عليك بعض الأسئلة لإعداد تقريرك.
+      <br><br>
+      ما هي شكواك الرئيسية اليوم؟
+    </div>
+
+    <div class="intake-bubble patient">
+      عندي طفح جلدي في ذراعي من أسبوعين
+    </div>
+
+    <div class="intake-bubble ai">
+      شكراً أحمد. طفح جلدي في الذراعين منذ أسبوعين.
+      <br><br>
+      هل الطفح مصحوب بحكة؟ وما شدتها من ١ إلى ١٠؟
+    </div>
+
+    <div class="intake-bubble patient">
+      نعم حكة شديدة، حوالي ٧ من ١٠، وتزداد بالليل
+    </div>
+
+    <div class="intake-bubble ai">
+      ممتاز. حكة ٧/١٠ تزداد ليلاً.
+      <br><br>
+      هل تأخذ أي أدوية حالياً للحكة أو أي حالة أخرى؟
+    </div>
+
+    <div class="intake-bubble patient">
+      آخذ سيتريزين حبة بالليل
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="intake-bubble ai" style="padding:12px 16px;max-width:60px;">
+      <div style="display:flex;gap:4px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--txtm);animation:typing 1.4s infinite 0s;"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--txtm);animation:typing 1.4s infinite 0.2s;"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--txtm);animation:typing 1.4s infinite 0.4s;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="intake-input-bar">
+    <span class="mi" style="color:var(--txtm);font-size:22px;cursor:pointer;">photo_camera</span>
+    <input type="text" placeholder="اكتب رسالتك..." dir="rtl">
+    <div class="intake-send-btn"><span class="mi" style="font-size:18px">send</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 5: Photo Upload                 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-photo" onclick="goStep(5)">
+  <div class="intake-header">
+    <span class="mi" style="font-size:20px">arrow_back</span>
+    <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+      <span class="mi" style="font-size:16px">smart_toy</span>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:700;">مساعد cliniq.one</div>
+      <div style="font-size:11px;opacity:0.8;">● متصل</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;">
+      📸 الصور الطبية
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-step done"></div>
+    <div class="progress-step done"></div>
+    <div class="progress-step done"></div>
+    <div class="progress-step active"></div>
+    <div class="progress-step"></div>
+  </div>
+
+  <div class="intake-chat-body">
+    <div class="intake-bubble ai">
+      ممتاز أحمد! تبقى خطوة واحدة. هل بإمكانك إرسال صورة واضحة للمنطقة المصابة؟
+      <br><br>
+      📸 اضغط على الزر أدناه لرفع صورة
+    </div>
+
+    <!-- Photo upload area -->
+    <div style="background:#fff;border:2px dashed var(--acc);border-radius:16px;padding:20px;text-align:center;margin:4px 0;">
+      <div style="width:56px;height:56px;border-radius:16px;background:rgba(26,138,158,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+        <span class="mi" style="font-size:28px;color:var(--acc)">add_a_photo</span>
+      </div>
+      <p style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:4px;">رفع صورة طبية</p>
+      <p style="font-size:11px;color:var(--txtm);">JPG, PNG — حتى 10 ميجا</p>
+    </div>
+
+    <!-- Uploaded photo preview -->
+    <div class="intake-bubble patient" style="max-width:70%;padding:6px;">
+      <div style="width:100%;height:120px;background:linear-gradient(135deg,#f8d7da,#fce4ec);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;">
+        <div style="text-align:center;">
+          <span class="mi" style="font-size:32px;color:#e91e63;">photo</span>
+          <p style="font-size:10px;color:#e91e63;margin-top:2px;">skin-rash.jpg</p>
+        </div>
+      </div>
+      <p style="font-size:12px;padding:4px 6px;">📸 تم رفع صورة</p>
+    </div>
+
+    <div class="intake-bubble ai">
+      تم استلام الصورة! شكراً أحمد. 📸
+      <br><br>
+      سيتم تضمين الصورة في تقريرك الطبي للدكتورة سارة.
+    </div>
+  </div>
+
+  <div class="intake-input-bar">
+    <span class="mi" style="color:var(--acc);font-size:22px;cursor:pointer;">photo_camera</span>
+    <input type="text" placeholder="اكتب رسالتك..." dir="rtl">
+    <div class="intake-send-btn"><span class="mi" style="font-size:18px">send</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 6: Report Complete              -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-report" onclick="goStep(6)">
+  <div class="intake-header">
+    <span class="mi" style="font-size:20px">arrow_back</span>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:14px;font-weight:700;">التقرير جاهز! ✓</div>
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-step done"></div>
+    <div class="progress-step done"></div>
+    <div class="progress-step done"></div>
+    <div class="progress-step done"></div>
+    <div class="progress-step done"></div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+    <!-- Success header -->
+    <div style="text-align:center;padding:16px 0;">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--okf);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;border:2px solid var(--ok);">
+        <span class="mi" style="font-size:32px;color:var(--ok)">check_circle</span>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:var(--ok);">تم إرسال التقرير! ✅</h3>
+      <p style="font-size:12px;color:var(--txtm);margin-top:4px;">تم إرسال تقريرك الطبي للدكتورة سارة</p>
+    </div>
+
+    <!-- Report summary card -->
+    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:14px;">
+      <h4 style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px;">📋 ملخص التقرير</h4>
+      <div style="font-size:12px;color:var(--txts);line-height:1.8;direction:rtl;">
+        <p><b style="color:var(--txt);">الشكوى:</b> طفح جلدي في الذراعين × أسبوعين</p>
+        <p><b style="color:var(--txt);">الأعراض:</b> حكة ٧/١٠، تزداد ليلاً</p>
+        <p><b style="color:var(--txt);">الأدوية:</b> سيتريزين</p>
+        <p><b style="color:var(--txt);">التاريخ العائلي:</b> صدفية (الوالدة)</p>
+        <p><b style="color:var(--txt);">الصور:</b> ١ صورة مرفقة</p>
+      </div>
+    </div>
+
+    <!-- Copy button -->
+    <button class="btn btn-o" style="width:100%;padding:12px;">
+      <span class="mi">content_copy</span>
+      نسخ التقرير
+    </button>
+
+    <!-- Booking CTA -->
+    <div style="background:linear-gradient(135deg,rgba(26,138,158,0.08),rgba(26,138,158,0.02));border:1px solid rgba(26,138,158,0.2);border-radius:16px;padding:16px;text-align:center;">
+      <h4 style="font-size:14px;font-weight:700;color:var(--acc);margin-bottom:6px;">📅 هل تود حجز موعد؟</h4>
+      <p style="font-size:12px;color:var(--txts);margin-bottom:12px;">احجز موعدك مع د. سارة مباشرة من هنا</p>
+      <button class="btn btn-p" style="width:100%;">
+        <span class="mi">calendar_month</span>
+        احجز موعد الآن
+      </button>
+    </div>
+
+    <div class="powered-by">
+      <p><i>Powered by</i> <a href="https://cliniq.one">cliniq.one</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 7: Location Selection           -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-locations" onclick="goStep(7)">
+  <div class="intake-header">
+    <span class="mi" style="font-size:20px">arrow_back</span>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:14px;font-weight:700;">📅 حجز موعد</div>
+      <div style="font-size:11px;opacity:0.8;">د. سارة الراشد</div>
+    </div>
+  </div>
+
+  <!-- Booking progress -->
+  <div style="display:flex;padding:12px 16px;gap:4px;">
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 4px;">١</div>
+      <p style="font-size:10px;font-weight:700;color:var(--acc);">الموقع</p>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--bdr);color:var(--txtm);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 4px;">٢</div>
+      <p style="font-size:10px;color:var(--txtm);">التاريخ</p>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--bdr);color:var(--txtm);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 4px;">٣</div>
+      <p style="font-size:10px;color:var(--txtm);">الوقت</p>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;">
+    <h3 style="font-size:15px;font-weight:700;color:var(--txt);">📍 اختر الموقع</h3>
+
+    <div class="booking-card selected">
+      <div class="booking-icon" style="background:rgba(26,138,158,0.1);">
+        <span class="mi" style="color:var(--acc)">location_on</span>
+      </div>
+      <div style="flex:1;">
+        <p style="font-size:14px;font-weight:700;">عيادة الرياض الرئيسية</p>
+        <p style="font-size:11px;color:var(--txtm);">طريق الملك فهد، الرياض</p>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <span style="font-size:10px;padding:2px 8px;background:var(--okf);color:var(--ok);border-radius:6px;font-weight:600;">متاح</span>
+          <span style="font-size:10px;padding:2px 8px;background:var(--bg3);color:var(--txtm);border-radius:6px;">حجز مباشر</span>
+        </div>
+      </div>
+      <span class="mi" style="color:var(--acc)">check_circle</span>
+    </div>
+
+    <div class="booking-card">
+      <div class="booking-icon" style="background:rgba(59,130,246,0.1);">
+        <span class="mi" style="color:#3B82F6">location_on</span>
+      </div>
+      <div style="flex:1;">
+        <p style="font-size:14px;font-weight:700;">فرع العليا</p>
+        <p style="font-size:11px;color:var(--txtm);">شارع العليا، الرياض</p>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <span style="font-size:10px;padding:2px 8px;background:var(--okf);color:var(--ok);border-radius:6px;font-weight:600;">متاح</span>
+          <span style="font-size:10px;padding:2px 8px;background:var(--bg3);color:var(--txtm);border-radius:6px;">حجز مباشر</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="booking-card" style="opacity:0.6;">
+      <div class="booking-icon" style="background:rgba(215,119,6,0.1);">
+        <span class="mi" style="color:var(--warn)">call</span>
+      </div>
+      <div style="flex:1;">
+        <p style="font-size:14px;font-weight:700;">مستشفى الملك فهد</p>
+        <p style="font-size:11px;color:var(--txtm);">المدينة الطبية، الرياض</p>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <span style="font-size:10px;padding:2px 8px;background:var(--warnf);color:var(--warn);border-radius:6px;font-weight:600;">📞 عبر الاستقبال</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-p" style="width:100%;margin-top:8px;">
+      التالي ←
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 8: Date Selection               -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-dates" onclick="goStep(8)">
+  <div class="intake-header">
+    <span class="mi" style="font-size:20px">arrow_back</span>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:14px;font-weight:700;">📅 حجز موعد</div>
+      <div style="font-size:11px;opacity:0.8;">عيادة الرياض الرئيسية</div>
+    </div>
+  </div>
+
+  <!-- Booking progress -->
+  <div style="display:flex;padding:12px 16px;gap:4px;">
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;margin:0 auto 4px;"><span class="mi" style="font-size:14px">check</span></div>
+      <p style="font-size:10px;color:var(--ok);">الموقع</p>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 4px;">٢</div>
+      <p style="font-size:10px;font-weight:700;color:var(--acc);">التاريخ</p>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--bdr);color:var(--txtm);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 4px;">٣</div>
+      <p style="font-size:10px;color:var(--txtm);">الوقت</p>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;">
+    <h3 style="font-size:15px;font-weight:700;color:var(--txt);">📅 اختر التاريخ</h3>
+    <p style="font-size:12px;color:var(--txtm);">أبريل ٢٠٢٦</p>
+
+    <div class="date-grid">
+      <div class="date-chip">
+        <p style="font-size:11px;color:var(--txtm);font-weight:600;">الاثنين</p>
+        <p style="font-size:18px;font-weight:800;margin:4px 0;">١٤</p>
+        <p style="font-size:10px;color:var(--ok);">٣ مواعيد</p>
+      </div>
+      <div class="date-chip selected">
+        <p style="font-size:11px;color:#fff;font-weight:600;">الثلاثاء</p>
+        <p style="font-size:18px;font-weight:800;margin:4px 0;">١٥</p>
+        <p style="font-size:10px;color:rgba(255,255,255,0.8);">٥ مواعيد</p>
+      </div>
+      <div class="date-chip">
+        <p style="font-size:11px;color:var(--txtm);font-weight:600;">الأربعاء</p>
+        <p style="font-size:18px;font-weight:800;margin:4px 0;">١٦</p>
+        <p style="font-size:10px;color:var(--ok);">٤ مواعيد</p>
+      </div>
+      <div class="date-chip">
+        <p style="font-size:11px;color:var(--txtm);font-weight:600;">الخميس</p>
+        <p style="font-size:18px;font-weight:800;margin:4px 0;">١٧</p>
+        <p style="font-size:10px;color:var(--ok);">٦ مواعيد</p>
+      </div>
+      <div class="date-chip" style="opacity:0.4;pointer-events:none;">
+        <p style="font-size:11px;color:var(--txtm);font-weight:600;">الجمعة</p>
+        <p style="font-size:18px;font-weight:800;margin:4px 0;">١٨</p>
+        <p style="font-size:10px;color:var(--err);">مغلق</p>
+      </div>
+      <div class="date-chip">
+        <p style="font-size:11px;color:var(--txtm);font-weight:600;">السبت</p>
+        <p style="font-size:18px;font-weight:800;margin:4px 0;">١٩</p>
+        <p style="font-size:10px;color:var(--ok);">٢ مواعيد</p>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border-radius:12px;padding:10px;display:flex;align-items:center;gap:8px;">
+      <span class="mi" style="color:var(--acc);font-size:18px">info</span>
+      <p style="font-size:11px;color:var(--txts);">الثلاثاء ١٥ أبريل — ٥ مواعيد متاحة</p>
+    </div>
+
+    <button class="btn btn-p" style="width:100%;margin-top:8px;">
+      التالي ←
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 9: Time Selection               -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-times" onclick="goStep(9)">
+  <div class="intake-header">
+    <span class="mi" style="font-size:20px">arrow_back</span>
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:14px;font-weight:700;">📅 حجز موعد</div>
+      <div style="font-size:11px;opacity:0.8;">الثلاثاء ١٥ أبريل</div>
+    </div>
+  </div>
+
+  <!-- Booking progress -->
+  <div style="display:flex;padding:12px 16px;gap:4px;">
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;margin:0 auto 4px;"><span class="mi" style="font-size:14px">check</span></div>
+      <p style="font-size:10px;color:var(--ok);">الموقع</p>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;margin:0 auto 4px;"><span class="mi" style="font-size:14px">check</span></div>
+      <p style="font-size:10px;color:var(--ok);">التاريخ</p>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 4px;">٣</div>
+      <p style="font-size:10px;font-weight:700;color:var(--acc);">الوقت</p>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;">
+    <h3 style="font-size:15px;font-weight:700;color:var(--txt);">🕐 اختر الوقت</h3>
+
+    <p style="font-size:12px;font-weight:700;color:var(--txtm);">🌅 صباحاً</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <div class="time-chip">٩:٠٠ ص</div>
+      <div class="time-chip">٩:٣٠ ص</div>
+      <div class="time-chip selected">١٠:٠٠ ص</div>
+      <div class="time-chip">١٠:٣٠ ص</div>
+      <div class="time-chip">١١:٠٠ ص</div>
+    </div>
+
+    <p style="font-size:12px;font-weight:700;color:var(--txtm);margin-top:4px;">🌇 مساءً</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <div class="time-chip">٢:٠٠ م</div>
+      <div class="time-chip">٢:٣٠ م</div>
+      <div class="time-chip">٣:٠٠ م</div>
+    </div>
+
+    <!-- Summary card -->
+    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:12px;margin-top:8px;">
+      <p style="font-size:11px;font-weight:700;color:var(--txtm);margin-bottom:8px;">ملخص الحجز</p>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--txts);">
+        <div style="display:flex;justify-content:space-between;">
+          <span>👨‍⚕️ الطبيب</span>
+          <span style="font-weight:600;color:var(--txt);">د. سارة الراشد</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span>📍 الموقع</span>
+          <span style="font-weight:600;color:var(--txt);">عيادة الرياض</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span>📅 التاريخ</span>
+          <span style="font-weight:600;color:var(--txt);">الثلاثاء ١٥ أبريل</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span>🕐 الوقت</span>
+          <span style="font-weight:600;color:var(--acc);">١٠:٠٠ ص</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-p" style="width:100%;">
+      ✅ تأكيد الحجز
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 10: Booking Confirmed           -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-confirmed" onclick="goStep(10)">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(5,150,105,0.06),transparent 70%);position:relative;overflow:hidden;">
+    <!-- Confetti particles -->
+    <div class="confetti-piece" style="left:20%;top:20%;background:#FFD700;animation-delay:0s;"></div>
+    <div class="confetti-piece" style="left:70%;top:15%;background:var(--wa-green);animation-delay:0.2s;"></div>
+    <div class="confetti-piece" style="left:40%;top:25%;background:#FF6B6B;animation-delay:0.4s;"></div>
+    <div class="confetti-piece" style="left:85%;top:30%;background:var(--acc);animation-delay:0.6s;"></div>
+    <div class="confetti-piece" style="left:10%;top:35%;background:#9B72CF;animation-delay:0.3s;"></div>
+
+    <div class="success-circle">
+      <span class="mi" style="font-size:40px;color:#fff">check</span>
+    </div>
+
+    <h2 style="font-size:20px;font-weight:900;color:var(--ok);margin-top:16px;">✅ تم تأكيد موعدك!</h2>
+    <p style="font-size:13px;color:var(--txts);margin-top:4px;">ستصلك رسالة تأكيد على واتساب</p>
+
+    <!-- Booking details card -->
+    <div style="width:100%;background:#fff;border:1px solid var(--bdr);border-radius:18px;padding:18px;margin-top:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bdr);">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--accd));display:flex;align-items:center;justify-content:center;">
+          <span class="mi" style="color:#fff;font-size:20px">medical_services</span>
+        </div>
+        <div>
+          <p style="font-size:15px;font-weight:800;">د. سارة الراشد</p>
+          <p style="font-size:12px;color:var(--txtm);">جلدية</p>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="mi" style="color:var(--acc);font-size:18px">location_on</span>
+          <div>
+            <p style="font-weight:600;color:var(--txt);">عيادة الرياض الرئيسية</p>
+            <p style="font-size:11px;color:var(--txtm);">طريق الملك فهد</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="mi" style="color:var(--acc);font-size:18px">calendar_month</span>
+          <p style="font-weight:600;color:var(--txt);">الثلاثاء ١٥ أبريل ٢٠٢٦</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="mi" style="color:var(--acc);font-size:18px">schedule</span>
+          <p style="font-weight:600;color:var(--acc);">١٠:٠٠ ص</p>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-o" style="width:100%;margin-top:16px;padding:12px;">
+      <span class="mi">content_copy</span>
+      نسخ تفاصيل الموعد
+    </button>
+
+    <div class="powered-by" style="margin-top:16px;">
+      <p><i>Powered by</i> <a href="https://cliniq.one">cliniq.one</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCREEN 11: WhatsApp Confirmation       -->
+<!-- ═══════════════════════════════════════ -->
+<div class="scr" id="scr-wa-confirm">
+  <div class="wa-chat-header">
+    <div style="font-size:16px;cursor:pointer;" class="mi">arrow_back</div>
+    <div class="wa-chat-avatar" style="background:var(--acc);">
+      <span style="font-size:16px;">🏥</span>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:700;">cliniq.one</div>
+      <div style="font-size:11px;opacity:0.7;">رقم الأعمال الرسمي</div>
+    </div>
+    <span class="mi" style="font-size:20px;opacity:0.7">videocam</span>
+    <span class="mi" style="font-size:20px;opacity:0.7">call</span>
+  </div>
+
+  <div class="wa-chat-body" style="flex:1;">
+    <div class="section-label" style="color:#8696a0;">اليوم</div>
+
+    <!-- Booking confirmation message -->
+    <div class="wa-bubble received" style="animation-delay:0.3s;padding:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--wa-dark);margin-bottom:6px;">✅ تم تأكيد موعدك</div>
+      <div style="font-size:13px;line-height:2;">
+        👨‍⚕️ د. سارة الراشد<br>
+        📍 عيادة الرياض الرئيسية<br>
+        📅 الثلاثاء ١٥ أبريل<br>
+        🕐 ١٠:٠٠ ص
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e8e8e8;font-size:12px;color:#666;">
+        بتوصلك رسالة تذكير قبل الموعد.
+      </div>
+      <span class="wa-time">٦:١٦ م <span class="wa-check">✓✓</span></span>
+    </div>
+
+    <!-- Reminder preview -->
+    <div style="text-align:center;padding:8px 0;">
+      <span style="font-size:10px;background:rgba(0,0,0,0.05);padding:4px 12px;border-radius:10px;color:#8696a0;">غداً ⏰</span>
+    </div>
+
+    <div class="wa-bubble received" style="animation-delay:0.6s;padding:12px;">
+      <div style="font-size:13px;line-height:1.8;">
+        ⏰ تذكير: لديك موعد غداً
+        <br><br>
+        👨‍⚕️ د. سارة الراشد<br>
+        📍 عيادة الرياض الرئيسية<br>
+        🕐 ١٠:٠٠ ص
+      </div>
+      <span class="wa-time">٨:٠٠ ص <span class="wa-check">✓✓</span></span>
+    </div>
+
+    <!-- Patient response -->
+    <div class="wa-bubble sent" style="animation-delay:0.9s">
+      تمام، إن شاء الله بكون هناك 👍
+      <span class="wa-time">٨:٠٥ ص <span class="wa-check">✓✓</span></span>
+    </div>
+  </div>
+
+  <div class="wa-input-bar">
+    <span class="mi" style="color:#54656F;font-size:22px">mood</span>
+    <input type="text" placeholder="اكتب رسالة..." dir="rtl">
+    <span class="mi" style="color:#54656F;font-size:22px">attach_file</span>
+    <div class="wa-send-btn"><span class="mi" style="font-size:18px">mic</span></div>
+  </div>
+</div>
+
+</div><!-- end frame -->
+<div class="iphone-home-indicator"></div>
+</div><!-- end iphone-bezel -->
+</div><!-- end iphone-outer -->
+
+<!-- Screen label -->
+<div class="screen-label" id="screenLabel">① الطبيب يرسل رابط الاستشارة عبر واتساب</div>
+
+<script>
+const screens = [
+  { id:'scr-deeplink',   label:'① الطبيب يرسل رابط الاستشارة عبر واتساب',       step:'STEP 1 OF 11 — DEEP LINK RECEIVED' },
+  { id:'scr-browser',    label:'② المريض يفتح الرابط في المتصفح',               step:'STEP 2 OF 11 — OPENING LINK' },
+  { id:'scr-welcome',    label:'③ شاشة الترحيب — معلومات الطبيب',               step:'STEP 3 OF 11 — WELCOME SCREEN' },
+  { id:'scr-chat',       label:'④ محادثة ذكية — جمع المعلومات الطبية',           step:'STEP 4 OF 11 — AI MEDICAL CHAT' },
+  { id:'scr-photo',      label:'⑤ رفع الصور الطبية',                             step:'STEP 5 OF 11 — PHOTO UPLOAD' },
+  { id:'scr-report',     label:'⑥ التقرير الطبي جاهز — إرسال للطبيب',           step:'STEP 6 OF 11 — AI REPORT READY' },
+  { id:'scr-locations',  label:'⑦ اختيار موقع العيادة',                          step:'STEP 7 OF 11 — PICK LOCATION' },
+  { id:'scr-dates',      label:'⑧ اختيار تاريخ الموعد',                          step:'STEP 8 OF 11 — PICK DATE' },
+  { id:'scr-times',      label:'⑨ اختيار وقت الموعد',                            step:'STEP 9 OF 11 — PICK TIME' },
+  { id:'scr-confirmed',  label:'⑩ تأكيد الحجز — نجاح!',                         step:'STEP 10 OF 11 — BOOKING CONFIRMED' },
+  { id:'scr-wa-confirm', label:'⑪ رسالة التأكيد والتذكير على واتساب',            step:'STEP 11 OF 11 — WA CONFIRMATION' },
+];
+
+let currentStep = 0;
+
+function goStep(idx) {
+  if (idx < 0 || idx >= screens.length || idx === currentStep) return;
+  currentStep = idx;
+
+  // Update screens
+  document.querySelectorAll('.scr').forEach(s => {
+    s.classList.remove('active');
+    s.style.opacity = '';
+    s.style.transform = '';
+  });
+  const el = document.getElementById(screens[idx].id);
+  if (el) {
+    el.classList.add('active');
+    el.scrollTop = 0;
+  }
+
+  // Update labels
+  document.getElementById('screenLabel').textContent = screens[idx].label;
+  document.getElementById('stepLabel').textContent = screens[idx].step;
+
+  // Update side panel
+  document.querySelectorAll('.side-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === idx);
+  });
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+    e.preventDefault();
+    goStep(currentStep + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    goStep(currentStep - 1);
+  }
+});
+
+// URL parameter support  
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const step = parseInt(params.get('step'));
+  if (!isNaN(step) && step >= 0 && step < screens.length) {
+    setTimeout(() => goStep(step), 100);
+  }
+  const screen = params.get('screen');
+  if (screen) {
+    const idx = screens.findIndex(s => s.id === screen);
+    if (idx >= 0) setTimeout(() => goStep(idx), 100);
+  }
+})();
+</script>
+
+</body>
+</html>

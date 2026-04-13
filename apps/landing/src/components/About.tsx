@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
-import { Stethoscope, ArrowRightLeft, ClipboardList, Globe, ShieldCheck, Lock } from 'lucide-react';
+import { Stethoscope, ArrowRightLeft, ClipboardList, Globe, ShieldCheck, Lock, MessageCircle, Link2, CalendarCheck } from 'lucide-react';
 
 export default function About() {
     const { t } = useI18n();
@@ -10,6 +10,9 @@ export default function About() {
         { icon: Stethoscope, titleKey: 'about.f1_title', descKey: 'about.f1_desc', color: 'text-accent' },
         { icon: ArrowRightLeft, titleKey: 'about.f2_title', descKey: 'about.f2_desc', color: 'text-accent' },
         { icon: ClipboardList, titleKey: 'about.f3_title', descKey: 'about.f3_desc', color: 'text-accent' },
+        { icon: MessageCircle, titleKey: 'about.f7_title', descKey: 'about.f7_desc', color: 'text-[#25D366]' },
+        { icon: Link2, titleKey: 'about.f8_title', descKey: 'about.f8_desc', color: 'text-blue' },
+        { icon: CalendarCheck, titleKey: 'about.f9_title', descKey: 'about.f9_desc', color: 'text-accent' },
         { icon: Globe, titleKey: 'about.f4_title', descKey: 'about.f4_desc', color: 'text-blue' },
         { icon: ShieldCheck, titleKey: 'about.f5_title', descKey: 'about.f5_desc', color: 'text-accent' },
         { icon: Lock, titleKey: 'about.f6_title', descKey: 'about.f6_desc', color: 'text-accent' },

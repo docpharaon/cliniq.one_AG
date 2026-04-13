@@ -155,6 +155,22 @@ import {
     toggleWaApiKey,
     deleteWaApiKey,
     getWaSessionsCount,
+    getWaBookings,
+    getWaBookingStats,
+    updateWaBookingStatus,
+    getDoctorLocations,
+    createDoctorLocation,
+    updateDoctorLocation,
+    deleteDoctorLocation,
+    upsertLocationHours,
+    getLocationOverrides,
+    createLocationOverride,
+    deleteLocationOverride,
+    getWaNotificationLog,
+    getWaChatSessions,
+    getWaChatSessionStats,
+    getWaChatSessionDetail,
+    expireWaChatSessions,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -934,4 +950,72 @@ export async function doDeleteWaApiKey(keyId: string) {
 
 export async function fetchWaSessionsCount() {
     return getWaSessionsCount();
+}
+
+// ── WA Bookings ────────────────────────────
+
+export async function fetchWaBookings(filters?: { doctorId?: string; status?: string; dateFrom?: string; dateTo?: string }) {
+    return getWaBookings(filters);
+}
+
+export async function fetchWaBookingStats() {
+    return getWaBookingStats();
+}
+
+export async function doUpdateWaBookingStatus(bookingId: string, status: string) {
+    return updateWaBookingStatus(bookingId, status);
+}
+
+export async function fetchDoctorLocations(doctorId?: string) {
+    return getDoctorLocations(doctorId);
+}
+
+export async function doCreateDoctorLocation(loc: Record<string, unknown>) {
+    return createDoctorLocation(loc);
+}
+
+export async function doUpdateDoctorLocation(id: string, updates: Record<string, unknown>) {
+    return updateDoctorLocation(id, updates);
+}
+
+export async function doDeleteDoctorLocation(id: string) {
+    return deleteDoctorLocation(id);
+}
+
+export async function doUpsertLocationHours(locationId: string, hours: Array<{ day_of_week: number; start_time: string; end_time: string; is_active: boolean }>) {
+    return upsertLocationHours(locationId, hours);
+}
+
+export async function fetchLocationOverrides(locationId: string) {
+    return getLocationOverrides(locationId);
+}
+
+export async function doCreateLocationOverride(override: Record<string, unknown>) {
+    return createLocationOverride(override);
+}
+
+export async function doDeleteLocationOverride(id: string) {
+    return deleteLocationOverride(id);
+}
+
+export async function fetchWaNotificationLog(bookingId?: string) {
+    return getWaNotificationLog(bookingId);
+}
+
+// ── WA Chat Sessions (Native WhatsApp Chatbot) ────
+
+export async function fetchWaChatSessions(filters?: { status?: string; doctorId?: string; search?: string }) {
+    return getWaChatSessions(filters);
+}
+
+export async function fetchWaChatSessionStats() {
+    return getWaChatSessionStats();
+}
+
+export async function fetchWaChatSessionDetail(sessionId: string) {
+    return getWaChatSessionDetail(sessionId);
+}
+
+export async function doExpireWaChatSessions() {
+    return expireWaChatSessions();
 }

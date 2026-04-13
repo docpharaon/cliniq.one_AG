@@ -12,11 +12,13 @@ import About from '@/components/About';
 import AppShowcase from '@/components/AppShowcase';
 import Safety from '@/components/Safety';
 import ForWho from '@/components/ForWho';
+import Channels from '@/components/Channels';
 import AppAvailability from '@/components/AppAvailability';
 import Downloads from '@/components/Downloads';
 import TesterSignup from '@/components/TesterSignup';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
+import PasswordGate from '@/components/PasswordGate';
 
 function PageContent() {
     const { dir, locale } = useI18n();
@@ -56,6 +58,7 @@ function PageContent() {
                 <HowItWorks />
                 <AppShowcase />
                 <About />
+                <Channels />
                 <Safety />
                 <ForWho />
                 <AppAvailability />
@@ -71,7 +74,9 @@ function PageContent() {
 export default function Home() {
     return (
         <I18nProvider>
-            <PageContent />
+            <PasswordGate>
+                <PageContent />
+            </PasswordGate>
         </I18nProvider>
     );
 }

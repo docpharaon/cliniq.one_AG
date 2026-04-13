@@ -51,8 +51,25 @@ interface ChatSectionResult {
 
 type Phase = 'welcome' | 'chat' | 'report' | 'blocked';
 type Lang = 'ar' | 'en';
-type WaPathway = 'followup' | 'new_visit' | null;
-type WaPhase = 'wa_intake' | 'wa_followup' | 'wa_new_visit' | 'wa_wrapup';
+type WaPathway = 'followup' | 'new_visit' | 'booking' | null;
+type WaPhase = 'wa_intake' | 'wa_followup' | 'wa_new_visit' | 'wa_booking' | 'wa_wrapup';
+
+interface DoctorLocation {
+    id: string; name: string; name_ar: string; address: string; address_ar: string;
+    city: string; booking_mode: 'direct' | 'call_center' | 'disabled';
+    call_center_phone: string | null; call_center_label: string | null;
+    call_center_label_ar: string | null; call_center_whatsapp: boolean;
+    slot_duration_minutes: number; advance_booking_days: number;
+    color: string; hours: { day_of_week: number; start_time: string; end_time: string }[];
+}
+interface AvailableDate { slot_date: string; day_of_week: number; total_slots: number; available_slots: number; }
+interface TimeSlot { slot_time: string; slot_end: string; available: boolean; remaining: number; }
+interface BookingResult {
+    id: string; date: string; time: string; slot_end: string; status: string;
+    location_name: string; location_name_ar: string; location_address: string;
+    doctor_name: string; doctor_full_name: string;
+}
+type BookingStep = 'idle' | 'locations' | 'dates' | 'slots' | 'confirming' | 'confirmed' | 'callcenter';
 
 interface UploadedFile {
     url: string;
@@ -113,6 +130,30 @@ const TEXT = {
         blockedLimit: 'تم استنفاد الحد الشهري للاستشارات. يرجى المحاولة لاحقاً.',
         blockedSuspended: 'الخدمة موقوفة مؤقتاً. يرجى التواصل مع طبيبك.',
         blockedGeneric: 'هذه الخدمة غير متوفرة حالياً.',
+        // Booking translations
+        bookingPickLocation: '📍 اختر الموقع',
+        bookingPickDate: '📅 اختر التاريخ',
+        bookingPickTime: '🕐 اختر الوقت',
+        bookingConfirmBtn: '✅ تأكيد الحجز',
+        bookingConfirming: 'جاري تأكيد الحجز...',
+        bookingConfirmed: '✅ تم تأكيد موعدك!',
+        bookingCallCenter: '📞 حجز عبر الاستقبال',
+        bookingCallNow: '📞 اتصل الآن',
+        bookingWhatsApp: '💬 واتساب',
+        bookingDirect: '📅 احجز مباشرة',
+        bookingNoLocations: 'لا توجد مواقع متاحة حالياً',
+        bookingNoSlots: 'لا توجد مواعيد متاحة في هذا اليوم',
+        bookingMorning: '🌅 صباحاً',
+        bookingAfternoon: '🌇 مساءً',
+        bookingSlotsAvailable: 'مواعيد متاحة',
+        bookingDate: 'التاريخ',
+        bookingTime: 'الوقت',
+        bookingLocation: 'الموقع',
+        bookingDoctor: 'الطبيب',
+        bookingCancelBtn: '❌ إلغاء الحجز',
+        bookingReportSection: '📅 الموعد',
+        bookingStatus: 'الحالة',
+        bookingStatusConfirmed: 'مؤكد ✅',
     },
     en: {
         welcomeTitle: 'Medical Intake Assistant',
@@ -148,6 +189,30 @@ const TEXT = {
         blockedLimit: 'Monthly consultation limit reached. Please try again later.',
         blockedSuspended: 'Service temporarily suspended. Please contact your doctor.',
         blockedGeneric: 'This service is currently unavailable.',
+        // Booking translations
+        bookingPickLocation: '📍 Choose Location',
+        bookingPickDate: '📅 Pick a Date',
+        bookingPickTime: '🕐 Pick a Time',
+        bookingConfirmBtn: '✅ Confirm Booking',
+        bookingConfirming: 'Confirming booking...',
+        bookingConfirmed: '✅ Appointment Confirmed!',
+        bookingCallCenter: '📞 Book via Reception',
+        bookingCallNow: '📞 Call Now',
+        bookingWhatsApp: '💬 WhatsApp',
+        bookingDirect: '📅 Book Online',
+        bookingNoLocations: 'No locations available',
+        bookingNoSlots: 'No slots available on this date',
+        bookingMorning: '🌅 Morning',
+        bookingAfternoon: '🌇 Afternoon',
+        bookingSlotsAvailable: 'slots available',
+        bookingDate: 'Date',
+        bookingTime: 'Time',
+        bookingLocation: 'Location',
+        bookingDoctor: 'Doctor',
+        bookingCancelBtn: '❌ Cancel Booking',
+        bookingReportSection: '📅 Appointment',
+        bookingStatus: 'Status',
+        bookingStatusConfirmed: 'Confirmed ✅',
     },
 };
 
@@ -160,6 +225,9 @@ function stripTags(text: string): string {
         .replace(/\[ADDENDUM_DONE\]/gi, '')
         .replace(/\[NO_RESPONSE_NEEDED\]/gi, '')
         .replace(/\[VIOLATION:[^\]]+\]/gi, '')
+        .replace(/\[BOOKING_START\]/gi, '')
+        .replace(/\[BOOKING_CONTEXT\][^\[]*/gi, '')
+        .replace(/\[PHONE_COLLECTED\][+\d\s]*/gi, '')
         .replace(/كلينيك[\s.]?وان/g, 'cliniq.one')
         .replace(/كلنيك[\s.]?ون/g, 'cliniq.one')
         .trim();
@@ -169,7 +237,87 @@ function stripTags(text: string): string {
 function detectRoute(text: string): WaPathway {
     if (/\[ROUTE:followup\]/i.test(text)) return 'followup';
     if (/\[ROUTE:new_visit\]/i.test(text)) return 'new_visit';
+    if (/\[ROUTE:booking\]/i.test(text)) return 'booking';
     return null;
+}
+
+// ── Detect booking tags ─────────────────────────
+function detectBookingStart(text: string): boolean {
+    return /\[BOOKING_START\]/i.test(text);
+}
+function detectPhoneCollected(text: string): string | null {
+    const m = text.match(/\[PHONE_COLLECTED\]([+\d\s]+)/i);
+    return m ? m[1].trim() : null;
+}
+
+// ── Booking RPC helpers ─────────────────────────
+async function fetchDoctorLocationsRpc(doctorId: string): Promise<DoctorLocation[]> {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_doctor_locations`, {
+            method: 'POST', headers: { ...REST_HEADERS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_doctor_id: doctorId }),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data || [];
+    } catch { return []; }
+}
+async function fetchAvailableDatesRpc(locationId: string, daysAhead = 14): Promise<AvailableDate[]> {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_available_dates`, {
+            method: 'POST', headers: { ...REST_HEADERS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_location_id: locationId, p_days_ahead: daysAhead }),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data || [];
+    } catch { return []; }
+}
+async function fetchAvailableSlotsRpc(locationId: string, date: string): Promise<TimeSlot[]> {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_available_slots`, {
+            method: 'POST', headers: { ...REST_HEADERS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_location_id: locationId, p_date: date }),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data || [];
+    } catch { return []; }
+}
+async function createBookingRpc(
+    keyCode: string | null, locationId: string, date: string, time: string,
+    name: string, phone: string | null, language: string, sessionId: string | null,
+): Promise<{ success: boolean; error?: string; booking?: BookingResult }> {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_wa_booking`, {
+            method: 'POST', headers: { ...REST_HEADERS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                p_key_code: keyCode, p_location_id: locationId, p_date: date,
+                p_time: time, p_patient_name: name, p_patient_phone: phone,
+                p_patient_language: language, p_session_id: sessionId,
+            }),
+        });
+        if (!res.ok) return { success: false, error: 'server_error' };
+        return await res.json();
+    } catch { return { success: false, error: 'network_error' }; }
+}
+
+const DAY_LABELS: Record<string, Record<number, string>> = {
+    ar: { 0: 'الأحد', 1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس', 5: 'الجمعة', 6: 'السبت' },
+    en: { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' },
+};
+function fmtDateShort(dateStr: string, lang: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    const dow = d.getDay();
+    const day = d.getDate();
+    const dowLabel = DAY_LABELS[lang]?.[dow] || DAY_LABELS.en[dow];
+    return `${dowLabel} ${day}`;
+}
+function fmtTime12(timeStr: string, lang: string): string {
+    const [h, m] = timeStr.split(':').map(Number);
+    const ap = h >= 12 ? (lang === 'ar' ? 'م' : 'PM') : (lang === 'ar' ? 'ص' : 'AM');
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
 }
 
 // ── UUID generator ──────────────────────────────
@@ -432,6 +580,18 @@ export default function App() {
     const [isUploading, setIsUploading] = useState(false);
     const [showUploadActions, setShowUploadActions] = useState(false);
 
+    // Booking state
+    const [bookingStep, setBookingStep] = useState<BookingStep>('idle');
+    const [bookingLocations, setBookingLocations] = useState<DoctorLocation[]>([]);
+    const [selectedLocation, setSelectedLocation] = useState<DoctorLocation | null>(null);
+    const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+    const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+    const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
+    const [patientPhone, setPatientPhone] = useState<string | null>(null);
+    const [bookingLoading, setBookingLoading] = useState(false);
+
     const chatEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const photoInputRef = useRef<HTMLInputElement>(null);
@@ -439,6 +599,12 @@ export default function App() {
     const rtl = lang === 'ar';
 
     const SECTION_MAX_TURNS = 4;
+
+    const PoweredBy = () => (
+        <div className="powered-by">
+            <p><i>Powered by</i> <a href="https://cliniq.one" target="_blank" rel="noopener noreferrer">cliniq.one</a></p>
+        </div>
+    );
 
     // ── Parse ?doc=CODE from URL on mount ────────
     useEffect(() => {
@@ -547,7 +713,35 @@ export default function App() {
                 const pathway = detected || 'new_visit';
                 setWaPathway(pathway);
 
-                // Load appropriate sequence
+                // Handle booking pathway → load wa_booking sequence
+                if (pathway === 'booking') {
+                    setIsTyping(true);
+                    try {
+                        const bookingResult = await fetchSequenceByType('wa_booking');
+                        const bookNodes = bookingResult.nodes.filter(
+                            n => n.node_type === 'chat' || !n.node_type
+                        );
+                        if (bookNodes.length > 0) {
+                            setSequenceNodes(bookNodes);
+                            setCurrentPhase('wa_booking');
+                            setCurrentNodeIndex(0);
+                            setSectionTurnCount(0);
+                            const newFull = [...fullHistory, ...convHistory];
+                            setFullConversationHistory(newFull);
+                            setConversationHistory([]);
+                            setIsTyping(false);
+                            addMsg('system', lang === 'ar' ? '📅 ممتاز! خلنا نحجز لك موعد...' : '📅 Great! Let\'s book you an appointment...');
+                            await advanceToNode(0, bookNodes, [], newFull);
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Booking sequence load failed:', err);
+                    }
+                    setIsTyping(false);
+                    return;
+                }
+
+                // Load appropriate sequence for followup / new_visit
                 const seqType = pathway === 'followup' ? 'wa_followup' : 'wa_new_visit';
                 const nextPhase: WaPhase = pathway === 'followup' ? 'wa_followup' : 'wa_new_visit';
 
@@ -607,6 +801,12 @@ export default function App() {
                     console.error('Wrapup load failed:', err);
                 }
                 setIsTyping(false);
+            }
+
+            // wa_booking phase done → show report
+            if (curPhase === 'wa_booking') {
+                finishIntake();
+                return;
             }
 
             // All phases done → show report
@@ -800,6 +1000,23 @@ export default function App() {
             // Detect route tag (for wa_visit_type node)
             const route = detectRoute(result.response);
             if (route) setWaPathway(route);
+
+            // Detect booking tags
+            const phoneNum = detectPhoneCollected(result.response);
+            if (phoneNum) setPatientPhone(phoneNum);
+
+            if (detectBookingStart(result.response)) {
+                // Trigger booking UI — load locations
+                if (doctorInfo?.id) {
+                    setBookingLoading(true);
+                    const locs = await fetchDoctorLocationsRpc(doctorInfo.id);
+                    setBookingLocations(locs.filter(l => l.booking_mode !== 'disabled'));
+                    setBookingStep('locations');
+                    setBookingLoading(false);
+                }
+                setIsTyping(false);
+                return; // Don't advance — wait for UI interaction
+            }
 
             const updatedHistory = [...newConvHistory, { role: 'ai', content: result.response }];
             setConversationHistory(updatedHistory);
@@ -1030,7 +1247,12 @@ export default function App() {
 
                     {/* Doctor personalized header */}
                     {doctorInfo ? (
-                        <>
+                        <div className="doctor-profile-welcome">
+                            {doctorInfo.avatar_url ? (
+                                <img src={doctorInfo.avatar_url} alt={doctorInfo.display_name} className="doctor-avatar-welcome" />
+                            ) : (
+                                <div className="doctor-avatar-placeholder">🩺</div>
+                            )}
                             <h1 className="welcome-title">
                                 {lang === 'ar'
                                     ? `أهلاً بك مع د. ${doctorInfo.display_name || doctorInfo.full_name}`
@@ -1041,7 +1263,7 @@ export default function App() {
                                     ? 'طبيبك يستخدم cliniq.one لتقديم أفضل رعاية طبية. المساعد الذكي سيجمع معلوماتك الصحية في بضع دقائق لإعداد تقرير مفصل لطبيبك.'
                                     : 'Your doctor uses cliniq.one to provide the best care. Our AI assistant will gather your health information in just a few minutes to prepare a detailed report for your doctor.'}
                             </p>
-                        </>
+                        </div>
                     ) : (
                         <>
                             <h1 className="welcome-title">{t.welcomeTitle}</h1>
@@ -1087,6 +1309,7 @@ export default function App() {
                             {loading ? <div className="spinner" /> : t.startBtn}
                         </button>
                     </div>
+                    <PoweredBy />
                 </div>
             )}
 
@@ -1103,6 +1326,11 @@ export default function App() {
                                 {t.online}
                             </div>
                         </div>
+                        {sessionId && (
+                            <div className="session-expiry" title="Session expires after 24 hours of inactivity">
+                                24h ⏳
+                            </div>
+                        )}
                     </div>
 
                     {/* Progress */}
@@ -1185,6 +1413,230 @@ export default function App() {
                             </button>
                         )}
 
+                        {/* ═══ BOOKING UI ═══ */}
+                        {bookingStep !== 'idle' && !bookingLoading && (
+                            <div className="booking-ui" style={{ padding: '12px', borderRadius: '16px', background: 'rgba(99,102,241,0.06)', margin: '8px 0', border: '1px solid rgba(99,102,241,0.15)' }}>
+
+                                {/* Location Picker */}
+                                {bookingStep === 'locations' && (
+                                    <div>
+                                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: 8 }}>{t.bookingPickLocation}</div>
+                                        {bookingLocations.length === 0 ? (
+                                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t.bookingNoLocations}</div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                {bookingLocations.map(loc => (
+                                                    <button
+                                                        key={loc.id}
+                                                        onClick={async () => {
+                                                            setSelectedLocation(loc);
+                                                            if (loc.booking_mode === 'call_center') {
+                                                                setBookingStep('callcenter');
+                                                                return;
+                                                            }
+                                                            setBookingLoading(true);
+                                                            const dates = await fetchAvailableDatesRpc(loc.id, loc.advance_booking_days);
+                                                            setAvailableDates(dates);
+                                                            setBookingStep('dates');
+                                                            setBookingLoading(false);
+                                                        }}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                                                            borderRadius: 12, border: '1px solid var(--border-color)',
+                                                            background: 'var(--card-bg)', cursor: 'pointer', textAlign: rtl ? 'right' : 'left',
+                                                            transition: 'all 0.2s',
+                                                        }}
+                                                    >
+                                                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.color || '#6366f1', flexShrink: 0 }} />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontWeight: 600, fontSize: 13 }}>{lang === 'ar' ? (loc.name_ar || loc.name) : loc.name}</div>
+                                                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                                                {lang === 'ar' ? (loc.address_ar || loc.address || loc.city) : (loc.address || loc.city)}
+                                                                {loc.booking_mode === 'call_center' && (' • ' + t.bookingCallCenter)}
+                                                            </div>
+                                                        </div>
+                                                        <span style={{ fontSize: 12, opacity: 0.5 }}>{loc.booking_mode === 'call_center' ? '📞' : '📅'}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Call Center Card */}
+                                {bookingStep === 'callcenter' && selectedLocation && (
+                                    <div style={{ textAlign: 'center', padding: '16px 8px' }}>
+                                        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{t.bookingCallCenter}</div>
+                                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                                            {lang === 'ar' ? (selectedLocation.name_ar || selectedLocation.name) : selectedLocation.name}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                            {selectedLocation.call_center_phone && (
+                                                <a
+                                                    href={`tel:${selectedLocation.call_center_phone}`}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 12, background: '#10b981', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}
+                                                >
+                                                    {t.bookingCallNow}
+                                                </a>
+                                            )}
+                                            {selectedLocation.call_center_whatsapp && selectedLocation.call_center_phone && (
+                                                <a
+                                                    href={`https://wa.me/${selectedLocation.call_center_phone.replace(/[^0-9]/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 12, background: '#25D366', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}
+                                                >
+                                                    {t.bookingWhatsApp}
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Date Picker */}
+                                {bookingStep === 'dates' && (
+                                    <div>
+                                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: 8 }}>{t.bookingPickDate}</div>
+                                        {availableDates.length === 0 ? (
+                                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t.bookingNoSlots}</div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                {availableDates.map(d => (
+                                                    <button
+                                                        key={d.slot_date}
+                                                        onClick={async () => {
+                                                            setSelectedDate(d.slot_date);
+                                                            setBookingLoading(true);
+                                                            const slots = await fetchAvailableSlotsRpc(selectedLocation!.id, d.slot_date);
+                                                            setAvailableSlots(slots.filter(s => s.available));
+                                                            setBookingStep('slots');
+                                                            setBookingLoading(false);
+                                                        }}
+                                                        style={{
+                                                            padding: '8px 14px', borderRadius: 10,
+                                                            border: '1px solid var(--border-color)', background: 'var(--card-bg)',
+                                                            cursor: 'pointer', textAlign: 'center', minWidth: 70, transition: 'all 0.2s',
+                                                        }}
+                                                    >
+                                                        <div style={{ fontWeight: 600, fontSize: 13 }}>{fmtDateShort(d.slot_date, lang)}</div>
+                                                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                                                            {d.available_slots} {t.bookingSlotsAvailable}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Time Slot Picker */}
+                                {bookingStep === 'slots' && (
+                                    <div>
+                                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: 4 }}>{t.bookingPickTime}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                                            {selectedDate && fmtDateShort(selectedDate, lang)} • {lang === 'ar' ? (selectedLocation?.name_ar || selectedLocation?.name) : selectedLocation?.name}
+                                        </div>
+                                        {availableSlots.length === 0 ? (
+                                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t.bookingNoSlots}</div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                {availableSlots.map(s => {
+                                                    const h = parseInt(s.slot_time.split(':')[0]);
+                                                    const isMorning = h < 12;
+                                                    return (
+                                                        <button
+                                                            key={s.slot_time}
+                                                            onClick={() => { setSelectedSlot(s.slot_time); setBookingStep('confirming'); }}
+                                                            style={{
+                                                                padding: '8px 14px', borderRadius: 10,
+                                                                border: selectedSlot === s.slot_time ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
+                                                                background: 'var(--card-bg)', cursor: 'pointer',
+                                                                fontSize: 13, fontWeight: 500, transition: 'all 0.2s',
+                                                            }}
+                                                        >
+                                                            {fmtTime12(s.slot_time, lang)}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Confirmation */}
+                                {bookingStep === 'confirming' && (
+                                    <div style={{ padding: 8 }}>
+                                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: 10 }}>
+                                            {lang === 'ar' ? '📋 تأكيد الحجز' : '📋 Confirm Booking'}
+                                        </div>
+                                        <div style={{ display: 'grid', gap: 6, fontSize: 13, marginBottom: 12 }}>
+                                            <div><strong>{t.bookingDoctor}:</strong> {doctorInfo?.display_name}</div>
+                                            <div><strong>{t.bookingLocation}:</strong> {lang === 'ar' ? (selectedLocation?.name_ar || selectedLocation?.name) : selectedLocation?.name}</div>
+                                            <div><strong>{t.bookingDate}:</strong> {selectedDate && fmtDateShort(selectedDate, lang)}</div>
+                                            <div><strong>{t.bookingTime}:</strong> {selectedSlot && fmtTime12(selectedSlot, lang)}</div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (!selectedLocation || !selectedDate || !selectedSlot) return;
+                                                setBookingLoading(true);
+                                                const result = await createBookingRpc(
+                                                    doctorCode, selectedLocation.id, selectedDate, selectedSlot,
+                                                    patientName || 'Patient', patientPhone, lang, sessionId,
+                                                );
+                                                if (result.success && result.booking) {
+                                                    setBookingResult(result.booking);
+                                                    setBookingStep('confirmed');
+                                                    addMsg('system', t.bookingConfirmed);
+                                                } else {
+                                                    setError(result.error || 'Booking failed');
+                                                    setBookingStep('slots');
+                                                }
+                                                setBookingLoading(false);
+                                            }}
+                                            disabled={bookingLoading}
+                                            style={{
+                                                width: '100%', padding: '12px', borderRadius: 12,
+                                                background: '#10b981', color: '#fff', border: 'none',
+                                                fontSize: 14, fontWeight: 600, cursor: bookingLoading ? 'wait' : 'pointer',
+                                                opacity: bookingLoading ? 0.7 : 1, transition: 'all 0.2s',
+                                            }}
+                                        >
+                                            {bookingLoading ? t.bookingConfirming : t.bookingConfirmBtn}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Confirmed */}
+                                {bookingStep === 'confirmed' && bookingResult && (
+                                    <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                                        <div style={{ fontSize: 32, marginBottom: 4 }}>✅</div>
+                                        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{t.bookingConfirmed}</div>
+                                        <div style={{ display: 'grid', gap: 4, fontSize: 13, background: 'var(--card-bg)', borderRadius: 12, padding: 12, textAlign: rtl ? 'right' : 'left' }}>
+                                            <div>👨‍⚕️ <strong>{t.bookingDoctor}:</strong> {lang === 'ar' ? bookingResult.doctor_full_name : bookingResult.doctor_name}</div>
+                                            <div>📍 <strong>{t.bookingLocation}:</strong> {lang === 'ar' ? (bookingResult.location_name_ar || bookingResult.location_name) : bookingResult.location_name}</div>
+                                            <div>📅 <strong>{t.bookingDate}:</strong> {fmtDateShort(bookingResult.date, lang)}</div>
+                                            <div>🕐 <strong>{t.bookingTime}:</strong> {fmtTime12(bookingResult.time, lang)}</div>
+                                            <div>📋 <strong>{t.bookingStatus}:</strong> {t.bookingStatusConfirmed}</div>
+                                        </div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                                            {lang === 'ar' ? 'بتوصلك رسالة تذكير قبل الموعد' : "You'll receive a reminder before your appointment"}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Booking loading spinner */}
+                        {bookingLoading && (
+                            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                                <div className="typing-dots">
+                                    <div className="typing-dot" />
+                                    <div className="typing-dot" />
+                                    <div className="typing-dot" />
+                                </div>
+                            </div>
+                        )}
+
                         <div ref={chatEndRef} />
                     </div>
 
@@ -1245,10 +1697,10 @@ export default function App() {
                         }}
                     />
 
-                    {/* Disclaimer */}
                     <div className="disclaimer">
                         <p>{t.disclaimer}</p>
                     </div>
+                    <PoweredBy />
                 </div>
             )}
 
@@ -1303,6 +1755,7 @@ export default function App() {
                             {t.restartBtn}
                         </button>
                     </div>
+                    <PoweredBy />
                 </div>
             )}
         </div>

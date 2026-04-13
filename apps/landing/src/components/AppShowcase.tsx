@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
-import { Smartphone, Stethoscope, Settings, ExternalLink } from 'lucide-react';
+import { Smartphone, Stethoscope, Settings, ExternalLink, Globe } from 'lucide-react';
 
 export default function AppShowcase() {
     const { t } = useI18n();
@@ -18,6 +18,18 @@ export default function AppShowcase() {
             bg: 'bg-accent-faded',
             borderColor: 'border-accent/20',
             device: 'iPhone',
+        },
+        {
+            key: 'wa-intake',
+            icon: Globe,
+            title: 'showcase.wa_intake_title',
+            desc: 'showcase.wa_intake_desc',
+            preview: '/mockups/patient-preview.png',
+            link: '#channels',
+            color: 'text-[#25D366]',
+            bg: 'bg-[#25D366]/10',
+            borderColor: 'border-[#25D366]/20',
+            device: 'Web / WhatsApp',
         },
         {
             key: 'doctor',
@@ -68,7 +80,7 @@ export default function AppShowcase() {
                 </div>
 
                 {/* App Cards */}
-                <div className="grid md:grid-cols-3 gap-8 items-start">
+                <div className="grid sm:grid-cols-2 gap-8 items-start">
                     {apps.map((app, index) => {
                         const Icon = app.icon;
                         return (

@@ -3363,3 +3363,227 @@ export async function getWaSessionsCount() {
     if (error) return 0;
     return count ?? 0;
 }
+
+
+// ═══════════════════════════════════════════════════════
+// WA BOOKING MANAGEMENT
+// ═══════════════════════════════════════════════════════
+
+export async function getWaBookings(filters?: { doctorId?: string; status?: string; dateFrom?: string; dateTo?: string }) {
+    // @ts-ignore — table not in generated types yet
+    let q = supabaseAdmin.from('wa_bookings').select(`
+        *,
+        doctors:doctor_id ( id, display_name, full_name, specialty ),
+        doctor_locations:location_id ( id, name, name_ar, city, booking_mode, color )
+    `).order('booking_date', { ascending: false }).order('booking_time', { ascending: false });
+
+    if (filters?.doctorId) q = q.eq('doctor_id', filters.doctorId);
+    if (filters?.status) q = q.eq('status', filters.status);
+    if (filters?.dateFrom) q = q.gte('booking_date', filters.dateFrom);
+    if (filters?.dateTo) q = q.lte('booking_date', filters.dateTo);
+
+    const { data, error } = await q.limit(200);
+    if (error) { console.error('[getWaBookings]', error.message); return []; }
+    return data || [];
+}
+
+export async function getWaBookingStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+    // @ts-ignore
+    const { count: totalCount } = await supabaseAdmin.from('wa_bookings').select('*', { count: 'exact', head: true });
+    // @ts-ignore
+    const { count: todayCount } = await supabaseAdmin.from('wa_bookings').select('*', { count: 'exact', head: true }).eq('booking_date', today).in('status', ['confirmed', 'pending']);
+    // @ts-ignore
+    const { count: weekCount } = await supabaseAdmin.from('wa_bookings').select('*', { count: 'exact', head: true }).gte('booking_date', today).lte('booking_date', weekEnd).in('status', ['confirmed', 'pending']);
+    // @ts-ignore
+    const { count: noShowCount } = await supabaseAdmin.from('wa_bookings').select('*', { count: 'exact', head: true }).eq('status', 'no_show');
+    // @ts-ignore
+    const { count: cancelledCount } = await supabaseAdmin.from('wa_bookings').select('*', { count: 'exact', head: true }).eq('status', 'cancelled');
+
+    return {
+        total: totalCount ?? 0,
+        today: todayCount ?? 0,
+        thisWeek: weekCount ?? 0,
+        noShows: noShowCount ?? 0,
+        cancelled: cancelledCount ?? 0,
+    };
+}
+
+export async function updateWaBookingStatus(bookingId: string, status: string) {
+    const updates: Record<string, unknown> = { status };
+    if (status === 'cancelled') updates.cancelled_at = new Date().toISOString();
+    if (status === 'completed') updates.completed_at = new Date().toISOString();
+
+    // @ts-ignore
+    const { error } = await supabaseAdmin.from('wa_bookings').update(updates as never).eq('id', bookingId);
+    if (error) { console.error('[updateWaBookingStatus]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+// ── Doctor Locations ────────────────────────────
+
+export async function getDoctorLocations(doctorId?: string) {
+    // @ts-ignore
+    let q = supabaseAdmin.from('doctor_locations').select(`
+        *,
+        doctors:doctor_id ( id, display_name, full_name ),
+        doctor_location_hours ( id, day_of_week, start_time, end_time, is_active )
+    `).order('sort_order', { ascending: true });
+
+    if (doctorId) q = q.eq('doctor_id', doctorId);
+    const { data, error } = await q;
+    if (error) { console.error('[getDoctorLocations]', error.message); return []; }
+    return data || [];
+}
+
+export async function createDoctorLocation(loc: Record<string, unknown>) {
+    // @ts-ignore
+    const { data, error } = await supabaseAdmin.from('doctor_locations').insert(loc as never).select().single();
+    if (error) { console.error('[createDoctorLocation]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function updateDoctorLocation(id: string, updates: Record<string, unknown>) {
+    // @ts-ignore
+    const { error } = await supabaseAdmin.from('doctor_locations').update(updates as never).eq('id', id);
+    if (error) { console.error('[updateDoctorLocation]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+export async function deleteDoctorLocation(id: string) {
+    // @ts-ignore
+    const { error } = await supabaseAdmin.from('doctor_locations').delete().eq('id', id);
+    if (error) { console.error('[deleteDoctorLocation]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+// ── Location Hours ──────────────────────────────
+
+export async function upsertLocationHours(locationId: string, hours: Array<{ day_of_week: number; start_time: string; end_time: string; is_active: boolean }>) {
+    // Delete existing hours for this location, then re-insert
+    // @ts-ignore
+    await supabaseAdmin.from('doctor_location_hours').delete().eq('location_id', locationId);
+
+    if (hours.length === 0) return { error: null };
+
+    const rows = hours.map(h => ({ location_id: locationId, ...h }));
+    // @ts-ignore
+    const { error } = await supabaseAdmin.from('doctor_location_hours').insert(rows as never);
+    if (error) { console.error('[upsertLocationHours]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+// ── Location Overrides ──────────────────────────
+
+export async function getLocationOverrides(locationId: string) {
+    // @ts-ignore
+    const { data, error } = await supabaseAdmin.from('doctor_location_overrides')
+        .select('*')
+        .eq('location_id', locationId)
+        .gte('override_date', new Date().toISOString().split('T')[0])
+        .order('override_date', { ascending: true });
+    if (error) { console.error('[getLocationOverrides]', error.message); return []; }
+    return data || [];
+}
+
+export async function createLocationOverride(override: Record<string, unknown>) {
+    // @ts-ignore
+    const { data, error } = await supabaseAdmin.from('doctor_location_overrides').insert(override as never).select().single();
+    if (error) { console.error('[createLocationOverride]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function deleteLocationOverride(id: string) {
+    // @ts-ignore
+    const { error } = await supabaseAdmin.from('doctor_location_overrides').delete().eq('id', id);
+    if (error) { console.error('[deleteLocationOverride]', error.message); return { error: error.message }; }
+    return { error: null };
+}
+
+// ── Notification Log ────────────────────────────
+
+export async function getWaNotificationLog(bookingId?: string) {
+    // @ts-ignore
+    let q = supabaseAdmin.from('wa_notification_log').select('*').order('sent_at', { ascending: false });
+    if (bookingId) q = q.eq('booking_id', bookingId);
+    const { data, error } = await q.limit(100);
+    if (error) { console.error('[getWaNotificationLog]', error.message); return []; }
+    return data || [];
+}
+
+// ═══════════════════════════════════════════════════════
+// WA CHAT SESSIONS (Native WhatsApp Chatbot)
+// ═══════════════════════════════════════════════════════
+
+export async function getWaChatSessions(filters?: { status?: string; doctorId?: string; search?: string }) {
+    // @ts-ignore — table not in generated types yet
+    let q = supabaseAdmin.from('wa_chat_sessions').select(`
+        id, phone, patient_name, language, doctor_code, pathway, status,
+        current_step, turn_count, consultation_id, booking_id,
+        last_message_at, expires_at, created_at, completed_at,
+        doctor:doctors!wa_chat_sessions_doctor_id_fkey ( id, display_name, full_name, specialty )
+    `).order('last_message_at', { ascending: false });
+
+    if (filters?.status) q = q.eq('status', filters.status);
+    if (filters?.doctorId) q = q.eq('doctor_id', filters.doctorId);
+    if (filters?.search) {
+        q = q.or(`phone.ilike.%${filters.search}%,patient_name.ilike.%${filters.search}%,doctor_code.ilike.%${filters.search}%`);
+    }
+
+    const { data, error } = await q.limit(200);
+    if (error) { console.error('[getWaChatSessions]', error.message); return []; }
+    return (data ?? []).map((s: Record<string, unknown>) => ({
+        ...s,
+        doctor_name: (s.doctor as Record<string, unknown>)?.display_name ?? (s.doctor as Record<string, unknown>)?.full_name ?? '',
+        doctor_specialty: (s.doctor as Record<string, unknown>)?.specialty ?? '',
+    }));
+}
+
+export async function getWaChatSessionStats() {
+    const [totalRes, activeRes, completedRes, expiredRes, awaitingRes, abandonedRes] = await Promise.all([
+        // @ts-ignore
+        supabaseAdmin.from('wa_chat_sessions').select('*', { count: 'exact', head: true }),
+        // @ts-ignore
+        supabaseAdmin.from('wa_chat_sessions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        // @ts-ignore
+        supabaseAdmin.from('wa_chat_sessions').select('*', { count: 'exact', head: true }).in('status', ['intake_complete', 'consultation_created']),
+        // @ts-ignore
+        supabaseAdmin.from('wa_chat_sessions').select('*', { count: 'exact', head: true }).eq('status', 'expired'),
+        // @ts-ignore
+        supabaseAdmin.from('wa_chat_sessions').select('*', { count: 'exact', head: true }).eq('status', 'awaiting_doctor_code'),
+        // @ts-ignore
+        supabaseAdmin.from('wa_chat_sessions').select('*', { count: 'exact', head: true }).eq('status', 'abandoned'),
+    ]);
+
+    return {
+        total: totalRes.count ?? 0,
+        active: activeRes.count ?? 0,
+        completed: completedRes.count ?? 0,
+        expired: expiredRes.count ?? 0,
+        awaiting: awaitingRes.count ?? 0,
+        abandoned: abandonedRes.count ?? 0,
+    };
+}
+
+export async function getWaChatSessionDetail(sessionId: string) {
+    // @ts-ignore
+    const { data, error } = await supabaseAdmin.from('wa_chat_sessions')
+        .select(`
+            *,
+            doctor:doctors!wa_chat_sessions_doctor_id_fkey ( id, display_name, full_name, specialty )
+        `)
+        .eq('id', sessionId)
+        .single();
+    if (error) { console.error('[getWaChatSessionDetail]', error.message); return null; }
+    return data;
+}
+
+export async function expireWaChatSessions() {
+    const { data, error } = await supabaseAdmin
+        // @ts-ignore — RPC not in generated types
+        .rpc('expire_wa_chat_sessions');
+    if (error) { console.error('[expireWaChatSessions]', error.message); return { count: 0, error: error.message }; }
+    return { count: data ?? 0, error: null };
+}

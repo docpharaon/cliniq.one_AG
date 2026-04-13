@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap, Camera, RotateCcw, Clock, Coins, Heart, Plus, Trash2, GripVertical, Power, Bell, FileText, UserPlus, LogIn } from 'lucide-react';
+import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap, Camera, RotateCcw, Clock, Coins, Heart, Plus, Trash2, GripVertical, Power, Bell, FileText, UserPlus, LogIn, MessageSquare, Phone, Link, Hash } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { fetchSettings, savePlatformSetting, fetchAvgResponseTime, fetchHealthTips, addHealthTip, editHealthTip, removeHealthTip, fetchNotificationToggles, doSetNotificationToggle, doTestOpenAIConnection } from '@/lib/actions';
 import { AI, CONSULT, PAYOUT, EXCHANGE, SECURITY, COUNTRIES } from '@cliniqone/config';
@@ -861,6 +861,383 @@ function AdminNotificationsConfig() {
     );
 }
 
+// ── Twilio / WhatsApp Configuration ──────────
+function TwilioWhatsAppConfig({
+    dbSettings,
+    onSaved,
+}: {
+    dbSettings: Setting[];
+    onSaved: () => void;
+}) {
+    const dbByKey = new Map(dbSettings.map(s => [s.key, s.value]));
+
+    const [accountSid, setAccountSid] = useState(dbByKey.get('twilio_account_sid') || '');
+    const [authToken, setAuthToken] = useState(dbByKey.get('twilio_auth_token') || '');
+    const [whatsappFrom, setWhatsappFrom] = useState(dbByKey.get('twilio_whatsapp_from') || '');
+    const [smsFrom, setSmsFrom] = useState(dbByKey.get('twilio_sms_from') || '');
+    const [showSid, setShowSid] = useState(false);
+    const [showToken, setShowToken] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [hasChanges, setHasChanges] = useState(false);
+
+    useEffect(() => {
+        const origSid = dbByKey.get('twilio_account_sid') || '';
+        const origToken = dbByKey.get('twilio_auth_token') || '';
+        const origWa = dbByKey.get('twilio_whatsapp_from') || '';
+        const origSms = dbByKey.get('twilio_sms_from') || '';
+        setHasChanges(
+            accountSid !== origSid || authToken !== origToken ||
+            whatsappFrom !== origWa || smsFrom !== origSms
+        );
+    }, [accountSid, authToken, whatsappFrom, smsFrom, dbSettings]);
+
+    const showToast = useCallback((type: 'success' | 'error', message: string) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    }, []);
+
+    const handleSave = async () => {
+        if (!accountSid.trim() || !authToken.trim()) {
+            showToast('error', 'Account SID and Auth Token are required');
+            return;
+        }
+        setSaving(true);
+        try {
+            await savePlatformSetting('twilio_account_sid', accountSid.trim(), 'twilio', 'Twilio Account SID');
+            await savePlatformSetting('twilio_auth_token', authToken.trim(), 'twilio', 'Twilio Auth Token');
+            await savePlatformSetting('twilio_whatsapp_from', whatsappFrom.trim(), 'twilio', 'Twilio WhatsApp From number (whatsapp:+...)');
+            await savePlatformSetting('twilio_sms_from', smsFrom.trim(), 'twilio', 'Twilio SMS From number (+...)');
+            showToast('success', 'Twilio configuration saved successfully');
+            setHasChanges(false);
+            onSaved();
+        } catch {
+            showToast('error', 'Failed to save Twilio settings');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="glass rounded-2xl p-4 md:p-6 relative overflow-hidden">
+            {/* Gradient accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-emerald-400 to-teal-400" />
+
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-green-500/15 rounded-xl flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-text-primary">Twilio / WhatsApp</h3>
+                    <p className="text-xs text-text-muted">Credentials used by the wa-notify Edge Function for booking confirmations &amp; reminders</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Account SID */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Key className="w-3.5 h-3.5" /> Account SID
+                    </label>
+                    <div className="relative">
+                        <input
+                            id="twilio-account-sid"
+                            type={showSid ? 'text' : 'password'}
+                            value={accountSid}
+                            onChange={(e) => setAccountSid(e.target.value)}
+                            placeholder="AC..."
+                            className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 pr-12 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowSid(!showSid)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-1"
+                        >
+                            {showSid ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Auth Token */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Key className="w-3.5 h-3.5" /> Auth Token
+                    </label>
+                    <div className="relative">
+                        <input
+                            id="twilio-auth-token"
+                            type={showToken ? 'text' : 'password'}
+                            value={authToken}
+                            onChange={(e) => setAuthToken(e.target.value)}
+                            placeholder="Your Twilio Auth Token"
+                            className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 pr-12 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowToken(!showToken)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-1"
+                        >
+                            {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* WhatsApp From */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <MessageSquare className="w-3.5 h-3.5" /> WhatsApp From Number
+                    </label>
+                    <input
+                        id="twilio-whatsapp-from"
+                        type="text"
+                        value={whatsappFrom}
+                        onChange={(e) => setWhatsappFrom(e.target.value)}
+                        placeholder="whatsapp:+14155238886"
+                        className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                    />
+                    <p className="text-[10px] text-text-muted mt-1.5">Format: <code className="text-accent">whatsapp:+14155238886</code> (Twilio Sandbox) or your registered WhatsApp Business number</p>
+                </div>
+
+                {/* SMS From */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Phone className="w-3.5 h-3.5" /> SMS Fallback Number
+                    </label>
+                    <input
+                        id="twilio-sms-from"
+                        type="text"
+                        value={smsFrom}
+                        onChange={(e) => setSmsFrom(e.target.value)}
+                        placeholder="+14155238886"
+                        className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                    />
+                    <p className="text-[10px] text-text-muted mt-1.5">Used when WhatsApp delivery fails. Standard E.164 format.</p>
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 mt-6 pt-5 border-t border-border">
+                <div className="flex-1" />
+                <button
+                    id="save-twilio-config-btn"
+                    onClick={handleSave}
+                    disabled={saving || !hasChanges}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-bold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
+                >
+                    {saving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <Save className="w-4 h-4" />
+                    )}
+                    Save Twilio Config
+                </button>
+            </div>
+
+            {/* Toast */}
+            {toast && (
+                <div
+                    className={`absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg animate-fade-in ${
+                        toast.type === 'success'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                    }`}
+                >
+                    {toast.type === 'success' ? (
+                        <CheckCircle className="w-4 h-4" />
+                    ) : (
+                        <XCircle className="w-4 h-4" />
+                    )}
+                    {toast.message}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Meta WhatsApp Cloud API Configuration ─────
+function MetaWhatsAppConfig({
+    dbSettings,
+    onSaved,
+}: {
+    dbSettings: Setting[];
+    onSaved: () => void;
+}) {
+    const dbByKey = new Map(dbSettings.map(s => [s.key, s.value]));
+
+    const [phoneNumberId, setPhoneNumberId] = useState(dbByKey.get('meta_wa_phone_number_id') || '');
+    const [accessToken, setAccessToken] = useState(dbByKey.get('meta_wa_access_token') || '');
+    const [verifyToken, setVerifyToken] = useState(dbByKey.get('meta_wa_verify_token') || '');
+    const [appSecret, setAppSecret] = useState(dbByKey.get('meta_wa_app_secret') || '');
+    const [showToken, setShowToken] = useState(false);
+    const [showSecret, setShowSecret] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [hasChanges, setHasChanges] = useState(false);
+
+    useEffect(() => {
+        const orig = {
+            p: dbByKey.get('meta_wa_phone_number_id') || '',
+            a: dbByKey.get('meta_wa_access_token') || '',
+            v: dbByKey.get('meta_wa_verify_token') || '',
+            s: dbByKey.get('meta_wa_app_secret') || '',
+        };
+        setHasChanges(
+            phoneNumberId !== orig.p || accessToken !== orig.a ||
+            verifyToken !== orig.v || appSecret !== orig.s
+        );
+    }, [phoneNumberId, accessToken, verifyToken, appSecret, dbSettings]);
+
+    const showToast = useCallback((type: 'success' | 'error', message: string) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    }, []);
+
+    const handleSave = async () => {
+        if (!phoneNumberId.trim() || !accessToken.trim()) {
+            showToast('error', 'Phone Number ID and Access Token are required');
+            return;
+        }
+        setSaving(true);
+        try {
+            await savePlatformSetting('meta_wa_phone_number_id', phoneNumberId.trim(), 'meta_whatsapp', 'Meta WhatsApp Business phone number ID');
+            await savePlatformSetting('meta_wa_access_token', accessToken.trim(), 'meta_whatsapp', 'Meta WhatsApp Cloud API access token');
+            await savePlatformSetting('meta_wa_verify_token', verifyToken.trim(), 'meta_whatsapp', 'Webhook verification token');
+            await savePlatformSetting('meta_wa_app_secret', appSecret.trim(), 'meta_whatsapp', 'Meta App Secret for signature verification');
+            showToast('success', 'Meta WhatsApp config saved');
+            setHasChanges(false);
+            onSaved();
+        } catch {
+            showToast('error', 'Failed to save Meta WhatsApp settings');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Compute webhook URL
+    const supabaseUrl = dbByKey.get('supabase_url') || '';
+    const projectRef = supabaseUrl ? supabaseUrl.match(/\/\/([^.]+)/)?.[1] || '' : '';
+    const webhookUrl = projectRef ? `https://${projectRef}.supabase.co/functions/v1/wa-webhook` : 'Deploy wa-webhook first';
+
+    return (
+        <div className="glass rounded-2xl p-4 md:p-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-500" />
+
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-500/15 rounded-xl flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-text-primary">Meta WhatsApp Cloud API</h3>
+                    <p className="text-xs text-text-muted">Native WhatsApp chatbot — patients chat directly in the WhatsApp app</p>
+                </div>
+            </div>
+
+            {/* Webhook URL (read-only) */}
+            <div className="mb-5 bg-bg-elevated rounded-xl px-4 py-3 border border-border">
+                <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-1">
+                    <Link className="w-3.5 h-3.5" /> Webhook URL (paste in Meta Developer Dashboard)
+                </label>
+                <p className="text-sm font-mono text-accent break-all">{webhookUrl}</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Phone Number ID */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Hash className="w-3.5 h-3.5" /> Phone Number ID
+                    </label>
+                    <input
+                        id="meta-wa-phone-id"
+                        type="text"
+                        value={phoneNumberId}
+                        onChange={(e) => setPhoneNumberId(e.target.value)}
+                        placeholder="1234567890123456"
+                        className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                    />
+                    <p className="text-[10px] text-text-muted mt-1.5">Found in Meta Developer Dashboard → WhatsApp → API Setup</p>
+                </div>
+
+                {/* Access Token */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Key className="w-3.5 h-3.5" /> Permanent Access Token
+                    </label>
+                    <div className="relative">
+                        <input
+                            id="meta-wa-access-token"
+                            type={showToken ? 'text' : 'password'}
+                            value={accessToken}
+                            onChange={(e) => setAccessToken(e.target.value)}
+                            placeholder="EAAx..."
+                            className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 pr-12 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                        />
+                        <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-1">
+                            {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Verify Token */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Shield className="w-3.5 h-3.5" /> Webhook Verify Token
+                    </label>
+                    <input
+                        id="meta-wa-verify-token"
+                        type="text"
+                        value={verifyToken}
+                        onChange={(e) => setVerifyToken(e.target.value)}
+                        placeholder="any-secret-string-you-choose"
+                        className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                    />
+                    <p className="text-[10px] text-text-muted mt-1.5">You choose this string. Must match the token in Meta’s webhook config.</p>
+                </div>
+
+                {/* App Secret */}
+                <div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-text-muted mb-2">
+                        <Shield className="w-3.5 h-3.5" /> App Secret
+                    </label>
+                    <div className="relative">
+                        <input
+                            id="meta-wa-app-secret"
+                            type={showSecret ? 'text' : 'password'}
+                            value={appSecret}
+                            onChange={(e) => setAppSecret(e.target.value)}
+                            placeholder="Your Meta App Secret"
+                            className="w-full bg-bg-elevated border border-border rounded-xl px-4 py-3 pr-12 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all font-mono"
+                        />
+                        <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-1">
+                            {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+                    <p className="text-[10px] text-text-muted mt-1.5">For X-Hub-Signature-256 verification. Found in Meta App Settings → Basic.</p>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3 mt-6 pt-5 border-t border-border">
+                <div className="flex-1" />
+                <button
+                    id="save-meta-wa-config-btn"
+                    onClick={handleSave}
+                    disabled={saving || !hasChanges}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-bold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
+                >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Meta Config
+                </button>
+            </div>
+
+            {toast && (
+                <div className={`absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg animate-fade-in ${toast.type === 'success' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
+                    {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    {toast.message}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Main Page ────────────────────────────────
 export default function SettingsPage() {
     const [dbSettings, setDbSettings] = useState<Setting[]>([]);
@@ -904,6 +1281,12 @@ export default function SettingsPage() {
 
                         {/* Admin Notifications Config */}
                         <AdminNotificationsConfig />
+
+                        {/* Twilio / WhatsApp Config */}
+                        <TwilioWhatsAppConfig dbSettings={dbSettings} onSaved={loadSettings} />
+
+                        {/* Meta WhatsApp Cloud API Config */}
+                        <MetaWhatsAppConfig dbSettings={dbSettings} onSaved={loadSettings} />
 
                         {/* Read-only config sections */}
                         {Object.entries(defaultSettings).map(([key, section]) => {
