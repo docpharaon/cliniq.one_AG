@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ACCESS_PASSWORD = 'cliniq2026';
+const ACCESS_PASSWORD = 'Momencrafts2026';
 const COOKIE_NAME = 'cliniq_mvp_access';
 
 export function middleware(request: NextRequest) {
