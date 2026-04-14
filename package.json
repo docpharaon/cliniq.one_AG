@@ -18,7 +18,8 @@
     "test:e2e:patient": "npx playwright test --project=patient-app",
     "test:e2e:doctor": "npx playwright test --project=doctor-web",
     "test:e2e:admin": "npx playwright test --project=admin-panel",
-    "test:e2e:report": "npx playwright show-report"
+    "test:e2e:report": "npx playwright show-report",
+    "postinstall": "node -e \"if(process.platform==='linux'){require('child_process').execSync('npm install --no-save lightningcss-linux-x64-gnu',{stdio:'inherit'})}\""
   },
   "devDependencies": {
     "@capacitor/cli": "^8.2.0",
