@@ -25,7 +25,7 @@ export default function AppShowcase() {
             title: 'showcase.wa_intake_title',
             desc: 'showcase.wa_intake_desc',
             preview: '/mockups/patient-preview.png',
-            link: '#channels',
+            link: '/mockups/whatsapp-patient-mockup.html',
             color: 'text-[#25D366]',
             bg: 'bg-[#25D366]/10',
             borderColor: 'border-[#25D366]/20',
