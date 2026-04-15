@@ -5,7 +5,7 @@ import {
     MessageCircle, Activity, Clock, User, Globe, Stethoscope,
     RotateCcw, FileText, Search, RefreshCw, Loader2, Eye,
     ExternalLink, AlertTriangle, CheckCircle2, XCircle, Timer,
-    MessageSquare,
+    MessageSquare, Zap, ListChecks, Send,
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -14,6 +14,8 @@ import {
     fetchWaChatSessionDetail,
     doExpireWaChatSessions,
     fetchDoctors,
+    doSendManualWaMessage,
+    doCreateDoctorRequest,
 } from '@/lib/actions';
 
 export default function WaChatSessionsPage() {
@@ -31,6 +33,16 @@ export default function WaChatSessionsPage() {
     // Detail View
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [detailLoading, setDetailLoading] = useState(false);
+    const [isInterventionModalOpen, setIsInterventionModalOpen] = useState(false);
+    const [interventionText, setInterventionText] = useState('');
+    const [sendingIntervention, setSendingIntervention] = useState(false);
+
+    // Doctor Follow-Up Request
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [requestSections, setRequestSections] = useState<string[]>([]);
+    const [requestCustomQ, setRequestCustomQ] = useState('');
+    const [requestCustomTurns, setRequestCustomTurns] = useState(4);
+    const [sendingRequest, setSendingRequest] = useState(false);
 
     const loadStats = useCallback(async () => {
         setStatsLoading(true);
@@ -90,6 +102,66 @@ export default function WaChatSessionsPage() {
         alert(`Expired ${res.count} sessions.`);
         loadStats();
         loadSessions();
+    };
+
+    const handleSendIntervention = async () => {
+        if (!interventionText.trim() || !selectedSession) return;
+        setSendingIntervention(true);
+        try {
+            await doSendManualWaMessage(selectedSession.id, selectedSession.phone, interventionText);
+            setInterventionText('');
+            setIsInterventionModalOpen(false);
+            alert('Message queued for delivery.');
+        } catch (e) {
+            alert('Failed to send: ' + (e as Error).message);
+        }
+        setSendingIntervention(false);
+    };
+
+    const FOLLOWUP_SECTIONS = [
+        { key: 'quick_medical', label: 'Medications & Allergies', emoji: '💊' },
+        { key: 'quick_background', label: 'Family & Social History', emoji: '👨‍👩‍👦' },
+        { key: 'medications', label: 'Medications (detailed)', emoji: '💉' },
+        { key: 'allergies', label: 'Allergies (detailed)', emoji: '🤧' },
+        { key: 'family_history', label: 'Family History', emoji: '🧬' },
+        { key: 'social_history', label: 'Social History', emoji: '🏠' },
+        { key: 'media_upload', label: 'Photos / Documents', emoji: '📸' },
+    ];
+
+    const toggleSection = (key: string) => {
+        setRequestSections(prev =>
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+        );
+    };
+
+    const handleSendRequest = async () => {
+        if (!selectedSession || (requestSections.length === 0 && !requestCustomQ.trim())) return;
+        setSendingRequest(true);
+        try {
+            const result = await doCreateDoctorRequest({
+                sessionId: selectedSession.id,
+                consultationId: selectedSession.consultation_id || undefined,
+                doctorId: selectedSession.doctor?.id || selectedSession.doctor_id,
+                requestedSections: requestSections,
+                customQuestion: requestCustomQ.trim() || undefined,
+                customMaxTurns: requestCustomTurns,
+            });
+            if (result.error) {
+                alert('Error: ' + result.error);
+            } else {
+                setIsRequestModalOpen(false);
+                setRequestSections([]);
+                setRequestCustomQ('');
+                alert('✅ Follow-up request sent to patient!');
+                // Refresh session detail
+                handleViewDetail(selectedSession.id);
+                loadSessions();
+                loadStats();
+            }
+        } catch (e) {
+            alert('Failed: ' + (e as Error).message);
+        }
+        setSendingRequest(false);
     };
 
     const fmtDate = (d: string) => {
@@ -157,6 +229,9 @@ export default function WaChatSessionsPage() {
                         <option value="awaiting_doctor_code">Awaiting Code</option>
                         <option value="intake_complete">Intake Complete</option>
                         <option value="consultation_created">Consultation Created</option>
+                        <option value="followup_requested">Follow-Up Requested</option>
+                        <option value="followup_active">Follow-Up Active</option>
+                        <option value="followup_complete">Follow-Up Complete</option>
                         <option value="expired">Expired</option>
                         <option value="abandoned">Abandoned</option>
                     </select>
@@ -313,6 +388,11 @@ export default function WaChatSessionsPage() {
                                         <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--text-muted)] mb-2">Service Context</div>
                                         <div className="font-bold">{getPathwayLabel(selectedSession.pathway)}</div>
                                         <div className="text-sm text-[var(--text-muted)]">{selectedSession.doctor?.display_name || 'No doctor assigned'}</div>
+                                        {selectedSession.fast_tracked && (
+                                            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-bold">
+                                                <Zap className="w-3 h-3" /> Fast-Tracked
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -369,6 +449,22 @@ export default function WaChatSessionsPage() {
                                     </div>
                                 )}
 
+                                {/* Fast-Track Skipped Sections */}
+                                {selectedSession.fast_tracked && selectedSession.skipped_sections?.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h4 className="text-sm font-bold flex items-center gap-2">
+                                            <Zap className="w-4 h-4 text-amber-500" /> Skipped Sections
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(selectedSession.skipped_sections as string[]).map((s: string) => (
+                                                <span key={s} className="px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-medium">
+                                                    {s.replace(/_/g, ' ')}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Links */}
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-bold">Connected Records</h4>
@@ -398,12 +494,205 @@ export default function WaChatSessionsPage() {
                         )}
                         
                         {/* Panel Footer */}
-                        <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--hover-bg)]">
+                        <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--hover-bg)] flex gap-3">
+                            <button 
+                                onClick={() => setIsInterventionModalOpen(true)}
+                                className="flex-1 py-3 rounded-xl bg-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                            >
+                                <MessageSquare className="w-4 h-4" /> Manual Intervention
+                            </button>
+                            {(selectedSession.status === 'intake_complete' || selectedSession.status === 'consultation_created' || selectedSession.fast_tracked) && selectedSession.doctor?.id && (
+                                <button 
+                                    onClick={() => {
+                                        setRequestSections([]);
+                                        setRequestCustomQ('');
+                                        setRequestCustomTurns(4);
+                                        setIsRequestModalOpen(true);
+                                    }}
+                                    className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                                >
+                                    <ListChecks className="w-4 h-4" /> Request Info
+                                </button>
+                            )}
                             <button 
                                 onClick={() => setSelectedSession(null)}
-                                className="w-full py-3 rounded-xl bg-[var(--text-primary)] text-[var(--color-bg-primary)] font-bold hover:opacity-90 transition-opacity"
+                                className="w-1/4 py-3 rounded-xl border border-[var(--border-color)] font-medium hover:bg-[var(--card-bg)] transition-colors"
                             >
-                                Close Detail View
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Manual Intervention Modal */}
+            {isInterventionModalOpen && selectedSession && (
+                <div 
+                    className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 text-left"
+                    onClick={() => setIsInterventionModalOpen(false)}
+                >
+                    <div 
+                        className="w-full max-w-lg bg-[var(--card-bg)] rounded-3xl border border-[var(--border-color)] shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6 border-b border-[var(--border-color)] flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                                    <MessageSquare className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg">Send Direct Message</h3>
+                                    <p className="text-xs text-[var(--text-muted)]">Recipient: {selectedSession.phone}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsInterventionModalOpen(false)} className="p-2 hover:bg-[var(--hover-bg)] rounded-xl">
+                                <RotateCcw className="w-5 h-5 text-[var(--text-muted)]" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex gap-3">
+                                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                                <div className="text-xs text-amber-600 leading-relaxed">
+                                    <span className="font-bold">Important:</span> Manual messages are intended for guidance or clarification. Ensure you are sending within the 24h Meta Customer Service window to avoid template restrictions.
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Message Content</label>
+                                <textarea
+                                    value={interventionText}
+                                    onChange={(e) => setInterventionText(e.target.value)}
+                                    placeholder="Type your message to the patient here..."
+                                    className="w-full h-32 p-4 rounded-2xl bg-[var(--hover-bg)] border border-[var(--border-color)] text-sm focus:ring-2 focus:ring-accent outline-none resize-none"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div className="p-6 bg-[var(--hover-bg)] border-t border-[var(--border-color)] flex gap-3">
+                            <button 
+                                onClick={() => setIsInterventionModalOpen(false)}
+                                className="flex-1 py-3 rounded-xl border border-[var(--border-color)] font-medium hover:bg-[var(--card-bg)]"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSendIntervention}
+                                disabled={sendingIntervention || !interventionText.trim()}
+                                className="flex-1 py-3 rounded-xl bg-accent text-white font-bold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {sendingIntervention ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                                Send via WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Doctor Follow-Up Request Modal */}
+            {isRequestModalOpen && selectedSession && (
+                <div 
+                    className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 text-left"
+                    onClick={() => setIsRequestModalOpen(false)}
+                >
+                    <div 
+                        className="w-full max-w-lg bg-[var(--card-bg)] rounded-3xl border border-[var(--border-color)] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6 border-b border-[var(--border-color)] flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center text-purple-500">
+                                    <ListChecks className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg">Request Missing Info</h3>
+                                    <p className="text-xs text-[var(--text-muted)]">Patient: {selectedSession.patient_name || selectedSession.phone}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsRequestModalOpen(false)} className="p-2 hover:bg-[var(--hover-bg)] rounded-xl">
+                                <RotateCcw className="w-5 h-5 text-[var(--text-muted)]" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                            {/* Info Banner */}
+                            <div className="p-4 rounded-2xl bg-purple-600/5 border border-purple-600/10 flex gap-3">
+                                <ListChecks className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                                <div className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
+                                    Select sections the doctor needs, and/or write a custom question. The patient will be re-engaged via WhatsApp to provide the missing information.
+                                </div>
+                            </div>
+
+                            {/* Section Checkboxes */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Sections to Request</label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {FOLLOWUP_SECTIONS.map(sec => (
+                                        <button
+                                            key={sec.key}
+                                            type="button"
+                                            onClick={() => toggleSection(sec.key)}
+                                            className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all text-sm ${
+                                                requestSections.includes(sec.key)
+                                                    ? 'bg-purple-600/10 border-purple-500/30 text-purple-600 dark:text-purple-400 font-medium'
+                                                    : 'bg-[var(--hover-bg)] border-[var(--border-color)] hover:bg-[var(--card-bg)]'
+                                            }`}
+                                        >
+                                            <span className="text-base">{sec.emoji}</span>
+                                            <span className="flex-1">{sec.label}</span>
+                                            {requestSections.includes(sec.key) && (
+                                                <CheckCircle2 className="w-4 h-4 text-purple-500" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Custom Question */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Custom Doctor Question (Optional)</label>
+                                <textarea
+                                    value={requestCustomQ}
+                                    onChange={(e) => setRequestCustomQ(e.target.value)}
+                                    placeholder="e.g. Can you describe the rash in more detail? When did it first appear?"
+                                    className="w-full h-24 p-4 rounded-2xl bg-[var(--hover-bg)] border border-[var(--border-color)] text-sm focus:ring-2 focus:ring-purple-500 outline-none resize-none"
+                                />
+                                {requestCustomQ.trim() && (
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Max follow-up turns:</label>
+                                        <select
+                                            value={requestCustomTurns}
+                                            onChange={(e) => setRequestCustomTurns(Number(e.target.value))}
+                                            className="px-2 py-1 rounded-lg bg-[var(--card-bg)] border border-[var(--border-color)] text-xs outline-none"
+                                        >
+                                            <option value={2}>2</option>
+                                            <option value={3}>3</option>
+                                            <option value={4}>4</option>
+                                            <option value={6}>6</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Skipped sections hint */}
+                            {selectedSession.fast_tracked && selectedSession.skipped_sections?.length > 0 && (
+                                <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-xs text-amber-600">
+                                    ⚡ This session was <strong>fast-tracked</strong>. The patient skipped: {(selectedSession.skipped_sections as string[]).map((s: string) => s.replace(/_/g, ' ')).join(', ')}
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-6 bg-[var(--hover-bg)] border-t border-[var(--border-color)] flex gap-3">
+                            <button 
+                                onClick={() => setIsRequestModalOpen(false)}
+                                className="flex-1 py-3 rounded-xl border border-[var(--border-color)] font-medium hover:bg-[var(--card-bg)]"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSendRequest}
+                                disabled={sendingRequest || (requestSections.length === 0 && !requestCustomQ.trim())}
+                                className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {sendingRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                Send Follow-Up Request
                             </button>
                         </div>
                     </div>

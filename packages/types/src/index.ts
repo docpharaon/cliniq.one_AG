@@ -7,6 +7,10 @@ export type UserStatus = 'active' | 'inactive' | 'blocked' | 'pending';
 export type Gender = 'male' | 'female' | 'prefer_not_to_say';
 export type KycStatus = 'not_started' | 'pending' | 'approved' | 'rejected' | 'resubmission_requested' | 'exempt';
 
+// ── Voice Transcription ──────────────────────
+export type VoiceState = 'idle' | 'listening' | 'processing' | 'error';
+export type VoiceMode = 'push_to_talk' | 'auto_mic';
+
 export interface User {
     id: string;
     email: string;

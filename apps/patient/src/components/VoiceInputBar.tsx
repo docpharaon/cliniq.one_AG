@@ -1,11 +1,7 @@
-// ─────────────────────────────────────────────────
-// VoiceInputBar — Premium PTT + Swipe-to-Lock UX
-// Hold mic to talk, swipe up to lock continuous mode
-// ─────────────────────────────────────────────────
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { AlertTriangle, Keyboard, Square, X, Mic, Lock, ChevronUp } from '@cliniqone/ui';
+import { AlertTriangle, Keyboard, Square, X, Mic, Lock, ChevronUp, VoiceInputBar as SharedVoiceBar } from '@cliniqone/ui';
 import { AudioWaveform } from './AudioWaveform';
-import type { VoiceState, VoiceMode } from '../hooks/useVoiceInput';
+import type { VoiceState, VoiceMode } from '@cliniqone/types';
 
 // ── Brand Colors ────────────────────────────────
 const TEAL = '#1A8A9E';

@@ -1,11 +1,4 @@
-import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { colors, typography, Bell, CheckCircle, ArrowLeft, ClipboardList, MessageSquare, Info, Siren } from '@cliniqone/ui';
-import { useDoctorNotifications } from '../hooks/useDoctorNotifications';
-import type { DoctorNotification } from '../hooks/useDoctorNotifications';
-import { haptic } from '../hooks/useHaptics';
-import { BackButton } from '../components/BackButton';
-import { Skeleton } from '../components/Skeleton';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties, ReactNode } from 'react';
 
 function NotifIcon({ type }: { type: DoctorNotification['type'] }) {
@@ -20,19 +13,20 @@ function NotifIcon({ type }: { type: DoctorNotification['type'] }) {
     }
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: any): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return t('doctor.notifications.justNow');
+    if (mins < 60) return t('doctor.notifications.mAgo', { count: mins });
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
+    if (hrs < 24) return t('doctor.notifications.hAgo', { count: hrs });
     const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
+    return t('doctor.notifications.dAgo', { count: days });
 }
 
 export function NotificationsPage() {
     const navigate = useNavigate();
+    const { t, isRTL } = useI18n();
     const { notifications, unreadCount, loading, markAsRead, markAllAsRead, refresh } = useDoctorNotifications();
 
     const handleTap = useCallback((notif: DoctorNotification) => {
@@ -46,16 +40,16 @@ export function NotificationsPage() {
     return (
         <div style={s.container} className="slide-in-page">
             {/* Header */}
-            <div style={s.header}>
+            <div style={{ ...s.header, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <BackButton />
-                <span style={s.title}>Notifications</span>
+                <span style={{ ...s.title, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.notifications.title')}</span>
                 {unreadCount > 0 && (
                     <button
                         id="mark-all-read"
                         onClick={() => { haptic.light(); markAllAsRead(); }}
                         style={s.markAllBtn}
                     >
-                        Mark all read
+                        {t('doctor.notifications.markAllRead')}
                     </button>
                 )}
             </div>
@@ -74,10 +68,10 @@ export function NotificationsPage() {
                     <div style={s.empty}>
                         <Bell size={48} color={colors.textTertiary} />
                         <span style={{ fontSize: 16, fontWeight: 600, color: colors.textSecondary, marginTop: 12 }}>
-                            No notifications yet
+                            {t('doctor.notifications.empty')}
                         </span>
                         <span style={{ fontSize: 13, color: colors.textTertiary, marginTop: 4 }}>
-                            You'll be notified when consultations are assigned
+                            {t('doctor.notifications.emptyMsg')}
                         </span>
                     </div>
                 ) : (
@@ -88,14 +82,16 @@ export function NotificationsPage() {
                             style={{
                                 ...s.notifCard,
                                 backgroundColor: notif.read ? 'transparent' : colors.accentTealFaded,
-                                borderLeftColor: notif.read ? 'transparent' : colors.accentTeal,
+                                [isRTL ? 'borderRight' : 'borderLeft']: `3px solid ${notif.read ? 'transparent' : colors.accentTeal}`,
+                                flexDirection: isRTL ? 'row-reverse' : 'row',
+                                textAlign: isRTL ? 'right' : 'left' as any,
                             }}
                             className="pressable"
                         >
                             <div style={s.notifIconWrap}>
                                 <NotifIcon type={notif.type} />
                             </div>
-                            <div style={s.notifBody}>
+                            <div style={{ ...s.notifBody, textAlign: isRTL ? 'right' : 'left' }}>
                                 <span style={{
                                     ...s.notifTitle,
                                     fontWeight: notif.read ? 500 : 700,
@@ -104,7 +100,7 @@ export function NotificationsPage() {
                                     {notif.title}
                                 </span>
                                 <span style={s.notifText}>{notif.body}</span>
-                                <span style={s.notifTime}>{timeAgo(notif.created_at)}</span>
+                                <span style={s.notifTime}>{timeAgo(notif.created_at, t)}</span>
                             </div>
                             {!notif.read && (
                                 <div style={s.unreadDot} />
@@ -167,10 +163,8 @@ const s: Record<string, CSSProperties> = {
         width: '100%',
         padding: '16px 20px',
         border: 'none',
-        borderLeft: '3px solid transparent',
         borderBottom: `1px solid ${colors.border}`,
         cursor: 'pointer',
-        textAlign: 'left',
         background: 'none',
     },
     notifIconWrap: {

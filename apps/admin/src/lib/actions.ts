@@ -167,10 +167,24 @@ import {
     createLocationOverride,
     deleteLocationOverride,
     getWaNotificationLog,
+    getWaNotificationStats,
     getWaChatSessions,
     getWaChatSessionStats,
     getWaChatSessionDetail,
     expireWaChatSessions,
+    invokeWaNotifyProcessQueue,
+    syncMetaTemplates,
+    testMetaConnection,
+    getMetaWaTemplates,
+    upsertMetaWaTemplate,
+    deleteMetaWaTemplate,
+    getTemplateStats,
+    sendManualWaMessage,
+    getWaDoctorRequests,
+    createWaDoctorRequest,
+    getFastTrackSettings,
+    updateFastTrackGlobal,
+    updateDoctorFastTrackMode,
 } from './queries';
 
 // ──────────────────────────────────────────
@@ -532,6 +546,9 @@ export async function editSequenceNode(id: string, updates: {
     gender_condition?: string | null;
     specialty_condition?: string | null;
     node_type?: string;
+    max_turns?: number | null;
+    wrap_at_turn?: number | null;
+    is_essential?: boolean;
 }) {
     return updateSequenceNode(id, updates);
 }
@@ -998,8 +1015,18 @@ export async function doDeleteLocationOverride(id: string) {
     return deleteLocationOverride(id);
 }
 
-export async function fetchWaNotificationLog(bookingId?: string) {
-    return getWaNotificationLog(bookingId);
+export async function fetchWaNotificationLog(filters?: { 
+    bookingId?: string; 
+    consultationId?: string;
+    status?: string;
+    type?: string;
+    search?: string;
+}) {
+    return getWaNotificationLog(filters);
+}
+
+export async function fetchWaNotificationStats() {
+    return getWaNotificationStats();
 }
 
 // ── WA Chat Sessions (Native WhatsApp Chatbot) ────
@@ -1018,4 +1045,72 @@ export async function fetchWaChatSessionDetail(sessionId: string) {
 
 export async function doExpireWaChatSessions() {
     return expireWaChatSessions();
+}
+
+// ── WhatsApp Templates ─────────────────────
+
+export async function doSyncWaTemplates() {
+    return syncMetaTemplates();
+}
+
+export async function doTestMetaConnection() {
+    return testMetaConnection();
+}
+
+export async function fetchMetaWaTemplates(params?: {
+    status?: string;
+    category?: string;
+    search?: string;
+    language?: string;
+}) {
+    return getMetaWaTemplates(params);
+}
+
+export async function saveMetaWaTemplate(template: any) {
+    return upsertMetaWaTemplate(template);
+}
+
+export async function removeMetaWaTemplate(id: string) {
+    return deleteMetaWaTemplate(id);
+}
+
+export async function fetchTemplateStats() {
+    return getTemplateStats();
+}
+
+export async function doProcessWaQueue() {
+    return invokeWaNotifyProcessQueue();
+}
+
+export async function doSendManualWaMessage(sessionId: string, phone: string, text: string) {
+    return sendManualWaMessage(sessionId, phone, text);
+}
+
+// ── WA Doctor Requests (Fast-Track Follow-Up) ────
+
+export async function fetchWaDoctorRequests(filters?: { sessionId?: string; doctorId?: string; status?: string }) {
+    return getWaDoctorRequests(filters);
+}
+
+export async function doCreateDoctorRequest(params: {
+    sessionId: string;
+    consultationId?: string;
+    doctorId: string;
+    requestedSections: string[];
+    customQuestion?: string;
+    customMaxTurns?: number;
+}) {
+    return createWaDoctorRequest(params);
+}
+
+export async function fetchFastTrackSettings() {
+    return getFastTrackSettings();
+}
+
+export async function doUpdateFastTrackGlobal(enabled: boolean) {
+    return updateFastTrackGlobal(enabled);
+}
+
+export async function doUpdateDoctorFastTrackMode(doctorId: string, mode: string | null) {
+    return updateDoctorFastTrackMode(doctorId, mode);
 }

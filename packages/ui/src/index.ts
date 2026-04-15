@@ -7,6 +7,9 @@ export { ThemeProvider, useTheme } from './theme';
 export { useThemeStore } from './theme';
 export type { ThemeMode, ThemeState } from './theme';
 
+// Hooks
+export { useVoiceInput } from './hooks/useVoiceInput';
+
 // Icons
 export * from './icons';
 
@@ -17,4 +20,8 @@ export { Card } from './components/Card';
 export { Badge } from './components/Badge';
 export { SocialLoginButton } from './components/SocialLoginButton';
 export { OfflineBanner } from './components/OfflineBanner';
+
+// Voice
+export { AudioWaveform } from './components/voice/AudioWaveform';
+export { VoiceInputBar } from './components/voice/VoiceInputBar';
 

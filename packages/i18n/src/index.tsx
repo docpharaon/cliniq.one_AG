@@ -135,3 +135,39 @@ export function useLocale(): 'en' | 'ar' {
     }, []);
     return locale;
 }
+
+// React components
+import React, { createContext, useContext, ReactNode } from 'react';
+
+const I18nContext = createContext<{
+    locale: 'en' | 'ar';
+    setLocale: (l: 'en' | 'ar') => Promise<void>;
+    t: typeof t;
+    isRTL: boolean;
+} | null>(null);
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+    const locale = useLocale();
+
+    // Initialize on mount
+    useEffect(() => {
+        initLocale();
+    }, []);
+
+    return (
+        <I18nContext.Provider value={{ 
+            locale, 
+            setLocale, 
+            t, 
+            isRTL: locale === 'ar' 
+        }}>
+            {children}
+        </I18nContext.Provider>
+    );
+}
+
+export function useI18n() {
+    const context = useContext(I18nContext);
+    if (!context) throw new Error('useI18n must be used within I18nProvider');
+    return context;
+}

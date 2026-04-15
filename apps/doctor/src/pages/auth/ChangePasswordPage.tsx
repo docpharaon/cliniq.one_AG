@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { supabase, getDoctorProfile } from '@cliniqone/api';
-import { colors, typography, Lock, AlertTriangle } from '@cliniqone/ui';
-import { useAuthStore } from '../../stores/authStore';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
 
 export function ChangePasswordPage() {
@@ -14,14 +10,15 @@ export function ChangePasswordPage() {
 
 function ChangePasswordForm() {
     const navigate = useNavigate();
+    const { t, isRTL } = useI18n();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleChangePassword = async () => {
-        if (!newPassword || newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
-        if (newPassword !== confirmPassword) { setError('Passwords do not match'); return; }
+        if (!newPassword || newPassword.length < 6) { setError(t('doctor.auth.change.lenError')); return; }
+        if (newPassword !== confirmPassword) { setError(t('doctor.auth.change.matchError')); return; }
 
         setLoading(true);
         setError('');
@@ -49,29 +46,29 @@ function ChangePasswordForm() {
     };
 
     return (
-        <div style={s.container}>
+        <div style={{ ...s.container, textAlign: isRTL ? 'right' : 'left' }}>
             <div style={s.content}>
                 <div style={s.header}>
                     <Lock size={48} color={colors.accentTeal} style={{ marginBottom: 12 }} />
-                    <span style={s.title}>Change Password</span>
-                    <p style={s.subtitle}>Your temporary password must be changed before you can continue.</p>
+                    <span style={s.title}>{t('doctor.auth.change.title')}</span>
+                    <p style={s.subtitle}>{t('doctor.auth.change.instr')}</p>
                 </div>
 
                 <div style={s.form}>
-                    {error && <div style={s.errorBox}><span style={s.errorText}><AlertTriangle size={13} color={colors.error} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {error}</span></div>}
+                    {error && <div style={{ ...s.errorBox, flexDirection: isRTL ? 'row-reverse' : 'row' }}><span style={{ ...s.errorText, display: 'flex', alignItems: 'center', gap: 4, flexDirection: isRTL ? 'row-reverse' : 'row' }}><AlertTriangle size={13} color={colors.error} /> {error}</span></div>}
 
-                    <label style={s.label}>New Password</label>
-                    <input style={s.input} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password (min 6 characters)" type="password" />
+                    <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.auth.change.newPassword')}</label>
+                    <input style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('doctor.auth.change.placeholderNew')} type="password" />
 
-                    <label style={s.label}>Confirm Password</label>
-                    <input style={s.input} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" type="password" />
+                    <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.auth.change.confirmPassword')}</label>
+                    <input style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('doctor.auth.change.placeholderConfirm')} type="password" />
 
                     <button style={{ ...s.button, opacity: loading ? 0.6 : 1 }} onClick={handleChangePassword} disabled={loading}>
-                        {loading ? <div className="spinner" style={{ color: colors.bgPrimary }} /> : <span style={s.buttonText}>Set New Password</span>}
+                        {loading ? <div className="spinner" style={{ color: colors.bgPrimary }} /> : <span style={s.buttonText}>{t('doctor.auth.change.savePassword')}</span>}
                     </button>
                 </div>
 
-                <p style={s.footer}>This is a one-time requirement set by your administrator.</p>
+                <p style={s.footer}>{t('doctor.auth.change.footer')}</p>
             </div>
         </div>
     );

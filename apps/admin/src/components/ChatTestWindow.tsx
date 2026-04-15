@@ -496,12 +496,17 @@ export default function ChatTestWindow({
     prompts = [],
     sequenceId,
     promptOverrideId,
+    mode = 'overlay',
+    autoStartProfile,
 }: {
     onClose: () => void;
     prompts?: PromptRow[];
     sequenceId?: string;
     promptOverrideId?: string;
+    mode?: 'overlay' | 'inline';
+    autoStartProfile?: AutoBotProfile;
 }) {
+    const isInline = mode === 'inline';
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -754,7 +759,17 @@ export default function ChatTestWindow({
 
     // ── Initialize chat ──────────────────────
     useEffect(() => {
-        if (!loadingSequence) startChat();
+        if (!loadingSequence) {
+            startChat();
+            // Auto-start bot if an autoStartProfile was provided (multi-test mode)
+            if (autoStartProfile && !autoModeRef.current) {
+                // Small delay to let the greeting message appear first
+                const timer = setTimeout(() => {
+                    if (!autoModeRef.current) runAutoBot(autoStartProfile);
+                }, 1200);
+                return () => clearTimeout(timer);
+            }
+        }
     }, [loadingSequence]);
 
     // ── Section message helpers ──────────────
@@ -2365,6 +2380,16 @@ export default function ChatTestWindow({
         : 0;
 
     if (loadingSequence) {
+        if (isInline) {
+            return (
+                <div className="w-full h-full flex items-center justify-center rounded-2xl bg-bg-card border border-border">
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+                        <p className="text-sm text-text-muted">Loading interview sequence...</p>
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
                 <div className="bg-bg-card rounded-2xl p-8 flex flex-col items-center gap-3 border border-border">
@@ -2375,19 +2400,16 @@ export default function ChatTestWindow({
         );
     }
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-stretch justify-end" style={{ pointerEvents: 'none' }}>
-            {/* Backdrop */}
+    // ── Shared chat panel content ──
+    const chatPanel = (
             <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
-                style={{ pointerEvents: 'auto' }}
-                onClick={onClose}
-            />
-
-            {/* Chat Panel */}
-            <div
-                className="relative w-full max-w-[520px] h-full flex flex-col animate-slide-in-right"
-                style={{
+                className={isInline
+                    ? "w-full h-full flex flex-col rounded-2xl border border-border overflow-hidden"
+                    : "relative w-full max-w-[520px] h-full flex flex-col animate-slide-in-right"
+                }
+                style={isInline ? {
+                    background: 'linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
+                } : {
                     pointerEvents: 'auto',
                     background: 'linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
                     borderLeft: '1px solid var(--color-border)',
@@ -3370,20 +3392,34 @@ export default function ChatTestWindow({
                         </p>
                     </div>
                 )}
+                {/* Slide-in animation */}
+                <style>{`
+                    @keyframes slideInRight {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    .animate-slide-in-right {
+                        animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    }
+                    .scrollbar-hide::-webkit-scrollbar { display: none; }
+                    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                `}</style>
             </div>
+    );
 
-            {/* Slide-in animation */}
-            <style>{`
-                @keyframes slideInRight {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                .animate-slide-in-right {
-                    animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                }
-                .scrollbar-hide::-webkit-scrollbar { display: none; }
-                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
+    // ── Inline mode: just return the panel directly (no fixed overlay) ──
+    if (isInline) return chatPanel;
+
+    // ── Overlay mode: wrap in fixed backdrop ──
+    return (
+        <div className="fixed inset-0 z-[100] flex items-stretch justify-end" style={{ pointerEvents: 'none' }}>
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+                style={{ pointerEvents: 'auto' }}
+                onClick={onClose}
+            />
+            {chatPanel}
         </div>
     );
 }

@@ -1,12 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@cliniqone/api';
-import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, Mail, Key } from '@cliniqone/ui';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
 
 export function ForgotPasswordPage() {
     const navigate = useNavigate();
+    const { t, isRTL } = useI18n();
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
@@ -21,13 +18,13 @@ export function ForgotPasswordPage() {
 
     if (sent) {
         return (
-            <div style={s.container}>
+            <div style={{ ...s.container, textAlign: isRTL ? 'right' : 'left' }}>
                 <div style={s.content}>
                     <Mail size={48} color={colors.accentTeal} style={{ marginBottom: 16 }} />
-                    <span style={s.title}>Check your email</span>
-                    <p style={s.message}>If an account exists with {email}, you'll receive a password reset link.</p>
+                    <span style={s.title}>{t('doctor.auth.forgot.checkEmail')}</span>
+                    <p style={s.message}>{t('doctor.auth.forgot.sentMsg', { email })}</p>
                     <button style={s.button} className="pressable" onClick={() => { haptic.light(); navigate(-1); }}>
-                        <span style={s.buttonText}>Back to Login</span>
+                        <span style={s.buttonText}>{t('doctor.auth.forgot.backToLogin')}</span>
                     </button>
                 </div>
             </div>
@@ -35,14 +32,14 @@ export function ForgotPasswordPage() {
     }
 
     return (
-        <div style={s.container}>
+        <div style={{ ...s.container, textAlign: isRTL ? 'right' : 'left' }}>
             <div style={s.content}>
                 <Key size={48} color={colors.accentTeal} style={{ marginBottom: 16 }} />
-                <span style={s.title}>Reset Password</span>
-                <p style={s.message}>Enter your email to receive a reset link.</p>
+                <span style={s.title}>{t('doctor.auth.forgot.title')}</span>
+                <p style={s.message}>{t('doctor.auth.forgot.instr')}</p>
 
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="doctor@cliniq.one"
@@ -50,11 +47,11 @@ export function ForgotPasswordPage() {
                 />
 
                 <button style={{ ...s.button, opacity: loading ? 0.6 : 1 }} className="pressable" onClick={() => { haptic.medium(); handleReset(); }} disabled={loading}>
-                    {loading ? <div className="spinner" style={{ color: colors.bgPrimary }} /> : <span style={s.buttonText}>Send Reset Link</span>}
+                    {loading ? <div className="spinner" style={{ color: colors.bgPrimary }} /> : <span style={s.buttonText}>{t('doctor.auth.forgot.sendLink')}</span>}
                 </button>
 
                 <button style={s.backLink} onClick={() => { haptic.light(); navigate(-1); }}>
-                    <span style={{ fontSize: 11, color: colors.accentTeal }}>← Back to Login</span>
+                    <span style={{ fontSize: 11, color: colors.accentTeal }}>{isRTL ? 'العودة لتسجيل الدخول ←' : '← Back to Login'}</span>
                 </button>
             </div>
         </div>

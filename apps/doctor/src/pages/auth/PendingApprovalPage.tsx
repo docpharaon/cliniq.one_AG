@@ -1,22 +1,20 @@
-import { useNavigate } from 'react-router-dom';
-import { colors, typography, spacing, radius, Clock, Refresh } from '@cliniqone/ui';
-import { supabase } from '@cliniqone/api';
-import { useAuthStore } from '../../stores/authStore';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
 
-function StepItem({ num, text, done }: { num: string; text: string; done?: boolean }) {
+function StepItem({ num, text, done, isRTL }: { num: string; text: string; done?: boolean; isRTL?: boolean }) {
     return (
-        <div style={s.stepRow}>
+        <div style={{ ...s.stepRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
             <div style={{ ...s.stepNum, ...(done ? s.stepNumDone : {}) }}>
                 <span style={{ ...s.stepNumText, ...(done ? { color: '#fff', fontWeight: 700 } : {}) }}>{done ? '✓' : num}</span>
             </div>
-            <span style={{ ...s.stepText, ...(done ? { color: colors.textSecondary, textDecoration: 'line-through' } : {}) }}>{text}</span>
+            <span style={{ ...s.stepText, ...(done ? { color: colors.textSecondary, textDecoration: 'line-through' } : {}), textAlign: isRTL ? 'right' : 'left' }}>{text}</span>
         </div>
     );
 }
 
 export function PendingApprovalPage() {
     const navigate = useNavigate();
+    const { t, isRTL } = useI18n();
     const { doctor, clear } = useAuthStore();
 
     async function handleLogout() {
@@ -31,44 +29,44 @@ export function PendingApprovalPage() {
 
     return (
         <div style={s.container}>
-            <div style={s.content}>
+            <div style={{ ...s.content, textAlign: isRTL ? 'right' : 'left' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: spacing.xl }}><Clock size={56} color={colors.warning} /></div>
-                <span style={s.title}>Application Under Review</span>
-                <p style={s.description}>Your doctor account has been created successfully. An administrator will review and approve your registration.</p>
+                <span style={s.title}>{t('doctor.registration.pendingHeader')}</span>
+                <p style={s.description}>{t('doctor.registration.pendingDesc')}</p>
 
                 <div style={s.statusCard}>
-                    <div style={s.statusRow}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary }}>Status</span>
-                        <span style={s.statusBadge}>Pending Review</span>
+                    <div style={{ ...s.statusRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary }}>{t('doctor.registration.status')}</span>
+                        <span style={s.statusBadge}>{t('doctor.registration.pendingReview')}</span>
                     </div>
-                    <span style={{ fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                        You'll be notified once your account is approved. This usually takes 1-2 business days.
+                    <span style={{ fontSize: 12, color: colors.textSecondary, lineHeight: '18px', display: 'block', textAlign: isRTL ? 'right' : 'left' }}>
+                        {t('doctor.registration.daysWait')}
                     </span>
                 </div>
 
                 <div style={s.stepsCard}>
-                    <span style={{ fontSize: typography.h4.fontSize, fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: spacing.md }}>What Happens Next?</span>
+                    <span style={{ fontSize: typography.h4.fontSize, fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: spacing.md, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.nextSteps')}</span>
                     {doctor?.doctor_type === 'locum' ? (
                         <>
-                            <StepItem num="1" text="Submit credentials & documents" done={doctor.onboarding_status !== 'documents_pending'} />
-                            <StepItem num="2" text="Admin reviews your application" done={doctor.onboarding_status === 'approved'} />
-                            <StepItem num="3" text="Complete sandbox training" done={!doctor.sandbox_mode && doctor.onboarding_status === 'approved'} />
-                            <StepItem num="4" text="Start accepting locum consultations" />
+                            <StepItem num="1" text={t('doctor.registration.steps.submitDocs')} done={doctor.onboarding_status !== 'documents_pending'} isRTL={isRTL} />
+                            <StepItem num="2" text={t('doctor.registration.steps.adminReview')} done={doctor.onboarding_status === 'approved'} isRTL={isRTL} />
+                            <StepItem num="3" text={t('doctor.registration.steps.sandbox')} done={!doctor.sandbox_mode && doctor.onboarding_status === 'approved'} isRTL={isRTL} />
+                            <StepItem num="4" text={t('doctor.registration.steps.startLocum')} isRTL={isRTL} />
                         </>
                     ) : (
                         <>
-                            <StepItem num="1" text="Admin reviews your credentials" done />
-                            <StepItem num="2" text="Account gets approved" />
-                            <StepItem num="3" text="You can start accepting consultations" />
+                            <StepItem num="1" text={t('doctor.registration.steps.adminReviewsCreds')} done isRTL={isRTL} />
+                            <StepItem num="2" text={t('doctor.registration.steps.accountApproved')} isRTL={isRTL} />
+                            <StepItem num="3" text={t('doctor.registration.steps.startConsultations')} isRTL={isRTL} />
                         </>
                     )}
                 </div>
 
                 <button style={s.refreshButton} onClick={handleRefresh}>
-                    <span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Refresh size={14} color={colors.accentTeal} /> Check Status</span>
+                    <span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}><Refresh size={14} color={colors.accentTeal} /> {t('doctor.registration.checkStatus')}</span>
                 </button>
                 <button style={s.logoutButton} onClick={handleLogout}>
-                    <span style={{ fontSize: 14, color: colors.textTertiary }}>← Sign Out</span>
+                    <span style={{ fontSize: 14, color: colors.textTertiary }}>{isRTL ? 'تسجيل الخروج ←' : '← Sign Out'}</span>
                 </button>
             </div>
         </div>

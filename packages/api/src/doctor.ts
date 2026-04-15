@@ -438,3 +438,56 @@ export async function hasRefundPending(consultationId: string): Promise<boolean>
 
     return (count || 0) > 0;
 }
+
+// ──────────────────────────────────────────
+// Doctor Drafts (Cloud Sync)
+// ──────────────────────────────────────────
+
+/**
+ * Upsert a response draft for a consultation.
+ */
+export async function saveDoctorDraft(doctorId: string, consultationId: string, content: string, metadata?: Record<string, any>) {
+    const { data, error } = await supabase
+        .from('doctor_drafts')
+        .upsert({
+            doctor_id: doctorId,
+            consultation_id: consultationId,
+            content,
+            metadata: metadata || {},
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'doctor_id,consultation_id' })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Get a response draft for a consultation.
+ */
+export async function getDoctorDraft(doctorId: string, consultationId: string) {
+    const { data, error } = await supabase
+        .from('doctor_drafts')
+        .select('*')
+        .eq('doctor_id', doctorId)
+        .eq('consultation_id', consultationId)
+        .maybeSingle();
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Delete a draft (usually after successful submission).
+ */
+export async function deleteDoctorDraft(doctorId: string, consultationId: string) {
+    const { error } = await supabase
+        .from('doctor_drafts')
+        .delete()
+        .eq('doctor_id', doctorId)
+        .eq('consultation_id', consultationId);
+
+    if (error) throw error;
+    return { success: true };
+}

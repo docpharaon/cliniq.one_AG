@@ -76,6 +76,11 @@ const SEQUENCE_TYPE_META: Record<string, { label: string; emoji: string; color: 
     refill: { label: 'Phase 2 · Refill', emoji: '💊', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
     followup: { label: 'Phase 2 · Follow-Up', emoji: '🔄', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
     global_wrapup: { label: 'Phase 3 · Wrap', emoji: '📋', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    wa_new_visit: { label: 'WA New Visit', emoji: '🆕', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+    wa_followup: { label: 'WA Follow-Up', emoji: '🔄', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+    wa_wrapup: { label: 'WA Wrapup', emoji: '📝', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+    wa_intake: { label: 'WA Intake', emoji: '📋', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+    wa_booking: { label: 'WA Booking', emoji: '📅', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30' },
     legacy: { label: 'Legacy', emoji: '📦', color: 'text-text-muted', bg: 'bg-bg-elevated', border: 'border-border' },
 };
 
@@ -159,6 +164,9 @@ export default function AIPage() {
 
     // Delete state
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Prompt category filter
+    const [promptFilter, setPromptFilter] = useState<string>('all');
 
     // Quick-test a specific prompt
     const [testingPromptId, setTestingPromptId] = useState<string | null>(null);
@@ -1623,8 +1631,7 @@ RULES:
                                 {multiInstances.length > 0 ? (
                                     <div className={`grid gap-4 ${
                                         multiInstances.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
-                                        multiInstances.length === 2 ? 'grid-cols-1 lg:grid-cols-2' :
-                                        'grid-cols-1 lg:grid-cols-2'
+                                        'grid-cols-2'
                                     }`} style={{ minHeight: '70vh' }}>
                                         {multiInstances.map(instance => (
                                             <div key={instance.id} className="relative group" style={{ height: multiInstances.length <= 2 ? '80vh' : '70vh' }}>
@@ -1993,27 +2000,72 @@ RULES:
                             <div className="flex items-center justify-center h-64">
                                 <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                             </div>
-                        ) : (
-                            <DataTable
-                                title="All Prompts"
-                                subtitle={`${totalCount} AI prompts configured`}
-                                columns={columns}
-                                data={prompts}
-                                totalCount={totalCount}
-                                searchPlaceholder="Search by name, specialty, or type..."
-                                rowKey={(row) => row.id}
-                                actions={
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={handleCreate}
-                                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-semibold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all"
-                                        >
-                                            <Plus className="w-4 h-4" /> New Prompt
-                                        </button>
+                        ) : (() => {
+                            // ── Category filtering logic ──
+                            type PromptCategory = { key: string; label: string; emoji: string; color: string; bg: string; border: string; filter: (p: PromptRow) => boolean };
+                            const categories: PromptCategory[] = [
+                                { key: 'all', label: 'All', emoji: '📄', color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/40', filter: () => true },
+                                { key: 'wa', label: 'WhatsApp', emoji: '📱', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/40', filter: (p) => p.name.startsWith('WA') },
+                                { key: 'general', label: 'General', emoji: '🌐', color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/40', filter: (p) => !p.name.startsWith('WA') && (p.specialty === 'general' || !p.specialty) && p.prompt_type !== 'global_guard' },
+                                { key: 'pediatrics', label: 'Pediatrics', emoji: '👶', color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/40', filter: (p) => p.specialty === 'pediatrics' },
+                                { key: 'orthopedics', label: 'Orthopedics', emoji: '🦴', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/40', filter: (p) => p.specialty === 'orthopedics' },
+                                { key: 'psychiatry', label: 'Psychiatry', emoji: '🧠', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/40', filter: (p) => p.specialty === 'psychiatry' },
+                                { key: 'dermatology', label: 'Dermatology', emoji: '🩹', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/40', filter: (p) => p.specialty === 'dermatology' },
+                                { key: 'system', label: 'System', emoji: '⚙️', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/40', filter: (p) => p.prompt_type === 'system' || p.prompt_type === 'global_guard' },
+                            ];
+                            const activeCat = categories.find(c => c.key === promptFilter) || categories[0];
+                            const filteredPrompts = prompts.filter(activeCat.filter);
+
+                            return (
+                                <>
+                                    {/* Category filter pills */}
+                                    <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+                                        {categories.map(cat => {
+                                            const count = prompts.filter(cat.filter).length;
+                                            if (count === 0 && cat.key !== 'all') return null;
+                                            const isActive = promptFilter === cat.key;
+                                            return (
+                                                <button
+                                                    key={cat.key}
+                                                    onClick={() => setPromptFilter(cat.key)}
+                                                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border ${
+                                                        isActive
+                                                            ? `${cat.bg} ${cat.border} ${cat.color} shadow-sm`
+                                                            : 'border-transparent bg-bg-elevated text-text-muted hover:text-text-primary hover:bg-bg-tertiary'
+                                                    }`}
+                                                >
+                                                    <span>{cat.emoji}</span>
+                                                    {cat.label}
+                                                    <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${isActive ? 'bg-white/10' : 'bg-bg-tertiary'}`}>
+                                                        {count}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                }
-                            />
-                        )}
+
+                                    <DataTable
+                                        title={activeCat.key === 'all' ? 'All Prompts' : `${activeCat.emoji} ${activeCat.label} Prompts`}
+                                        subtitle={`${filteredPrompts.length} prompt${filteredPrompts.length !== 1 ? 's' : ''}`}
+                                        columns={columns}
+                                        data={filteredPrompts}
+                                        totalCount={filteredPrompts.length}
+                                        searchPlaceholder="Search by name, specialty, or type..."
+                                        rowKey={(row) => row.id}
+                                        actions={
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={handleCreate}
+                                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-bg-primary text-sm font-semibold hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(45,212,191,0.4)] transition-all"
+                                                >
+                                                    <Plus className="w-4 h-4" /> New Prompt
+                                                </button>
+                                            </div>
+                                        }
+                                    />
+                                </>
+                            );
+                        })()}
 
                         {/* ═══ Safety & Protocols (Collapsible) ═══ */}
                         <div className="mt-6 bg-bg-card rounded-2xl border border-border overflow-hidden shadow-card">

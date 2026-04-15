@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────
 // Supabase Edge Function: wa-notify
-// Processes queued booking notifications via Twilio
-// Supports WhatsApp (primary) + SMS (fallback)
+// Processes queued booking notifications via Meta Cloud API
+// Supports WhatsApp (primary) + SMS (fallback via Twilio)
 // Markets: KSA (+966) / UAE (+971)
 // ─────────────────────────────────────────────────────
 
@@ -11,16 +11,23 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Twilio credentials — resolved at runtime:
-//   1. Supabase secrets (env vars via `npx supabase secrets set`)
-//   2. Fallback: platform_settings table (set via Admin Panel → Settings)
+// Meta credentials (resolved from platform_settings)
+let META_PHONE_NUMBER_ID = Deno.env.get('META_WA_PHONE_NUMBER_ID') || '';
+let META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') || '';
+
+// Twilio credentials (only for SMS fallback)
 let TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID') || '';
 let TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN') || '';
-let TWILIO_WHATSAPP_FROM = Deno.env.get('TWILIO_WHATSAPP_FROM') || '';
 let TWILIO_SMS_FROM = Deno.env.get('TWILIO_SMS_FROM') || '';
 
-async function loadTwilioFromDb(supabase: ReturnType<typeof createClient>) {
-    const keys = ['twilio_account_sid', 'twilio_auth_token', 'twilio_whatsapp_from', 'twilio_sms_from'];
+async function loadSettingsFromDb(supabase: ReturnType<typeof createClient>) {
+    const keys = [
+        'meta_wa_phone_number_id', 
+        'meta_wa_access_token', 
+        'twilio_account_sid', 
+        'twilio_auth_token', 
+        'twilio_sms_from'
+    ];
     const { data } = await supabase
         .from('platform_settings')
         .select('key, value')
@@ -28,10 +35,12 @@ async function loadTwilioFromDb(supabase: ReturnType<typeof createClient>) {
 
     if (!data) return;
     const map = new Map(data.map((r: { key: string; value: string }) => [r.key, r.value]));
-    if (!TWILIO_ACCOUNT_SID) TWILIO_ACCOUNT_SID = map.get('twilio_account_sid') || '';
-    if (!TWILIO_AUTH_TOKEN)   TWILIO_AUTH_TOKEN  = map.get('twilio_auth_token') || '';
-    if (!TWILIO_WHATSAPP_FROM) TWILIO_WHATSAPP_FROM = map.get('twilio_whatsapp_from') || 'whatsapp:+14155238886';
-    if (!TWILIO_SMS_FROM)     TWILIO_SMS_FROM    = map.get('twilio_sms_from') || '';
+    
+    if (!META_PHONE_NUMBER_ID) META_PHONE_NUMBER_ID = map.get('meta_wa_phone_number_id') || '';
+    if (!META_ACCESS_TOKEN)     META_ACCESS_TOKEN     = map.get('meta_wa_access_token') || '';
+    if (!TWILIO_ACCOUNT_SID)    TWILIO_ACCOUNT_SID    = map.get('twilio_account_sid') || '';
+    if (!TWILIO_AUTH_TOKEN)     TWILIO_AUTH_TOKEN     = map.get('twilio_auth_token') || '';
+    if (!TWILIO_SMS_FROM)       TWILIO_SMS_FROM       = map.get('twilio_sms_from') || '';
 }
 
 const CORS = {
@@ -128,16 +137,15 @@ function formatTime12(timeStr: string, lang: string): string {
     return `${hour12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-// ── Message Templates ───────────────────────────────
+// ── Template Mapping ─────────────────────────────────
 
-function buildMessage(
+function getTemplateData(
     type: string,
     lang: string,
     booking: BookingRow,
     doctor: DoctorRow,
     location: LocationRow,
-    cancelLink?: string,
-): string {
+): { name: string; params: string[] } {
     const docName = lang === 'ar' ? `د. ${doctor.full_name || doctor.display_name}` : `Dr. ${doctor.display_name}`;
     const locName = lang === 'ar' ? (location.name_ar || location.name) : location.name;
     const date = lang === 'ar' ? formatDateAr(booking.booking_date) : formatDateEn(booking.booking_date);
@@ -145,103 +153,112 @@ function buildMessage(
 
     switch (type) {
         case 'confirmation':
-            if (lang === 'ar') {
-                return `✅ تم تأكيد موعدك
-
-👨‍⚕️ ${docName}
-📍 ${locName}
-📅 ${date}
-🕐 ${time}
-
-بتوصلك رسالة تذكير قبل الموعد.${cancelLink ? `\n\nللإلغاء: ${cancelLink}` : ''}`;
-            }
-            return `✅ Appointment Confirmed
-
-👨‍⚕️ ${docName}
-📍 ${locName}
-📅 ${date}
-🕐 ${time}
-
-You'll receive a reminder before your appointment.${cancelLink ? `\n\nTo cancel: ${cancelLink}` : ''}`;
-
+            return {
+                name: 'booking_confirmation',
+                params: [docName, locName, date, time]
+            };
         case 'reminder_24h':
-            if (lang === 'ar') {
-                return `⏰ تذكير: لديك موعد غداً
-
-👨‍⚕️ ${docName}
-📍 ${locName}
-🕐 ${time}${cancelLink ? `\n\nللإلغاء: ${cancelLink}` : ''}`;
-            }
-            return `⏰ Reminder: You have an appointment tomorrow
-
-👨‍⚕️ ${docName}
-📍 ${locName}
-🕐 ${time}${cancelLink ? `\n\nTo cancel: ${cancelLink}` : ''}`;
-
         case 'reminder_2h':
-            if (lang === 'ar') {
-                return `🔔 موعدك بعد ساعتين
-
-👨‍⚕️ ${docName}
-📍 ${locName}
-🕐 ${time}`;
-            }
-            return `🔔 Your appointment is in 2 hours
-
-👨‍⚕️ ${docName}
-📍 ${locName}
-🕐 ${time}`;
-
+            return {
+                name: 'booking_reminder',
+                params: [docName, locName, time]
+            };
         case 'cancellation':
-            if (lang === 'ar') {
-                return `❌ تم إلغاء موعدك
-
-👨‍⚕️ ${docName}
-📅 ${date}
-🕐 ${time}
-
-لحجز موعد جديد، تواصل مع عيادة طبيبك.`;
-            }
-            return `❌ Appointment Cancelled
-
-👨‍⚕️ ${docName}
-📅 ${date}
-🕐 ${time}
-
-To book a new appointment, contact your doctor's clinic.`;
-
+            return {
+                name: 'booking_cancellation',
+                params: [docName, date, time]
+            };
+        case 'report_ready':
+            return {
+                name: 'report_ready_notification',
+                params: [docName, `https://www.cliniq.one/reports/${booking.id}`]
+            };
+        case 'lab_results':
+            return {
+                name: 'lab_results_notification',
+                params: [`https://www.cliniq.one/reports/${booking.id}`]
+            };
         default:
-            return `Notification from cliniq.one`;
+            return { name: 'booking_notification', params: [docName] };
     }
 }
 
-// ── Twilio API Calls ────────────────────────────────
+// ── Meta Cloud API Calls ────────────────────────────
 
-async function sendTwilioWhatsApp(to: string, body: string): Promise<{ ok: boolean; sid?: string; error?: string }> {
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-    const toFormatted = to.startsWith('whatsapp:') ? to : `whatsapp:${normalizePhone(to)}`;
+async function sendWhatsAppTemplate(
+    to: string, 
+    templateName: string, 
+    lang: string, 
+    parameters: string[]
+): Promise<{ ok: boolean; messageId?: string; error?: string }> {
+    const url = `https://graph.facebook.com/v21.0/${META_PHONE_NUMBER_ID}/messages`;
     
-    const params = new URLSearchParams({
-        From: TWILIO_WHATSAPP_FROM,
-        To: toFormatted,
-        Body: body,
-    });
+    const body = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: to.replace('+', ''), // Meta usually wants no +
+        type: "template",
+        template: {
+            name: templateName,
+            language: { code: lang === 'ar' ? 'ar' : 'en' },
+            components: [
+                {
+                    type: "body",
+                    parameters: parameters.map(p => ({ type: "text", text: p }))
+                }
+            ]
+        }
+    };
 
     try {
         const resp = await fetch(url, {
             method: 'POST',
             headers: {
-                'Authorization': 'Basic ' + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `Bearer ${META_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
             },
-            body: params.toString(),
+            body: JSON.stringify(body),
         });
 
         const data = await resp.json();
-        if (resp.ok && data.sid) {
-            return { ok: true, sid: data.sid };
+        if (resp.ok && data.messages?.[0]?.id) {
+            return { ok: true, messageId: data.messages[0].id };
         }
-        return { ok: false, error: data.message || `HTTP ${resp.status}` };
+        return { ok: false, error: JSON.stringify(data.error) || `HTTP ${resp.status}` };
+    } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+async function sendWhatsAppText(
+    to: string, 
+    text: string
+): Promise<{ ok: boolean; messageId?: string; error?: string }> {
+    const url = `https://graph.facebook.com/v21.0/${META_PHONE_NUMBER_ID}/messages`;
+    
+    const body = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: to.replace('+', ''),
+        type: "text",
+        text: { body: text }
+    };
+
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${META_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
+
+        const data = await resp.json();
+        if (resp.ok && data.messages?.[0]?.id) {
+            return { ok: true, messageId: data.messages[0].id };
+        }
+        return { ok: false, error: JSON.stringify(data.error) || `HTTP ${resp.status}` };
     } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -305,64 +322,99 @@ async function processQueue(supabase: ReturnType<typeof createClient>): Promise<
         result.processed++;
 
         try {
-            // Fetch booking details
-            const { data: booking } = await supabase
-                .from('wa_bookings')
-                .select('*')
-                .eq('id', notif.booking_id)
-                .single();
+            let booking: BookingRow | null = null;
+            let doctor: DoctorRow | null = null;
+            let location: LocationRow | null = null;
+            let lang = 'ar';
 
-            if (!booking) {
+            if (notif.booking_id) {
+                // Fetch booking details
+                const { data: bData } = await supabase
+                    .from('wa_bookings')
+                    .select('*')
+                    .eq('id', notif.booking_id)
+                    .single();
+                booking = bData;
+
+                if (booking) {
+                    lang = booking.patient_language || 'ar';
+                    // Fetch doctor
+                    const { data: dData } = await supabase
+                        .from('doctors')
+                        .select('display_name, full_name')
+                        .eq('id', booking.doctor_id)
+                        .single();
+                    doctor = dData;
+
+                    // Fetch location
+                    const { data: lData } = await supabase
+                        .from('doctor_locations')
+                        .select('name, name_ar, address, address_ar')
+                        .eq('id', booking.location_id)
+                        .single();
+                    location = lData;
+                }
+            } else if (notif.consultation_id) {
+                // Fetch consultation details
+                const { data: cData } = await supabase
+                    .from('consultations')
+                    .select('*, patient:users(phone, language), doctor:doctors(display_name, full_name)')
+                    .eq('id', notif.consultation_id)
+                    .single();
+                
+                if (cData) {
+                    // Mock a booking-like object for getTemplateData compatibility
+                    booking = {
+                        id: cData.id,
+                        booking_date: cData.created_at.split('T')[0],
+                        booking_time: cData.created_at.split('T')[1].substring(0, 5),
+                        patient_language: cData.patient?.language || 'ar'
+                    } as any;
+                    lang = cData.patient?.language || 'ar';
+                    doctor = cData.doctor;
+                    location = { name: 'cliniq.one', name_ar: 'cliniq.one' } as any; 
+                }
+            }
+
+            if (!booking || !doctor || !location) {
                 await supabase
                     .from('wa_notification_log')
-                    .update({ status: 'failed', error_message: 'Booking not found' })
+                    .update({ status: 'failed', error_message: 'Related record (booking/consultation/doctor) not found' })
                     .eq('id', notif.id);
                 result.failed++;
                 continue;
             }
 
-            // Fetch doctor
-            const { data: doctor } = await supabase
-                .from('doctors')
-                .select('display_name, full_name')
-                .eq('id', booking.doctor_id)
-                .single();
-
-            // Fetch location
-            const { data: location } = await supabase
-                .from('doctor_locations')
-                .select('name, name_ar, address, address_ar')
-                .eq('id', booking.location_id)
-                .single();
-
-            if (!doctor || !location) {
-                await supabase
-                    .from('wa_notification_log')
-                    .update({ status: 'failed', error_message: 'Doctor or location not found' })
-                    .eq('id', notif.id);
-                result.failed++;
-                continue;
-            }
-
-            // Build message
-            const lang = booking.patient_language || 'ar';
-            const messageBody = buildMessage(
-                notif.notification_type,
-                lang,
-                booking as BookingRow,
-                doctor as DoctorRow,
-                location as LocationRow,
-            );
-
-            // Try WhatsApp first
-            let sendResult = await sendTwilioWhatsApp(notif.recipient_phone, messageBody);
+            // Route by notification type
+            let sendResult;
             let channel: 'whatsapp' | 'sms' = 'whatsapp';
 
-            // Fallback to SMS if WhatsApp fails
+            if (notif.notification_type === 'manual_text') {
+                // Send raw text if within 24h window (or if Meta allows)
+                sendResult = await sendWhatsAppText(notif.recipient_phone, notif.message_body || 'Hello from cliniq.one');
+            } else {
+                // Get template data
+                const { name: templateName, params } = getTemplateData(
+                    notif.notification_type,
+                    lang,
+                    booking,
+                    doctor,
+                    location,
+                );
+                // Try WhatsApp via Meta Cloud API
+                sendResult = await sendWhatsAppTemplate(notif.recipient_phone, templateName, lang, params);
+            }
+
+            // Fallback to Twilio SMS if Meta fails (or if we want to retain SMS logic)
             if (!sendResult.ok && TWILIO_SMS_FROM) {
-                console.log(`[wa-notify] WhatsApp failed for ${notif.id}, trying SMS: ${sendResult.error}`);
-                sendResult = await sendTwilioSms(notif.recipient_phone, messageBody);
-                channel = 'sms';
+                console.log(`[wa-notify] Meta WhatsApp failed for ${notif.id}, trying SMS: ${sendResult.error}`);
+                // Fallback requires a raw body as SMS doesn't use these templates
+                const legacyBody = `Notification from cliniq.one. Please check your app.`; 
+                const smsResult = await sendTwilioSms(notif.recipient_phone, legacyBody);
+                if (smsResult.ok) {
+                    sendResult = { ok: true, messageId: smsResult.sid };
+                    channel = 'sms';
+                }
             }
 
             if (sendResult.ok) {
@@ -371,8 +423,8 @@ async function processQueue(supabase: ReturnType<typeof createClient>): Promise<
                     .update({
                         status: 'sent',
                         channel,
-                        message_body: messageBody,
-                        message_sid: sendResult.sid || null,
+                        message_body: `Template: ${templateName}`,
+                        message_sid: sendResult.messageId || null,
                     })
                     .eq('id', notif.id);
 
@@ -395,7 +447,7 @@ async function processQueue(supabase: ReturnType<typeof createClient>): Promise<
                     .from('wa_notification_log')
                     .update({
                         status: 'failed',
-                        message_body: messageBody,
+                        message_body: `Template: ${templateName}`,
                         error_message: sendResult.error || 'Unknown error',
                     })
                     .eq('id', notif.id);
@@ -434,16 +486,16 @@ serve(async (req: Request) => {
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-        // Load Twilio creds from DB if env vars not set
-        if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
-            await loadTwilioFromDb(supabase);
+        // Load credentials from DB if env vars not set
+        if (!META_PHONE_NUMBER_ID || !META_ACCESS_TOKEN || !TWILIO_ACCOUNT_SID) {
+            await loadSettingsFromDb(supabase);
         }
 
-        // Validate Twilio credentials are set (from env or DB)
-        if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+        // Validate Meta credentials (minimum for WhatsApp)
+        if (!META_PHONE_NUMBER_ID || !META_ACCESS_TOKEN) {
             return new Response(JSON.stringify({
-                error: 'Twilio credentials not configured',
-                hint: 'Set via Admin Panel → Settings → Twilio/WhatsApp, or use supabase secrets set',
+                error: 'Meta WhatsApp credentials not configured',
+                hint: 'Set meta_wa_phone_number_id and meta_wa_access_token in platform_settings',
             }), {
                 status: 500,
                 headers: { ...CORS, 'Content-Type': 'application/json' },

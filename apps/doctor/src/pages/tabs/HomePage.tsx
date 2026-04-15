@@ -8,6 +8,7 @@ import { useDoctorStats, usePendingQueue, useDoctorConsultations } from '../../h
 import { useDoctorNotifications } from '../../hooks/useDoctorNotifications';
 import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties, ReactNode } from 'react';
 
 function StatCard({ Icon, label, value, color }: { Icon: (p: CliniqIconProps) => ReactNode; label: string; value: number; color: string }) {
@@ -25,6 +26,7 @@ export function HomePage() {
     const { doctor } = useAuthStore();
     const [refreshing, setRefreshing] = useState(false);
     const { unreadCount } = useDoctorNotifications();
+    const { t, isRTL } = useI18n();
 
     const { data: stats, refetch: refetchStats } = useDoctorStats(doctor?.id || '');
     const { data: pendingItems, isLoading: pendingLoading, refetch: refetchPending } = usePendingQueue(doctor?.specialty || '');
@@ -44,10 +46,10 @@ export function HomePage() {
     }, [refetchStats, refetchPending, refetchMy]);
 
     const quickActions: { Icon: (p: CliniqIconProps) => ReactNode; label: string; route: string }[] = [
-        { Icon: ClipboardList, label: 'Queue', route: '/tabs/queue' },
-        { Icon: Coins, label: 'Earnings', route: '/tabs/analytics' },
-        { Icon: Settings, label: 'Settings', route: '/tabs/settings' },
-        { Icon: Info, label: 'Help', route: '/tabs/settings' },
+        { Icon: ClipboardList, label: t('doctor.queue'), route: '/tabs/queue' },
+        { Icon: Coins, label: t('doctor.earnings'), route: '/tabs/analytics' },
+        { Icon: Settings, label: t('doctor.settings'), route: '/tabs/settings' },
+        { Icon: Info, label: t('doctor.help'), route: '/tabs/settings' },
     ];
 
     return (
@@ -55,16 +57,16 @@ export function HomePage() {
         <div style={s.container} className="scrollable">
             <div style={s.scroll}>
                 {/* Header */}
-                <div style={s.header}>
-                    <div style={{ flex: 1 }}>
-                        <span style={s.greeting}>Welcome back,</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ ...s.header, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                    <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>
+                        <span style={s.greeting}>{t('doctor.welcomeBack')}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
                             <span style={s.name}>{doctor?.display_name || 'Doctor'}</span>
                             {doctor?.doctor_type === 'locum' && (
-                                <span style={s.locumBadge}>LOCUM</span>
+                                <span style={s.locumBadge}>{t('doctor.locum')}</span>
                             )}
                         </div>
-                        {doctor?.sandbox_mode && <span style={{ fontSize: 11, color: colors.warning, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Siren size={12} color={colors.warning} /> Sandbox Mode</span>}
+                        {doctor?.sandbox_mode && <span style={{ fontSize: 11, color: colors.warning, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Siren size={12} color={colors.warning} /> {t('doctor.sandboxMode')}</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         {/* Notification bell */}
@@ -87,9 +89,9 @@ export function HomePage() {
                                 </span>
                             )}
                         </button>
-                        <div style={s.statusBadge}>
-                            <div style={{ width: 8, height: 8, borderRadius: 4, marginRight: 6, backgroundColor: doctor?.is_accepting ? colors.success : colors.warning }} />
-                            <span style={{ fontSize: typography.caption.fontSize, color: colors.textSecondary }}>{doctor?.is_accepting ? 'Accepting' : 'Paused'}</span>
+                        <div style={{ ...s.statusBadge, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 4, [isRTL ? 'marginLeft' : 'marginRight']: 6, backgroundColor: doctor?.is_accepting ? colors.success : colors.warning }} />
+                            <span style={{ fontSize: typography.caption.fontSize, color: colors.textSecondary }}>{doctor?.is_accepting ? t('doctor.accepting') : t('doctor.paused')}</span>
                         </div>
                     </div>
                 </div>
@@ -111,19 +113,19 @@ export function HomePage() {
                 })()}
 
                 {/* Stats */}
-                <div style={s.statsRow}>
-                    <StatCard Icon={Clock} label="In Queue" value={queueCount} color={queueCount > 5 ? colors.error : queueCount > 0 ? colors.warning : colors.success} />
-                    <StatCard Icon={Siren} label="Urgent" value={urgentCount} color={colors.error} />
-                    <StatCard Icon={CheckCircle} label="Done" value={stats?.consultations_today ?? 0} color={colors.success} />
-                    <StatCard Icon={Gem} label="Tokens" value={stats?.tokens_earned ?? 0} color={colors.accentTeal} />
+                <div style={{ ...s.statsRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                    <StatCard Icon={Clock} label={t('doctor.inQueue')} value={queueCount} color={queueCount > 5 ? colors.error : queueCount > 0 ? colors.warning : colors.success} />
+                    <StatCard Icon={Siren} label={t('doctor.urgentStatus')} value={urgentCount} color={colors.error} />
+                    <StatCard Icon={CheckCircle} label={t('doctor.done')} value={stats?.consultations_today ?? 0} color={colors.success} />
+                    <StatCard Icon={Gem} label={t('doctor.tokens')} value={stats?.tokens_earned ?? 0} color={colors.accentTeal} />
                 </div>
 
                 {/* Queue Preview */}
                 <div style={s.section}>
-                    <div style={s.sectionHeader}>
-                        <span style={s.sectionTitle}><ClipboardList size={16} color={colors.textPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Queue Preview</span>
+                    <div style={{ ...s.sectionHeader, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                        <span style={s.sectionTitle}><ClipboardList size={16} color={colors.textPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.queuePreview')}</span>
                         <button onClick={() => { haptic.light(); navigate('/tabs/queue'); }} className="pressable">
-                            <span style={{ fontSize: 11, color: colors.accentTeal }}>See all →</span>
+                            <span style={{ fontSize: 11, color: colors.accentTeal }}>{t('doctor.seeAll')}</span>
                         </button>
                     </div>
                     {queueLoading ? (
@@ -133,21 +135,21 @@ export function HomePage() {
                     ) : queuePreview.length === 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBlock: 24 }}>
                             <PartyPopper size={36} color={colors.accentTeal} />
-                            <span style={{ fontSize: 14, color: colors.textTertiary, marginTop: 8 }}>No cases in queue</span>
+                            <span style={{ fontSize: 14, color: colors.textTertiary, marginTop: 8 }}>{t('doctor.noCases')}</span>
                         </div>
                     ) : (
                         queuePreview.map((item: any) => (
-                            <button key={item.id} style={s.queueCard} className="pressable" onClick={() => { haptic.medium(); navigate(`/consultation/${item.id}`); }}>
-                                <div style={s.queueCardHeader}>
+                            <button key={item.id} style={{ ...s.queueCard, textAlign: isRTL ? 'right' : 'left' }} className="pressable" onClick={() => { haptic.medium(); navigate(`/consultation/${item.id}`); }}>
+                                <div style={{ ...s.queueCardHeader, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     <span style={{ ...s.priorityBadge, backgroundColor: item.priority === 'urgent' ? colors.errorFaded : colors.successFaded, color: item.priority === 'urgent' ? colors.error : colors.success }}>
-                                        {item.priority === 'urgent' ? <><Siren size={11} /> URGENT</> : 'ROUTINE'}
+                                        {item.priority === 'urgent' ? <><Siren size={11} /> {t('doctor.urgent')}</> : t('doctor.routine')}
                                     </span>
                                 </div>
-                                <span style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4, display: 'block', textAlign: 'left' }}>{item.patient?.nickname || 'Patient'} · {item.patient?.gender?.[0]?.toUpperCase() || '?'}</span>
-                                <span style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 8, display: 'block', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.chief_complaint || 'Consultation'}</span>
-                                <div style={s.queueCardFooter}>
+                                <span style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4, display: 'block' }}>{item.patient?.nickname || t('doctor.patient')} · {item.patient?.gender?.[0]?.toUpperCase() || '?'}</span>
+                                <span style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 8, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.chief_complaint || t('intake.consultation')}</span>
+                                <div style={{ ...s.queueCardFooter, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     <span style={{ fontSize: 11, color: colors.accentTeal }}>{item.specialty}</span>
-                                    <span style={{ fontSize: 11, color: colors.gold, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gem size={11} color={colors.gold} /> {item.token_cost || 3}</span>
+                                    <span style={{ fontSize: 11, color: colors.gold, [isRTL ? 'marginRight' : 'marginLeft']: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gem size={11} color={colors.gold} /> {item.token_cost || 3}</span>
                                 </div>
                             </button>
                         ))
@@ -156,8 +158,8 @@ export function HomePage() {
 
                 {/* Quick Actions */}
                 <div style={s.section}>
-                    <span style={s.sectionTitle}><Zap size={16} color={colors.textPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Quick Actions</span>
-                    <div style={s.actionsGrid}>
+                    <span style={{ ...s.sectionTitle, textAlign: isRTL ? 'right' : 'left', alignSelf: isRTL ? 'flex-end' : 'flex-start' }}><Zap size={16} color={colors.textPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.quickActions')}</span>
+                    <div style={{ ...s.actionsGrid, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                         {quickActions.map((action) => (
                             <button key={action.label} style={s.actionCard} className="pressable" onClick={() => { haptic.medium(); navigate(action.route); }}>
                                 <action.Icon size={28} color={colors.accentTeal} />

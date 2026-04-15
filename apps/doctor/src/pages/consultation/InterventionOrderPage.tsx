@@ -17,16 +17,19 @@ interface SelectedIntervention extends CatalogIntervention {
 
 type FilterType = 'all' | InterventionType;
 
-const FILTER_OPTIONS: { key: FilterType; label: string; icon: string }[] = [
-    { key: 'all', label: 'All', icon: 'all' }, { key: 'lab_test', label: 'Labs', icon: 'lab' },
-    { key: 'imaging', label: 'Imaging', icon: 'img' }, { key: 'referral', label: 'Referral', icon: 'ref' },
-    { key: 'therapy', label: 'Therapy', icon: 'thpy' }, { key: 'follow_up', label: 'Follow-up', icon: 'fu' },
+const PRIORITY_OPTIONS: { value: InterventionPriority; labelKey: string; color: string }[] = [
+    { value: 'routine', labelKey: 'doctor.priorities.routine', color: colors.success },
+    { value: 'urgent', labelKey: 'doctor.priorities.urgent', color: colors.warning },
+    { value: 'stat', labelKey: 'doctor.priorities.stat', color: colors.error },
 ];
 
-const PRIORITY_OPTIONS: { value: InterventionPriority; label: string; color: string }[] = [
-    { value: 'routine', label: 'Routine', color: colors.success },
-    { value: 'urgent', label: 'Urgent', color: colors.warning },
-    { value: 'stat', label: 'STAT', color: colors.error },
+const FILTER_OPTIONS: { key: string; labelKey: string; icon: string }[] = [
+    { key: 'all', labelKey: 'doctor.filters.all', icon: 'all' },
+    { key: 'lab_test', labelKey: 'doctor.filters.labs', icon: 'lab' },
+    { key: 'imaging', labelKey: 'doctor.filters.imaging', icon: 'img' },
+    { key: 'referral', labelKey: 'doctor.filters.referral', icon: 'ref' },
+    { key: 'therapy', labelKey: 'doctor.filters.therapy', icon: 'thpy' },
+    { key: 'follow_up', labelKey: 'doctor.filters.followUp', icon: 'fu' },
 ];
 
 export function InterventionOrderPage() {
@@ -37,6 +40,7 @@ export function InterventionOrderPage() {
     const catalog = SPECIALTY_INTERVENTIONS[specialty] || [];
     const { doctor } = useAuthStore();
     const createOrderMutation = useCreateInterventionOrder();
+    const { t, isRTL } = useI18n();
 
     const [filter, setFilter] = useState<FilterType>('all');
     const [search, setSearch] = useState('');
@@ -76,7 +80,7 @@ export function InterventionOrderPage() {
     };
 
     const handleAddCustom = () => {
-        if (!customName.trim()) { toast('Please enter a name.', 'warning'); return; }
+        if (!customName.trim()) { toast(t('common.required'), 'warning'); return; }
         const ci: CatalogIntervention = { name: customName.trim(), type: 'lab_test', category: 'Custom', estimated_cost_sar: 0 };
         const newSel = new Map(selections);
         newSel.set(ci.name, { ...ci, selected: true, clinical_indication: '', doctor_notes: customNotes, priority: 'routine' });
@@ -84,7 +88,7 @@ export function InterventionOrderPage() {
     };
 
     const handleSubmit = () => {
-        if (selectedCount === 0) { toast('Please select at least one intervention.', 'warning'); return; }
+        if (selectedCount === 0) { toast(t('doctor.orderButtonEmpty'), 'warning'); return; }
         setShowSubmitConfirm(true);
     };
 
@@ -97,8 +101,8 @@ export function InterventionOrderPage() {
             priority: s.priority, estimated_cost_sar: s.estimated_cost_sar,
         }));
         createOrderMutation.mutate(data, {
-            onSuccess: () => { toast(`${selectedCount} intervention(s) ordered.`, 'success'); navigate(-1); },
-            onError: (err) => toast(err.message || 'Failed to create order.', 'error'),
+            onSuccess: () => { toast(t('doctor.orderSuccess', { count: selectedCount }), 'success'); navigate(-1); },
+            onError: (err) => toast(err.message || t('doctor.orderError'), 'error'),
         });
     };
 
@@ -108,11 +112,11 @@ export function InterventionOrderPage() {
         <>
         <div style={s.container}>
             {/* Header */}
-            <div style={s.header}>
+            <div style={{ ...s.header, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <BackButton />
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                    <span style={{ display: 'block', fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>Order Interventions</span>
-                    <span style={{ display: 'block', fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>{specialtyLabel} Catalog</span>
+                    <span style={{ display: 'block', fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>{t('doctor.orderInterventions')}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>{specialtyLabel} {t('doctor.catalog')}</span>
                 </div>
                 <div style={{ width: 50 }} />
             </div>
@@ -120,17 +124,17 @@ export function InterventionOrderPage() {
             <div style={s.scrollArea} className="scrollable">
                 <div style={s.scrollInner}>
                     {/* Search */}
-                    <div style={s.searchBar}>
+                    <div style={{ ...s.searchBar, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                         <Search size={16} color={colors.textTertiary} />
-                        <input style={s.searchInput} placeholder="Search interventions..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <input style={{ ...s.searchInput, textAlign: isRTL ? 'right' : 'left' }} placeholder={t('doctor.searchInterventions')} value={search} onChange={(e) => setSearch(e.target.value)} />
                         {search && <button onClick={() => { haptic.light(); setSearch(''); }}><span style={{ fontSize: 14, color: colors.textTertiary }}>✕</span></button>}
                     </div>
 
                     {/* Filter Chips */}
-                    <div style={s.filterRow}>
+                    <div style={{ ...s.filterRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                         {FILTER_OPTIONS.map(opt => (
-                            <button key={opt.key} style={{ ...s.filterChip, ...(filter === opt.key ? s.filterChipActive : {}) }} className="pressable" onClick={() => { haptic.select(); setFilter(opt.key); }}>
-                                <span style={{ fontSize: 11, color: filter === opt.key ? colors.accentTeal : colors.textSecondary, fontWeight: filter === opt.key ? 600 : 400 }}>{opt.label}</span>
+                            <button key={opt.key} style={{ ...s.filterChip, ...(filter === opt.key ? s.filterChipActive : {}) }} className="pressable" onClick={() => { haptic.select(); setFilter(opt.key as any); }}>
+                                <span style={{ fontSize: 11, color: filter === opt.key ? colors.accentTeal : colors.textSecondary, fontWeight: filter === opt.key ? 600 : 400 }}>{t(opt.labelKey)}</span>
                             </button>
                         ))}
                     </div>
@@ -138,12 +142,12 @@ export function InterventionOrderPage() {
                     {/* Summary */}
                     {selectedCount > 0 && (
                         <div style={s.summaryBar}>
-                            <span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><CheckCircle size={14} color={colors.accentTeal} /> {selectedCount} selected • Est. {totalCost} SAR</span>
+                            <span style={{ fontSize: 14, color: colors.accentTeal, fontWeight: 600, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}><CheckCircle size={14} color={colors.accentTeal} /> {t('doctor.selectedSummary', { count: selectedCount, cost: totalCost })}</span>
                         </div>
                     )}
 
                     {/* Catalog */}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: typography.h4.fontSize, fontWeight: 600, color: colors.textPrimary, marginBottom: 12 }}><ClipboardList size={16} color={colors.textPrimary} /> Available Interventions ({filteredCatalog.length})</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: typography.h4.fontSize, fontWeight: 600, color: colors.textPrimary, marginBottom: 12, flexDirection: isRTL ? 'row-reverse' : 'row' }}><ClipboardList size={16} color={colors.textPrimary} /> {t('doctor.availableInterventionsCount', { count: filteredCatalog.length })}</span>
 
                     {filteredCatalog.map((item) => {
                         const key = item.name;
@@ -154,15 +158,15 @@ export function InterventionOrderPage() {
 
                         return (
                             <div key={key}>
-                                <button style={{ ...s.catCard, ...(isSelected ? s.catCardSel : {}), width: '100%', textAlign: 'left' as any }} className="pressable" onClick={() => { haptic.select(); toggleSelection(item); }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                                <button style={{ ...s.catCard, ...(isSelected ? s.catCardSel : {}), width: '100%', textAlign: isRTL ? 'right' : 'left' as any }} className="pressable" onClick={() => { haptic.select(); toggleSelection(item); }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                             <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? colors.accentTeal : colors.border}`, backgroundColor: isSelected ? colors.accentTealFaded : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {isSelected && <CheckCircle size={14} color={colors.accentTeal} />}
                                             </div>
-                                            <div>
+                                            <div style={{ textAlign: isRTL ? 'right' : 'left' }}>
                                                 <span style={{ display: 'block', fontSize: 14, color: colors.textPrimary, fontWeight: 600 }}>{item.name}</span>
-                                                <span style={{ display: 'block', fontSize: 11, color: colors.textTertiary, marginTop: 2 }}>{typeInfo.icon} {typeInfo.en} • {item.category}</span>
+                                                <span style={{ display: 'block', fontSize: 11, color: colors.textTertiary, marginTop: 2 }}>{typeInfo.icon} {locale === 'ar' ? typeInfo.ar : typeInfo.en} • {item.category}</span>
                                             </div>
                                         </div>
                                         <span style={{ backgroundColor: colors.warningFaded, paddingInline: 10, paddingBlock: 4, borderRadius: 8, fontSize: 11, color: colors.warning, fontWeight: 700 }}>{item.estimated_cost_sar} SAR</span>
@@ -175,29 +179,29 @@ export function InterventionOrderPage() {
                                 </button>
 
                                 {isSelected && isExpanded && sel && (
-                                    <div style={s.expandedCard}>
-                                        <span style={s.expandLabel}>Priority</span>
-                                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                                    <div style={{ ...s.expandedCard, textAlign: isRTL ? 'right' : 'left' }}>
+                                        <span style={s.expandLabel}>{t('doctor.priority')}</span>
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                             {PRIORITY_OPTIONS.map(p => (
-                                                <button key={p.value} style={{ ...s.priorityBtn, ...(sel.priority === p.value ? { borderColor: p.color, backgroundColor: p.color + '20' } : {}) }} className="pressable" onClick={() => { haptic.select(); updatePriority(key, p.value); }}>
+                                                <button key={p.value} style={{ ...s.priorityBtn, ...(sel.priority === p.value ? { borderColor: p.color, backgroundColor: p.color + '20' } : {}), flexDirection: isRTL ? 'row-reverse' : 'row' }} className="pressable" onClick={() => { haptic.select(); updatePriority(key, p.value); }}>
                                                     <span style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.color, display: 'inline-block' }} />
-                                                    <span style={{ fontSize: 11, fontWeight: 600, color: sel.priority === p.value ? p.color : colors.textSecondary }}>{p.label}</span>
+                                                    <span style={{ fontSize: 11, fontWeight: 600, color: sel.priority === p.value ? p.color : colors.textSecondary }}>{t(p.labelKey)}</span>
                                                 </button>
                                             ))}
                                         </div>
-                                        <span style={s.expandLabel}>Clinical Indication</span>
-                                        <textarea style={s.expandInput} placeholder="Why is this needed?" value={sel.clinical_indication} onChange={(e) => updateSelection(key, 'clinical_indication', e.target.value)} />
-                                        <span style={s.expandLabel}>Notes (internal)</span>
-                                        <textarea style={s.expandInput} placeholder="Internal notes..." value={sel.doctor_notes} onChange={(e) => updateSelection(key, 'doctor_notes', e.target.value)} />
+                                        <span style={s.expandLabel}>{t('doctor.clinicalIndication')}</span>
+                                        <textarea style={{ ...s.expandInput, textAlign: isRTL ? 'right' : 'left' }} placeholder={t('doctor.indicationPlaceholder')} value={sel.clinical_indication} onChange={(e) => updateSelection(key, 'clinical_indication', e.target.value)} />
+                                        <span style={s.expandLabel}>{t('doctor.internalNotes')}</span>
+                                        <textarea style={{ ...s.expandInput, textAlign: isRTL ? 'right' : 'left' }} placeholder={t('doctor.internalNotes')} value={sel.doctor_notes} onChange={(e) => updateSelection(key, 'doctor_notes', e.target.value)} />
                                         <button style={{ paddingBlock: 8, width: '100%' }} onClick={() => { haptic.light(); setExpandedItem(null); }}>
-                                            <span style={{ fontSize: 11, color: colors.accentTeal, fontWeight: 600 }}>▲ Collapse</span>
+                                            <span style={{ fontSize: 11, color: colors.accentTeal, fontWeight: 600 }}>{isRTL ? '▲ إغلاق' : '▲ Collapse'}</span>
                                         </button>
                                     </div>
                                 )}
 
                                 {isSelected && !isExpanded && (
                                     <button style={{ paddingBlock: 6, marginBottom: 4, width: '100%' }} onClick={() => { haptic.light(); setExpandedItem(key); }}>
-                                        <span style={{ fontSize: 11, color: colors.accentTeal }}>▼ Tap to add details (priority, notes)</span>
+                                        <span style={{ fontSize: 11, color: colors.accentTeal }}>{t('doctor.tapToAddDetails')}</span>
                                     </button>
                                 )}
                             </div>
@@ -213,21 +217,21 @@ export function InterventionOrderPage() {
 
                     {/* Custom */}
                     <button style={s.customBtn} className="pressable" onClick={() => { haptic.light(); setShowCustom(!showCustom); }}>
-                        <span style={{ fontSize: 14, color: colors.textSecondary, fontWeight: 600 }}>{showCustom ? '✕ Cancel' : '+ Add Custom Intervention'}</span>
+                        <span style={{ fontSize: 14, color: colors.textSecondary, fontWeight: 600 }}>{showCustom ? '✕ ' + t('common.cancel') : '+ ' + t('doctor.addCustomIntervention')}</span>
                     </button>
 
                     {showCustom && (
                         <div style={s.customForm}>
-                            <input style={{ ...s.expandInput as any, display: 'block', width: '100%' }} placeholder="Custom intervention name *" value={customName} onChange={(e) => setCustomName(e.target.value)} />
-                            <textarea style={{ ...s.expandInput as any, display: 'block', width: '100%' }} placeholder="Notes (optional)" value={customNotes} onChange={(e) => setCustomNotes(e.target.value)} />
-                            <button style={s.customAddBtn} className="pressable" onClick={() => { haptic.medium(); handleAddCustom(); }}><span style={{ fontSize: 14, color: colors.accentTeal }}>+ Add to Order</span></button>
+                            <input style={{ ...s.expandInput as any, display: 'block', width: '100%', textAlign: isRTL ? 'right' : 'left' }} placeholder={t('doctor.customNamePlaceholder')} value={customName} onChange={(e) => setCustomName(e.target.value)} />
+                            <textarea style={{ ...s.expandInput as any, display: 'block', width: '100%', textAlign: isRTL ? 'right' : 'left' }} placeholder={t('doctor.customNotesPlaceholder')} value={customNotes} onChange={(e) => setCustomNotes(e.target.value)} />
+                            <button style={s.customAddBtn} className="pressable" onClick={() => { haptic.medium(); handleAddCustom(); }}><span style={{ fontSize: 14, color: colors.accentTeal }}>+ {t('doctor.addToOrder')}</span></button>
                         </div>
                     )}
 
                     {/* Submit */}
                     <button style={{ ...s.submitBtn, opacity: selectedCount === 0 ? 0.4 : 1 }} className="pressable" onClick={() => { haptic.heavy(); handleSubmit(); }} disabled={selectedCount === 0}>
-                            <span style={{ fontSize: 15, fontWeight: 700, color: colors.bgPrimary, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                <Send size={16} color={colors.bgPrimary} /> Order {selectedCount > 0 ? `${selectedCount} Intervention(s)` : 'Interventions'}{totalCost > 0 ? ` • ${totalCost} SAR` : ''}
+                            <span style={{ fontSize: 15, fontWeight: 700, color: colors.bgPrimary, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                <Send size={16} color={colors.bgPrimary} /> {selectedCount > 0 ? t('doctor.orderButton', { count: selectedCount, cost: totalCost }) : t('doctor.orderButtonEmpty')}
                             </span>
                     </button>
                     <div style={{ height: 40 }} />
@@ -237,10 +241,10 @@ export function InterventionOrderPage() {
 
         <ConfirmDialog
             visible={showSubmitConfirm}
-            title="Confirm Order"
-            message={`Order ${selectedCount} intervention(s)? Total est: ${totalCost} SAR`}
-            confirmLabel="Order"
-            cancelLabel="Cancel"
+            title={t('doctor.confirmOrder')}
+            message={t('doctor.confirmOrderMsg', { count: selectedCount, cost: totalCost })}
+            confirmLabel={t('doctor.orderButtonEmpty')}
+            cancelLabel={t('common.cancel')}
             onConfirm={confirmSubmit}
             onCancel={() => setShowSubmitConfirm(false)}
         />

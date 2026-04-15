@@ -1,5 +1,5 @@
-import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@cliniqone/i18n';
 import { colors, spacing, radius, Stethoscope, Doctor, Brain, Bone, Hospital, User, Key, FileText, AlertTriangle, CheckCircle, Lightbulb, Info, Globe, Send, Refresh, PartyPopper, Edit } from '@cliniqone/ui';
 import { supabase, createApplication, uploadApplicationDocument, acceptDisclaimer, submitApplication } from '@cliniqone/api';
 import type { ApplicationData } from '@cliniqone/api';
@@ -7,32 +7,30 @@ import { useAuthStore } from '../../stores/authStore';
 import { DocumentUploader } from '../../components/DocumentUploader';
 import { NoInternetOverlay } from '../../components/NoInternetOverlay';
 
-const STEPS_PERMANENT = ['Type', 'Personal', 'Professional', 'Documents', 'Review'];
-const STEPS_LOCUM = ['Type', 'Invite Code', 'Personal', 'Professional', 'Documents', 'Review'];
-
-const SPECIALTIES = [
-    { value: 'dermatology', label: 'Dermatology', Icon: Stethoscope },
-    { value: 'family_medicine', label: 'Family Medicine', Icon: Doctor },
-    { value: 'psychiatry', label: 'Psychiatry', Icon: Brain },
-    { value: 'orthopedics', label: 'Orthopedics', Icon: Bone },
+const SPECIALTIES_RAW = [
+    { value: 'dermatology', labelKey: 'doctor.specialties.dermatology', Icon: Stethoscope },
+    { value: 'family_medicine', labelKey: 'doctor.specialties.family_medicine', Icon: Doctor },
+    { value: 'psychiatry', labelKey: 'doctor.specialties.psychiatry', Icon: Brain },
+    { value: 'orthopedics', labelKey: 'doctor.specialties.orthopedics', Icon: Bone },
 ];
 
-const LANGUAGES = [
+const LANGUAGES_RAW = [
     { value: 'en', label: 'English' },
     { value: 'ar', label: 'العربية' },
     { value: 'fr', label: 'Français' },
     { value: 'ur', label: 'اردو' },
 ];
 
-const DOCUMENT_TYPES = [
-    { key: 'national_id', label: 'National ID / Iqama', required: true },
-    { key: 'medical_license', label: 'Medical License (SCFHS)', required: true },
-    { key: 'cv', label: 'CV / Resume', required: false },
-    { key: 'specialization_cert', label: 'Specialization Certificate', required: false },
+const DOCUMENT_TYPES_RAW = [
+    { key: 'national_id', labelKey: 'doctor.registration.docs.national_id', required: true },
+    { key: 'medical_license', labelKey: 'doctor.registration.docs.medical_license', required: true },
+    { key: 'cv', labelKey: 'doctor.registration.docs.cv', required: false },
+    { key: 'specialization_cert', labelKey: 'doctor.registration.docs.specialization_cert', required: false },
 ];
 
 export function RegistrationPage() {
     const navigate = useNavigate();
+    const { t, isRTL } = useI18n();
     const { session, clear } = useAuthStore();
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
@@ -44,6 +42,22 @@ export function RegistrationPage() {
     const [inviteValid, setInviteValid] = useState<boolean | null>(null);
     const [inviteChecking, setInviteChecking] = useState(false);
     const [inviteSpecialty, setInviteSpecialty] = useState<string | null>(null);
+
+    const STEPS_PERMANENT = [
+        t('doctor.registration.steps.type'),
+        t('doctor.registration.steps.personal'),
+        t('doctor.registration.steps.professional'),
+        t('doctor.registration.steps.documents'),
+        t('doctor.registration.steps.review')
+    ];
+    const STEPS_LOCUM = [
+        t('doctor.registration.steps.type'),
+        t('doctor.registration.steps.invite'),
+        t('doctor.registration.steps.personal'),
+        t('doctor.registration.steps.professional'),
+        t('doctor.registration.steps.documents'),
+        t('doctor.registration.steps.review')
+    ];
 
     const steps = doctorType === 'locum' ? STEPS_LOCUM : STEPS_PERMANENT;
 
@@ -90,7 +104,7 @@ export function RegistrationPage() {
     // ── Invite code validation ──
 
     async function checkInviteCode() {
-        if (!inviteCode.trim()) { setError('Please enter your invite code'); return; }
+        if (!inviteCode.trim()) { setError(t('common.required')); return; }
         setInviteChecking(true);
         setError('');
         try {
@@ -102,17 +116,17 @@ export function RegistrationPage() {
 
             if (err || !data) {
                 setInviteValid(false);
-                setError('Invalid invite code. Please check and try again.');
+                setError(t('doctor.registration.invalidCode'));
                 return;
             }
             if (data.status !== 'pending') {
                 setInviteValid(false);
-                setError(`This invite code has already been ${data.status}.`);
+                setError(t('doctor.registration.invalidCode')); // Or more specific if added later
                 return;
             }
             if (new Date(data.expires_at) < new Date()) {
                 setInviteValid(false);
-                setError('This invite code has expired. Please contact the admin.');
+                setError(t('doctor.registration.invalidCode')); // Or more specific
                 return;
             }
             setInviteValid(true);
@@ -138,27 +152,27 @@ export function RegistrationPage() {
     function validateStep(s: number): string | null {
         const name = getStepName(s);
         switch (name) {
-            case 'Type':
-                if (!doctorType) return 'Please select your doctor type';
+            case t('doctor.registration.steps.type'):
+                if (!doctorType) return t('doctor.registration.howToJoin');
                 return null;
-            case 'Invite Code':
-                if (!inviteValid) return 'Please enter and validate your invite code';
+            case t('doctor.registration.steps.invite'):
+                if (!inviteValid) return t('doctor.registration.invalidCode');
                 return null;
-            case 'Personal':
-                if (!form.full_name.trim()) return 'Full name is required';
-                if (!form.display_name.trim()) return 'Display name is required';
-                if (!form.email.trim()) return 'Email is required';
+            case t('doctor.registration.steps.personal'):
+                if (!form.full_name.trim()) return t('common.required');
+                if (!form.display_name.trim()) return t('common.required');
+                if (!form.email.trim()) return t('common.required');
                 return null;
-            case 'Professional':
-                if (!form.license_number.trim()) return 'License number is required';
-                if (!form.license_authority.trim()) return 'License authority is required';
+            case t('doctor.registration.steps.professional'):
+                if (!form.license_number.trim()) return t('common.required');
+                if (!form.license_authority.trim()) return t('common.required');
                 return null;
-            case 'Documents':
-                if (!files.national_id) return 'National ID is required';
-                if (!files.medical_license) return 'Medical License is required';
+            case t('doctor.registration.steps.documents'):
+                if (!files.national_id) return t('common.required');
+                if (!files.medical_license) return t('common.required');
                 return null;
-            case 'Review':
-                if (!disclaimerAccepted) return 'You must accept the disclaimer';
+            case t('doctor.registration.steps.review'):
+                if (!disclaimerAccepted) return t('common.required');
                 return null;
             default:
                 return null;
@@ -218,7 +232,7 @@ export function RegistrationPage() {
             navigate('/auth/application-status', { replace: true });
         } catch (err: any) {
             console.error('[Registration] Submit error:', err);
-            setError(err?.message || 'Failed to submit application. Please try again.');
+            setError(err?.message || t('doctor.auth.loginFailed'));
         } finally {
             setSubmitting(false);
         }
@@ -234,9 +248,11 @@ export function RegistrationPage() {
 
     function renderTypeStep() {
         return (
-            <div style={s.stepContent}>
-                <h2 style={s.stepTitle}><PartyPopper size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Welcome, Doctor</h2>
-                <p style={s.stepSubtitle}>How would you like to join cliniq.one?</p>
+            <div style={{ ...s.stepContent, textAlign: isRTL ? 'right' : 'left' }}>
+                <h2 style={{ ...s.stepTitle, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <PartyPopper size={20} color={colors.accentTeal} /> {t('doctor.registration.welcomeDoctor')}
+                </h2>
+                <p style={s.stepSubtitle}>{t('doctor.registration.howToJoin')}</p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <button
@@ -248,10 +264,10 @@ export function RegistrationPage() {
                     >
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Hospital size={36} color={colors.accentTeal} /></div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: colors.textPrimary, marginBottom: 4 }}>
-                            Full-Time Doctor
+                            {t('doctor.registration.fullTimeDoctor')}
                         </div>
                         <div style={{ fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                            Join as a permanent staff physician. Patients are assigned to you automatically. Fixed platform rates.
+                            {t('doctor.registration.fullTimeDesc')}
                         </div>
                     </button>
 
@@ -264,10 +280,10 @@ export function RegistrationPage() {
                     >
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><Stethoscope size={36} color={colors.purple} /></div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: colors.textPrimary, marginBottom: 4 }}>
-                            Locum Doctor
+                            {t('doctor.registration.locumDoctor')}
                         </div>
                         <div style={{ fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                            Join with an invitation code from admin. Patients find you by your QR code or unique ID. Customizable rates.
+                            {t('doctor.registration.locumDesc')}
                         </div>
                     </button>
                 </div>
@@ -277,17 +293,19 @@ export function RegistrationPage() {
 
     function renderInviteStep() {
         return (
-            <div style={s.stepContent}>
-                <h2 style={s.stepTitle}><Key size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Invitation Code</h2>
-                <p style={s.stepSubtitle}>Enter the invite code you received from the cliniq.one admin</p>
+            <div style={{ ...s.stepContent, textAlign: isRTL ? 'right' : 'left' }}>
+                <h2 style={{ ...s.stepTitle, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Key size={20} color={colors.accentTeal} /> {t('doctor.registration.inviteTitle')}
+                </h2>
+                <p style={s.stepSubtitle}>{t('doctor.registration.inviteDesc')}</p>
 
-                <label style={s.label}>Invite Code *</label>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.inviteLabel')}</label>
+                <div style={{ display: 'flex', gap: 8, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                     <input
-                        style={{ ...s.input, flex: 1, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, fontSize: 18 }}
+                        style={{ ...s.input, flex: 1, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, fontSize: 18, textAlign: isRTL ? 'right' : 'left' }}
                         value={inviteCode}
                         onChange={e => { setInviteCode(e.target.value); setInviteValid(null); setError(''); }}
-                        placeholder="e.g. ABC123"
+                        placeholder={t('doctor.registration.invitePlaceholder')}
                         maxLength={20}
                     />
                     <button
@@ -299,29 +317,30 @@ export function RegistrationPage() {
                         onClick={checkInviteCode}
                         disabled={inviteChecking}
                     >
-                        {inviteChecking ? '...' : '✓ Verify'}
+                        {inviteChecking ? '...' : `✓ ${t('doctor.registration.verify')}`}
                     </button>
                 </div>
 
                 {inviteValid === true && (
                     <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: `${colors.success}10`, borderRadius: radius.md, border: `1px solid ${colors.success}30` }}>
-                        <span style={{ fontSize: 13, color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <CheckCircle size={14} color={colors.success} /> Valid invitation! Specialty: {SPECIALTIES.find(sp => sp.value === inviteSpecialty)?.label || inviteSpecialty}
+                        <span style={{ fontSize: 13, color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                            <CheckCircle size={14} color={colors.success} /> 
+                            {t('doctor.registration.validInvite', { specialty: SPECIALTIES_RAW.find(sp => sp.value === inviteSpecialty)?.labelKey ? t(SPECIALTIES_RAW.find(sp => sp.value === inviteSpecialty)!.labelKey) : inviteSpecialty })}
                         </span>
                     </div>
                 )}
 
                 {inviteValid === false && (
                     <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: '#dc262610', borderRadius: radius.md, border: '1px solid #dc262630' }}>
-                        <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <AlertTriangle size={14} color="#dc2626" /> {error || 'Invalid code'}
+                        <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                            <AlertTriangle size={14} color="#dc2626" /> {error || t('doctor.registration.invalidCode')}
                         </span>
                     </div>
                 )}
 
                 <div style={{ marginTop: spacing.xl, padding: spacing.md, backgroundColor: colors.bgTertiary, borderRadius: radius.md }}>
-                    <p style={{ margin: 0, fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                        <Lightbulb size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Don't have a code? Contact the admin team at <span style={{ color: colors.accentTeal, fontWeight: 600 }}>admin@cliniq.one</span> to request a locum invitation.
+                    <p style={{ margin: 0, fontSize: 12, color: colors.textSecondary, lineHeight: '18px', textAlign: isRTL ? 'right' : 'left' }}>
+                        <Lightbulb size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {t('doctor.registration.noCodeHint')}
                     </p>
                 </div>
             </div>
@@ -330,45 +349,47 @@ export function RegistrationPage() {
 
     function renderPersonalStep() {
         return (
-            <div style={s.stepContent}>
-                <h2 style={s.stepTitle}><User size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Personal Information</h2>
-                <p style={s.stepSubtitle}>Tell us about yourself</p>
+            <div style={{ ...s.stepContent, textAlign: isRTL ? 'right' : 'left' }}>
+                <h2 style={{ ...s.stepTitle, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <User size={20} color={colors.accentTeal} /> {t('doctor.registration.personalInfo')}
+                </h2>
+                <p style={s.stepSubtitle}>{t('doctor.registration.tellUsAboutYourslef')}</p>
 
-                <label style={s.label}>Full Name *</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.fullName')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.full_name}
                     onChange={e => updateForm('full_name', e.target.value)}
                     placeholder="Dr. Mohammed Ali Hassan"
                 />
 
-                <label style={s.label}>Display Name *</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.displayName')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.display_name}
                     onChange={e => updateForm('display_name', e.target.value)}
                     placeholder="Dr. Mohammed"
                 />
 
-                <label style={s.label}>Email *</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.auth.email')} *</label>
                 <input
-                    style={{ ...s.input, opacity: 0.7 }}
+                    style={{ ...s.input, opacity: 0.7, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.email}
                     readOnly
                 />
 
-                <label style={s.label}>Phone Number</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.phoneNumber')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.phone}
                     onChange={e => updateForm('phone', e.target.value)}
                     placeholder="+966 5X XXX XXXX"
                     type="tel"
                 />
 
-                <label style={s.label}>City</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.city')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.city}
                     onChange={e => updateForm('city', e.target.value)}
                     placeholder="Riyadh"
@@ -379,61 +400,64 @@ export function RegistrationPage() {
 
     function renderProfessionalStep() {
         return (
-            <div style={s.stepContent}>
-                <h2 style={s.stepTitle}><Stethoscope size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Professional Details</h2>
-                <p style={s.stepSubtitle}>Your medical credentials</p>
+            <div style={{ ...s.stepContent, textAlign: isRTL ? 'right' : 'left' }}>
+                <h2 style={{ ...s.stepTitle, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Stethoscope size={20} color={colors.accentTeal} /> {t('doctor.registration.professionalDetails')}
+                </h2>
+                <p style={s.stepSubtitle}>{t('doctor.registration.credentials')}</p>
 
-                <label style={s.label}>Specialty *</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.specialty')} *</label>
                 {/* If locum, specialty is pre-filled from invite and locked */}
                 {doctorType === 'locum' && inviteSpecialty ? (
-                    <div style={{ ...s.input, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span>{SPECIALTIES.find(sp => sp.value === form.specialty)?.label || form.specialty}</span>
-                        <span style={{ fontSize: 10, color: colors.textTertiary }}>(from invitation)</span>
+                    <div style={{ ...s.input, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 8, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                        <span>{SPECIALTIES_RAW.find(sp => sp.value === form.specialty)?.labelKey ? t(SPECIALTIES_RAW.find(sp => sp.value === form.specialty)!.labelKey) : form.specialty}</span>
+                        <span style={{ fontSize: 10, color: colors.textTertiary }}>({t('doctor.registration.inviteTitle')})</span>
                     </div>
                 ) : (
                     <div style={s.specialtyGrid}>
-                        {SPECIALTIES.map(sp => (
+                        {SPECIALTIES_RAW.map(sp => (
                             <button
                                 key={sp.value}
                                 style={{
                                     ...s.specialtyBtn,
                                     ...(form.specialty === sp.value ? s.specialtyBtnActive : {}),
+                                    textAlign: isRTL ? 'right' : 'left',
                                 }}
                                 onClick={() => updateForm('specialty', sp.value)}
                             >
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><sp.Icon size={14} color={form.specialty === sp.value ? colors.accentTeal : colors.textSecondary} /> {sp.label}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}><sp.Icon size={14} color={form.specialty === sp.value ? colors.accentTeal : colors.textSecondary} /> {t(sp.labelKey)}</span>
                             </button>
                         ))}
                     </div>
                 )}
 
-                <label style={s.label}>License Number *</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.licenseNumber')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.license_number}
                     onChange={e => updateForm('license_number', e.target.value)}
                     placeholder="e.g. 12345678"
                 />
 
-                <label style={s.label}>License Authority *</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.licenseAuthority')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.license_authority}
                     onChange={e => updateForm('license_authority', e.target.value)}
                     placeholder="SCFHS"
                 />
 
-                <label style={s.label}>Sub-Specialty</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.subspecialty')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.sub_specialty}
                     onChange={e => updateForm('sub_specialty', e.target.value)}
                     placeholder="e.g. Pediatric Dermatology"
                 />
 
-                <label style={s.label}>Years of Experience</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.experience')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     type="number"
                     min={0}
                     max={60}
@@ -442,17 +466,17 @@ export function RegistrationPage() {
                     placeholder="e.g. 8"
                 />
 
-                <label style={s.label}>Hospital / Clinic</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.hospital')}</label>
                 <input
-                    style={s.input}
+                    style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                     value={form.hospital}
                     onChange={e => updateForm('hospital', e.target.value)}
                     placeholder="e.g. King Fahad Medical City"
                 />
 
-                <label style={s.label}>Languages</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {LANGUAGES.map(lang => (
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.languages')}</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                    {LANGUAGES_RAW.map(lang => (
                         <button
                             key={lang.value}
                             style={{
@@ -466,12 +490,12 @@ export function RegistrationPage() {
                     ))}
                 </div>
 
-                <label style={s.label}>Professional Bio</label>
+                <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.registration.bio')}</label>
                 <textarea
-                    style={{ ...s.input, minHeight: 80, resize: 'vertical' }}
+                    style={{ ...s.input, minHeight: 80, resize: 'vertical', textAlign: isRTL ? 'right' : 'left' }}
                     value={form.bio}
                     onChange={e => updateForm('bio', e.target.value)}
-                    placeholder="Brief description of your practice and expertise..."
+                    placeholder={t('doctor.registration.bioPlaceholder')}
                 />
             </div>
         );
@@ -479,14 +503,16 @@ export function RegistrationPage() {
 
     function renderDocumentsStep() {
         return (
-            <div style={s.stepContent}>
-                <h2 style={s.stepTitle}><FileText size={20} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Documents</h2>
-                <p style={s.stepSubtitle}>Upload required documents for verification</p>
+            <div style={{ ...s.stepContent, textAlign: isRTL ? 'right' : 'left' }}>
+                <h2 style={{ ...s.stepTitle, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FileText size={20} color={colors.accentTeal} /> {t('doctor.registration.documentsTitle')}
+                </h2>
+                <p style={s.stepSubtitle}>{t('doctor.registration.documentsDesc')}</p>
 
-                {DOCUMENT_TYPES.map(dt => (
+                {DOCUMENT_TYPES_RAW.map(dt => (
                     <DocumentUploader
                         key={dt.key}
-                        label={`${dt.label}${dt.required ? ' *' : ''}`}
+                        label={`${t(dt.labelKey)}${dt.required ? ' *' : ''}`}
                         documentType={dt.key}
                         file={files[dt.key]}
                         onFileSelect={(f) => setFiles(prev => ({ ...prev, [dt.key]: f }))}
@@ -498,44 +524,47 @@ export function RegistrationPage() {
     }
 
     function renderReviewStep() {
-        const typeLabel = doctorType === 'locum' ? 'Locum Doctor' : 'Full-Time Doctor';
+        const typeLabel = doctorType === 'locum' ? t('doctor.registration.locumDoctor') : t('doctor.registration.fullTimeDoctor');
         return (
-            <div style={s.stepContent}>
-                <h2 style={s.stepTitle}><CheckCircle size={20} color={colors.success} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Review & Submit</h2>
-                <p style={s.stepSubtitle}>Please review your application before submitting</p>
+            <div style={{ ...s.stepContent, textAlign: isRTL ? 'right' : 'left' }}>
+                <h2 style={{ ...s.stepTitle, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CheckCircle size={20} color={colors.success} /> {t('doctor.registration.reviewTitle')}
+                </h2>
+                <p style={s.stepSubtitle}>{t('doctor.registration.reviewDesc')}</p>
 
                 {/* Summary card */}
-                <div style={s.summaryCard}>
+                <div style={{ ...s.summaryCard, textAlign: isRTL ? 'right' : 'left' }}>
                     <div style={s.summarySection}>
-                        <h3 style={s.summaryLabel}>Doctor Type</h3>
+                        <h3 style={s.summaryLabel}>{t('doctor.registration.steps.type')}</h3>
                         <p style={s.summaryValue}>{typeLabel}</p>
                         {doctorType === 'locum' && (
-                            <p style={s.summaryMuted}>Invite Code: {inviteCode.toUpperCase()}</p>
+                            <p style={s.summaryMuted}>{t('doctor.registration.inviteLabel')} {inviteCode.toUpperCase()}</p>
                         )}
                     </div>
                     <div style={s.divider} />
                     <div style={s.summarySection}>
-                        <h3 style={s.summaryLabel}>Personal</h3>
+                        <h3 style={s.summaryLabel}>{t('doctor.registration.personalInfo')}</h3>
                         <p style={s.summaryValue}>{form.full_name}</p>
                         <p style={s.summaryMuted}>{form.email} {form.phone ? `• ${form.phone}` : ''}</p>
                         {form.city && <p style={s.summaryMuted}><Globe size={12} color={colors.textTertiary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {form.city}</p>}
                     </div>
                     <div style={s.divider} />
                     <div style={s.summarySection}>
-                        <h3 style={s.summaryLabel}>Professional</h3>
+                        <h3 style={s.summaryLabel}>{t('doctor.registration.professionalDetails')}</h3>
                         <p style={s.summaryValue}>
-                            {SPECIALTIES.find(sp => sp.value === form.specialty)?.label || form.specialty}
+                            {SPECIALTIES_RAW.find(sp => sp.value === form.specialty)?.labelKey ? t(SPECIALTIES_RAW.find(sp => sp.value === form.specialty)!.labelKey) : form.specialty}
                         </p>
-                        <p style={s.summaryMuted}>License: {form.license_number} ({form.license_authority})</p>
-                        {form.years_experience && <p style={s.summaryMuted}>{form.years_experience} years experience</p>}
-                        {form.hospital && <p style={s.summaryMuted}><Hospital size={12} color={colors.textTertiary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {form.hospital}</p>}
+                        <p style={s.summaryMuted}>{t('doctor.registration.licenseNumber')} {form.license_number} ({form.license_authority})</p>
+                        {form.years_experience && <p style={s.summaryMuted}>{form.years_experience} {t('doctor.registration.experience')}</p>}
+                        {form.hospital && <p style={{ ...s.summaryMuted, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 4 }}><Hospital size={12} color={colors.textTertiary} /> {form.hospital}</p>}
                     </div>
                     <div style={s.divider} />
                     <div style={s.summarySection}>
-                        <h3 style={s.summaryLabel}>Documents</h3>
+                        <h3 style={s.summaryLabel}>{t('doctor.registration.documentsTitle')}</h3>
                         {Object.entries(files).filter(([, f]) => f).map(([type, f]) => (
-                            <p key={type} style={s.summaryMuted}>
-                                <CheckCircle size={12} color={colors.success} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {DOCUMENT_TYPES.find(d => d.key === type)?.label || type} — {f!.name}
+                            <p key={type} style={{ ...s.summaryMuted, flexDirection: isRTL ? 'row-reverse' : 'row', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <CheckCircle size={12} color={colors.success} /> 
+                                {DOCUMENT_TYPES_RAW.find(d => d.key === type)?.labelKey ? t(DOCUMENT_TYPES_RAW.find(d => d.key === type)!.labelKey) : type} — {f!.name}
                             </p>
                         ))}
                     </div>
@@ -544,27 +573,23 @@ export function RegistrationPage() {
                 {/* Locum info */}
                 {doctorType === 'locum' && (
                     <div style={{ marginBottom: spacing.lg, padding: spacing.md, backgroundColor: `${colors.accentTeal}08`, border: `1px solid ${colors.accentTeal}20`, borderRadius: radius.lg }}>
-                        <p style={{ margin: 0, fontSize: 12, color: colors.textSecondary, lineHeight: '18px' }}>
-                            <Info size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 4 }} /> As a <strong>locum doctor</strong>, after approval your credentials will be valid for 90 days.
-                            Patients will find you via your unique identifier code or QR code. You can set your own consultation fee within platform limits.
+                        <p style={{ margin: 0, fontSize: 12, color: colors.textSecondary, lineHeight: '18px', textAlign: isRTL ? 'right' : 'left' }}>
+                            <Info size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {t('doctor.registration.locumValidityMsg')}
                         </p>
                     </div>
                 )}
 
                 {/* Disclaimer */}
                 <div style={s.disclaimerCard}>
-                    <label style={s.disclaimerRow}>
+                    <label style={{ ...s.disclaimerRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                         <input
                             type="checkbox"
                             checked={disclaimerAccepted}
                             onChange={e => setDisclaimerAccepted(e.target.checked)}
                             style={{ width: 20, height: 20, accentColor: colors.accentTeal }}
                         />
-                        <span style={{ fontSize: 13, color: colors.textSecondary, lineHeight: '18px' }}>
-                            I confirm that all information provided is accurate and truthful.
-                            I agree to the <span style={{ color: colors.accentTeal, fontWeight: 600 }}>cliniq.one Platform Terms</span> and 
-                            <span style={{ color: colors.accentTeal, fontWeight: 600 }}> Medical Practice Guidelines</span>.
-                            I understand my application will be reviewed by the admin team and may require an interview.
+                        <span style={{ fontSize: 13, color: colors.textSecondary, lineHeight: '18px', textAlign: isRTL ? 'right' : 'left' }}>
+                            {t('doctor.registration.confirmAccurate')}
                         </span>
                     </label>
                 </div>
@@ -576,12 +601,12 @@ export function RegistrationPage() {
     function renderCurrentStep() {
         const name = getStepName(step);
         switch (name) {
-            case 'Type': return renderTypeStep();
-            case 'Invite Code': return renderInviteStep();
-            case 'Personal': return renderPersonalStep();
-            case 'Professional': return renderProfessionalStep();
-            case 'Documents': return renderDocumentsStep();
-            case 'Review': return renderReviewStep();
+            case t('doctor.registration.steps.type'): return renderTypeStep();
+            case t('doctor.registration.steps.invite'): return renderInviteStep();
+            case t('doctor.registration.steps.personal'): return renderPersonalStep();
+            case t('doctor.registration.steps.professional'): return renderProfessionalStep();
+            case t('doctor.registration.steps.documents'): return renderDocumentsStep();
+            case t('doctor.registration.steps.review'): return renderReviewStep();
             default: return null;
         }
     }
@@ -592,13 +617,13 @@ export function RegistrationPage() {
                 {/* Header */}
                 <div style={s.header}>
                     <span style={{ fontSize: 20, fontWeight: 700, color: colors.accentTeal }}>cliniq.one</span>
-                    <span style={{ fontSize: 13, color: colors.textSecondary }}>Doctor Registration</span>
+                    <span style={{ fontSize: 13, color: colors.textSecondary }}>{t('doctor.registration.doctorRegistration')}</span>
                 </div>
 
                 {/* Stepper */}
-                <div style={s.stepper}>
+                <div style={{ ...s.stepper, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                     {steps.map((label, i) => (
-                        <div key={label} style={s.stepDot}>
+                        <div key={label + i} style={s.stepDot}>
                             <div style={{
                                 ...s.dot,
                                 ...(i < step ? s.dotDone : i === step ? s.dotActive : {}),
@@ -622,27 +647,27 @@ export function RegistrationPage() {
                     {renderCurrentStep()}
 
                     {/* Error */}
-                    {error && getStepName(step) !== 'Invite Code' && (
-                        <div style={s.errorBox}>
-                            <span style={{ fontSize: 13, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} color="#dc2626" /> {error}</span>
+                    {error && getStepName(step) !== t('doctor.registration.steps.invite') && (
+                        <div style={{ ...s.errorBox, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                            <span style={{ fontSize: 13, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}><AlertTriangle size={14} color="#dc2626" /> {error}</span>
                         </div>
                     )}
 
                     {/* Navigation */}
-                    <div style={s.navRow}>
+                    <div style={{ ...s.navRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                         {step > 0 ? (
                             <button style={s.backBtn} onClick={handleBack}>
-                                ← Back
+                                {isRTL ? 'التالي ←' : '← Back'}
                             </button>
                         ) : (
                             <button style={s.backBtn} onClick={handleLogout}>
-                                ← Sign Out
+                                {isRTL ? 'تسجيل الخروج ←' : '← Sign Out'}
                             </button>
                         )}
 
                         {step < steps.length - 1 ? (
                             <button style={s.nextBtn} onClick={handleNext}>
-                                Next →
+                                {isRTL ? '→ التالي' : 'Next →'}
                             </button>
                         ) : (
                             <button
@@ -650,7 +675,7 @@ export function RegistrationPage() {
                                 onClick={handleSubmit}
                                 disabled={submitting}
                             >
-                                {submitting ? '...' : <><Send size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Submit Application</>}
+                                {submitting ? '...' : <><Send size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {t('doctor.registration.submitApplication')}</>}
                             </button>
                         )}
                     </div>

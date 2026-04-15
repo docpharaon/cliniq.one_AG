@@ -1,18 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@cliniqone/api';
-import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, spacing, SocialLoginButton, Eye, EyeOff, AlertTriangle } from '@cliniqone/ui';
-import { useAuthStore } from '../../stores/authStore';
-import { handleGoogleSignIn } from '../../services/googleAuth';
-import { handleAppleSignIn } from '../../services/appleAuth';
-import { useToast } from '../../components/ToastProvider';
-import { NoInternetOverlay } from '../../components/NoInternetOverlay';
-import logoImg from '../../assets/logo.png';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
 
 export function LoginPage() {
     const navigate = useNavigate();
+    const { t, isRTL } = useI18n();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,8 +13,8 @@ export function LoginPage() {
     const [error, setError] = useState('');
 
     const handleLogin = async () => {
-        if (!email || !password) { setError('Please enter email and password'); return; }
-        if (!navigator.onLine) { setError('No internet connection. Please check your network and try again.'); return; }
+        if (!email || !password) { setError(t('common.required')); return; }
+        if (!navigator.onLine) { setError(t('doctor.auth.noInternet')); return; }
         setLoading(true);
         setError('');
 
@@ -35,11 +26,11 @@ export function LoginPage() {
             const store = useAuthStore.getState();
 
             if (store.isNewRegistration) { navigate('/auth/pending-approval', { replace: true }); return; }
-            if (!store.doctor) { setError('No doctor profile found for this account.'); await supabase.auth.signOut(); useAuthStore.getState().clear(); setLoading(false); return; }
+            if (!store.doctor) { setError(t('doctor.auth.noProfile')); await supabase.auth.signOut(); useAuthStore.getState().clear(); setLoading(false); return; }
             if (store.doctor.must_change_password) { navigate('/auth/change-password', { replace: true }); }
             else { navigate('/tabs', { replace: true }); }
         } catch (err: any) {
-            setError(err.message === 'Invalid login credentials' ? 'Invalid email or password' : err.message || 'Login failed.');
+            setError(err.message === 'Invalid login credentials' ? t('doctor.auth.invalidCredentials') : err.message || t('doctor.auth.loginFailed'));
         } finally { setLoading(false); }
     };
 
@@ -57,14 +48,14 @@ export function LoginPage() {
         setError('');
         try {
             if (!navigator.onLine) {
-                setError('No internet connection. Please check your network and try again.');
+                setError(t('doctor.auth.noInternet'));
                 setLoaderFn(false);
                 return;
             }
             const handler = provider === 'google' ? handleGoogleSignIn : handleAppleSignIn;
             const success = await handler();
             if (success) handleOAuthSuccess();
-        } catch (err: any) { setError(err?.message || 'OAuth sign-in failed'); }
+        } catch (err: any) { setError(err?.message || t('doctor.auth.loginFailed')); }
         finally { setLoaderFn(false); }
     };
 
@@ -78,35 +69,35 @@ export function LoginPage() {
                 <div style={s.header}>
                     <img src={logoImg} alt="cliniq.one" style={s.logo} />
                     <span style={s.title}>cliniq.one</span>
-                    <span style={s.subtitle}>Doctor Panel</span>
+                    <span style={s.subtitle}>{t('doctor.auth.loginTitle')}</span>
                 </div>
 
                 {/* Form */}
                 <div style={s.form}>
                     {error && (
-                        <div style={s.errorBox}>
-                            <span style={s.errorText}><AlertTriangle size={13} color={colors.error} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {error}</span>
+                        <div style={{ ...s.errorBox, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                            <span style={{ ...s.errorText, textAlign: isRTL ? 'right' : 'left' as any }}><AlertTriangle size={13} color={colors.error} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {error}</span>
                         </div>
                     )}
 
-                    <label style={s.label}>Email</label>
+                    <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.auth.email')}</label>
                     <input
-                        style={s.input}
+                        style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="doctor@cliniq.one"
+                        placeholder={t('doctor.auth.emailPlaceholder')}
                         type="email"
                         autoComplete="email"
                         disabled={isDisabled}
                     />
 
-                    <label style={s.label}>Password</label>
+                    <label style={{ ...s.label, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.auth.password')}</label>
                     <div style={{ position: 'relative' }}>
                         <input
-                            style={s.input}
+                            style={{ ...s.input, textAlign: isRTL ? 'right' : 'left' }}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
+                            placeholder={t('doctor.auth.passwordPlaceholder')}
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="current-password"
                             disabled={isDisabled}
@@ -115,7 +106,7 @@ export function LoginPage() {
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}
+                            style={{ position: 'absolute', [isRTL ? 'left' : 'right']: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}
                         >
                             {showPassword ? <EyeOff size={16} color={colors.textTertiary} /> : <Eye size={16} color={colors.textTertiary} />}
                         </button>
@@ -129,29 +120,28 @@ export function LoginPage() {
                     >
                         {loading
                             ? <div className="spinner" style={{ color: colors.bgPrimary }} />
-                            : <span style={s.buttonText}>Sign In</span>
+                            : <span style={s.buttonText}>{t('doctor.auth.signIn')}</span>
                         }
                     </button>
 
                     <button style={s.forgotLink} onClick={() => { haptic.light(); navigate('/auth/forgot-password'); }} disabled={isDisabled}>
-                        <span style={{ fontSize: 11, color: colors.accentTeal }}>Forgot password?</span>
+                        <span style={{ fontSize: 11, color: colors.accentTeal }}>{t('doctor.auth.forgotPassword')}</span>
                     </button>
 
                     {/* Divider */}
                     <div style={s.divider}>
                         <div style={s.dividerLine} />
-                        <span style={{ fontSize: 11, color: colors.textTertiary, marginInline: spacing.md }}>or</span>
+                        <span style={{ fontSize: 11, color: colors.textTertiary, marginInline: spacing.md }}>{t('doctor.auth.or')}</span>
                         <div style={s.dividerLine} />
                     </div>
 
                     {/* Social OAuth */}
-                    <SocialLoginButton provider="google" label="Continue with Google" loading={googleLoading} disabled={appleLoading || loading} onPress={() => { haptic.medium(); handleOAuth('google'); }} />
-                    <SocialLoginButton provider="apple" label="Continue with Apple" loading={appleLoading} disabled={googleLoading || loading} onPress={() => { haptic.medium(); handleOAuth('apple'); }} />
+                    <SocialLoginButton provider="google" label={t('doctor.auth.continueGoogle')} loading={googleLoading} disabled={appleLoading || loading} onPress={() => { haptic.medium(); handleOAuth('google'); }} />
+                    <SocialLoginButton provider="apple" label={t('doctor.auth.continueApple')} loading={appleLoading} disabled={googleLoading || loading} onPress={() => { haptic.medium(); handleOAuth('apple'); }} />
                 </div>
 
-                <p style={s.footer}>
-                    New doctor? Sign in with Google or Apple to register.<br />
-                    Admin approval required.
+                <p style={{ ...s.footer, whiteSpace: 'pre-line' }}>
+                    {t('doctor.auth.footerRegister')}
                 </p>
             </div>
         </div>

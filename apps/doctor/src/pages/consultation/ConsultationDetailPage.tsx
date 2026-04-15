@@ -1,11 +1,4 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { colors, typography, AlertTriangle, User, MessageSquare, Bot, Ban, FileText, Gem, Siren, Edit, CheckCircle, XCircle, Paperclip } from '@cliniqone/ui';
-import { useConsultationDetail, useConsultationReports, type ConsultationReport } from '../../hooks/useDoctorData';
-import { RefundRequestModal } from '../../components/RefundRequestModal';
-import { BackButton } from '../../components/BackButton';
-import { BrandSpinner } from '../../components/BrandSpinner';
-import { haptic } from '../../hooks/useHaptics';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -17,11 +10,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, isRTL }: { label: string; value: string; isRTL: boolean }) {
     return (
-        <div style={s.infoRow}>
-            <span style={{ fontSize: 11, color: colors.textTertiary, flex: 1 }}>{label}</span>
-            <span style={{ fontSize: 14, color: colors.textPrimary, flex: 2, textAlign: 'right' }}>{value}</span>
+        <div style={{ ...s.infoRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+            <span style={{ fontSize: 11, color: colors.textTertiary, flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{label}</span>
+            <span style={{ fontSize: 14, color: colors.textPrimary, flex: 2, textAlign: isRTL ? 'left' : 'right' }}>{value}</span>
         </div>
     );
 }
@@ -32,9 +25,9 @@ function Tag({ label, color }: { label: string; color: string }) {
     );
 }
 
-export function ConsultationDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { t, isRTL, locale } = useI18n();
     const { data: consultation, isLoading, error } = useConsultationDetail(id || '');
     const [showRefund, setShowRefund] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -43,22 +36,22 @@ export function ConsultationDetailPage() {
     const [selectedReport, setSelectedReport] = useState<ConsultationReport | null>(null);
 
     if (isLoading) {
-        return <BrandSpinner message="Loading patient file..." />;
+        return <BrandSpinner message={t('doctor.loadingPatientFile')} />;
     }
 
     if (error || !consultation) {
         return (
             <div style={s.container}>
-                <div style={s.header}>
+                <div style={{ ...s.header, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                     <BackButton />
-                    <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>Patient File</span>
+                    <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>{t('doctor.patientFile')}</span>
                     <div style={{ width: 50 }} />
                 </div>
                 <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center', flexDirection: 'column', padding: 24 }}>
                     <AlertTriangle size={48} color={colors.warning} />
-                    <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>Failed to load</span>
-                    <span style={{ fontSize: 14, color: colors.textTertiary, textAlign: 'center', marginBottom: 20 }}>{(error as any)?.message || 'Consultation not found.'}</span>
-                    <button style={s.retryBtn} className="pressable" onClick={() => { haptic.medium(); navigate(-1); }}><span style={{ fontSize: 14, fontWeight: 600, color: colors.bgPrimary }}>Go Back</span></button>
+                    <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{t('doctor.failedToLoad')}</span>
+                    <span style={{ fontSize: 14, color: colors.textTertiary, textAlign: 'center', marginBottom: 20 }}>{(error as any)?.message || t('doctor.consultationNotFound')}</span>
+                    <button style={s.retryBtn} className="pressable" onClick={() => { haptic.medium(); navigate(-1); }}><span style={{ fontSize: 14, fontWeight: 600, color: colors.bgPrimary }}>{t('doctor.goBack')}</span></button>
                 </div>
             </div>
         );
@@ -71,28 +64,29 @@ export function ConsultationDetailPage() {
     return (
         <div style={s.container}>
             {/* Header */}
-            <div style={s.header}>
+            <div style={{ ...s.header, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <BackButton />
-                <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>Patient File</span>
-                <span style={{ fontSize: 11, color: colors.gold, backgroundColor: colors.goldFaded, paddingInline: 10, paddingBlock: 4, borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gem size={11} color={colors.gold} /> {consultation.token_cost || 3}</span>
+                <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>{t('doctor.patientFile')}</span>
+                <span style={{ fontSize: 11, color: colors.gold, backgroundColor: colors.goldFaded, paddingInline: 10, paddingBlock: 4, borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 3, flexDirection: isRTL ? 'row-reverse' : 'row' }}><Gem size={11} color={colors.gold} /> {consultation.token_cost || 3}</span>
             </div>
 
             <div style={s.scroll} className="scrollable">
                 <div style={s.scrollInner}>
                     {/* Patient Info */}
-                    <Section title="Patient Information">
-                        <InfoRow label="Nickname" value={patient?.nickname || 'Patient'} />
-                        {patientAge && <InfoRow label="Age / Gender" value={`${patientAge} / ${patient?.gender || '—'}`} />}
-                        {!patientAge && patient?.gender && <InfoRow label="Gender" value={patient.gender} />}
-                        {patient?.city && <InfoRow label="Location" value={`${patient.city}${patient?.country ? `, ${patient.country}` : ''}`} />}
-                        {patient?.language && <InfoRow label="Language" value={patient.language === 'ar' ? 'Arabic' : 'English'} />}
-                        {patient?.insurance_provider && <InfoRow label="Insurance" value={`${patient.insurance_provider}${patient.insurance_policy_number ? ` – ${patient.insurance_policy_number}` : ''}`} />}
+                    {/* Patient Info */}
+                    <Section title={t('doctor.patientInformation')}>
+                        <InfoRow label={t('doctor.nickname')} value={patient?.nickname || 'Patient'} isRTL={isRTL} />
+                        {patientAge && <InfoRow label={t('doctor.ageGender')} value={`${patientAge} / ${patient?.gender || '—'}`} isRTL={isRTL} />}
+                        {!patientAge && patient?.gender && <InfoRow label={t('doctor.gender')} value={patient.gender} isRTL={isRTL} />}
+                        {patient?.city && <InfoRow label={t('doctor.location')} value={`${patient.city}${patient?.country ? `, ${patient.country}` : ''}`} isRTL={isRTL} />}
+                        {patient?.language && <InfoRow label={t('doctor.language')} value={patient.language === 'ar' ? t('doctor.langs.ar') : t('doctor.langs.en')} isRTL={isRTL} />}
+                        {patient?.insurance_provider && <InfoRow label={t('doctor.insurance')} value={`${patient.insurance_provider}${patient.insurance_policy_number ? ` – ${patient.insurance_policy_number}` : ''}`} isRTL={isRTL} />}
                     </Section>
 
                     {/* Chief Complaint */}
-                    <Section title="Chief Complaint">
-                        <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: '22px' }}>{consultation.chief_complaint || 'No complaint provided'}</p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                    <Section title={t('doctor.chiefComplaint')}>
+                        <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: '22px', textAlign: isRTL ? 'right' : 'left' }}>{consultation.chief_complaint || t('doctor.noComplaint')}</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                             <Tag label={consultation.specialty} color={colors.accentTeal} />
                             <Tag label={consultation.priority} color={consultation.priority === 'urgent' ? colors.error : colors.warning} />
                         </div>
@@ -100,38 +94,38 @@ export function ConsultationDetailPage() {
 
                     {/* AI Assessment */}
                     {aiSummary && (
-                        <Section title="AI Preliminary Assessment">
-                            {aiSummary.summary && <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: '22px' }}>{aiSummary.summary}</p>}
+                        <Section title={t('doctor.aiAssessment')}>
+                            {aiSummary.summary && <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: '22px', textAlign: isRTL ? 'right' : 'left' }}>{aiSummary.summary}</p>}
                             {aiSummary.keyFindings?.length > 0 && (
                                 <>
-                                    <span style={s.subTitle}>Key Findings</span>
-                                    {aiSummary.keyFindings.map((f: string, i: number) => <p key={i} style={s.listItem}>✓ {f}</p>)}
+                                    <span style={{ ...s.subTitle, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.keyFindings')}</span>
+                                    {aiSummary.keyFindings.map((f: string, i: number) => <p key={i} style={{ ...s.listItem, textAlign: isRTL ? 'right' : 'left' }}>{isRTL ? '✓ ' + f : '✓ ' + f}</p>)}
                                 </>
                             )}
                             {aiSummary.differentialDx?.length > 0 && (
                                 <>
-                                    <span style={s.subTitle}>Differential Diagnosis</span>
+                                    <span style={{ ...s.subTitle, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.differentialDiagnosis')}</span>
                                     {aiSummary.differentialDx.map((dx: any, i: number) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBlock: 6 }}>
-                                            <span style={{ fontSize: 11, color: colors.textPrimary, width: 120 }}>{dx.diagnosis}</span>
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBlock: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                            <span style={{ fontSize: 11, color: colors.textPrimary, width: 120, textAlign: isRTL ? 'right' : 'left' }}>{dx.diagnosis}</span>
                                             <div style={{ flex: 1, height: 8, backgroundColor: colors.bgTertiary, borderRadius: 4, overflow: 'hidden' }}>
                                                 <div style={{ height: '100%', width: `${dx.likelihood}%`, backgroundColor: colors.accentTeal, borderRadius: 4 }} />
                                             </div>
-                                            <span style={{ fontSize: 11, color: colors.textSecondary, width: 36, textAlign: 'right' }}>{dx.likelihood}%</span>
+                                            <span style={{ fontSize: 11, color: colors.textSecondary, width: 36, textAlign: isRTL ? 'left' : 'right' }}>{dx.likelihood}%</span>
                                         </div>
                                     ))}
                                 </>
                             )}
                             {aiSummary.entities?.medications?.length > 0 && (
                                 <>
-                                    <span style={s.subTitle}>Current Medications</span>
-                                    {aiSummary.entities.medications.map((med: string, i: number) => <p key={i} style={s.listItem}>• {med}</p>)}
+                                    <span style={{ ...s.subTitle, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.currentMedications')}</span>
+                                    {aiSummary.entities.medications.map((med: string, i: number) => <p key={i} style={{ ...s.listItem, textAlign: isRTL ? 'right' : 'left' }}>• {med}</p>)}
                                 </>
                             )}
                             {aiSummary.entities?.allergies?.length > 0 && (
                                 <>
-                                    <span style={s.subTitle}>Allergies</span>
-                                    {aiSummary.entities.allergies.map((a: string, i: number) => <p key={i} style={s.listItem}>• {a}</p>)}
+                                    <span style={{ ...s.subTitle, textAlign: isRTL ? 'right' : 'left' }}>{t('doctor.allergies')}</span>
+                                    {aiSummary.entities.allergies.map((a: string, i: number) => <p key={i} style={{ ...s.listItem, textAlign: isRTL ? 'right' : 'left' }}>• {a}</p>)}
                                 </>
                             )}
                         </Section>
@@ -139,12 +133,12 @@ export function ConsultationDetailPage() {
 
                     {/* Protocol Flags */}
                     {consultation.protocol_flags && consultation.protocol_flags.length > 0 && (
-                        <Section title="⚠ Protocol Flags">
+                        <Section title={'⚠ ' + t('doctor.protocolFlags')}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {consultation.protocol_flags.map((flag: string, i: number) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 10, backgroundColor: colors.warningFaded, borderRadius: 10, border: `1px solid ${colors.warning}40` }}>
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 10, backgroundColor: colors.warningFaded, borderRadius: 10, border: `1px solid ${colors.warning}40`, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                         <Siren size={14} color={colors.warning} />
-                                        <span style={{ fontSize: 13, color: colors.warning, fontWeight: 600, flex: 1 }}>{flag}</span>
+                                        <span style={{ fontSize: 13, color: colors.warning, fontWeight: 600, flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{flag}</span>
                                     </div>
                                 ))}
                             </div>
@@ -153,13 +147,13 @@ export function ConsultationDetailPage() {
 
                     {/* Patient Photos */}
                     {(consultation as any).photos && (consultation as any).photos.length > 0 && (
-                        <Section title="Patient Photos">
-                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <Section title={t('doctor.patientPhotos')}>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                 {(consultation as any).photos.map((photo: any, i: number) => (
                                     <div key={i} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${colors.border}`, width: 'calc(50% - 5px)' }}>
                                         <img
                                             src={photo.url || photo}
-                                            alt={`Patient photo ${i + 1}`}
+                                            alt={`${t('doctor.patientPhotos')} ${i + 1}`}
                                             style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block', backgroundColor: colors.bgTertiary }}
                                             onClick={() => { setSelectedPhoto(typeof photo === 'string' ? photo : photo.url); }}
                                         />
@@ -174,7 +168,7 @@ export function ConsultationDetailPage() {
 
                     {/* Medical Reports (AI-Verified) */}
                     {reports && reports.length > 0 && (
-                        <Section title="📎 Medical Reports">
+                        <Section title={'📎 ' + t('doctor.medicalReports')}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {reports.map((report) => {
                                     const isVerified = report.is_verified;
@@ -184,7 +178,7 @@ export function ConsultationDetailPage() {
                                     const docType = (report.document_type || 'general').replace(/_/g, ' ');
 
                                     const badgeColor = isRejected ? '#dc2626' : isOutdated ? colors.warning : colors.success;
-                                    const badgeLabel = isRejected ? 'Rejected' : isOutdated ? 'Outdated' : 'Verified';
+                                    const badgeLabel = isRejected ? t('doctor.reportStatus.rejected') : isOutdated ? t('doctor.reportStatus.outdated') : t('doctor.reportStatus.verified');
                                     const BadgeIcon = isRejected ? XCircle : isOutdated ? AlertTriangle : CheckCircle;
 
                                     return (
@@ -193,17 +187,19 @@ export function ConsultationDetailPage() {
                                             borderRadius: 12,
                                             padding: 14,
                                             border: `1px solid ${isRejected ? '#dc262630' : isOutdated ? `${colors.warning}30` : `${colors.success}30`}`,
+                                            textAlign: isRTL ? 'right' : 'left',
                                         }}>
                                             {/* Header row */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                                 <FileText size={16} color={colors.accentTeal} />
-                                                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>
                                                     {docType}
                                                 </span>
                                                 <span style={{
                                                     fontSize: 10, fontWeight: 700, color: badgeColor,
                                                     backgroundColor: `${badgeColor}15`, padding: '2px 8px',
                                                     borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 3,
+                                                    flexDirection: isRTL ? 'row-reverse' : 'row'
                                                 }}>
                                                     <BadgeIcon size={10} color={badgeColor} /> {badgeLabel}
                                                 </span>
@@ -247,7 +243,7 @@ export function ConsultationDetailPage() {
                                             )}
 
                                             {/* Date + Institution */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                                 <span style={{ fontSize: 11, color: colors.textTertiary }}>
                                                     {report.document_date ? `📅 ${report.document_date}` : ''}
                                                     {analysis?.extractedData?.institution ? ` • ${analysis.extractedData.institution}` : ''}
@@ -262,7 +258,7 @@ export function ConsultationDetailPage() {
                                             {/* Rejection reason */}
                                             {report.rejection_reason && (
                                                 <p style={{ fontSize: 11, color: '#dc2626', marginTop: 6, marginBottom: 0 }}>
-                                                    Reason: {report.rejection_reason}
+                                                    {t('doctor.reason', { reason: report.rejection_reason })}
                                                 </p>
                                             )}
                                         </div>
@@ -276,10 +272,10 @@ export function ConsultationDetailPage() {
                                 const outdated = reports.filter(r => r.date_relevance === 'outdated').length;
                                 const rejected = reports.filter(r => !r.is_verified && r.rejection_reason).length;
                                 return (
-                                    <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                        {verified > 0 && <Tag label={`${verified} verified`} color={colors.success} />}
-                                        {outdated > 0 && <Tag label={`${outdated} outdated`} color={colors.warning} />}
-                                        {rejected > 0 && <Tag label={`${rejected} rejected`} color="#dc2626" />}
+                                    <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                        {verified > 0 && <Tag label={t('doctor.verifiedCount', { count: verified })} color={colors.success} />}
+                                        {outdated > 0 && <Tag label={t('doctor.outdatedCount', { count: outdated })} color={colors.warning} />}
+                                        {rejected > 0 && <Tag label={t('doctor.rejectedCount', { count: rejected })} color="#dc2626" />}
                                     </div>
                                 );
                             })()}
@@ -287,26 +283,26 @@ export function ConsultationDetailPage() {
                     )}
 
                     {/* Consultation Metadata */}
-                    <Section title="Consultation Metadata">
-                        <InfoRow label="ID" value={consultation.id.slice(0, 8)} />
-                        <InfoRow label="Status" value={consultation.status} />
-                        <InfoRow label="Priority" value={consultation.priority} />
-                        <InfoRow label="Specialty" value={consultation.specialty} />
-                        <InfoRow label="Submitted" value={new Date(consultation.created_at).toLocaleString()} />
-                        {consultation.assigned_at && <InfoRow label="Assigned" value={new Date(consultation.assigned_at).toLocaleString()} />}
-                        <InfoRow label="Token Cost" value={`${consultation.token_cost || 3} tokens`} />
+                    <Section title={t('doctor.consultationMetadata')}>
+                        <InfoRow label="ID" value={consultation.id.slice(0, 8)} isRTL={isRTL} />
+                        <InfoRow label={t('common.status')} value={consultation.status} isRTL={isRTL} />
+                        <InfoRow label={t('doctor.priority')} value={consultation.priority} isRTL={isRTL} />
+                        <InfoRow label={t('common.specialty')} value={consultation.specialty} isRTL={isRTL} />
+                        <InfoRow label={t('common.date')} value={new Date(consultation.created_at).toLocaleString()} isRTL={isRTL} />
+                        {consultation.assigned_at && <InfoRow label={t('doctor.assigned')} value={new Date(consultation.assigned_at).toLocaleString()} isRTL={isRTL} />}
+                        <InfoRow label={t('doctor.tokenCost')} value={`${consultation.token_cost || 3} tokens`} isRTL={isRTL} />
                     </Section>
 
                     {/* Refund Button */}
                     {canRefund && (
-                        <button style={s.refundBtn} className="pressable" onClick={() => { haptic.warning(); setShowRefund(true); }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: colors.warning, display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16} color={colors.warning} /> Request Refund</span>
+                        <button style={{ ...s.refundBtn, flexDirection: isRTL ? 'row-reverse' : 'row' }} className="pressable" onClick={() => { haptic.warning(); setShowRefund(true); }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: colors.warning, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}><AlertTriangle size={16} color={colors.warning} /> {t('doctor.requestRefund')}</span>
                         </button>
                     )}
 
                     {/* Compose CTA */}
                     <button style={s.composeBtn} className="pressable" onClick={() => { haptic.medium(); navigate(`/consultation/${consultation.id}/respond`); }}>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: colors.bgPrimary, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Edit size={18} color={colors.bgPrimary} /> Compose Medical Response</span>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: colors.bgPrimary, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}><Edit size={18} color={colors.bgPrimary} /> {t('doctor.composeResponse')}</span>
                     </button>
                 </div>
             </div>

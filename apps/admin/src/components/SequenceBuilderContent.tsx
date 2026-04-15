@@ -622,6 +622,7 @@ export default function SequenceBuilderContent() {
     const pipelinePhases = sequences.filter(s => ['global_intake', 'global_wrapup'].includes(s.sequence_type || ''));
     const specialtyFlows = sequences.filter(s => s.sequence_type === 'specialty');
     const pathwayFlows = sequences.filter(s => ['refill', 'followup'].includes(s.sequence_type || ''));
+    const waFlows = sequences.filter(s => (s.sequence_type || '').startsWith('wa_'));
 
     // ── Node sections (always single group in three-phase model) ──
     const nodeSections = [
@@ -758,7 +759,35 @@ export default function SequenceBuilderContent() {
                         ))}
                     </div>
 
-
+                    {/* WhatsApp Flows */}
+                    {waFlows.length > 0 && (
+                        <>
+                            <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mt-4 mb-1">📱 WhatsApp Flows</p>
+                            <div className="space-y-1">
+                                {waFlows.map(seq => {
+                                    const waEmojis: Record<string, string> = { wa_new_visit: '🆕', wa_followup: '🔄', wa_wrapup: '📝', wa_intake: '📋', wa_booking: '📅' };
+                                    const emoji = waEmojis[seq.sequence_type || ''] || '💬';
+                                    return (
+                                        <button
+                                            key={seq.id}
+                                            onClick={() => setSelectedId(seq.id)}
+                                            className={`w-full text-left px-4 py-2.5 rounded-xl border transition-all ${seq.id === selectedId
+                                                ? 'border-green-500/50 bg-green-500/10 shadow-[0_0_20px_rgba(34,197,94,0.1)]'
+                                                : 'border-border bg-bg-elevated hover:border-border hover:bg-bg-tertiary'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm">{emoji}</span>
+                                                <span className={`text-sm font-medium ${seq.id === selectedId ? 'text-green-400' : 'text-text-primary'}`}>
+                                                    {seq.name}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
 
                     {sequences.length === 0 && !showNewSeq && (
                         <p className="text-xs text-text-muted text-center py-6">No sequences yet. Create one to get started.</p>
@@ -996,6 +1025,26 @@ export default function SequenceBuilderContent() {
                                                                 ⚡ SYSTEM
                                                             </span>
                                                         )}
+                                                        {/* Turns badge - visible at a glance */}
+                                                        {(!(node as any).node_type || (node as any).node_type === 'chat') && (node as any).max_turns && (() => {
+                                                            const mt = (node as any).max_turns;
+                                                            const wt = (node as any).wrap_at_turn;
+                                                            const color = mt <= 2 ? 'text-green-400 bg-green-500/10 border-green-500/25' 
+                                                                : mt <= 5 ? 'text-blue-400 bg-blue-500/10 border-blue-500/25'
+                                                                : mt <= 8 ? 'text-amber-400 bg-amber-500/10 border-amber-500/25'
+                                                                : 'text-red-400 bg-red-500/10 border-red-500/25';
+                                                            return (
+                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold border ${color} flex items-center gap-0.5`} title={`Max: ${mt} turns${wt ? `, wrap at: ${wt}` : ''}`}>
+                                                                    🔄 {mt}{wt ? <span className="opacity-60">/{wt}</span> : ''}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                        {/* Essential badge */}
+                                                        {(node as any).is_essential && (
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold border border-red-500/40 bg-red-500/10 text-red-400 flex items-center gap-0.5" title="Essential — runs even during fast-track skip">
+                                                                🛡️ Essential
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {/* System node description or linked prompt */}
                                                     {(node as any).node_type === 'system_analysis' ? (
@@ -1113,28 +1162,177 @@ export default function SequenceBuilderContent() {
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-[10px] text-text-muted uppercase tracking-wider block mb-1">
-                                                                Max Turns
-                                                                <span className="text-text-muted/50 ml-1 normal-case">(blank = global default)</span>
+                                                            <label className="text-[10px] text-text-muted uppercase tracking-wider block mb-2 font-bold">
+                                                                🔄 Turn Control
                                                             </label>
-                                                            <input
-                                                                type="number"
-                                                                min={1}
-                                                                max={30}
-                                                                placeholder="default"
-                                                                value={(node as any).max_turns || ''}
-                                                                onChange={async (e) => {
-                                                                    const val = e.target.value ? parseInt(e.target.value) : null;
-                                                                    await editSequenceNode(node.id, { max_turns: val } as any);
-                                                                    await loadNodes();
-                                                                    setSuccess(`Max turns ${val ? `set to ${val}` : 'reset to default'}`);
-                                                                }}
-                                                                className="w-24 bg-bg-primary border border-border rounded-lg px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
-                                                            />
+                                                            
+                                                            {/* ── Preset buttons ── */}
+                                                            <div className="flex items-center gap-1.5 mb-3">
+                                                                {[
+                                                                    { label: '⚡ Quick', turns: 2, wrap: 1, desc: '~1 min' },
+                                                                    { label: '📋 Standard', turns: 5, wrap: 3, desc: '~2 min' },
+                                                                    { label: '🔬 Deep', turns: 8, wrap: 6, desc: '~4 min' },
+                                                                    { label: '📖 Thorough', turns: 12, wrap: 9, desc: '~6 min' },
+                                                                ].map(preset => {
+                                                                    const isActive = (node as any).max_turns === preset.turns;
+                                                                    return (
+                                                                        <button
+                                                                            key={preset.label}
+                                                                            onClick={async () => {
+                                                                                await editSequenceNode(node.id, { max_turns: preset.turns, wrap_at_turn: preset.wrap } as any);
+                                                                                await loadNodes();
+                                                                                setSuccess(`Set to ${preset.label} (${preset.turns} turns, wrap at ${preset.wrap})`);
+                                                                            }}
+                                                                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border ${
+                                                                                isActive
+                                                                                    ? 'bg-accent/15 border-accent/40 text-accent shadow-sm'
+                                                                                    : 'bg-bg-primary border-border text-text-muted hover:text-text-primary hover:border-accent/30'
+                                                                            }`}
+                                                                            title={`${preset.turns} turns, wrap at ${preset.wrap} (${preset.desc})`}
+                                                                        >
+                                                                            {preset.label}
+                                                                            <span className="ml-1 opacity-60">{preset.desc}</span>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+
+                                                            {/* ── Visual turn bar ── */}
+                                                            {(() => {
+                                                                const mt = (node as any).max_turns || 5;
+                                                                const wt = (node as any).wrap_at_turn || null;
+                                                                const maxBar = 15;
+                                                                return (
+                                                                    <div className="mb-3">
+                                                                        <div className="flex items-center gap-0.5 mb-1">
+                                                                            {Array.from({ length: maxBar }, (_, i) => {
+                                                                                const turnNum = i + 1;
+                                                                                const isActive = turnNum <= mt;
+                                                                                const isWrap = wt && turnNum >= wt && turnNum < mt;
+                                                                                const isMax = turnNum === mt;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={i}
+                                                                                        className={`h-3 flex-1 rounded-sm transition-all ${
+                                                                                            isMax ? 'bg-red-400/80' 
+                                                                                            : isWrap ? 'bg-amber-400/60'
+                                                                                            : isActive ? 'bg-accent/50' 
+                                                                                            : 'bg-bg-tertiary'
+                                                                                        }`}
+                                                                                        title={`Turn ${turnNum}${isMax ? ' (MAX - force stop)' : isWrap ? ' (wrapping up)' : ''}`}
+                                                                                    />
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between text-[9px] text-text-muted">
+                                                                            <span>1</span>
+                                                                            <div className="flex items-center gap-3">
+                                                                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-accent/50" /> Active</span>
+                                                                                {wt && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-400/60" /> Wrap-up</span>}
+                                                                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400/80" /> Force stop</span>
+                                                                            </div>
+                                                                            <span>{maxBar}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {/* ── Manual inputs ── */}
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div>
+                                                                    <label className="text-[9px] text-text-muted uppercase tracking-wider block mb-1">
+                                                                        Max Turns <span className="text-red-400">●</span>
+                                                                        <span className="text-text-muted/50 ml-0.5 normal-case">(hard limit)</span>
+                                                                    </label>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input
+                                                                            type="number"
+                                                                            min={1}
+                                                                            max={30}
+                                                                            placeholder="5"
+                                                                            value={(node as any).max_turns || ''}
+                                                                            onChange={async (e) => {
+                                                                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                                                                await editSequenceNode(node.id, { max_turns: val } as any);
+                                                                                await loadNodes();
+                                                                                setSuccess(`Max turns ${val ? `set to ${val}` : 'reset to default'}`);
+                                                                            }}
+                                                                            className="w-16 bg-bg-primary border border-border rounded-lg px-2 py-1.5 text-xs text-text-primary text-center focus:outline-none focus:border-accent"
+                                                                        />
+                                                                        <span className="text-[10px] text-text-muted">
+                                                                            ≈ {Math.ceil(((node as any).max_turns || 5) * 0.5)} min
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[9px] text-text-muted uppercase tracking-wider block mb-1">
+                                                                        Wrap at Turn <span className="text-amber-400">●</span>
+                                                                        <span className="text-text-muted/50 ml-0.5 normal-case">(soft nudge)</span>
+                                                                    </label>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input
+                                                                            type="number"
+                                                                            min={1}
+                                                                            max={(node as any).max_turns || 30}
+                                                                            placeholder="auto"
+                                                                            value={(node as any).wrap_at_turn || ''}
+                                                                            onChange={async (e) => {
+                                                                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                                                                await editSequenceNode(node.id, { wrap_at_turn: val } as any);
+                                                                                await loadNodes();
+                                                                                setSuccess(`Wrap-up ${val ? `set at turn ${val}` : 'reset to auto'}`);
+                                                                            }}
+                                                                            className="w-16 bg-bg-primary border border-border rounded-lg px-2 py-1.5 text-xs text-text-primary text-center focus:outline-none focus:border-amber-400"
+                                                                        />
+                                                                        <span className="text-[10px] text-text-muted">
+                                                                            {(node as any).wrap_at_turn ? 'manual' : 'auto (max-1)'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* ── Help text ── */}
+                                                            <p className="text-[9px] text-text-muted/70 mt-2 leading-relaxed">
+                                                                💡 <strong>Wrap-up turn</strong> gently tells the AI to start concluding (no new topics).
+                                                                <strong> Max turns</strong> is the hard stop — AI is forced to emit [SECTION_COMPLETE].
+                                                            </p>
                                                         </div>
                                                     </div>
 
-                                                    {/* ── Prompt Version History ── */}
+                                                    {/* ── Essential for Fast-Track ── */}
+                                                    <div className="rounded-xl border border-border bg-bg-primary p-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm">🛡️</span>
+                                                                <div>
+                                                                    <span className="text-[11px] font-bold text-text-primary">Essential for Fast-Track</span>
+                                                                    <p className="text-[9px] text-text-muted/70 mt-0.5">
+                                                                        This node runs even when patient chooses fast-track skip
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    const newValue = !(node as any).is_essential;
+                                                                    await editSequenceNode(node.id, { is_essential: newValue } as any);
+                                                                    await loadNodes();
+                                                                    setSuccess(newValue ? 'Marked as essential' : 'Removed essential flag');
+                                                                }}
+                                                                className={`relative w-10 h-5 rounded-full transition-all duration-200 ${
+                                                                    (node as any).is_essential
+                                                                        ? 'bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.3)]'
+                                                                        : 'bg-bg-secondary border border-border'
+                                                                }`}
+                                                            >
+                                                                <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ${
+                                                                    (node as any).is_essential
+                                                                        ? 'left-[22px] bg-white'
+                                                                        : 'left-0.5 bg-text-muted/50'
+                                                                }`} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
                                                     {node.prompt_id && (
                                                         <div className="rounded-xl border border-border bg-bg-primary p-3">
                                                             <button
@@ -1388,6 +1586,42 @@ export default function SequenceBuilderContent() {
                                     })()}
                                 </div>
                             )}
+
+                            {/* ── Sequence Summary Bar ── */}
+                            {nodes.length > 0 && (() => {
+                                const chatNodes = nodes.filter((n: any) => !n.node_type || n.node_type === 'chat');
+                                const totalTurns = chatNodes.reduce((sum: number, n: any) => sum + (n.max_turns || 5), 0);
+                                const totalWrap = chatNodes.reduce((sum: number, n: any) => sum + (n.wrap_at_turn || (n.max_turns ? n.max_turns - 1 : 4)), 0);
+                                const estMinutes = Math.ceil(totalTurns * 0.5);
+                                return (
+                                    <div className="mt-4 p-3 rounded-xl bg-bg-elevated border border-border flex items-center justify-between flex-wrap gap-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Steps</span>
+                                                <span className="text-sm font-bold text-text-primary">{chatNodes.length}</span>
+                                            </div>
+                                            <div className="w-px h-4 bg-border" />
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Total Turns</span>
+                                                <span className="text-sm font-bold text-accent">{totalTurns}</span>
+                                            </div>
+                                            <div className="w-px h-4 bg-border" />
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Wrap Total</span>
+                                                <span className="text-sm font-bold text-amber-400">{totalWrap}</span>
+                                            </div>
+                                        </div>
+                                        <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                                            estMinutes <= 5 ? 'bg-green-500/10 text-green-400 border border-green-500/25'
+                                            : estMinutes <= 10 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/25'
+                                            : estMinutes <= 15 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                                            : 'bg-red-500/10 text-red-400 border border-red-500/25'
+                                        }`}>
+                                            ⏱ Est. {estMinutes} min intake
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Add Node */}
                             {

@@ -21,16 +21,19 @@ export const metadata: Metadata = {
 };
 
 import OfflineBannerClient from '@/components/OfflineBannerClient';
+import ClientProviders from '@/components/ClientProviders';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en" className={inter.variable}>
+        <html lang="en">
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
             </head>
             <body className="min-h-screen bg-bg-primary overflow-x-hidden">
-                <OfflineBannerClient />
-                {children}
+                <ClientProviders>
+                    <OfflineBannerClient />
+                    {children}
+                </ClientProviders>
             </body>
         </html>
     );

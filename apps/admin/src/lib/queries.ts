@@ -1690,6 +1690,9 @@ export async function updateSequenceNode(id: string, updates: {
     gender_condition?: string | null;
     specialty_condition?: string | null;
     node_type?: string;
+    max_turns?: number | null;
+    wrap_at_turn?: number | null;
+    is_essential?: boolean;
 }) {
     const { data, error } = await supabaseAdmin
         .from('prompt_sequence_nodes')
@@ -3301,15 +3304,99 @@ export async function getWaSubscriptionStats() {
 }
 
 export async function manageWaSubscriptionRpc(doctorId: string, plan: string, action: string) {
-    const { data, error } = await supabaseAdmin
-        // @ts-ignore — RPC not in generated types yet
-        .rpc('manage_wa_subscription', {
-            p_doctor_id: doctorId,
-            p_plan: plan,
-            p_action: action,
-        });
-    if (error) { console.error('[manageWaSubscription]', error.message); return { data: null, error: error.message }; }
-    return { data, error: null };
+    // Direct DB operations instead of RPC (service-role client has no auth.uid())
+    const PLAN_DEFAULTS: Record<string, { limit: number; durationDays: number; features: Record<string, boolean> }> = {
+        trial:        { limit: 20,     durationDays: 14, features: { photo_upload: false, doc_upload: false, custom_branding: false } },
+        starter:      { limit: 100,    durationDays: 30, features: { photo_upload: true,  doc_upload: false, custom_branding: false } },
+        professional: { limit: 500,    durationDays: 30, features: { photo_upload: true,  doc_upload: true,  custom_branding: true  } },
+        enterprise:   { limit: 999999, durationDays: 30, features: { photo_upload: true,  doc_upload: true,  custom_branding: true  } },
+    };
+
+    const planDef = PLAN_DEFAULTS[plan];
+    if (!planDef) return { data: null, error: `Invalid plan: ${plan}` };
+
+    try {
+        if (action === 'suspend') {
+            const { data, error } = await supabaseAdmin
+                .from('doctor_subscriptions')
+                // @ts-ignore
+                .update({ status: 'suspended' } as never)
+                .eq('doctor_id', doctorId)
+                .select()
+                .single();
+            if (error) throw error;
+            return { data: { status: 'suspended', id: data.id }, error: null };
+        }
+
+        if (action === 'cancel') {
+            const { data, error } = await supabaseAdmin
+                .from('doctor_subscriptions')
+                // @ts-ignore
+                .update({ status: 'cancelled' } as never)
+                .eq('doctor_id', doctorId)
+                .select()
+                .single();
+            if (error) throw error;
+            return { data: { status: 'cancelled', id: data.id }, error: null };
+        }
+
+        // Create / upgrade / renew
+        const expiresAt = new Date(Date.now() + planDef.durationDays * 86400000).toISOString();
+        const insertRow = {
+            doctor_id: doctorId,
+            plan,
+            status: 'active',
+            sessions_limit: planDef.limit,
+            sessions_used: 0,
+            features: planDef.features,
+            expires_at: expiresAt,
+        };
+
+        // Try insert first
+        const { data: existing } = await supabaseAdmin
+            .from('doctor_subscriptions')
+            .select('id, sessions_used, renewed_at')
+            .eq('doctor_id', doctorId)
+            .maybeSingle();
+
+        if (existing) {
+            // Update existing
+            const updatePayload: Record<string, unknown> = {
+                plan,
+                status: 'active',
+                sessions_limit: planDef.limit,
+                features: planDef.features,
+                expires_at: expiresAt,
+            };
+            if (action === 'renew') {
+                updatePayload.sessions_used = 0;
+                updatePayload.renewed_at = new Date().toISOString();
+            }
+            const { data, error } = await supabaseAdmin
+                .from('doctor_subscriptions')
+                // @ts-ignore
+                .update(updatePayload as never)
+                .eq('doctor_id', doctorId)
+                .select()
+                .single();
+            if (error) throw error;
+            return { data: { id: data.id, plan: data.plan, status: data.status, sessions_limit: data.sessions_limit, expires_at: data.expires_at }, error: null };
+        } else {
+            // Insert new
+            const { data, error } = await supabaseAdmin
+                .from('doctor_subscriptions')
+                // @ts-ignore
+                .insert(insertRow as never)
+                .select()
+                .single();
+            if (error) throw error;
+            return { data: { id: data.id, plan: data.plan, status: data.status, sessions_limit: data.sessions_limit, expires_at: data.expires_at }, error: null };
+        }
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[manageWaSubscription]', msg);
+        return { data: null, error: msg };
+    }
 }
 
 export async function getWaApiKeys(doctorId?: string) {
@@ -3327,14 +3414,43 @@ export async function getWaApiKeys(doctorId?: string) {
 }
 
 export async function generateWaApiKeyRpc(doctorId: string, label: string) {
-    const { data, error } = await supabaseAdmin
-        // @ts-ignore — RPC not in generated types yet
-        .rpc('generate_wa_key', {
-            p_doctor_id: doctorId,
-            p_label: label || 'Default',
-        });
-    if (error) { console.error('[generateWaKey]', error.message); return { data: null, error: error.message }; }
-    return { data, error: null };
+    // Direct DB insert instead of RPC (service-role client has no auth.uid())
+    try {
+        // Generate unique key code: WA- + 6 random hex chars
+        const randomHex = () => Array.from(crypto.getRandomValues(new Uint8Array(3)))
+            .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+        let keyCode = `WA-${randomHex()}`;
+
+        // Ensure uniqueness (very unlikely to collide, but safe)
+        for (let i = 0; i < 5; i++) {
+            const { data: exists } = await supabaseAdmin
+                .from('wa_api_keys')
+                .select('id')
+                .eq('key_code', keyCode)
+                .maybeSingle();
+            if (!exists) break;
+            keyCode = `WA-${randomHex()}`;
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('wa_api_keys')
+            // @ts-ignore
+            .insert({
+                doctor_id: doctorId,
+                key_code: keyCode,
+                label: label || 'Default',
+            } as never)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { data: { id: data.id, key_code: data.key_code, label: data.label, created_at: data.created_at }, error: null };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[generateWaKey]', msg);
+        return { data: null, error: msg };
+    }
 }
 
 export async function toggleWaApiKey(keyId: string, isActive: boolean) {
@@ -3504,13 +3620,54 @@ export async function deleteLocationOverride(id: string) {
 
 // ── Notification Log ────────────────────────────
 
-export async function getWaNotificationLog(bookingId?: string) {
+export async function getWaNotificationLog(filters?: { 
+    bookingId?: string; 
+    consultationId?: string;
+    status?: string;
+    type?: string;
+    search?: string;
+}) {
     // @ts-ignore
-    let q = supabaseAdmin.from('wa_notification_log').select('*').order('sent_at', { ascending: false });
-    if (bookingId) q = q.eq('booking_id', bookingId);
-    const { data, error } = await q.limit(100);
+    let q = supabaseAdmin.from('wa_notification_log').select(`
+        *,
+        booking:wa_bookings ( id, booking_date, booking_time ),
+        consultation:consultations ( id, created_at, patient:users(nickname, phone) )
+    `).order('sent_at', { ascending: false });
+
+    if (filters?.bookingId) q = q.eq('booking_id', filters.bookingId);
+    if (filters?.consultationId) q = q.eq('consultation_id', filters.consultationId);
+    if (filters?.status) q = q.eq('status', filters.status);
+    if (filters?.type) q = q.eq('notification_type', filters.type);
+    if (filters?.search) {
+        q = q.ilike('recipient_phone', `%${filters.search}%`);
+    }
+
+    const { data, error } = await q.limit(200);
     if (error) { console.error('[getWaNotificationLog]', error.message); return []; }
     return data || [];
+}
+
+export async function getWaNotificationStats() {
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+    const [totalRes, failedRes, sentRes, readRes] = await Promise.all([
+        // @ts-ignore
+        supabaseAdmin.from('wa_notification_log').select('*', { count: 'exact', head: true }).gte('sent_at', last24h),
+        // @ts-ignore
+        supabaseAdmin.from('wa_notification_log').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('sent_at', last24h),
+        // @ts-ignore
+        supabaseAdmin.from('wa_notification_log').select('*', { count: 'exact', head: true }).in('status', ['sent', 'delivered', 'read']).gte('sent_at', last24h),
+        // @ts-ignore
+        supabaseAdmin.from('wa_notification_log').select('*', { count: 'exact', head: true }).eq('status', 'read').gte('sent_at', last24h),
+    ]);
+
+    return {
+        total24h: totalRes.count ?? 0,
+        failed24h: failedRes.count ?? 0,
+        sent24h: sentRes.count ?? 0,
+        read24h: readRes.count ?? 0,
+    };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3586,4 +3743,370 @@ export async function expireWaChatSessions() {
         .rpc('expire_wa_chat_sessions');
     if (error) { console.error('[expireWaChatSessions]', error.message); return { count: 0, error: error.message }; }
     return { count: data ?? 0, error: null };
+}
+
+// ──────────────────────────────────────────
+// WhatsApp Templates
+// ──────────────────────────────────────────
+
+export async function getMetaWaTemplates(params?: {
+    status?: string;
+    category?: string;
+    search?: string;
+    language?: string;
+}) {
+    let query = supabaseAdmin
+        .from('meta_wa_templates')
+        .select('*')
+        .order('name', { ascending: true });
+
+    if (params?.status) query = query.eq('status', params.status);
+    if (params?.category) query = query.eq('category', params.category);
+    if (params?.language) query = query.eq('language', params.language);
+    if (params?.search) {
+        query = query.ilike('name', `%${params.search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('[getMetaWaTemplates]', error.message); return []; }
+    return data ?? [];
+}
+
+export async function upsertMetaWaTemplate(template: any) {
+    const { data, error } = await supabaseAdmin
+        .from('meta_wa_templates')
+        .upsert({
+            ...template,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'name' })
+        .select()
+        .single();
+
+    if (error) { console.error('[upsertMetaWaTemplate]', error.message); return { data: null, error: error.message }; }
+    return { data, error: null };
+}
+
+export async function deleteMetaWaTemplate(id: string) {
+    const { error } = await supabaseAdmin
+        .from('meta_wa_templates')
+        .delete()
+        .eq('id', id);
+
+    if (error) { console.error('[deleteMetaWaTemplate]', error.message); return { success: false, error: error.message }; }
+    return { success: true, error: null };
+}
+
+export async function getTemplateStats() {
+    const [approvedRes, pendingRes, rejectedRes] = await Promise.all([
+        supabaseAdmin.from('meta_wa_templates').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabaseAdmin.from('meta_wa_templates').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('meta_wa_templates').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+    ]);
+
+    return {
+        approved: approvedRes.count ?? 0,
+        pending: pendingRes.count ?? 0,
+        rejected: rejectedRes.count ?? 0,
+        total: (approvedRes.count ?? 0) + (pendingRes.count ?? 0) + (rejectedRes.count ?? 0),
+    };
+}
+
+export async function sendManualWaMessage(sessionId: string, phone: string, text: string) {
+    const { data, error } = await supabaseAdmin
+        .from('wa_notification_log')
+        .insert({
+            recipient_phone: phone,
+            notification_type: 'manual_text',
+            channel: 'whatsapp',
+            message_body: text,
+            status: 'queued',
+        })
+        .select()
+        .single();
+
+    if (error) { console.error('[sendManualWaMessage]', error.message); return { data: null, error: error.message }; }
+    
+    // Trigger the edge function immediately for better UX
+    try {
+        fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/wa-notify`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({ action: 'process_queue' })
+        }).catch(e => console.error('[sendManualWaMessage:trigger]', e));
+    } catch (e) {
+        console.error('[sendManualWaMessage:trigger]', e);
+    }
+
+    return { data, error: null };
+}
+
+export async function invokeWaNotifyProcessQueue() {
+    try {
+        const { data, error } = await supabaseAdmin.functions.invoke('wa-notify', {
+            body: { action: 'process_queue' },
+        });
+
+        if (error) {
+            console.error('[invokeWaNotifyProcessQueue]', error);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true, data };
+    } catch (err: any) {
+        console.error('[invokeWaNotifyProcessQueue]', err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function testMetaConnection(): Promise<{ success: boolean; error?: string; data?: any }> {
+    try {
+        const wabaId = await getPlatformSetting('meta_waba_id');
+        const accessToken = await getPlatformSetting('meta_wa_access_token');
+        const phoneId = await getPlatformSetting('meta_wa_phone_number_id');
+
+        if (!accessToken) return { success: false, error: 'Access Token is missing' };
+        if (!wabaId) return { success: false, error: 'WABA ID is missing' };
+
+        // Test by fetching business account name
+        const res = await fetch(`https://graph.facebook.com/v21.0/${wabaId}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const data = await res.json();
+        if (res.ok) return { success: true, data };
+        
+        return { 
+            success: false, 
+            error: data.error?.message || `Meta API Status ${res.status}`
+        };
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Network error' };
+    }
+}
+
+export async function syncMetaTemplates() {
+    try {
+        // 1. Get credentials
+        const wabaId = await getPlatformSetting('meta_waba_id');
+        const accessToken = await getPlatformSetting('meta_wa_access_token');
+
+        if (!wabaId || wabaId === 'ADD_YOUR_WABA_ID_HERE' || !accessToken) {
+            return { success: false, error: 'Missing Meta WABA ID or Access Token in settings.' };
+        }
+
+        // 2. Call Meta Graph API
+        const url = `https://graph.facebook.com/v21.0/${wabaId}/message_templates?limit=100`;
+        const resp = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        const result = await resp.json();
+        if (!resp.ok) {
+            return { success: false, error: result.error?.message || `Meta API Error ${resp.status}` };
+        }
+
+        const templates = result.data || [];
+        
+        // 3. Upsert into database
+        const upserts = templates.map((t: any) => ({
+            name: t.name,
+            category: t.category,
+            language: t.language,
+            status: t.status.toLowerCase(), // Meta: APPROVED -> approved
+            components: t.components,
+            meta_id: t.id,
+            last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }));
+
+        const { error } = await supabaseAdmin
+            .from('meta_wa_templates')
+            .upsert(upserts, { onConflict: 'name' });
+
+        if (error) {
+            console.error('[syncMetaTemplates:upsert]', error.message);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true, count: templates.length };
+    } catch (err: any) {
+        console.error('[syncMetaTemplates]', err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+// ══════════════════════════════════════════════════════
+// WA DOCTOR REQUESTS (Fast-Track Follow-Up)
+// ══════════════════════════════════════════════════════
+
+export async function getWaDoctorRequests(filters?: { sessionId?: string; doctorId?: string; status?: string }) {
+    // @ts-ignore — table not in generated types yet
+    let q = supabaseAdmin.from('wa_doctor_requests').select(`
+        *,
+        session:wa_chat_sessions!wa_doctor_requests_session_id_fkey ( id, phone, patient_name, language, doctor_code, status, consultation_id, fast_tracked, skipped_sections ),
+        doctor:doctors!wa_doctor_requests_doctor_id_fkey ( id, display_name, full_name, specialty )
+    `).order('created_at', { ascending: false });
+
+    if (filters?.sessionId) q = q.eq('session_id', filters.sessionId);
+    if (filters?.doctorId) q = q.eq('doctor_id', filters.doctorId);
+    if (filters?.status) q = q.eq('status', filters.status);
+
+    const { data, error } = await q.limit(100);
+    if (error) { console.error('[getWaDoctorRequests]', error.message); return []; }
+    return (data ?? []).map((r: Record<string, unknown>) => ({
+        ...r,
+        doctor_name: (r.doctor as Record<string, unknown>)?.display_name ?? (r.doctor as Record<string, unknown>)?.full_name ?? '',
+        patient_name: (r.session as Record<string, unknown>)?.patient_name ?? 'Unknown',
+        patient_phone: (r.session as Record<string, unknown>)?.phone ?? '',
+        session_status: (r.session as Record<string, unknown>)?.status ?? '',
+        fast_tracked: (r.session as Record<string, unknown>)?.fast_tracked ?? false,
+        skipped_sections: (r.session as Record<string, unknown>)?.skipped_sections ?? [],
+    }));
+}
+
+export async function createWaDoctorRequest(params: {
+    sessionId: string;
+    consultationId?: string;
+    doctorId: string;
+    requestedSections: string[];
+    customQuestion?: string;
+    customMaxTurns?: number;
+}) {
+    try {
+        // 1. Create the request record
+        // @ts-ignore
+        const { data: request, error: insertError } = await supabaseAdmin.from('wa_doctor_requests').insert({
+            session_id: params.sessionId,
+            consultation_id: params.consultationId || null,
+            doctor_id: params.doctorId,
+            requested_sections: params.requestedSections,
+            custom_question: params.customQuestion || null,
+            custom_max_turns: params.customMaxTurns || 4,
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(), // 48h expiry
+        } as never).select().single();
+
+        if (insertError) throw insertError;
+
+        // 2. Update session status to followup_requested
+        // @ts-ignore
+        await supabaseAdmin.from('wa_chat_sessions').update({
+            status: 'followup_requested',
+            last_message_at: new Date().toISOString(),
+        } as never).eq('id', params.sessionId);
+
+        // 3. Get the session details for sending the message
+        const { data: session } = await supabaseAdmin
+            .from('wa_chat_sessions')
+            .select('phone, language, patient_name')
+            .eq('id', params.sessionId)
+            .single();
+
+        // 4. Send re-engagement message via the wa-webhook send function
+        if (session?.phone) {
+            const sectionNames = params.requestedSections
+                .map((s: string) => {
+                    const labels: Record<string, { en: string; ar: string }> = {
+                        quick_medical: { en: 'Medications & Allergies', ar: 'الأدوية والحساسية' },
+                        quick_background: { en: 'Family & Social History', ar: 'التاريخ العائلي والاجتماعي' },
+                        medications: { en: 'Medications', ar: 'الأدوية' },
+                        allergies: { en: 'Allergies', ar: 'الحساسية' },
+                        family_history: { en: 'Family History', ar: 'التاريخ العائلي' },
+                        social_history: { en: 'Social History', ar: 'التاريخ الاجتماعي' },
+                        media_upload: { en: 'Photos / Documents', ar: 'صور / مستندات' },
+                    };
+                    const l = labels[s];
+                    return l ? (session.language === 'ar' ? l.ar : l.en) : s;
+                })
+                .join(', ');
+
+            const hasCustom = !!params.customQuestion;
+            const isAr = session.language === 'ar';
+
+            let msg: string;
+            if (isAr) {
+                msg = `👨‍⚕️ مرحباً ${session.patient_name || ''}!\n\nطبيبك المعالج يحتاج بعض المعلومات الإضافية لإكمال تقييمك الطبي.\n`;
+                if (params.requestedSections.length > 0) {
+                    msg += `📋 الأقسام المطلوبة: ${sectionNames}\n`;
+                }
+                if (hasCustom) {
+                    msg += `❓ كما لديه سؤال محدد لك.\n`;
+                }
+                msg += `\nأرسل أي رسالة للبدء 👇`;
+            } else {
+                msg = `👨‍⚕️ Hi ${session.patient_name || ''}!\n\nYour reviewing doctor needs a bit more information to complete your assessment.\n`;
+                if (params.requestedSections.length > 0) {
+                    msg += `📋 Sections needed: ${sectionNames}\n`;
+                }
+                if (hasCustom) {
+                    msg += `❓ They also have a specific question for you.\n`;
+                }
+                msg += `\nSend any message to get started 👇`;
+            }
+
+            // Queue for delivery
+            await supabaseAdmin.from('wa_notification_log').insert({
+                recipient_phone: session.phone,
+                notification_type: 'doctor_followup_request',
+                channel: 'whatsapp',
+                message_body: msg,
+                status: 'queued',
+            });
+
+            // Trigger wa-notify
+            try {
+                fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/wa-notify`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+                    body: JSON.stringify({ action: 'process_queue' }),
+                }).catch(e => console.error('[createWaDoctorRequest:trigger]', e));
+            } catch (_) { /* ignore */ }
+        }
+
+        return { data: request, error: null };
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[createWaDoctorRequest]', msg);
+        return { data: null, error: msg };
+    }
+}
+
+export async function getFastTrackSettings() {
+    // Global setting
+    const globalSetting = await getPlatformSetting('fast_track_enabled');
+
+    // All sequences with fast_track_mode set
+    const { data: sequences } = await supabaseAdmin
+        .from('prompt_sequences')
+        .select('id, name, sequence_type, fast_track_mode')
+        .not('fast_track_mode', 'is', null);
+
+    // All doctors with fast_track_mode set
+    const { data: doctors } = await supabaseAdmin
+        .from('doctors')
+        .select('id, display_name, full_name, specialty, fast_track_mode')
+        .not('fast_track_mode', 'is', null);
+
+    return {
+        globalEnabled: globalSetting !== 'false',
+        sequenceOverrides: sequences ?? [],
+        doctorOverrides: (doctors ?? []).map((d: Record<string, unknown>) => ({
+            ...d,
+            name: d.display_name || d.full_name,
+        })),
+    };
+}
+
+export async function updateFastTrackGlobal(enabled: boolean) {
+    return upsertPlatformSetting('fast_track_enabled', String(enabled), 'ai_intake', 'Global: offer patients the option to skip post-HPI sections');
+}
+
+export async function updateDoctorFastTrackMode(doctorId: string, mode: string | null) {
+    // @ts-ignore
+    const { error } = await supabaseAdmin.from('doctors').update({ fast_track_mode: mode } as never).eq('id', doctorId);
+    if (error) { console.error('[updateDoctorFastTrackMode]', error.message); return { error: error.message }; }
+    return { error: null };
 }

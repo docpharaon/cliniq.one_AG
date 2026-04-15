@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@cliniqone/i18n';
 import { markSplashShown } from '../App';
 import { colors } from '@cliniqone/ui';
 import splashBg from '../assets/splash-bg.mp4';
@@ -10,6 +11,7 @@ const SPLASH_DURATION = 10000;
 
 export function SplashPage() {
     const navigate = useNavigate();
+    const { t } = useI18n();
     const [bgLoaded, setBgLoaded] = useState(false);
     const [isDismissing, setIsDismissing] = useState(false);
     const [logoVisible, setLogoVisible] = useState(false);
@@ -64,7 +66,7 @@ export function SplashPage() {
             <div style={{ ...s.badge, opacity: badgeVisible ? 1 : 0 }}>
                 <div style={s.badgeInner}>
                     <div style={{ ...s.dot, backgroundColor: '#1A8A9E' }} />
-                    <span style={s.badgeText}>DOCTOR PORTAL</span>
+                    <span style={s.badgeText}>{t('doctor.auth.loginTitle').toUpperCase()}</span>
                     <div style={{ ...s.dot, backgroundColor: '#1A8A9E' }} />
                 </div>
             </div>
@@ -72,13 +74,13 @@ export function SplashPage() {
             {/* Crafted by */}
             <div style={{ ...s.crafted, opacity: logoVisible ? 1 : 0 }}>
                 <div style={s.craftedLine} />
-                <span style={s.craftedLabel}>Crafted by</span>
+                <span style={s.craftedLabel}>{t('doctor.splash.craftedBy')}</span>
                 <span style={s.craftedName}>momen pharaon</span>
             </div>
 
             {/* Skip hint */}
             <div style={{ ...s.skipHint, opacity: logoVisible ? 1 : 0 }}>
-                <span style={s.skipText}>Tap to skip</span>
+                <span style={s.skipText}>{t('doctor.splash.tapToSkip')}</span>
             </div>
         </div>
     );

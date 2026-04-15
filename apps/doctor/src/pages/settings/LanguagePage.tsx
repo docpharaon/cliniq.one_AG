@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { colors, typography, Globe } from '@cliniqone/ui';
-import { setLocale, getLocale } from '@cliniqone/i18n';
+import { setLocale, getLocale, useI18n } from '@cliniqone/i18n';
 import { haptic } from '../../hooks/useHaptics';
 import { BackButton } from '../../components/BackButton';
 import type { CSSProperties } from 'react';
@@ -12,6 +12,7 @@ const LANGUAGES = [
 
 export function LanguagePage() {
     const [selected, setSelected] = useState<'en' | 'ar'>(getLocale() as 'en' | 'ar');
+    const { t, isRTL } = useI18n();
 
     const handleSelect = async (code: 'en' | 'ar') => {
         haptic.medium();
@@ -23,16 +24,16 @@ export function LanguagePage() {
 
     return (
         <div style={s.container} className="slide-in-page">
-            <div style={s.header}>
+            <div style={{ ...s.header, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <BackButton />
-                <span style={s.title}>Language</span>
+                <span style={s.title}>{t('common.language')}</span>
             </div>
 
             <div style={s.content}>
                 <div style={s.icon}>
                     <Globe size={32} color={colors.accentTeal} />
                 </div>
-                <p style={s.desc}>Choose your preferred language for the doctor portal.</p>
+                <p style={s.desc}>{t('settings.languageDesc')}</p>
 
                 <div style={s.list}>
                     {LANGUAGES.map((lang) => (
@@ -41,13 +42,14 @@ export function LanguagePage() {
                             onClick={() => handleSelect(lang.code as 'en' | 'ar')}
                             style={{
                                 ...s.langCard,
+                                flexDirection: isRTL ? 'row-reverse' : 'row',
                                 borderColor: selected === lang.code ? colors.accentTeal : colors.border,
                                 backgroundColor: selected === lang.code ? colors.accentTealFaded : 'transparent',
                             }}
                             className="pressable"
                         >
                             <span style={{ fontSize: 28 }}>{lang.flag}</span>
-                            <div style={{ flex: 1 }}>
+                            <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>
                                 <span style={{ fontSize: 15, fontWeight: 600, color: colors.textPrimary, display: 'block' }}>{lang.label}</span>
                                 <span style={{ fontSize: 13, color: colors.textTertiary }}>{lang.nativeLabel}</span>
                             </div>

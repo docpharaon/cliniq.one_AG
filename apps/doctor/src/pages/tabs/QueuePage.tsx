@@ -8,16 +8,28 @@ import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/ToastProvider';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
-
-const sortOptions = ['By Priority', 'By Time', 'By Specialty'];
-const filterOptions = ['All', 'Urgent', 'Dermatology', 'Family Medicine'];
 
 export function QueuePage() {
     const navigate = useNavigate();
     const { doctor } = useAuthStore();
-    const [activeSort, setActiveSort] = useState('By Priority');
-    const [activeFilter, setActiveFilter] = useState('All');
+    const { t, isRTL } = useI18n();
+
+    const sortOptions = [
+        { label: t('doctor.sortBy.priority'), value: 'priority' },
+        { label: t('doctor.sortBy.time'), value: 'time' },
+        { label: t('doctor.sortBy.specialty'), value: 'specialty' }
+    ];
+    const filterOptions = [
+        { label: t('doctor.filters.all'), value: 'all' },
+        { label: t('doctor.filters.urgent'), value: 'urgent' },
+        { label: t('doctor.filters.dermatology'), value: 'dermatology' },
+        { label: t('doctor.filters.familyMedicine'), value: 'family_medicine' }
+    ];
+
+    const [activeSort, setActiveSort] = useState('priority');
+    const [activeFilter, setActiveFilter] = useState('all');
 
     const { data: rawPending, isLoading: pendingLoading, refetch: refetchPending } = usePendingQueue(doctor?.specialty || '');
     const { data: rawMy, isLoading: myLoading, refetch: refetchMy } = useDoctorConsultations(doctor?.id || '', undefined);
@@ -28,18 +40,18 @@ export function QueuePage() {
     const isLoading = pendingLoading || myLoading;
 
     const filtered = consultations.filter((c: any) => {
-        if (activeFilter === 'Urgent') return c.priority === 'urgent';
-        if (activeFilter === 'Dermatology') return c.specialty === 'dermatology';
-        if (activeFilter === 'Family Medicine') return c.specialty === 'family_medicine';
+        if (activeFilter === 'urgent') return c.priority === 'urgent';
+        if (activeFilter === 'dermatology') return c.specialty === 'dermatology';
+        if (activeFilter === 'family_medicine') return c.specialty === 'family_medicine';
         return true;
     });
 
     const sorted = [...filtered].sort((a: any, b: any) => {
-        if (activeSort === 'By Priority') {
+        if (activeSort === 'priority') {
             const order: Record<string, number> = { urgent: 0, high: 1, routine: 2 };
             return (order[a.priority] ?? 2) - (order[b.priority] ?? 2);
         }
-        if (activeSort === 'By Time') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        if (activeSort === 'time') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         return 0;
     });
 
@@ -59,8 +71,8 @@ export function QueuePage() {
         claimMutation.mutate(
             { consultationId: claimTargetId, doctorId: doctor.id },
             {
-                onSuccess: () => toast('Consultation assigned to you.', 'success'),
-                onError: (err) => toast(err.message || 'Failed to claim', 'error'),
+                onSuccess: () => toast(t('doctor.assigned'), 'success'),
+                onError: (err) => toast(err.message || t('common.error'), 'error'),
             },
         );
     };
@@ -71,32 +83,32 @@ export function QueuePage() {
 
     const getWaitTime = (createdAt: string) => {
         const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
-        if (mins < 60) return `${mins} min`;
-        return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+        if (mins < 60) return t('doctor.timeMins', { mins });
+        return t('doctor.timeHoursMins', { hours: Math.floor(mins / 60), mins: mins % 60 });
     };
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
         <div style={s.container}>
-            <div style={s.headerBar}>
-                <span style={s.title}><ClipboardList size={20} color={colors.textPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Consultation Queue</span>
-                <span style={s.badge}>{sorted.length} cases</span>
+            <div style={{ ...s.headerBar, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                <span style={s.title}><ClipboardList size={20} color={colors.textPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.consultationQueue')}</span>
+                <span style={s.badge}>{t('doctor.casesCount', { count: sorted.length })}</span>
             </div>
 
             {/* Sort Chips */}
-            <div style={s.chipRow}>
+            <div style={{ ...s.chipRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 {sortOptions.map((opt) => (
-                    <button key={opt} style={{ ...s.chip, ...(activeSort === opt ? s.chipActive : {}) }} className="pressable" onClick={() => { haptic.select(); setActiveSort(opt); }}>
-                        <span style={{ fontSize: 11, color: activeSort === opt ? colors.textPrimary : colors.textTertiary, fontWeight: activeSort === opt ? 600 : 400 }}>{opt}</span>
+                    <button key={opt.value} style={{ ...s.chip, ...(activeSort === opt.value ? s.chipActive : {}) }} className="pressable" onClick={() => { haptic.select(); setActiveSort(opt.value); }}>
+                        <span style={{ fontSize: 11, color: activeSort === opt.value ? colors.textPrimary : colors.textTertiary, fontWeight: activeSort === opt.value ? 600 : 400 }}>{opt.label}</span>
                     </button>
                 ))}
             </div>
 
             {/* Filter Chips */}
-            <div style={s.chipRow}>
+            <div style={{ ...s.chipRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 {filterOptions.map((opt) => (
-                    <button key={opt} style={{ ...s.chip, ...(activeFilter === opt ? s.chipActiveFilter : {}) }} className="pressable" onClick={() => { haptic.select(); setActiveFilter(opt); }}>
-                        <span style={{ fontSize: 11, color: activeFilter === opt ? colors.textPrimary : colors.textTertiary, fontWeight: activeFilter === opt ? 600 : 400 }}>{opt}</span>
+                    <button key={opt.value} style={{ ...s.chip, ...(activeFilter === opt.value ? s.chipActiveFilter : {}) }} className="pressable" onClick={() => { haptic.select(); setActiveFilter(opt.value); }}>
+                        <span style={{ fontSize: 11, color: activeFilter === opt.value ? colors.textPrimary : colors.textTertiary, fontWeight: activeFilter === opt.value ? 600 : 400 }}>{opt.label}</span>
                     </button>
                 ))}
             </div>
@@ -111,14 +123,14 @@ export function QueuePage() {
                     ) : sorted.length === 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60 }}>
                             <PartyPopper size={48} color={colors.accentTeal} />
-                            <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>All caught up!</span>
-                            <span style={{ fontSize: 14, color: colors.textTertiary, marginTop: 4 }}>No consultations match the current filter.</span>
+                            <span style={{ fontSize: typography.h3.fontSize, fontWeight: 600, color: colors.textPrimary }}>{t('doctor.allCaughtUp')}</span>
+                            <span style={{ fontSize: 14, color: colors.textTertiary, marginTop: 4, textAlign: 'center' }}>{t('doctor.noMatches')}</span>
                         </div>
                     ) : (
                         sorted.map((item: any) => (
                             <button
                                 key={item.id}
-                                style={s.card}
+                                style={{ ...s.card, textAlign: isRTL ? 'right' : 'left' }}
                                 className="pressable"
                                 onClick={() => {
                                     haptic.medium();
@@ -126,29 +138,29 @@ export function QueuePage() {
                                     else handleClaim(item.id);
                                 }}
                             >
-                                <div style={s.cardHeader}>
+                                <div style={{ ...s.cardHeader, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     <span style={{ ...s.priorityBadge, backgroundColor: item.priority === 'urgent' ? colors.errorFaded : colors.successFaded, color: item.priority === 'urgent' ? colors.error : colors.success }}>
-                                        {item.priority === 'urgent' ? <><Siren size={11} /> URGENT</> : 'ROUTINE'}
+                                        {item.priority === 'urgent' ? <><Siren size={11} /> {t('doctor.urgent')}</> : t('doctor.routine')}
                                     </span>
                                     {item.doctor_id === doctor?.id ? (
-                                        <span style={{ color: colors.accentTeal, fontSize: 11, fontWeight: 700, backgroundColor: colors.accentTealFaded, paddingInline: 8, paddingBlock: 3, borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}><CheckCircle size={11} /> ASSIGNED</span>
+                                        <span style={{ color: colors.accentTeal, fontSize: 11, fontWeight: 700, backgroundColor: colors.accentTealFaded, paddingInline: 8, paddingBlock: 3, borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}><CheckCircle size={11} /> {t('doctor.assigned')}</span>
                                     ) : (
                                         <span style={{ fontSize: 11, color: colors.textTertiary, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Clock size={11} /> {getWaitTime(item.created_at)}</span>
                                     )}
                                 </div>
-                                <span style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4, display: 'block', textAlign: 'left' }}>{item.patient?.nickname || 'Patient'} · {item.patient?.gender?.[0]?.toUpperCase() || '?'}</span>
-                                <span style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 10, display: 'block', textAlign: 'left', fontWeight: 500 }}>{item.chief_complaint || 'Consultation'}</span>
+                                <span style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4, display: 'block' }}>{item.patient?.nickname || t('doctor.patient')} · {item.patient?.gender?.[0]?.toUpperCase() || '?'}</span>
+                                <span style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 10, display: 'block', fontWeight: 500 }}>{item.chief_complaint || t('intake.consultation')}</span>
                                 {item.ai_summary && (
-                                    <div style={s.aiBox}>
-                                        <span style={{ fontSize: 11, color: colors.accentTeal, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Bot size={12} color={colors.accentTeal} /> AI Assessment</span>
+                                    <div style={{ ...s.aiBox, textAlign: isRTL ? 'right' : 'left' }}>
+                                        <span style={{ fontSize: 11, color: colors.accentTeal, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, flexDirection: isRTL ? 'row-reverse' : 'row' }}><Bot size={12} color={colors.accentTeal} /> {t('doctor.aiAssessment')}</span>
                                         <span style={{ fontSize: 11, color: colors.textSecondary }}>
                                             {typeof item.ai_summary === 'object' ? item.ai_summary.summary || JSON.stringify(item.ai_summary).slice(0, 100) : String(item.ai_summary).slice(0, 100)}
                                         </span>
                                     </div>
                                 )}
-                                <div style={s.cardFooter}>
+                                <div style={{ ...s.cardFooter, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     <span style={{ fontSize: 11, color: colors.accentTeal }}>{item.specialty}</span>
-                                    <span style={{ fontSize: 11, color: colors.gold, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gem size={11} color={colors.gold} /> {item.token_cost || 3}</span>
+                                    <span style={{ fontSize: 11, color: colors.gold, [isRTL ? 'marginRight' : 'marginLeft']: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gem size={11} color={colors.gold} /> {item.token_cost || 3}</span>
                                 </div>
                             </button>
                         ))
@@ -159,10 +171,10 @@ export function QueuePage() {
 
         <ConfirmDialog
             visible={showClaimDialog}
-            title="Accept Consultation"
-            message="This will assign the consultation to you. You'll need to respond within the SLA window."
-            confirmLabel="Accept"
-            cancelLabel="Cancel"
+            title={t('doctor.acceptConsultation')}
+            message={t('doctor.claimMsg')}
+            confirmLabel={t('doctor.accept')}
+            cancelLabel={t('common.cancel')}
             onConfirm={confirmClaim}
             onCancel={() => setShowClaimDialog(false)}
         />

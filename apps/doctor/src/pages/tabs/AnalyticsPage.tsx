@@ -5,16 +5,17 @@ import { useAuthStore } from '../../stores/authStore';
 import { useDoctorStats } from '../../hooks/useDoctorData';
 import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
+import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties, ReactNode } from 'react';
 
-function BonusRow({ Icon, label, reward, progress }: { Icon: (p: CliniqIconProps) => ReactNode; label: string; reward: string; progress: number }) {
+function BonusRow({ Icon, label, reward, progress, isRTL }: { Icon: (p: CliniqIconProps) => ReactNode; label: string; reward: string; progress: number; isRTL: boolean }) {
     return (
-        <div style={s.bonusRow}>
-            <span style={{ marginRight: 10, display: 'flex' }}><Icon size={20} color={colors.accentTeal} /></span>
-            <div style={{ flex: 1, marginRight: 10 }}>
+        <div style={{ ...s.bonusRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+            <span style={{ [isRTL ? 'marginLeft' : 'marginRight']: 10, display: 'flex' }}><Icon size={20} color={colors.accentTeal} /></span>
+            <div style={{ flex: 1, [isRTL ? 'marginLeft' : 'marginRight']: 10, textAlign: isRTL ? 'right' : 'left' }}>
                 <span style={{ fontSize: 11, color: colors.textPrimary, display: 'block', marginBottom: 4 }}>{label}</span>
                 <div style={s.progressBg}>
-                    <div style={{ ...s.progressBar, width: `${progress}%` }} />
+                    <div style={{ ...s.progressBar, width: `${progress}%`, float: isRTL ? 'right' : 'left' }} />
                 </div>
             </div>
             <span style={{ fontSize: 11, color: colors.gold, fontWeight: 600 }}>{reward}</span>
@@ -25,6 +26,7 @@ function BonusRow({ Icon, label, reward, progress }: { Icon: (p: CliniqIconProps
 export function AnalyticsPage() {
     const { doctor } = useAuthStore();
     const { data: stats, isLoading, refetch } = useDoctorStats(doctor?.id || '');
+    const { t, isRTL } = useI18n();
 
     const onRefresh = useCallback(async () => { await refetch(); }, [refetch]);
 
@@ -39,7 +41,7 @@ export function AnalyticsPage() {
         <PullToRefresh onRefresh={onRefresh}>
         <div style={s.container} className="scrollable">
             <div style={s.scroll}>
-                <span style={{ ...s.title, display: 'inline-flex', alignItems: 'center', gap: 8 }}><BarChart size={22} color={colors.textPrimary} /> Earnings & Performance</span>
+                <span style={{ ...s.title, display: 'inline-flex', alignItems: 'center', gap: 8, flexDirection: isRTL ? 'row-reverse' : 'row' }}><BarChart size={22} color={colors.textPrimary} /> {t('doctor.earningsPerformance')}</span>
 
                 {isLoading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40 }}>
@@ -48,21 +50,21 @@ export function AnalyticsPage() {
                 ) : (
                     <>
                         {/* Lifetime Earnings */}
-                        <div style={s.summaryCard}>
-                            <span style={{ fontSize: 11, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>Lifetime Earnings</span>
-                            <span style={{ fontSize: typography.h1.fontSize, fontWeight: 800, color: colors.gold, display: 'flex', alignItems: 'center', gap: 6 }}><Gem size={24} color={colors.gold} /> {tokensEarned.toLocaleString()}</span>
+                        <div style={{ ...s.summaryCard, textAlign: isRTL ? 'right' : 'left' }}>
+                            <span style={{ fontSize: 11, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>{t('doctor.lifetimeEarnings')}</span>
+                            <span style={{ fontSize: typography.h1.fontSize, fontWeight: 800, color: colors.gold, display: 'flex', alignItems: 'center', gap: 6, justifyContent: isRTL ? 'flex-end' : 'flex-start' }}><Gem size={24} color={colors.gold} /> {tokensEarned.toLocaleString()}</span>
                             <span style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4, display: 'block' }}>{sarAmount.toLocaleString()} SAR · ${usdAmount.toLocaleString()} USD</span>
                         </div>
 
                         {/* Today */}
                         <div style={s.section}>
-                            <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Calendar size={16} color={colors.textPrimary} /> Today</span>
+                            <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}><Calendar size={16} color={colors.textPrimary} /> {t('doctor.today')}</span>
                             <div style={s.chartCard}>
-                                <div style={s.todayRow}>
+                                <div style={{ ...s.todayRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     {[
-                                        { val: completedToday, label: 'Cases Seen' },
-                                        { val: stats?.daily_limit ?? 10, label: 'Daily Limit' },
-                                        { val: Math.max(0, (stats?.daily_limit ?? 10) - completedToday), label: 'Remaining' },
+                                        { val: completedToday, label: t('doctor.casesSeen') },
+                                        { val: stats?.daily_limit ?? 10, label: t('doctor.dailyLimit') },
+                                        { val: Math.max(0, (stats?.daily_limit ?? 10) - completedToday), label: t('doctor.remaining') },
                                     ].map((item) => (
                                         <div key={item.label} style={{ flex: 1, textAlign: 'center' }}>
                                             <span style={{ fontSize: typography.h2.fontSize, fontWeight: 800, color: colors.accentTeal, display: 'block' }}>{item.val}</span>
@@ -75,13 +77,13 @@ export function AnalyticsPage() {
 
                         {/* Performance */}
                         <div style={s.section}>
-                            <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><BarChart size={16} color={colors.textPrimary} /> Performance</span>
-                            <div style={s.perfGrid}>
+                            <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}><BarChart size={16} color={colors.textPrimary} /> {t('doctor.performance')}</span>
+                            <div style={{ ...s.perfGrid, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                 {([
-                                    { Icon: ClipboardList, val: completedToday, label: "Today's Cases", sub: '' },
-                                    { Icon: Star, val: ratingAvg.toFixed(1), label: 'Rating', sub: `${ratingCount} reviews` },
-                                    { Icon: Gem, val: tokensEarned, label: 'Total Tokens', sub: '' },
-                                    { Icon: Target, val: stats?.daily_limit ?? 10, label: 'Daily Limit', sub: '' },
+                                    { Icon: ClipboardList, val: completedToday, label: t('doctor.todaysCases'), sub: '' },
+                                    { Icon: Star, val: ratingAvg.toFixed(1), label: t('doctor.rating'), sub: `${ratingCount} reviews` },
+                                    { Icon: Gem, val: tokensEarned, label: t('doctor.totalTokens'), sub: '' },
+                                    { Icon: Target, val: stats?.daily_limit ?? 10, label: t('doctor.dailyLimit'), sub: '' },
                                 ] as { Icon: (p: CliniqIconProps) => ReactNode; val: string | number; label: string; sub: string }[]).map((p) => (
                                     <div key={p.label} style={s.perfCard}>
                                         <p.Icon size={24} color={colors.accentTeal} />
@@ -97,15 +99,15 @@ export function AnalyticsPage() {
 
                 {/* Payout Info */}
                 <div style={s.section}>
-                    <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><CreditCard size={16} color={colors.textPrimary} /> Payout Information</span>
+                    <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}><CreditCard size={16} color={colors.textPrimary} /> {t('doctor.payoutInfo')}</span>
                     <div style={s.card}>
                         {[
-                            ['Schedule', 'Monthly (1st)'],
-                            ['Minimum', '400 tokens (2,000 SAR)'],
-                            ['Processing', '3-5 business days'],
-                            ['Early payout', 'Available (2% fee)'],
+                            [t('doctor.payoutSchedule'), t('doctor.payoutMonthly')],
+                            [t('doctor.payoutMinimum'), t('doctor.payoutMinVal')],
+                            [t('doctor.payoutProcessing'), t('doctor.payoutProcessingVal')],
+                            [t('doctor.payoutEarly'), t('doctor.payoutEarlyVal')],
                         ].map(([label, value]) => (
-                            <div key={label} style={s.payoutRow}>
+                            <div key={label} style={{ ...s.payoutRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                 <span style={{ fontSize: 11, color: colors.textTertiary }}>{label}</span>
                                 <span style={{ fontSize: 11, color: colors.textPrimary, fontWeight: 600 }}>{value}</span>
                             </div>
@@ -115,11 +117,11 @@ export function AnalyticsPage() {
 
                 {/* Bonus Targets */}
                 <div style={s.section}>
-                    <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Target size={16} color={colors.textPrimary} /> Bonus Targets</span>
+                    <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}><Target size={16} color={colors.textPrimary} /> {t('doctor.bonusTargets')}</span>
                     <div style={s.card}>
-                        <BonusRow Icon={Target} label="Monthly target (est.)" reward="+300 tokens" progress={Math.min(100, Math.round(completedToday / Math.max(1, stats?.daily_limit ?? 10) * 100))} />
-                        <BonusRow Icon={Star} label={`High rating (${ratingAvg.toFixed(1)}/5.0)`} reward="+5% monthly" progress={Math.min(100, Math.round((ratingAvg / 5) * 100))} />
-                        <BonusRow Icon={Zap} label="Fast response (<20 min)" reward="+5% monthly" progress={0} />
+                        <BonusRow Icon={Target} label={t('doctor.monthlyTarget')} reward={t('doctor.tokensPlus')} progress={Math.min(100, Math.round(completedToday / Math.max(1, stats?.daily_limit ?? 10) * 100))} isRTL={isRTL} />
+                        <BonusRow Icon={Star} label={t('doctor.highRatingBonus', { avg: ratingAvg.toFixed(1) })} reward={t('doctor.monthlyPlus')} progress={Math.min(100, Math.round((ratingAvg / 5) * 100))} isRTL={isRTL} />
+                        <BonusRow Icon={Zap} label={t('doctor.fastResponseBonus')} reward={t('doctor.monthlyPlus')} progress={0} isRTL={isRTL} />
                     </div>
                 </div>
             </div>

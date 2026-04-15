@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@cliniqone/i18n';
 import { colors, spacing, radius, Edit, FileText, Search, Calendar, CheckCircle, PartyPopper, XCircle, Refresh, Send, ClipboardList, AlertTriangle, Camera, Smartphone, Share } from '@cliniqone/ui';
 import type { CliniqIconProps } from '@cliniqone/ui';
 import { supabase, getMyApplicationWithDocs } from '@cliniqone/api';
@@ -7,44 +7,44 @@ import type { DoctorApplication } from '@cliniqone/api';
 import { useAuthStore } from '../../stores/authStore';
 import { BrandSpinner } from '../../components/BrandSpinner';
 
-const STATUS_CONFIG: Record<string, { Icon: (p: CliniqIconProps) => ReactNode; title: string; subtitle: string; color: string; bg: string }> = {
+const STATUS_CONFIG_RAW: Record<string, { Icon: (p: CliniqIconProps) => ReactNode; titleKey: string; subtitleKey: string; color: string; bg: string }> = {
     draft: {
-        Icon: Edit, title: 'Draft', subtitle: 'Your application is not yet submitted.',
+        Icon: Edit, titleKey: 'doctor.tracker.status.draft.title', subtitleKey: 'doctor.tracker.status.draft.subtitle',
         color: colors.textTertiary, bg: colors.bgTertiary,
     },
     submitted: {
-        Icon: Send, title: 'Application Received',
-        subtitle: 'Your application has been submitted and is awaiting initial review by our team.',
+        Icon: Send, titleKey: 'doctor.tracker.status.submitted.title',
+        subtitleKey: 'doctor.tracker.status.submitted.subtitle',
         color: '#2563eb', bg: '#2563eb15',
     },
     documents_review: {
-        Icon: Search, title: 'Documents Under Review',
-        subtitle: 'Our team is currently verifying your credentials and documents.',
+        Icon: Search, titleKey: 'doctor.tracker.status.documents_review.title',
+        subtitleKey: 'doctor.tracker.status.documents_review.subtitle',
         color: '#d97706', bg: '#d9770615',
     },
     interview_scheduled: {
-        Icon: Calendar, title: 'Interview Scheduled',
-        subtitle: 'An interview has been scheduled. Please see the details below.',
+        Icon: Calendar, titleKey: 'doctor.tracker.status.interview_scheduled.title',
+        subtitleKey: 'doctor.tracker.status.interview_scheduled.subtitle',
         color: '#7c3aed', bg: '#7c3aed15',
     },
     interview_completed: {
-        Icon: CheckCircle, title: 'Interview Completed',
-        subtitle: 'Thank you for attending the interview. We are making a final decision.',
+        Icon: CheckCircle, titleKey: 'doctor.tracker.status.interview_completed.title',
+        subtitleKey: 'doctor.tracker.status.interview_completed.subtitle',
         color: '#0891b2', bg: '#0891b215',
     },
     approved: {
-        Icon: PartyPopper, title: 'Approved!',
-        subtitle: 'Congratulations! Your application has been approved. Welcome to cliniq.one!',
+        Icon: PartyPopper, titleKey: 'doctor.tracker.status.approved.title',
+        subtitleKey: 'doctor.tracker.status.approved.subtitle',
         color: colors.success, bg: `${colors.success}15`,
     },
     rejected: {
-        Icon: XCircle, title: 'Application Declined',
-        subtitle: 'Unfortunately, your application was not approved at this time.',
+        Icon: XCircle, titleKey: 'doctor.tracker.status.rejected.title',
+        subtitleKey: 'doctor.tracker.status.rejected.subtitle',
         color: '#dc2626', bg: '#dc262615',
     },
     resubmission_requested: {
-        Icon: Refresh, title: 'Changes Requested',
-        subtitle: 'The admin team has requested some changes to your application.',
+        Icon: Refresh, titleKey: 'doctor.tracker.status.resubmission_requested.title',
+        subtitleKey: 'doctor.tracker.status.resubmission_requested.subtitle',
         color: '#ea580c', bg: '#ea580c15',
     },
 };
@@ -69,6 +69,7 @@ function getStepIndex(status: string): number {
 
 export function ApplicationTrackerPage() {
     const navigate = useNavigate();
+    const { t, isRTL, locale } = useI18n();
     const { session, clear, doctor } = useAuthStore();
     const [application, setApplication] = useState<DoctorApplication | null>(null);
     const [loading, setLoading] = useState(true);
@@ -109,29 +110,36 @@ export function ApplicationTrackerPage() {
     }
 
     if (loading) {
-        return <BrandSpinner message="Loading application..." />;
+        return <BrandSpinner message={t('doctor.tracker.loading')} />;
     }
 
     if (!application) {
         return (
-            <div style={s.container}>
+            <div style={{ ...s.container, textAlign: isRTL ? 'right' : 'left' }}>
                 <div style={s.content}>
                     <ClipboardList size={48} color={colors.accentTeal} style={{ display: 'block', marginBottom: spacing.xl }} />
-                    <span style={s.title}>No Application Found</span>
-                    <p style={s.subtitle}>You haven't submitted a doctor application yet.</p>
+                    <span style={s.title}>{t('doctor.tracker.noAppTitle')}</span>
+                    <p style={s.subtitle}>{t('doctor.tracker.noAppDesc')}</p>
                     <button style={s.primaryBtn} onClick={() => navigate('/auth/register', { replace: true })}>
-                        <ClipboardList size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Start Application
+                        <ClipboardList size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.tracker.startApp')}
                     </button>
                     <button style={s.secondaryBtn} onClick={handleLogout}>
-                        ← Sign Out
+                        {isRTL ? 'تسجيل الخروج ←' : '← Sign Out'}
                     </button>
                 </div>
             </div>
         );
     }
 
-    const config = STATUS_CONFIG[application.status] || STATUS_CONFIG.submitted;
+    const config = STATUS_CONFIG_RAW[application.status] || STATUS_CONFIG_RAW.submitted;
     const stepIndex = getStepIndex(application.status);
+
+    const PIPELINE_STEPS = [
+        { key: 'submitted', label: t('doctor.tracker.pipeline.submitted') },
+        { key: 'documents_review', label: t('doctor.tracker.pipeline.documents_review') },
+        { key: 'interview', label: t('doctor.tracker.pipeline.interview') },
+        { key: 'approved', label: t('doctor.tracker.pipeline.approved') },
+    ];
 
     return (
         <div style={s.container}>
@@ -142,18 +150,18 @@ export function ApplicationTrackerPage() {
                 </div>
 
                 {/* Status Hero */}
-                <div style={{ ...s.heroCard, backgroundColor: config.bg, borderColor: `${config.color}30` }}>
+                <div style={{ ...s.heroCard, backgroundColor: config.bg, borderColor: `${config.color}30`, textAlign: isRTL ? 'right' : 'left' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: spacing.md }}>
                         <config.Icon size={48} color={config.color} />
                     </div>
-                    <h1 style={{ ...s.heroTitle, color: config.color }}>{config.title}</h1>
-                    <p style={s.heroSubtitle}>{config.subtitle}</p>
+                    <h1 style={{ ...s.heroTitle, color: config.color }}>{t(config.titleKey)}</h1>
+                    <p style={s.heroSubtitle}>{t(config.subtitleKey)}</p>
                 </div>
 
                 {/* Pipeline Progress (not shown for rejected/resubmission) */}
                 {application.status !== 'rejected' && application.status !== 'resubmission_requested' && (
                     <div style={s.pipelineCard}>
-                        <div style={s.pipelineRow}>
+                        <div style={{ ...s.pipelineRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                             {PIPELINE_STEPS.map((step, i) => {
                                 const isDone = i < stepIndex || application.status === 'approved';
                                 const isCurrent = i === stepIndex && application.status !== 'approved';
@@ -184,19 +192,19 @@ export function ApplicationTrackerPage() {
 
                 {/* Interview Card */}
                 {(application.status === 'interview_scheduled' || application.status === 'interview_completed') && (
-                    <div style={s.interviewCard}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
+                    <div style={{ ...s.interviewCard, textAlign: isRTL ? 'right' : 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                             <Calendar size={20} color={colors.textPrimary} />
                             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: colors.textPrimary }}>
-                                Interview Details
+                                {t('doctor.tracker.interview.title')}
                             </h3>
                         </div>
 
                         {application.interview_scheduled_at && (
-                            <div style={s.interviewRow}>
-                                <span style={s.interviewLabel}><Calendar size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Date & Time</span>
+                            <div style={{ ...s.interviewRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                <span style={s.interviewLabel}><Calendar size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {t('doctor.tracker.interview.dateTime')}</span>
                                 <span style={s.interviewValue}>
-                                    {new Date(application.interview_scheduled_at).toLocaleString('en-US', {
+                                    {new Date(application.interview_scheduled_at).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US', {
                                         weekday: 'long',
                                         month: 'long',
                                         day: 'numeric',
@@ -209,12 +217,12 @@ export function ApplicationTrackerPage() {
                         )}
 
                         {application.interview_type && (
-                            <div style={s.interviewRow}>
+                            <div style={{ ...s.interviewRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                 <span style={s.interviewLabel}>
-                                    {application.interview_type === 'video_call' ? <Camera size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> : <Smartphone size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', marginRight: 4 }} />} Type
+                                    {application.interview_type === 'video_call' ? <Camera size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> : <Smartphone size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} />} {t('doctor.tracker.interview.type')}
                                 </span>
                                 <span style={s.interviewValue}>
-                                    {application.interview_type === 'video_call' ? 'Video Call' : 'Phone Call'}
+                                    {application.interview_type === 'video_call' ? t('doctor.tracker.interview.video') : t('doctor.tracker.interview.phone')}
                                 </span>
                             </div>
                         )}
@@ -226,28 +234,28 @@ export function ApplicationTrackerPage() {
                                 rel="noopener noreferrer"
                                 style={s.meetingLink}
                             >
-                                <Share size={14} color="#fff" style={{ verticalAlign: 'middle', marginRight: 6 }} /> Join Video Call
+                                <Share size={14} color="#fff" style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.tracker.interview.joinVideo')}
                             </a>
                         )}
 
                         {application.interview_phone_number && (
-                            <div style={s.interviewRow}>
-                                <span style={s.interviewLabel}><Smartphone size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Call Number</span>
+                            <div style={{ ...s.interviewRow, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                <span style={s.interviewLabel}><Smartphone size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {t('doctor.tracker.interview.callNumber')}</span>
                                 <span style={s.interviewValue}>{application.interview_phone_number}</span>
                             </div>
                         )}
 
                         {application.interview_notes && (
-                            <div style={{ ...s.interviewRow, flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <span style={s.interviewLabel}><Edit size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Notes</span>
-                                <span style={{ ...s.interviewValue, marginTop: 4 }}>{application.interview_notes}</span>
+                            <div style={{ ...s.interviewRow, flexDirection: 'column', alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                                <span style={s.interviewLabel}><Edit size={12} color={colors.textSecondary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 4 }} /> {t('doctor.tracker.interview.notes')}</span>
+                                <span style={{ ...s.interviewValue, marginTop: 4, textAlign: isRTL ? 'right' : 'left' }}>{application.interview_notes}</span>
                             </div>
                         )}
 
                         {application.status === 'interview_completed' && (
                             <div style={{ marginTop: spacing.md, padding: spacing.sm, backgroundColor: `${colors.success}10`, borderRadius: radius.md }}>
-                                <span style={{ fontSize: 12, color: colors.success, fontWeight: 600 }}>
-                                    <CheckCircle size={12} color={colors.success} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Interview completed. Awaiting final decision...
+                                <span style={{ fontSize: 12, color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                    <CheckCircle size={12} color={colors.success} /> {t('doctor.tracker.interview.completedMsg')}
                                 </span>
                             </div>
                         )}
@@ -256,9 +264,9 @@ export function ApplicationTrackerPage() {
 
                 {/* Rejection Reason */}
                 {application.status === 'rejected' && application.rejection_reason && (
-                    <div style={s.rejectionCard}>
+                    <div style={{ ...s.rejectionCard, textAlign: isRTL ? 'right' : 'left' }}>
                         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>
-                            Reason
+                            {t('doctor.tracker.reason')}
                         </h3>
                         <p style={{ margin: 0, fontSize: 13, color: colors.textSecondary, lineHeight: '20px' }}>
                             {application.rejection_reason}
@@ -268,15 +276,15 @@ export function ApplicationTrackerPage() {
 
                 {/* Resubmission Feedback */}
                 {application.status === 'resubmission_requested' && application.resubmission_feedback && (
-                    <div style={s.resubmitCard}>
+                    <div style={{ ...s.resubmitCard, textAlign: isRTL ? 'right' : 'left' }}>
                         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#ea580c', marginBottom: 8 }}>
-                            Admin Feedback
+                            {t('doctor.tracker.adminFeedback')}
                         </h3>
                         <p style={{ margin: 0, fontSize: 13, color: colors.textSecondary, lineHeight: '20px' }}>
                             {application.resubmission_feedback}
                         </p>
                         <button style={{ ...s.primaryBtn, marginTop: spacing.md }} onClick={handleEditResubmit}>
-                            <Edit size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Edit & Resubmit
+                            <Edit size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.tracker.editResubmit')}
                         </button>
                     </div>
                 )}
@@ -284,7 +292,7 @@ export function ApplicationTrackerPage() {
                 {/* Approved CTA */}
                 {application.status === 'approved' && doctor?.status === 'active' && (
                     <button style={s.primaryBtn} onClick={handleEnterApp}>
-                        <Send size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Enter cliniq.one
+                        <Send size={14} color={colors.bgPrimary} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.tracker.enterApp')}
                     </button>
                 )}
 
@@ -292,20 +300,20 @@ export function ApplicationTrackerPage() {
                 <div style={{ marginTop: spacing.xl, display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
                     {application.status !== 'approved' && (
                         <button style={s.refreshBtn} onClick={handleRefresh}>
-                            <Refresh size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Check Status
+                            <Refresh size={14} color={colors.accentTeal} style={{ verticalAlign: 'middle', [isRTL ? 'marginLeft' : 'marginRight']: 6 }} /> {t('doctor.registration.checkStatus')}
                         </button>
                     )}
                     <button style={s.secondaryBtn} onClick={handleLogout}>
-                        ← Sign Out
+                        {isRTL ? 'تسجيل الخروج ←' : '← Sign Out'}
                     </button>
                 </div>
 
                 {/* Submitted date */}
                 {application.submitted_at && (
                     <p style={{ textAlign: 'center', fontSize: 11, color: colors.textTertiary, marginTop: spacing.xl }}>
-                        Application submitted {new Date(application.submitted_at).toLocaleDateString('en-US', {
+                        {t('doctor.tracker.submittedAt', { date: new Date(application.submitted_at).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
                             month: 'long', day: 'numeric', year: 'numeric',
-                        })}
+                        }) })}
                     </p>
                 )}
             </div>

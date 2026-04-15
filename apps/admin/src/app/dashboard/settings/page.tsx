@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import { Settings, Bot, Stethoscope, DollarSign, Shield, Globe, Save, Key, Cpu, Thermometer, Eye, EyeOff, CheckCircle, XCircle, Loader2, Zap, Camera, RotateCcw, Clock, Coins, Heart, Plus, Trash2, GripVertical, Power, Bell, FileText, UserPlus, LogIn, MessageSquare, Phone, Link, Hash } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import { fetchSettings, savePlatformSetting, fetchAvgResponseTime, fetchHealthTips, addHealthTip, editHealthTip, removeHealthTip, fetchNotificationToggles, doSetNotificationToggle, doTestOpenAIConnection } from '@/lib/actions';
+import { fetchSettings, savePlatformSetting, fetchAvgResponseTime, fetchHealthTips, addHealthTip, editHealthTip, removeHealthTip, fetchNotificationToggles, doSetNotificationToggle, doTestOpenAIConnection, fetchFastTrackSettings, doUpdateFastTrackGlobal } from '@/lib/actions';
 import { AI, CONSULT, PAYOUT, EXCHANGE, SECURITY, COUNTRIES } from '@cliniqone/config';
 
 type Setting = { id: string; key: string; value: string; category: string; description: string | null };
@@ -1238,6 +1238,190 @@ function MetaWhatsAppConfig({
     );
 }
 
+// ── Fast Track Configuration ───────────────────
+function FastTrackConfig({ onSaved }: { onSaved: () => void }) {
+    const [loading, setLoading] = useState(true);
+    const [globalEnabled, setGlobalEnabled] = useState(true);
+    const [seqOverrides, setSeqOverrides] = useState<any[]>([]);
+    const [docOverrides, setDocOverrides] = useState<any[]>([]);
+    const [saving, setSaving] = useState(false);
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    const showToast = useCallback((type: 'success' | 'error', message: string) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    }, []);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await fetchFastTrackSettings();
+            setGlobalEnabled(data.globalEnabled);
+            setSeqOverrides(data.sequenceOverrides || []);
+            setDocOverrides(data.doctorOverrides || []);
+        } catch (e) { console.error(e); }
+        setLoading(false);
+    }, []);
+
+    useEffect(() => { load(); }, [load]);
+
+    const handleToggle = async () => {
+        setSaving(true);
+        try {
+            await doUpdateFastTrackGlobal(!globalEnabled);
+            setGlobalEnabled(!globalEnabled);
+            showToast('success', `Fast Track ${!globalEnabled ? 'enabled' : 'disabled'} globally`);
+            onSaved();
+        } catch {
+            showToast('error', 'Failed to update');
+        }
+        setSaving(false);
+    };
+
+    const modeLabel = (m: string) => {
+        switch (m) {
+            case 'allow_choice': return 'Patient Choice';
+            case 'force_full': return 'Force Full Intake';
+            case 'force_fast': return 'Auto-Skip';
+            default: return m;
+        }
+    };
+
+    const modeColor = (m: string) => {
+        switch (m) {
+            case 'allow_choice': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+            case 'force_full': return 'text-red-400 bg-red-500/10 border-red-500/20';
+            case 'force_fast': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+            default: return 'text-gray-400 bg-gray-500/10 border-gray-500/20';
+        }
+    };
+
+    return (
+        <div className="glass rounded-2xl p-4 md:p-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-400 to-red-400" />
+
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-500/15 rounded-xl flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-text-primary">Fast Track (Skip-to-Summary)</h3>
+                        <p className="text-xs text-text-muted">Allow patients to skip post-HPI sections and jump directly to a summary report</p>
+                    </div>
+                </div>
+
+                {/* Global Toggle */}
+                {!loading && (
+                    <button
+                        onClick={handleToggle}
+                        disabled={saving}
+                        className={`relative w-14 h-7 rounded-full transition-colors ${
+                            globalEnabled ? 'bg-accent' : 'bg-gray-600'
+                        } ${saving ? 'opacity-50' : ''}`}
+                    >
+                        <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow ${
+                            globalEnabled ? 'translate-x-7' : 'translate-x-0.5'
+                        }`} />
+                    </button>
+                )}
+            </div>
+
+            {loading ? (
+                <div className="flex items-center justify-center h-16">
+                    <Loader2 className="w-5 h-5 animate-spin text-text-muted" />
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {/* Status */}
+                    <div className={`p-4 rounded-2xl border flex items-center gap-3 ${
+                        globalEnabled
+                            ? 'bg-emerald-500/5 border-emerald-500/20'
+                            : 'bg-red-500/5 border-red-500/20'
+                    }`}>
+                        {globalEnabled ? (
+                            <CheckCircle className="w-5 h-5 text-emerald-400" />
+                        ) : (
+                            <XCircle className="w-5 h-5 text-red-400" />
+                        )}
+                        <div>
+                            <p className="text-sm font-bold">
+                                {globalEnabled ? 'Fast Track is ON' : 'Fast Track is OFF'}
+                            </p>
+                            <p className="text-[11px] text-text-muted">
+                                {globalEnabled
+                                    ? 'Patients will see a choice to skip to summary after HPI (unless overridden per specialty/doctor).'
+                                    : 'All patients complete the full intake sequence. No skip option is shown.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Hierarchy explanation */}
+                    <div className="p-4 rounded-2xl bg-bg-elevated border border-border">
+                        <p className="text-xs font-bold text-text-muted mb-2">3-TIER OVERRIDE HIERARCHY</p>
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                            <span className="px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">Doctor</span>
+                            <span>→</span>
+                            <span className="px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold">Specialty</span>
+                            <span>→</span>
+                            <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold">Global</span>
+                        </div>
+                        <p className="text-[10px] text-text-muted mt-2">
+                            Doctor-level overrides take priority over specialty, which takes priority over the global toggle above.
+                        </p>
+                    </div>
+
+                    {/* Active overrides */}
+                    {(seqOverrides.length > 0 || docOverrides.length > 0) && (
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-text-muted">ACTIVE OVERRIDES</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {seqOverrides.map((s: any) => (
+                                    <div key={s.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-elevated border border-border">
+                                        <div className="flex items-center gap-2">
+                                            <Stethoscope className="w-4 h-4 text-indigo-400" />
+                                            <span className="text-sm font-medium">{s.name}</span>
+                                        </div>
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${modeColor(s.fast_track_mode)}`}>
+                                            {modeLabel(s.fast_track_mode)}
+                                        </span>
+                                    </div>
+                                ))}
+                                {docOverrides.map((d: any) => (
+                                    <div key={d.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-elevated border border-border">
+                                        <div className="flex items-center gap-2">
+                                            <UserPlus className="w-4 h-4 text-amber-400" />
+                                            <span className="text-sm font-medium">{d.name}</span>
+                                            <span className="text-[10px] text-text-muted">({d.specialty})</span>
+                                        </div>
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${modeColor(d.fast_track_mode)}`}>
+                                            {modeLabel(d.fast_track_mode)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Toast */}
+            {toast && (
+                <div
+                    className={`absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg animate-fade-in ${
+                        toast.type === 'success'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                    }`}
+                >
+                    {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    {toast.message}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Main Page ────────────────────────────────
 export default function SettingsPage() {
     const [dbSettings, setDbSettings] = useState<Setting[]>([]);
@@ -1287,6 +1471,9 @@ export default function SettingsPage() {
 
                         {/* Meta WhatsApp Cloud API Config */}
                         <MetaWhatsAppConfig dbSettings={dbSettings} onSaved={loadSettings} />
+
+                        {/* Fast Track (Skip-to-Summary) Config */}
+                        <FastTrackConfig onSaved={loadSettings} />
 
                         {/* Read-only config sections */}
                         {Object.entries(defaultSettings).map(([key, section]) => {
