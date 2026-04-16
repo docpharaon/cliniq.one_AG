@@ -1,5 +1,16 @@
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { haptic } from '../../hooks/useHaptics';
+import { colors, typography, Gem, Siren, CheckCircle, XCircle, AlertTriangle, FileText, Edit, Smartphone, Send } from '@cliniqone/ui';
+import { useConsultationDetail, useConsultationReports, useWaSession, useCreateFollowUpRequest } from '../../hooks/useDoctorData';
+import { useAuthStore } from '../../stores/authStore';
+import { BrandSpinner } from '../../components/BrandSpinner';
+import { BackButton } from '../../components/BackButton';
+import { RefundRequestModal } from '../../components/RefundRequestModal';
+import { useToast } from '../../components/ToastProvider';
 import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties } from 'react';
+import type { ConsultationReport } from '../../hooks/useDoctorData';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
@@ -25,15 +36,22 @@ function Tag({ label, color }: { label: string; color: string }) {
     );
 }
 
+export function ConsultationDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { t, isRTL, locale } = useI18n();
+    const { doctor } = useAuthStore();
+    const toast = useToast((s) => s.show);
     const { data: consultation, isLoading, error } = useConsultationDetail(id || '');
     const [showRefund, setShowRefund] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const canRefund = consultation && ['assigned', 'in_progress', 'report_ready'].includes(consultation.status);
     const { data: reports } = useConsultationReports(id || '');
     const [selectedReport, setSelectedReport] = useState<ConsultationReport | null>(null);
+    const { data: waSession } = useWaSession(id || '');
+    const followUpMutation = useCreateFollowUpRequest();
+    const [showWaRequest, setShowWaRequest] = useState(false);
+    const [waQuestion, setWaQuestion] = useState('');
 
     if (isLoading) {
         return <BrandSpinner message={t('doctor.loadingPatientFile')} />;
@@ -293,6 +311,95 @@ function Tag({ label, color }: { label: string; color: string }) {
                         <InfoRow label={t('doctor.tokenCost')} value={`${consultation.token_cost || 3} tokens`} isRTL={isRTL} />
                     </Section>
 
+                    {/* WA Request Info Action */}
+                    {waSession && (
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                <Smartphone size={16} color="#25D366" />
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#25D366' }}>{t('doctor.waSource')}</span>
+                                {waSession.fast_track_mode && (
+                                    <span style={{ fontSize: 10, color: colors.warning, backgroundColor: colors.warningFaded, paddingInline: 8, paddingBlock: 2, borderRadius: 6, fontWeight: 600 }}>Fast-Track</span>
+                                )}
+                            </div>
+
+                            <button
+                                style={{ ...s.waRequestBtn, flexDirection: isRTL ? 'row-reverse' : 'row' }}
+                                className="pressable"
+                                onClick={() => { haptic.medium(); setShowWaRequest(!showWaRequest); }}
+                            >
+                                <Smartphone size={16} color="#25D366" />
+                                <span style={{ fontSize: 14, fontWeight: 700, color: '#25D366' }}>{t('doctor.requestInfoWa')}</span>
+                            </button>
+
+                            {showWaRequest && (
+                                <div style={{ backgroundColor: colors.bgSecondary, borderRadius: 14, padding: 16, marginTop: 10, border: `1px solid ${colors.border}` }}>
+                                    {waSession.skipped_sections && waSession.skipped_sections.length > 0 && (
+                                        <div style={{ marginBottom: 12 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: colors.textTertiary, textTransform: 'uppercase' as any, letterSpacing: 0.8, marginBottom: 6, display: 'block' }}>
+                                                {t('doctor.skippedSections')}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                {waSession.skipped_sections.map((section: string) => (
+                                                    <button
+                                                        key={section}
+                                                        className="pressable"
+                                                        style={{ fontSize: 11, fontWeight: 600, color: colors.warning, backgroundColor: colors.warningFaded, paddingInline: 10, paddingBlock: 6, borderRadius: 8, border: `1px solid ${colors.warning}30` }}
+                                                        onClick={() => {
+                                                            haptic.medium();
+                                                            followUpMutation.mutate({
+                                                                consultationId: id!,
+                                                                doctorId: doctor?.id || '',
+                                                                requestType: 'text_question',
+                                                                metadata: { skipped_section: section },
+                                                            }, {
+                                                                onSuccess: () => toast(t('doctor.requestSent'), 'success'),
+                                                                onError: () => toast(t('common.error'), 'error'),
+                                                            });
+                                                        }}
+                                                    >
+                                                        {section.replace(/_/g, ' ')}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: colors.textTertiary, textTransform: 'uppercase' as any, letterSpacing: 0.8, marginBottom: 6, display: 'block' }}>
+                                        {t('doctor.customQuestion')}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: 8, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                                        <input
+                                            type="text"
+                                            value={waQuestion}
+                                            onChange={(e) => setWaQuestion(e.target.value)}
+                                            placeholder={t('doctor.addCustomQuestion')}
+                                            style={{ flex: 1, fontSize: 13, padding: '10px 14px', borderRadius: 10, border: `1px solid ${colors.border}`, backgroundColor: colors.bgPrimary, color: colors.textPrimary, outline: 'none' }}
+                                        />
+                                        <button
+                                            className="pressable"
+                                            disabled={!waQuestion.trim() || followUpMutation.isPending}
+                                            style={{ backgroundColor: '#25D366', borderRadius: 10, paddingInline: 14, opacity: !waQuestion.trim() ? 0.4 : 1 }}
+                                            onClick={() => {
+                                                haptic.medium();
+                                                followUpMutation.mutate({
+                                                    consultationId: id!,
+                                                    doctorId: doctor?.id || '',
+                                                    requestType: 'text_question',
+                                                    metadata: { question: waQuestion },
+                                                }, {
+                                                    onSuccess: () => { toast(t('doctor.requestSent'), 'success'); setWaQuestion(''); },
+                                                    onError: () => toast(t('common.error'), 'error'),
+                                                });
+                                            }}
+                                        >
+                                            <Send size={16} color="#fff" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Refund Button */}
                     {canRefund && (
                         <button style={{ ...s.refundBtn, flexDirection: isRTL ? 'row-reverse' : 'row' }} className="pressable" onClick={() => { haptic.warning(); setShowRefund(true); }}>
@@ -345,5 +452,6 @@ const s: Record<string, CSSProperties> = {
     retryBtn: { backgroundColor: colors.accentTeal, borderRadius: 12, paddingInline: 24, paddingBlock: 12 },
     composeBtn: { width: '100%', backgroundColor: colors.accentTeal, borderRadius: 16, paddingBlock: 18, marginTop: 8 },
     refundBtn: { width: '100%', backgroundColor: colors.warningFaded, border: `1px solid ${colors.warning}`, borderRadius: 16, paddingBlock: 16, marginTop: 12 },
+    waRequestBtn: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#25D36612', border: '1px solid #25D36640', borderRadius: 14, paddingBlock: 14 },
     photoOverlay: { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 101 },
 };

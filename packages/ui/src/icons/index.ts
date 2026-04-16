@@ -6,7 +6,7 @@ export type { CliniqIconProps } from './types';
 export { Stethoscope, Pill, Brain, Bone, TestTube, Hospital, Microscope, Skincare, Nutrition, Baby, Doctor, Bot, Therapy, Ambulance } from './medical';
 
 // Navigation
-export { Search, Home, Settings, User, Users, Bell, Eye, EyeOff, Globe, LogOut, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, Moon, Sun, Monitor } from './navigation';
+export { Search, Home, Settings, User, Users, Bell, Eye, EyeOff, Globe, LogOut, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, Moon, Sun, Monitor, MapPin, Plus, Phone } from './navigation';
 
 // Actions
 export { Camera, Upload, Download, Save, Trash, Refresh, Sparkles, Paperclip, Edit, Send, Share, Mic, Keyboard, ArrowUp, X, Square, PointerFinger, RefreshCcw } from './actions';

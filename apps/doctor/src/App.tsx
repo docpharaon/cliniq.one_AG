@@ -21,10 +21,13 @@ import { QueuePage } from './pages/tabs/QueuePage';
 import { AnalyticsPage } from './pages/tabs/AnalyticsPage';
 import { ProfilePage } from './pages/tabs/ProfilePage';
 import { SettingsPage } from './pages/tabs/SettingsPage';
+import { CalendarPage } from './pages/tabs/CalendarPage';
 import { ConsultationDetailPage } from './pages/consultation/ConsultationDetailPage';
 import { RespondPage } from './pages/consultation/RespondPage';
 import { InterventionOrderPage } from './pages/consultation/InterventionOrderPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { LocationsPage } from './pages/LocationsPage';
+import { QrCardPage } from './pages/QrCardPage';
 import { LanguagePage } from './pages/settings/LanguagePage';
 import { DeleteAccountPage } from './pages/settings/DeleteAccountPage';
 import { NotificationSettingsPage } from './pages/settings/NotificationSettingsPage';
@@ -158,6 +161,7 @@ function AppInner() {
                 <Route path="/tabs" element={<RequireAuth><TabLayout /></RequireAuth>}>
                     <Route index element={<HomePage />} />
                     <Route path="queue" element={<QueuePage />} />
+                    <Route path="calendar" element={<CalendarPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="settings" element={<SettingsPage />} />
@@ -176,6 +180,10 @@ function AppInner() {
                 <Route path="/settings/delete-account" element={<RequireAuth><DeleteAccountPage /></RequireAuth>} />
                 <Route path="/settings/notifications" element={<RequireAuth><NotificationSettingsPage /></RequireAuth>} />
                 <Route path="/settings/about" element={<RequireAuth><AboutPage /></RequireAuth>} />
+
+                {/* Location & QR routes (protected) */}
+                <Route path="/locations" element={<RequireAuth><LocationsPage /></RequireAuth>} />
+                <Route path="/qr-card" element={<RequireAuth><QrCardPage /></RequireAuth>} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

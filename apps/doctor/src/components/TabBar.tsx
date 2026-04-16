@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { haptic } from '../hooks/useHaptics';
-import { typography, Home, ClipboardList, BarChart, User, Settings, useTheme } from '@cliniqone/ui';
+import { typography, Home, ClipboardList, Calendar, User, useTheme } from '@cliniqone/ui';
 import { useI18n } from '@cliniqone/i18n';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CliniqIconProps } from '@cliniqone/ui';
@@ -10,11 +10,10 @@ export function TabBar() {
     const { t, isRTL } = useI18n();
 
     const tabs: { path: string; label: string; Icon: (p: CliniqIconProps) => ReactNode; end?: boolean }[] = [
-        { path: '/tabs',         label: t('doctor.home'),      Icon: Home, end: true },
-        { path: '/tabs/queue',   label: t('doctor.queue'),     Icon: ClipboardList },
-        { path: '/tabs/analytics', label: t('doctor.analytics'), Icon: BarChart },
-        { path: '/tabs/profile', label: t('doctor.profile'),   Icon: User },
-        { path: '/tabs/settings', label: t('doctor.settings'),  Icon: Settings },
+        { path: '/tabs',           label: t('doctor.home'),      Icon: Home, end: true },
+        { path: '/tabs/queue',     label: t('doctor.queue'),     Icon: ClipboardList },
+        { path: '/tabs/calendar',  label: t('doctor.calendar'),  Icon: Calendar },
+        { path: '/tabs/profile',   label: t('doctor.myProfile'), Icon: User },
     ];
 
     const tabBarStyle: CSSProperties = {

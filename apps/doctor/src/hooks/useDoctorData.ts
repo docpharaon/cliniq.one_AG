@@ -217,3 +217,223 @@ export function useConsultationReports(consultationId: string) {
         staleTime: 30_000,
     });
 }
+
+// ── WA Session for Consultation ───────────────
+export function useWaSession(consultationId: string) {
+    return useQuery({
+        queryKey: ['waSession', consultationId],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const { data, error } = await supabase
+                .from('wa_chat_sessions')
+                .select('id, phone_number, current_node, language, fast_track_mode, skipped_sections, created_at')
+                .eq('consultation_id', consultationId)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!consultationId,
+        staleTime: 60_000,
+    });
+}
+
+// ── Create WA Follow-Up Request (mutation) ────
+export function useCreateFollowUpRequest() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (params: {
+            consultationId: string;
+            doctorId: string;
+            requestType: 'photo' | 'lab_result' | 'text_question' | 'medication_label';
+            metadata?: Record<string, unknown>;
+        }) => {
+            const { supabase } = await import('@cliniqone/api');
+            const { data, error } = await supabase
+                .from('wa_doctor_requests')
+                .insert({
+                    consultation_id: params.consultationId,
+                    doctor_id: params.doctorId,
+                    request_type: params.requestType,
+                    metadata: params.metadata || {},
+                    status: 'pending',
+                })
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: (_data, vars) => {
+            queryClient.invalidateQueries({ queryKey: ['waFollowUps', vars.consultationId] });
+            queryClient.invalidateQueries({ queryKey: ['consultationDetail', vars.consultationId] });
+        },
+    });
+}
+
+// ── WA Follow-Up Requests for a Consultation ──
+export function useWaFollowUps(consultationId: string) {
+    return useQuery({
+        queryKey: ['waFollowUps', consultationId],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const { data, error } = await supabase
+                .from('wa_doctor_requests')
+                .select('*')
+                .eq('consultation_id', consultationId)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!consultationId,
+        staleTime: 15_000,
+    });
+}
+
+// ── Today's Bookings for Doctor ───────────────
+export function useTodaysBookings(doctorId: string) {
+    return useQuery({
+        queryKey: ['todaysBookings', doctorId],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const today = new Date();
+            const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+            const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+            const { data, error } = await supabase
+                .from('wa_bookings')
+                .select('*, patient:patients(nickname, phone_number, gender, year_of_birth), location:doctor_locations(name, city)')
+                .eq('doctor_id', doctorId)
+                .gte('booking_date', startOfDay)
+                .lt('booking_date', endOfDay)
+                .order('time_slot', { ascending: true });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!doctorId,
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+    });
+}
+
+// ── Bookings for a Specific Date ──────────────
+export function useDateBookings(doctorId: string, date: string) {
+    return useQuery({
+        queryKey: ['dateBookings', doctorId, date],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const startOfDay = new Date(date).toISOString();
+            const endOfDay = new Date(new Date(date).getTime() + 86400000).toISOString();
+            const { data, error } = await supabase
+                .from('wa_bookings')
+                .select('*, patient:patients(nickname, phone_number, gender, year_of_birth), location:doctor_locations(name, city)')
+                .eq('doctor_id', doctorId)
+                .gte('booking_date', startOfDay)
+                .lt('booking_date', endOfDay)
+                .order('time_slot', { ascending: true });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!doctorId && !!date,
+        staleTime: 30_000,
+    });
+}
+
+// ── Update Booking Status (mutation) ──────────
+export function useUpdateBookingStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
+            const { supabase } = await import('@cliniqone/api');
+            const { error } = await supabase
+                .from('wa_bookings')
+                .update({ status })
+                .eq('id', bookingId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['todaysBookings'] });
+            queryClient.invalidateQueries({ queryKey: ['dateBookings'] });
+        },
+    });
+}
+
+// ── Doctor Locations (admin-gated) ────────────
+export function useDoctorLocations(doctorId: string) {
+    return useQuery({
+        queryKey: ['doctorLocations', doctorId],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const { data, error } = await supabase
+                .from('doctor_locations')
+                .select('*, hours:doctor_location_hours(*)')
+                .eq('doctor_id', doctorId)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!doctorId,
+        staleTime: 60_000,
+    });
+}
+
+// ── Create / Update Location (pending approval) ─
+export function useUpsertLocation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (params: {
+            id?: string;
+            doctorId: string;
+            name: string;
+            address?: string;
+            city?: string;
+            country?: string;
+            bookingMode?: string;
+            slotDuration?: number;
+            callCenterPhone?: string;
+        }) => {
+            const { supabase } = await import('@cliniqone/api');
+            const payload = {
+                doctor_id: params.doctorId,
+                name: params.name,
+                address: params.address || '',
+                city: params.city || '',
+                country: params.country || '',
+                booking_mode: params.bookingMode || 'wa_direct',
+                slot_duration_min: params.slotDuration || 15,
+                call_center_phone: params.callCenterPhone || null,
+                approval_status: 'pending_review' as const,
+            };
+            if (params.id) {
+                const { error } = await supabase.from('doctor_locations').update(payload).eq('id', params.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('doctor_locations').insert(payload);
+                if (error) throw error;
+            }
+        },
+        onSuccess: (_data, vars) => {
+            queryClient.invalidateQueries({ queryKey: ['doctorLocations', vars.doctorId] });
+        },
+    });
+}
+
+// ── Doctor Subscription (feature flags) ───────
+export function useDoctorSubscription(doctorId: string) {
+    return useQuery({
+        queryKey: ['doctorSubscription', doctorId],
+        queryFn: async () => {
+            const { supabase } = await import('@cliniqone/api');
+            const { data, error } = await supabase
+                .from('doctor_subscriptions')
+                .select('*')
+                .eq('doctor_id', doctorId)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!doctorId,
+        staleTime: 300_000,
+    });
+}
+

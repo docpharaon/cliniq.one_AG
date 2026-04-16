@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, Clock, Siren, CheckCircle, Gem, ClipboardList, PartyPopper, Zap, Coins, Settings, Info, Bell } from '@cliniqone/ui';
+import { colors, typography, Clock, Siren, CheckCircle, Gem, ClipboardList, PartyPopper, Zap, Coins, Settings, Calendar, Bell } from '@cliniqone/ui';
 import type { CliniqIconProps } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
-import { useDoctorStats, usePendingQueue, useDoctorConsultations } from '../../hooks/useDoctorData';
+import { useDoctorStats, usePendingQueue, useDoctorConsultations, useTodaysBookings } from '../../hooks/useDoctorData';
 import { useDoctorNotifications } from '../../hooks/useDoctorNotifications';
 import { BrandSpinner } from '../../components/BrandSpinner';
 import { PullToRefresh } from '../../components/PullToRefresh';
@@ -38,6 +38,8 @@ export function HomePage() {
     const urgentCount = allQueueItems.filter((c: any) => c.priority === 'urgent').length;
     const queuePreview = allQueueItems.slice(0, 3);
     const queueLoading = pendingLoading || myLoading;
+    const { data: todaysBookings } = useTodaysBookings(doctor?.id || '');
+    const appointmentCount = todaysBookings?.length ?? 0;
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -47,9 +49,9 @@ export function HomePage() {
 
     const quickActions: { Icon: (p: CliniqIconProps) => ReactNode; label: string; route: string }[] = [
         { Icon: ClipboardList, label: t('doctor.queue'), route: '/tabs/queue' },
+        { Icon: Calendar, label: t('doctor.calendar'), route: '/tabs/calendar' },
         { Icon: Coins, label: t('doctor.earnings'), route: '/tabs/analytics' },
         { Icon: Settings, label: t('doctor.settings'), route: '/tabs/settings' },
-        { Icon: Info, label: t('doctor.help'), route: '/tabs/settings' },
     ];
 
     return (
@@ -117,7 +119,7 @@ export function HomePage() {
                     <StatCard Icon={Clock} label={t('doctor.inQueue')} value={queueCount} color={queueCount > 5 ? colors.error : queueCount > 0 ? colors.warning : colors.success} />
                     <StatCard Icon={Siren} label={t('doctor.urgentStatus')} value={urgentCount} color={colors.error} />
                     <StatCard Icon={CheckCircle} label={t('doctor.done')} value={stats?.consultations_today ?? 0} color={colors.success} />
-                    <StatCard Icon={Gem} label={t('doctor.tokens')} value={stats?.tokens_earned ?? 0} color={colors.accentTeal} />
+                    <StatCard Icon={Calendar} label={t('doctor.todaysAppointments')} value={appointmentCount} color={colors.purple || '#8B5CF6'} />
                 </div>
 
                 {/* Queue Preview */}

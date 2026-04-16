@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, ClipboardList, PartyPopper, Siren, Bot, Gem, CheckCircle, Clock } from '@cliniqone/ui';
+import { colors, typography, ClipboardList, PartyPopper, Siren, Bot, Gem, CheckCircle, Clock, Smartphone } from '@cliniqone/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { usePendingQueue, useClaimConsultation, useDoctorConsultations } from '../../hooks/useDoctorData';
 import { BrandSpinner } from '../../components/BrandSpinner';
@@ -160,6 +160,11 @@ export function QueuePage() {
                                 )}
                                 <div style={{ ...s.cardFooter, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     <span style={{ fontSize: 11, color: colors.accentTeal }}>{item.specialty}</span>
+                                    {(item as any).source === 'whatsapp' && (
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#25D366', backgroundColor: '#25D36618', paddingInline: 7, paddingBlock: 2, borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                            <Smartphone size={10} color="#25D366" /> {t('doctor.waSource')}
+                                        </span>
+                                    )}
                                     <span style={{ fontSize: 11, color: colors.gold, [isRTL ? 'marginRight' : 'marginLeft']: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gem size={11} color={colors.gold} /> {item.token_cost || 3}</span>
                                 </div>
                             </button>

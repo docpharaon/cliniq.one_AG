@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { haptic } from '../../hooks/useHaptics';
-import { colors, typography, User, Stethoscope, Mail, Star, Share, Coins, Gem, CheckCircle, ClipboardList } from '@cliniqone/ui';
+import { colors, typography, User, Stethoscope, Mail, Star, Share, Coins, Gem, CheckCircle, ClipboardList, Settings, Calendar, MapPin, Smartphone } from '@cliniqone/ui';
+import { useI18n } from '@cliniqone/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useToggleAccepting, useUpdateDoctorProfile } from '../../hooks/useDoctorData';
 import { useToast } from '../../components/ToastProvider';
@@ -16,6 +18,7 @@ function InfoRow({ label, value, isRTL }: { label: string; value: string; isRTL:
 }
 
 export function ProfilePage() {
+    const navigate = useNavigate();
     const { doctor, session, setDoctor } = useAuthStore();
     const [isAccepting, setIsAccepting] = useState(doctor?.is_accepting ?? true);
     const [dailyLimit, setDailyLimit] = useState(doctor?.daily_limit ?? 10);
@@ -158,6 +161,32 @@ export function ProfilePage() {
                         <span style={{ fontSize: 11, color: colors.textTertiary, marginTop: 4, display: 'block', textAlign: isRTL ? 'right' : 'left' }}>≈ {((doctor?.tokens_earned || 0) * 5).toLocaleString()} SAR</span>
                     </div>
                 </div>
+
+                {/* Quick Links (Settings, Locations, QR Card) */}
+                <div style={s.section}>
+                    <span style={{ ...s.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
+                        <Settings size={16} color={colors.textPrimary} /> {t('doctor.settings')}
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {[
+                            { icon: <Settings size={18} color={colors.accentTeal} />, label: t('doctor.settings'), route: '/tabs/settings' },
+                            { icon: <Calendar size={18} color="#8B5CF6" />, label: t('doctor.calendar'), route: '/tabs/calendar' },
+                            { icon: <MapPin size={18} color={colors.warning} />, label: t('doctor.clinicLocations'), route: '/locations' },
+                            { icon: <Smartphone size={18} color="#25D366" />, label: t('doctor.myQrCard'), route: '/qr-card' },
+                        ].map((item) => (
+                            <button
+                                key={item.route}
+                                style={{ ...s.quickLinkBtn, flexDirection: isRTL ? 'row-reverse' : 'row' }}
+                                className="pressable"
+                                onClick={() => { haptic.select(); navigate(item.route); }}
+                            >
+                                {item.icon}
+                                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: colors.textPrimary, textAlign: isRTL ? 'right' : 'left' }}>{item.label}</span>
+                                <span style={{ fontSize: 18, color: colors.textTertiary }}>{isRTL ? '‹' : '›'}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -178,4 +207,9 @@ const s: Record<string, CSSProperties> = {
     counterBtnText: { fontSize: typography.h3.fontSize, color: colors.textPrimary },
     shareBtn: { width: '100%', backgroundColor: colors.accentTeal, borderRadius: 12, paddingBlock: 12, marginBottom: 8 },
     infoRow: { display: 'flex', justifyContent: 'space-between', paddingBlock: 10, borderBottom: `1px solid ${colors.border}` },
+    quickLinkBtn: {
+        display: 'flex', alignItems: 'center', gap: 12,
+        backgroundColor: colors.bgSecondary, borderRadius: 14,
+        padding: '14px 16px', border: `1px solid ${colors.border}`,
+    },
 };
