@@ -1,5 +1,16 @@
-import { useI18n } from '@cliniqone/i18n';
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@cliniqone/i18n';
+import { supabase } from '@cliniqone/api';
+import { useAuthStore } from '../../stores/authStore';
+import { handleGoogleSignIn } from '../../services/googleAuth';
+import { handleAppleSignIn } from '../../services/appleAuth';
+import { NoInternetOverlay } from '../../components/NoInternetOverlay';
+import logoImg from '../../assets/logo.png';
+import { SocialLoginButton } from '../../components/SocialLoginButton';
+import { colors, typography, spacing, radius, AlertTriangle, EyeOff, Eye } from '@cliniqone/ui';
+import { haptic } from '../../hooks/useHaptics';
 
 export function LoginPage() {
     const navigate = useNavigate();

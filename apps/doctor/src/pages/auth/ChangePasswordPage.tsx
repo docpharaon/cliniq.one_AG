@@ -1,5 +1,10 @@
-import { useI18n } from '@cliniqone/i18n';
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useI18n } from '@cliniqone/i18n';
+import { supabase, getDoctorProfile } from '@cliniqone/api';
+import { useAuthStore } from '../../stores/authStore';
+import { colors, typography, Lock, AlertTriangle } from '@cliniqone/ui';
 
 export function ChangePasswordPage() {
     const { session, doctor } = useAuthStore();

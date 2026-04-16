@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@cliniqone/i18n';
 import { colors, spacing, radius, Edit, FileText, Search, Calendar, CheckCircle, PartyPopper, XCircle, Refresh, Send, ClipboardList, AlertTriangle, Camera, Smartphone, Share } from '@cliniqone/ui';

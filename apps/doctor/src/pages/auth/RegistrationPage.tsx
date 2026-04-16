@@ -327,7 +327,7 @@ export function RegistrationPage() {
                     <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: `${colors.success}10`, borderRadius: radius.md, border: `1px solid ${colors.success}30` }}>
                         <span style={{ fontSize: 13, color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                             <CheckCircle size={14} color={colors.success} /> 
-                            {t('doctor.registration.validInvite', { specialty: SPECIALTIES_RAW.find(sp => sp.value === inviteSpecialty)?.labelKey ? t(SPECIALTIES_RAW.find(sp => sp.value === inviteSpecialty)!.labelKey) : inviteSpecialty })}
+                            {t('doctor.registration.validInvite', { specialty: SPECIALTIES_RAW.find(sp => sp.value === inviteSpecialty)?.labelKey ? t(SPECIALTIES_RAW.find(sp => sp.value === inviteSpecialty)!.labelKey) : (inviteSpecialty || '') })}
                         </span>
                     </div>
                 )}
