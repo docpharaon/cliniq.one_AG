@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { colors, typography, ClipboardList, Microscope, Camera, Doctor, Stethoscope, Calendar, Search, CheckCircle, Send } from '@cliniqone/ui';
+import { useI18n } from '@cliniqone/i18n';
 import type { InterventionType, InterventionPriority, Specialty, CatalogIntervention } from '@cliniqone/types';
 import { SPECIALTY_INTERVENTIONS, INTERVENTION_TYPE_LABELS } from '@cliniqone/types';
 import { useCreateInterventionOrder } from '../../hooks/useDoctorData';
@@ -40,7 +41,7 @@ export function InterventionOrderPage() {
     const catalog = SPECIALTY_INTERVENTIONS[specialty] || [];
     const { doctor } = useAuthStore();
     const createOrderMutation = useCreateInterventionOrder();
-    const { t, isRTL } = useI18n();
+    const { t, isRTL, locale } = useI18n();
 
     const [filter, setFilter] = useState<FilterType>('all');
     const [search, setSearch] = useState('');

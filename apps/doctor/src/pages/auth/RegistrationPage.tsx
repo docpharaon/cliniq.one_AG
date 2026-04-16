@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@cliniqone/i18n';
 import { colors, spacing, radius, Stethoscope, Doctor, Brain, Bone, Hospital, User, Key, FileText, AlertTriangle, CheckCircle, Lightbulb, Info, Globe, Send, Refresh, PartyPopper, Edit } from '@cliniqone/ui';

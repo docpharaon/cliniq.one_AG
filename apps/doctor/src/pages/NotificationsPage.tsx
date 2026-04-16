@@ -1,12 +1,23 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@cliniqone/i18n';
+import { colors, typography, ClipboardList, CheckCircle, MessageSquare, Siren, Info, Bell } from '@cliniqone/ui';
+import { useDoctorNotifications } from '../hooks/useDoctorNotifications';
+import type { DoctorNotification } from '../hooks/useDoctorNotifications';
+import { BackButton } from '../components/BackButton';
+import { haptic } from '../hooks/useHaptics';
 import type { CSSProperties, ReactNode } from 'react';
+
+function Skeleton({ width, height, borderRadius }: { width: string | number; height: number; borderRadius: number }) {
+    return <div style={{ width, height, borderRadius, backgroundColor: colors.bgTertiary, animation: 'pulse 1.5s ease-in-out infinite' }} />;
+}
 
 function NotifIcon({ type }: { type: DoctorNotification['type'] }) {
     const iconSize = 18;
     switch (type) {
         case 'assigned': return <ClipboardList size={iconSize} color={colors.accentTeal} />;
         case 'report_ready': return <CheckCircle size={iconSize} color={colors.success} />;
-        case 'message': return <MessageSquare size={iconSize} color={colors.accentBlue} />;
+        case 'message': return <MessageSquare size={iconSize} color={colors.accentBlue || colors.accentTeal} />;
         case 'system': return <Siren size={iconSize} color={colors.warning} />;
         case 'info':
         default: return <Info size={iconSize} color={colors.textTertiary} />;

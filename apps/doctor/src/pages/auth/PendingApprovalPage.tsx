@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@cliniqone/i18n';
+import { colors, typography, spacing, radius, Clock, Refresh } from '@cliniqone/ui';
+import { supabase } from '@cliniqone/api';
+import { useAuthStore } from '../../stores/authStore';
 import type { CSSProperties } from 'react';
 
 function StepItem({ num, text, done, isRTL }: { num: string; text: string; done?: boolean; isRTL?: boolean }) {

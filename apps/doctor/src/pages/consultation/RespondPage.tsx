@@ -463,9 +463,19 @@ export function RespondPage() {
             {showVoiceBar && (
                 <div style={s.voiceContainer}>
                     <VoiceInputBar
-                        {...voice}
+                        voiceState={voice.voiceState}
+                        audioLevel={voice.audioLevel}
+                        error={voice.error}
+                        voiceMode={voice.voiceMode}
+                        recordingDuration={voice.recordingDuration}
+                        isSupported={voice.isSupported}
                         isRTL={isRTL}
                         enabled={true}
+                        onStartListening={voice.startListening}
+                        onStopListening={voice.stopListening}
+                        onCancel={voice.cancelRecording}
+                        onSetVoiceMode={voice.setVoiceMode}
+                        onLockContinuous={voice.lockContinuous}
                         onSwitchToText={() => setShowVoiceBar(false)}
                         onDismissError={voice.cancelRecording}
                     />
