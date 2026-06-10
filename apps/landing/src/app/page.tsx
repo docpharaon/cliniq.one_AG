@@ -18,7 +18,6 @@ import Downloads from '@/components/Downloads';
 import TesterSignup from '@/components/TesterSignup';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
-import PasswordGate from '@/components/PasswordGate';
 
 function PageContent() {
     const { dir, locale } = useI18n();
@@ -74,9 +73,7 @@ function PageContent() {
 export default function Home() {
     return (
         <I18nProvider>
-            <PasswordGate>
-                <PageContent />
-            </PasswordGate>
+            <PageContent />
         </I18nProvider>
     );
 }
