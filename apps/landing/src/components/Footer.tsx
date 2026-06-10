@@ -60,6 +60,16 @@ export default function Footer() {
                         <a href="/terms" className="hover:text-accent transition-colors">{t('footer.terms')}</a>
                         <a href="/privacy" className="hover:text-accent transition-colors">{t('footer.privacy')}</a>
                         <a href="/ai-disclosure" className="hover:text-accent transition-colors">{t('footer.ai')}</a>
+                        <span className="text-border">|</span>
+                        <a
+                            href="https://momencrafts.com"
+                            target="_blank"
+                            rel="noopener"
+                            className="inline-flex items-center gap-1.5 hover:text-accent transition-colors font-medium"
+                            title="A MomenCrafts Product"
+                        >
+                            <span style={{ fontFamily: 'monospace', letterSpacing: '0.08em', fontSize: '10px' }}>✦ MOMENCRAFTS</span>
+                        </a>
                     </div>
                 </div>
             </div>
