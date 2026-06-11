@@ -2,10 +2,6 @@ import type { Metadata } from 'next';
 import { Inter, Noto_Sans_Arabic } from 'next/font/google';
 import './globals.css';
 
-// Force dynamic rendering — avoids prerender errors for /_error:/404
-// in monorepo environments with shared React dependencies
-export const dynamic = 'force-dynamic';
-
 const inter = Inter({
     subsets: ['latin'],
     variable: '--font-inter',
